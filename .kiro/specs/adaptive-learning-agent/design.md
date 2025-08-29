@@ -175,6 +175,23 @@ class EmbeddedMemory:
 - Stability: Proven DNC architecture with gradient flow
 - Integration: Memory reads/writes are part of forward pass
 
+**DNC Training Strategy**:
+```python
+class MemoryDiagnostics:
+    def compute_memory_usage(self, read_weights: Tensor, write_weights: Tensor) -> Dict[str, float]:
+        return {
+            "memory_utilization": (read_weights.sum(dim=1) > 0.1).float().mean(),
+            "write_diversity": torch.std(write_weights, dim=1).mean(),
+            "read_concentration": (read_weights.max(dim=1)[0]).mean()
+        }
+```
+
+**Memory Learning Validation**:
+- **Curriculum**: Start with simple copy tasks, progress to associative recall
+- **Usage Monitoring**: Track memory utilization to ensure DNC is actually being used
+- **Ablation Testing**: Compare performance with/without external memory
+- **Failure Detection**: If memory usage < 10%, fall back to pure recurrent model
+
 ### 4. Sleep and Dream Cycles
 
 **Trigger Conditions**:
@@ -213,9 +230,37 @@ class SleepCycle:
 
 **Death Mechanism**:
 - Trigger: Energy ≤ 0
-- Reset: Agent position, energy, and short-term memory
-- Preservation: Core model weights and some long-term memories
-- Recovery metric: Time to re-achieve previous performance levels
+- Reset: Agent position, energy, and recurrent hidden state
+- Preservation Strategy: **Learned Meta-Memory System**
+
+**Precise Death/Rebirth Protocol**:
+```python
+class DeathManager:
+    def __init__(self):
+        self.importance_network = nn.Linear(memory_size, 1)  # Learns what to preserve
+        
+    def compute_memory_importance(self, memory_matrix: Tensor, usage_history: Tensor) -> Tensor:
+        # Neural network learns which memories are worth preserving
+        importance_scores = self.importance_network(memory_matrix)
+        # Combine with usage frequency
+        final_scores = importance_scores.squeeze() * usage_history
+        return final_scores
+        
+    def selective_reset(self, agent_state: AgentState) -> AgentState:
+        importance = self.compute_memory_importance(agent_state.memory, agent_state.usage_history)
+        # Preserve top 20% of memories by importance
+        preserve_mask = importance > torch.quantile(importance, 0.8)
+        
+        new_state = AgentState(
+            position=self.random_spawn_position(),
+            energy=100.0,
+            hidden_state=torch.zeros_like(agent_state.hidden_state),  # Reset recurrent state
+            memory=agent_state.memory * preserve_mask.unsqueeze(1),   # Selective memory preservation
+        )
+        return new_state
+```
+
+**Meta-Learning Objective**: The importance network is trained to maximize post-death recovery speed, creating a learned curriculum of what knowledge transfers across lifetimes.
 
 **Interface**:
 ```python
@@ -427,13 +472,29 @@ memory:
 
 ### Simulation-to-Reality Gap Mitigation
 
-**The Challenge**: Agent might exploit simulator quirks instead of learning general concepts.
+**The Challenge**: Agent will inevitably become a "MuJoCo Genius" specialized to simulator quirks.
 
-**Solution - Domain Randomization**:
-- Physics parameter variation (gravity, friction, mass)
-- Visual randomization (lighting, textures, camera noise)
-- Temporal randomization (action delays, sensor noise)
-- Multiple simulator backends (MuJoCo + PyBullet validation)
+**Acceptance**: This is an existential limitation. The agent will learn the "language" of discrete time steps and synthetic physics.
+
+**Mitigation Strategy**:
+- **Multi-Simulator Validation**: Train in MuJoCo, validate in PyBullet, test in Unity
+- **Abstract Sensory Modalities**: Focus on high-level concepts (spatial relationships, object permanence) rather than pixel-perfect vision
+- **Transferable Representations**: Design tasks that test general intelligence (planning, memory, adaptation) rather than simulator-specific skills
+- **Reality Check Metrics**: Measure performance on abstract reasoning tasks that don't depend on physics fidelity
+
+**Long-term Strategy**: This is a research prototype for understanding emergent intelligence principles, not a production system. The goal is to validate the theoretical framework, not create a robot-ready agent.
+
+**Empowerment Approximation**:
+```python
+def compute_empowerment_bonus(self, state: Tensor, action_history: List[Tensor]) -> float:
+    # Computationally feasible approximation
+    # Measure state diversity in recent trajectory
+    recent_states = self.state_history[-10:]  # Last 10 states
+    state_diversity = torch.std(torch.stack(recent_states), dim=0).mean()
+    return float(state_diversity.clamp(0, 1))  # Normalized diversity bonus
+```
+
+**Rationale**: True empowerment requires expensive mutual information calculation. This approximation rewards agents that visit diverse states, which correlates with empowerment while being computationally tractable.
 
 ## Error Handling
 
@@ -527,3 +588,55 @@ memory:
 - High death rate → Adjust energy parameters
 - No learning progress → Debug memory/prediction systems
 - Exploitative behaviors → Increase environment randomization
+
+## Debugging and Introspection System
+
+**The Challenge**: When runs fail, high-level metrics won't reveal the root cause. Need deep visibility into agent's "thought process."
+
+**Real-Time Monitoring Dashboard**:
+```python
+class AgentIntrospection:
+    def __init__(self):
+        self.logger = StructuredLogger()
+        
+    def log_step(self, agent_state: AgentState, predictions: Tensor, lp_signal: float):
+        self.logger.log({
+            "timestamp": time.time(),
+            "energy": agent_state.energy,
+            "position": agent_state.position.tolist(),
+            "prediction_error": float(predictions.error),
+            "lp_signal": lp_signal,
+            "memory_usage": self.compute_memory_metrics(agent_state.memory),
+            "active_goals": [g.id for g in agent_state.active_goals],
+            "attention_weights": agent_state.attention_weights.tolist()
+        })
+        
+    def generate_failure_report(self, failed_run_id: str) -> Dict:
+        # Automated analysis of failure patterns
+        logs = self.logger.get_run_logs(failed_run_id)
+        return {
+            "lp_stability": self.analyze_lp_trajectory(logs),
+            "memory_utilization": self.analyze_memory_patterns(logs),
+            "goal_progression": self.analyze_goal_lifecycle(logs),
+            "death_causes": self.analyze_death_patterns(logs)
+        }
+```
+
+**Visualization Tools**:
+- **LP Signal Trajectory**: Real-time plot of learning progress over time
+- **Memory Heatmap**: Visualization of which memory slots are being read/written
+- **Goal Timeline**: Lifecycle of goal invention, pursuit, and retirement
+- **Attention Visualization**: What the agent is "paying attention to" in its environment
+- **Energy Flow Diagram**: Sources and sinks of energy consumption
+
+**Automated Anomaly Detection**:
+- LP signal variance exceeding thresholds
+- Memory usage patterns indicating ignoring external memory
+- Repetitive behaviors suggesting local minima
+- Energy consumption patterns indicating inefficient exploration
+
+**Debug Modes**:
+- **Step-by-Step**: Pause execution and inspect internal state
+- **Replay Mode**: Re-run failed episodes with full introspection
+- **Ablation Mode**: Disable specific components to isolate failures
+- **Synthetic Input**: Feed known input patterns to test component responses
