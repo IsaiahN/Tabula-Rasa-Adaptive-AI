@@ -84,39 +84,54 @@ class PredictiveCore(nn.Module):
             self.memory = None
             memory_read_size = 0
             
-        # Prediction heads
-        prediction_input_size = hidden_size + memory_read_size
+        # Prediction heads - will be calculated dynamically based on memory state
+        self.base_hidden_size = hidden_size
+        self.memory_read_size = memory_read_size
         
-        # Visual prediction head
-        self.visual_predictor = nn.Sequential(
-            nn.Linear(prediction_input_size, hidden_size),
+    def get_prediction_input_size(self) -> int:
+        """Get the current prediction input size based on memory state."""
+        if self.use_memory and self.memory is not None:
+            return self.base_hidden_size + self.memory.num_read_heads * self.memory.word_size
+        else:
+            return self.base_hidden_size
+        
+    def _create_prediction_heads(self, input_size: int) -> Tuple[nn.Module, nn.Module, nn.Module, nn.Module]:
+        """Create prediction heads with the correct input size."""
+        visual_dim = self.visual_size[0] * self.visual_size[1] * self.visual_size[2]
+        
+        visual_predictor = nn.Sequential(
+            nn.Linear(input_size, self.hidden_size),
             nn.ReLU(),
-            nn.Linear(hidden_size, visual_dim),
-            nn.Tanh()  # Normalize visual predictions
+            nn.Linear(self.hidden_size, visual_dim),
+            nn.Tanh()
         )
         
-        # Proprioception prediction head
-        self.proprio_predictor = nn.Sequential(
-            nn.Linear(prediction_input_size, hidden_size // 2),
+        proprio_predictor = nn.Sequential(
+            nn.Linear(input_size, self.hidden_size // 2),
             nn.ReLU(),
-            nn.Linear(hidden_size // 2, proprioception_size)
+            nn.Linear(self.hidden_size // 2, self.proprioception_size)
         )
         
-        # Energy prediction head
-        self.energy_predictor = nn.Sequential(
-            nn.Linear(prediction_input_size, hidden_size // 4),
+        energy_predictor = nn.Sequential(
+            nn.Linear(input_size, self.hidden_size // 4),
             nn.ReLU(),
-            nn.Linear(hidden_size // 4, 1),
-            nn.Sigmoid()  # Energy is 0-1 normalized
-        )
-        
-        # Confidence estimation
-        self.confidence_estimator = nn.Sequential(
-            nn.Linear(prediction_input_size, hidden_size // 4),
-            nn.ReLU(),
-            nn.Linear(hidden_size // 4, 3),  # Visual, proprio, energy confidence
+            nn.Linear(self.hidden_size // 4, 1),
             nn.Sigmoid()
         )
+        
+        confidence_estimator = nn.Sequential(
+            nn.Linear(input_size, self.hidden_size // 4),
+            nn.ReLU(),
+            nn.Linear(self.hidden_size // 4, 3),
+            nn.Sigmoid()
+        )
+        
+        return visual_predictor, proprio_predictor, energy_predictor, confidence_estimator
+        
+        # Store dimensions for dynamic prediction heads
+        self.hidden_size = hidden_size
+        self.visual_size = visual_size
+        self.proprioception_size = proprioception_size
         
     def encode_sensory_input(self, sensory_input: SensoryInput) -> torch.Tensor:
         """
@@ -231,16 +246,19 @@ class PredictiveCore(nn.Module):
             combined_output = recurrent_output
             new_memory_reads = memory_reads
             
-        # Generate predictions
-        visual_pred = self.visual_predictor(combined_output)
-        proprio_pred = self.proprio_predictor(combined_output)
-        energy_pred = self.energy_predictor(combined_output)
+        # Generate predictions using dynamic prediction heads
+        prediction_input_size = combined_output.size(-1)
+        visual_predictor, proprio_predictor, energy_predictor, confidence_estimator = self._create_prediction_heads(prediction_input_size)
+        
+        visual_pred = visual_predictor(combined_output)
+        proprio_pred = proprio_predictor(combined_output)
+        energy_pred = energy_predictor(combined_output)
         
         # Reshape visual prediction
         visual_pred = visual_pred.view(batch_size, *self.visual_size)
         
         # Confidence estimation
-        confidence = self.confidence_estimator(combined_output)
+        confidence = confidence_estimator(combined_output)
         
         debug_info.update({
             'confidence': confidence,

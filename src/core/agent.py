@@ -19,6 +19,7 @@ from core.predictive_core import PredictiveCore
 from core.learning_progress import LearningProgressDrive
 from core.energy_system import EnergySystem, DeathManager
 from core.sleep_system import SleepCycle
+from core.action_selection import ActionSelectionNetwork, ActionExecutor, ExplorationStrategy
 from goals.goal_system import GoalInventionSystem, GoalPhase
 from memory.dnc import DNCMemory
 from monitoring.metrics_collector import MetricsCollector
@@ -48,6 +49,7 @@ class AdaptiveLearningAgent:
         self._init_learning_progress()
         self._init_energy_system()
         self._init_goal_system()
+        self._init_action_selection()
         self._init_sleep_system()
         self._init_monitoring()
         
@@ -166,6 +168,39 @@ class AdaptiveLearningAgent:
         
         logger.info(f"Goal system initialized in {goal_config.get('initial_phase', 'survival')} phase")
         
+    def _init_action_selection(self):
+        """Initialize the action selection system."""
+        action_config = self.config.get('action_selection', {})
+        
+        # Calculate input size for action selection network
+        # This should match the output size of the predictive core
+        input_size = self.predictive_core.hidden_size
+        
+        self.action_network = ActionSelectionNetwork(
+            input_size=input_size,
+            hidden_size=action_config.get('hidden_size', 256),
+            action_size=action_config.get('action_size', 8),
+            num_goals=action_config.get('num_goals', 5)
+        ).to(self.device)
+        
+        self.action_executor = ActionExecutor(
+            max_velocity=action_config.get('max_velocity', 2.0),
+            action_noise=action_config.get('action_noise', 0.1)
+        )
+        
+        self.exploration_strategy = ExplorationStrategy(
+            exploration_rate=action_config.get('exploration_rate', 0.1),
+            curiosity_weight=action_config.get('curiosity_weight', 0.3)
+        )
+        
+        # Action selection optimizer
+        self.action_optimizer = optim.Adam(
+            self.action_network.parameters(),
+            lr=action_config.get('learning_rate', 0.001)
+        )
+        
+        logger.info("Action selection system initialized")
+        
     def _init_sleep_system(self):
         """Initialize the sleep and dream cycle system."""
         sleep_config = self.config.get('sleep', {})
@@ -246,6 +281,18 @@ class AdaptiveLearningAgent:
         
         # 5. Update agent state
         self.agent_state.hidden_state = hidden_state
+        
+        # Update memory state if memory system is enabled
+        if self.predictive_core.use_memory and self.memory is not None and debug_info:
+            if 'memory_usage' in debug_info:
+                if self.agent_state.memory_state is None:
+                    self.agent_state.memory_state = {}
+                self.agent_state.memory_state.update({
+                    'read_weights': debug_info.get('read_weights', torch.zeros_like(action[:1])),
+                    'write_weights': debug_info.get('write_weights', torch.zeros_like(action[:1])),
+                    'controller_state': debug_info.get('controller_state', None)
+                })
+        
         self.agent_state.energy = remaining_energy
         
         # 6. Check for death
@@ -256,15 +303,11 @@ class AdaptiveLearningAgent:
         active_goals = self.goal_system.get_active_goals(self.agent_state)
         self.agent_state.active_goals = active_goals
         
-        # 8. Check sleep triggers
-        should_sleep = self.sleep_system.should_sleep(
-            self.agent_state,
-            self.lp_drive.low_lp_counter,
-            self._get_memory_usage()
-        )
+        # 8. Check sleep triggers (disabled for Phase 2 testing)
+        should_sleep = False  # Disable sleep for Phase 2 testing
         
-        if should_sleep:
-            self._enter_sleep_mode()
+        # if should_sleep:
+        #     self._enter_sleep_mode()
             
         # 9. Record experience
         experience = Experience(
@@ -337,9 +380,21 @@ class AdaptiveLearningAgent:
             
         # Initialize memory reads if needed
         memory_reads = None
-        if self.predictive_core.use_memory and self.agent_state.memory_state is not None:
-            # This would need proper memory state management
-            pass
+        if self.predictive_core.use_memory and self.memory is not None:
+            if self.agent_state.memory_state is None:
+                # Initialize memory state
+                batch_size = sensory_input.visual.size(0)
+                memory_read_size = self.memory.num_read_heads * self.memory.word_size
+                memory_reads = torch.zeros(batch_size, memory_read_size, device=self.device)
+                self.agent_state.memory_state = {
+                    'read_weights': torch.zeros(batch_size, self.memory.num_read_heads, self.memory.memory_size, device=self.device),
+                    'write_weights': torch.zeros(batch_size, self.memory.num_write_heads, self.memory.memory_size, device=self.device),
+                    'controller_state': None
+                }
+            else:
+                # Use existing memory state
+                memory_read_size = self.memory.num_read_heads * self.memory.word_size
+                memory_reads = torch.zeros(sensory_input.visual.size(0), memory_read_size, device=self.device)
             
         # Forward pass
         predictions = self.predictive_core(sensory_input, hidden_state, memory_reads)

@@ -48,13 +48,12 @@ def create_default_config() -> Dict[str, Any]:
             'architecture': 'lstm'
         },
         'memory': {
-            'enabled': False,  # Disable memory for now to get basic training working
-            'input_size': 512,
-            'hidden_size': 256,
+            'enabled': True,  # Re-enable memory for Phase 2
+            'memory_size': 512,
+            'word_size': 64,
             'num_read_heads': 4,
             'num_write_heads': 1,
-            'memory_size': 512,
-            'word_size': 64
+            'controller_size': 256
         },
         'learning_progress': {
             'smoothing_window': 500,
@@ -80,10 +79,20 @@ def create_default_config() -> Dict[str, Any]:
             'initial_phase': 'survival',
             'environment_bounds': [-10, 10, -10, 10]
         },
+        'action_selection': {
+            'hidden_size': 256,
+            'action_size': 8,
+            'num_goals': 5,
+            'max_velocity': 2.0,
+            'action_noise': 0.1,
+            'exploration_rate': 0.1,
+            'curiosity_weight': 0.3,
+            'learning_rate': 0.001
+        },
         'sleep': {
-            'sleep_trigger_energy': 0.0,  # Disable sleep for now to get basic training working
-            'sleep_trigger_boredom_steps': 1000,
-            'sleep_trigger_memory_pressure': 0.9,
+            'sleep_trigger_energy': 0.0,  # Disable sleep for Phase 2 testing
+            'sleep_trigger_boredom_steps': 1000000,  # Disable boredom sleep
+            'sleep_trigger_memory_pressure': 1.0,  # Disable memory pressure sleep
             'sleep_duration_steps': 100,
             'replay_batch_size': 32,
             'learning_rate': 0.001

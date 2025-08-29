@@ -152,11 +152,17 @@ class SurvivalEnvironment:
         new_position, action_result = self._apply_action(agent_state, action)
         
         # Check for food consumption
-        food_consumed = self._check_food_consumption(new_position)
+        food_consumed, food_source = self._check_food_consumption(new_position)
         if food_consumed:
             action_result['food_collected'] = True
             action_result['energy_gained'] = self.food_energy_value
+            action_result['food_position'] = food_source.position.tolist()
+            # Add energy to agent
             agent.energy_system.add_energy(self.food_energy_value)
+            # Mark food source as consumed
+            food_source.is_active = False
+            food_source.last_consumed = self.time_step
+            logger.info(f"Agent collected food at {food_source.position}, gained {self.food_energy_value} energy")
         else:
             action_result['food_collected'] = False
             action_result['energy_gained'] = 0.0
@@ -248,7 +254,7 @@ class SurvivalEnvironment:
         
         return position
         
-    def _check_food_consumption(self, position: torch.Tensor) -> bool:
+    def _check_food_consumption(self, position: torch.Tensor) -> Tuple[bool, Optional[FoodSource]]:
         """Check if agent is consuming food at current position."""
         for food_source in self.food_sources:
             if not food_source.is_active:
@@ -257,13 +263,9 @@ class SurvivalEnvironment:
             # Check distance to food source
             distance = torch.norm(position - food_source.position)
             if distance < 1.5:  # Consumption radius
-                # Consume food
-                food_source.is_active = False
-                food_source.last_consumed = self.time_step
-                logger.debug(f"Food consumed at {food_source.position}")
-                return True
+                return True, food_source
                 
-        return False
+        return False, None
         
     def _check_collisions(self, position: torch.Tensor) -> bool:
         """Check for collisions with obstacles."""
