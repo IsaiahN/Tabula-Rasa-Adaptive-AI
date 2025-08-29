@@ -30,8 +30,8 @@ adaptive-learning-agent/
 
 ## Development Phases
 
-- **Phase 0** (Weeks 1-4): Component isolation and validation
-- **Phase 1** (Weeks 5-12): Integrated system development
+- **Phase 0** (Weeks 1-4): Component isolation and validation ✅
+- **Phase 1** (Weeks 5-12): Integrated system development ✅ **CURRENT**
 - **Phase 2** (Weeks 13-24): Complexity scaling and advanced features
 - **Phase 3** (Month 7+): Multi-agent and emergent behaviors
 
@@ -44,20 +44,26 @@ pip install -r requirements.txt
 ## Quick Start
 
 ```bash
-# Run basic survival test
-python experiments/phase0_survival_test.py
+# Test basic functionality
+python src/test_basic_functionality.py
 
-# Run LP drive validation
-python experiments/phase0_lp_validation.py
+# Run Phase 1 training
+python src/main_training.py
+
+# Run with custom configuration
+python src/main_training.py --config configs/phase1_config.yaml
 ```
 
 ## Key Features
 
-- **Robust Learning Progress Drive** with stability validation
-- **Differentiable Neural Computer** for embedded memory
-- **Bootstrap protection** for newborn agents
-- **Comprehensive monitoring** and introspection tools
-- **Phased development** with validation at each stage
+- **Robust Learning Progress Drive** with stability validation ✅
+- **Differentiable Neural Computer** for embedded memory ✅
+- **Bootstrap protection** for newborn agents ✅
+- **Comprehensive monitoring** and introspection tools ✅
+- **Phased development** with validation at each stage ✅
+- **Phase 1 Survival Environment** with adaptive complexity ✅
+- **Integrated Goal System** with survival objectives ✅
+- **Sleep/Dream Cycles** for offline learning ✅
 
 ## Research Goals
 
