@@ -1,0 +1,418 @@
+"""
+Differentiable Neural Computer (DNC) implementation for embedded memory.
+
+This provides external memory that integrates with the agent's forward pass,
+addressing the "external notebook" critique while maintaining proven stability.
+"""
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from typing import Tuple, Dict, Optional
+import numpy as np
+
+
+class DNCMemory(nn.Module):
+    """
+    Differentiable Neural Computer memory system.
+    
+    Based on Graves et al. 2016 with Hebbian-inspired addressing bonuses.
+    """
+    
+    def __init__(
+        self,
+        memory_size: int = 512,
+        word_size: int = 64,
+        num_read_heads: int = 4,
+        num_write_heads: int = 1,
+        controller_size: int = 256
+    ):
+        super().__init__()
+        
+        self.memory_size = memory_size
+        self.word_size = word_size
+        self.num_read_heads = num_read_heads
+        self.num_write_heads = num_write_heads
+        self.controller_size = controller_size
+        
+        # Memory matrix and usage tracking
+        self.register_buffer('memory_matrix', torch.zeros(memory_size, word_size))
+        self.register_buffer('usage_vector', torch.zeros(memory_size))
+        self.register_buffer('write_weights_history', torch.zeros(memory_size))
+        self.register_buffer('read_weights_history', torch.zeros(memory_size))
+        
+        # Temporal linking for sequence memory
+        self.register_buffer('link_matrix', torch.zeros(memory_size, memory_size))
+        self.register_buffer('precedence_weights', torch.zeros(memory_size))
+        
+        # Controller networks
+        self.controller = nn.LSTM(
+            input_size=word_size * num_read_heads,  # Previous reads
+            hidden_size=controller_size,
+            batch_first=True
+        )
+        
+        # Interface parameters
+        interface_size = (
+            num_read_heads * word_size +  # Read keys
+            num_read_heads +              # Read strengths
+            num_write_heads * word_size + # Write keys
+            num_write_heads +             # Write strengths
+            num_write_heads * word_size + # Write vectors
+            num_write_heads * word_size + # Erase vectors
+            num_write_heads +             # Free gates
+            num_write_heads +             # Allocation gates
+            num_write_heads +             # Write gates
+            num_read_heads * 3            # Read modes (backward, content, forward)
+        )
+        
+        self.interface_layer = nn.Linear(controller_size, interface_size)
+        
+        # Initialize parameters
+        self._reset_memory()
+        
+    def _reset_memory(self):
+        """Reset memory to initial state."""
+        self.memory_matrix.fill_(0.0)
+        self.usage_vector.fill_(0.0)
+        self.write_weights_history.fill_(0.0)
+        self.read_weights_history.fill_(0.0)
+        self.link_matrix.fill_(0.0)
+        self.precedence_weights.fill_(0.0)
+        
+    def forward(
+        self, 
+        input_data: torch.Tensor,
+        prev_reads: torch.Tensor,
+        controller_state: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor, Tuple[torch.Tensor, torch.Tensor], Dict[str, torch.Tensor]]:
+        """
+        Forward pass through DNC.
+        
+        Args:
+            input_data: Input to controller [batch_size, input_size]
+            prev_reads: Previous read vectors [batch_size, num_read_heads * word_size]
+            controller_state: Previous LSTM state
+            
+        Returns:
+            read_vectors: Current read vectors [batch_size, num_read_heads * word_size]
+            controller_output: Controller hidden state [batch_size, controller_size]
+            new_controller_state: New LSTM state
+            debug_info: Dictionary with debugging information
+        """
+        batch_size = input_data.size(0)
+        
+        # Controller forward pass
+        controller_input = torch.cat([input_data, prev_reads], dim=-1)
+        controller_output, new_controller_state = self.controller(
+            controller_input.unsqueeze(1), controller_state
+        )
+        controller_output = controller_output.squeeze(1)
+        
+        # Generate interface parameters
+        interface_params = self.interface_layer(controller_output)
+        
+        # Parse interface parameters
+        params = self._parse_interface_params(interface_params)
+        
+        # Memory operations
+        read_vectors, write_info = self._memory_operations(params, batch_size)
+        
+        # Update memory state
+        self._update_memory_state(write_info)
+        
+        # Prepare debug info
+        debug_info = {
+            'memory_usage': self.usage_vector.mean(),
+            'write_weights': write_info['write_weights'],
+            'read_weights': write_info['read_weights'],
+            'memory_utilization': (self.usage_vector > 0.1).float().mean()
+        }
+        
+        return read_vectors, controller_output, new_controller_state, debug_info
+        
+    def _parse_interface_params(self, interface_params: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """Parse interface parameters from controller output."""
+        batch_size = interface_params.size(0)
+        
+        # Split interface parameters
+        splits = []
+        offset = 0
+        
+        # Read parameters
+        read_keys_size = self.num_read_heads * self.word_size
+        read_keys = interface_params[:, offset:offset + read_keys_size]
+        read_keys = read_keys.view(batch_size, self.num_read_heads, self.word_size)
+        offset += read_keys_size
+        
+        read_strengths = F.softplus(interface_params[:, offset:offset + self.num_read_heads]) + 1
+        offset += self.num_read_heads
+        
+        # Write parameters
+        write_keys_size = self.num_write_heads * self.word_size
+        write_keys = interface_params[:, offset:offset + write_keys_size]
+        write_keys = write_keys.view(batch_size, self.num_write_heads, self.word_size)
+        offset += write_keys_size
+        
+        write_strengths = F.softplus(interface_params[:, offset:offset + self.num_write_heads]) + 1
+        offset += self.num_write_heads
+        
+        write_vectors = interface_params[:, offset:offset + write_keys_size]
+        write_vectors = write_vectors.view(batch_size, self.num_write_heads, self.word_size)
+        offset += write_keys_size
+        
+        erase_vectors = torch.sigmoid(interface_params[:, offset:offset + write_keys_size])
+        erase_vectors = erase_vectors.view(batch_size, self.num_write_heads, self.word_size)
+        offset += write_keys_size
+        
+        # Gates
+        free_gates = torch.sigmoid(interface_params[:, offset:offset + self.num_write_heads])
+        offset += self.num_write_heads
+        
+        allocation_gates = torch.sigmoid(interface_params[:, offset:offset + self.num_write_heads])
+        offset += self.num_write_heads
+        
+        write_gates = torch.sigmoid(interface_params[:, offset:offset + self.num_write_heads])
+        offset += self.num_write_heads
+        
+        # Read modes
+        read_modes = F.softmax(
+            interface_params[:, offset:offset + self.num_read_heads * 3].view(
+                batch_size, self.num_read_heads, 3
+            ), dim=-1
+        )
+        
+        return {
+            'read_keys': read_keys,
+            'read_strengths': read_strengths,
+            'write_keys': write_keys,
+            'write_strengths': write_strengths,
+            'write_vectors': write_vectors,
+            'erase_vectors': erase_vectors,
+            'free_gates': free_gates,
+            'allocation_gates': allocation_gates,
+            'write_gates': write_gates,
+            'read_modes': read_modes
+        }
+        
+    def _memory_operations(
+        self, 
+        params: Dict[str, torch.Tensor], 
+        batch_size: int
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Perform memory read and write operations."""
+        
+        # Content-based addressing
+        write_content_weights = self._content_addressing(
+            params['write_keys'], params['write_strengths']
+        )
+        read_content_weights = self._content_addressing(
+            params['read_keys'], params['read_strengths']
+        )
+        
+        # Allocation weights for writing
+        allocation_weights = self._allocation_addressing()
+        
+        # Combine content and allocation for write weights
+        write_weights = (
+            params['write_gates'].unsqueeze(-1) * (
+                params['allocation_gates'].unsqueeze(-1) * allocation_weights.unsqueeze(0) +
+                (1 - params['allocation_gates'].unsqueeze(-1)) * write_content_weights
+            )
+        )
+        
+        # Temporal addressing for reading
+        read_weights = self._temporal_addressing(
+            read_content_weights, params['read_modes']
+        )
+        
+        # Add Hebbian-inspired co-activation bonus
+        read_weights = self._add_hebbian_bonus(read_weights, write_weights)
+        
+        # Perform reads
+        read_vectors = torch.matmul(
+            read_weights.view(batch_size, self.num_read_heads, 1, self.memory_size),
+            self.memory_matrix.unsqueeze(0).expand(batch_size, -1, -1)
+        ).squeeze(-2)
+        
+        # Perform writes
+        self._perform_writes(
+            write_weights, params['erase_vectors'], params['write_vectors'],
+            params['free_gates']
+        )
+        
+        write_info = {
+            'write_weights': write_weights,
+            'read_weights': read_weights,
+            'allocation_weights': allocation_weights
+        }
+        
+        return read_vectors.view(batch_size, -1), write_info
+        
+    def _content_addressing(
+        self, 
+        keys: torch.Tensor, 
+        strengths: torch.Tensor
+    ) -> torch.Tensor:
+        """Content-based addressing using cosine similarity."""
+        batch_size, num_heads, word_size = keys.shape
+        
+        # Normalize keys and memory
+        keys_norm = F.normalize(keys, dim=-1)
+        memory_norm = F.normalize(self.memory_matrix, dim=-1)
+        
+        # Compute cosine similarities
+        similarities = torch.matmul(
+            keys_norm.view(batch_size * num_heads, word_size),
+            memory_norm.t()
+        ).view(batch_size, num_heads, self.memory_size)
+        
+        # Apply strength and softmax
+        weights = F.softmax(similarities * strengths.unsqueeze(-1), dim=-1)
+        
+        return weights
+        
+    def _allocation_addressing(self) -> torch.Tensor:
+        """Allocation-based addressing for finding free memory locations."""
+        # Sort usage vector to find least used locations
+        sorted_usage, indices = torch.sort(self.usage_vector)
+        
+        # Create allocation weights (prefer least used locations)
+        allocation_weights = torch.zeros_like(self.usage_vector)
+        
+        # Allocate to least used locations
+        num_allocate = min(10, self.memory_size)  # Allocate to top 10 least used
+        for i in range(num_allocate):
+            idx = indices[i]
+            allocation_weights[idx] = (num_allocate - i) / num_allocate
+            
+        # Normalize
+        allocation_weights = allocation_weights / (allocation_weights.sum() + 1e-8)
+        
+        return allocation_weights
+        
+    def _temporal_addressing(
+        self, 
+        content_weights: torch.Tensor, 
+        read_modes: torch.Tensor
+    ) -> torch.Tensor:
+        """Temporal addressing using link matrix."""
+        batch_size, num_heads, _ = content_weights.shape
+        
+        # Forward and backward weights from link matrix
+        forward_weights = torch.matmul(
+            content_weights.view(batch_size * num_heads, 1, self.memory_size),
+            self.link_matrix.unsqueeze(0).expand(batch_size * num_heads, -1, -1)
+        ).squeeze(1).view(batch_size, num_heads, self.memory_size)
+        
+        backward_weights = torch.matmul(
+            content_weights.view(batch_size * num_heads, 1, self.memory_size),
+            self.link_matrix.t().unsqueeze(0).expand(batch_size * num_heads, -1, -1)
+        ).squeeze(1).view(batch_size, num_heads, self.memory_size)
+        
+        # Combine using read modes
+        read_weights = (
+            read_modes[:, :, 0:1] * backward_weights +
+            read_modes[:, :, 1:2] * content_weights +
+            read_modes[:, :, 2:3] * forward_weights
+        )
+        
+        return read_weights
+        
+    def _add_hebbian_bonus(
+        self, 
+        read_weights: torch.Tensor, 
+        write_weights: torch.Tensor
+    ) -> torch.Tensor:
+        """Add Hebbian-inspired co-activation bonus to addressing."""
+        # Co-activation bonus based on simultaneous read/write
+        coactivation = torch.matmul(
+            read_weights.mean(dim=0, keepdim=True),  # Average across batch
+            write_weights.mean(dim=0).t()  # Average across batch and transpose
+        )
+        
+        # Small bonus for locations with high co-activation history
+        hebbian_bonus = 0.1 * coactivation.mean(dim=-1, keepdim=True)
+        
+        # Add bonus to read weights
+        enhanced_weights = read_weights + hebbian_bonus.expand_as(read_weights)
+        
+        # Renormalize
+        enhanced_weights = F.softmax(enhanced_weights, dim=-1)
+        
+        return enhanced_weights
+        
+    def _perform_writes(
+        self,
+        write_weights: torch.Tensor,
+        erase_vectors: torch.Tensor,
+        write_vectors: torch.Tensor,
+        free_gates: torch.Tensor
+    ):
+        """Perform memory write operations."""
+        batch_size = write_weights.size(0)
+        
+        # Average across batch for memory update
+        avg_write_weights = write_weights.mean(dim=0)
+        avg_erase_vectors = erase_vectors.mean(dim=0)
+        avg_write_vectors = write_vectors.mean(dim=0)
+        avg_free_gates = free_gates.mean(dim=0)
+        
+        # Erase operation
+        for head in range(self.num_write_heads):
+            erase_weights = avg_write_weights[head].unsqueeze(-1)
+            erase_vector = avg_erase_vectors[head].unsqueeze(0)
+            
+            self.memory_matrix = self.memory_matrix * (
+                1 - erase_weights * erase_vector
+            )
+            
+            # Write operation
+            write_vector = avg_write_vectors[head].unsqueeze(0)
+            self.memory_matrix = self.memory_matrix + erase_weights * write_vector
+            
+    def _update_memory_state(self, write_info: Dict[str, torch.Tensor]):
+        """Update memory usage and temporal links."""
+        write_weights = write_info['write_weights'].mean(dim=0)  # Average across batch
+        read_weights = write_info['read_weights'].mean(dim=0)    # Average across batch
+        
+        # Update usage vector
+        for head in range(self.num_write_heads):
+            self.usage_vector = (
+                self.usage_vector + write_weights[head] - 
+                self.usage_vector * write_weights[head]
+            )
+            
+        # Update precedence weights and link matrix
+        for head in range(self.num_write_heads):
+            # Update precedence
+            self.precedence_weights = (
+                (1 - write_weights[head].sum()) * self.precedence_weights +
+                write_weights[head]
+            )
+            
+            # Update link matrix
+            write_weights_expanded = write_weights[head].unsqueeze(-1)
+            precedence_expanded = self.precedence_weights.unsqueeze(0)
+            
+            self.link_matrix = (
+                (1 - write_weights_expanded - write_weights_expanded.t()) * self.link_matrix +
+                write_weights_expanded * precedence_expanded
+            )
+            
+        # Decay link matrix to prevent overflow
+        self.link_matrix = self.link_matrix * 0.99
+        
+    def get_memory_metrics(self) -> Dict[str, float]:
+        """Get memory usage and health metrics."""
+        return {
+            'memory_utilization': float((self.usage_vector > 0.1).float().mean()),
+            'average_usage': float(self.usage_vector.mean()),
+            'max_usage': float(self.usage_vector.max()),
+            'link_matrix_norm': float(self.link_matrix.norm()),
+            'memory_diversity': float(torch.std(self.memory_matrix, dim=0).mean())
+        }
+        
+    def reset_memory(self):
+        """Reset memory to initial state."""
+        self._reset_memory()
