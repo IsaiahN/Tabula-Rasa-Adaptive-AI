@@ -119,6 +119,12 @@ class LearningProgressDrive:
         # Update validation metrics
         self._update_validation_metrics(raw_lp, clamped_lp)
         
+        # Update boredom counter
+        if abs(clamped_lp) < self.boredom_threshold:
+            self.low_lp_counter += 1
+        else:
+            self.low_lp_counter = 0
+        
         return float(clamped_lp)
         
     def compute_empowerment_bonus(self, state_history: List[torch.Tensor]) -> float:
@@ -185,12 +191,7 @@ class LearningProgressDrive:
         # Combined reward
         total_reward = lp_weight * lp_signal + emp_weight * empowerment_bonus
         
-        # Update boredom counter
-        if abs(lp_signal) < self.boredom_threshold:
-            self.low_lp_counter += 1
-        else:
-            self.low_lp_counter = 0
-            
+        # Note: boredom counter is updated in compute_learning_progress
         return total_reward
         
     def is_bored(self) -> bool:
@@ -242,11 +243,21 @@ class LearningProgressDrive:
         if len(self.error_history) < self.smoothing_window // 2:
             return
             
-        # Signal-to-noise ratio
-        recent_lp = [self.compute_learning_progress(e) for e in list(self.error_history)[-50:]]
-        signal_power = np.var(recent_lp)
-        noise_power = np.var(np.diff(recent_lp))  # High-frequency noise
-        self.validation_metrics['signal_to_noise_ratio'] = signal_power / max(noise_power, 1e-6)
+        # Signal-to-noise ratio (avoid recursion by using raw LP values)
+        recent_errors = list(self.error_history)[-50:]
+        if len(recent_errors) > 10:
+            # Compute LP manually without recursion
+            recent_lp_values = []
+            for i in range(10, len(recent_errors)):
+                older_mean = np.mean(recent_errors[max(0, i-10):i])
+                newer_mean = np.mean(recent_errors[max(0, i-5):i])
+                lp_val = older_mean - newer_mean
+                recent_lp_values.append(np.clip(lp_val, self.derivative_clamp[0], self.derivative_clamp[1]))
+            
+            if len(recent_lp_values) > 1:
+                signal_power = np.var(recent_lp_values)
+                noise_power = np.var(np.diff(recent_lp_values))  # High-frequency noise
+                self.validation_metrics['signal_to_noise_ratio'] = signal_power / max(noise_power, 1e-6)
         
         # Stability score (how often we need to clamp)
         clamp_rate = 1.0 if raw_lp != clamped_lp else 0.0

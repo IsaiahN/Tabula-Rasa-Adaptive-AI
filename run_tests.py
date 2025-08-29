@@ -16,9 +16,7 @@ def run_unit_tests():
         sys.executable, '-m', 'pytest', 
         'tests/', 
         '-v', 
-        '--tb=short',
-        '--cov=src',
-        '--cov-report=term-missing'
+        '--tb=short'
     ], capture_output=False)
     
     return result.returncode == 0

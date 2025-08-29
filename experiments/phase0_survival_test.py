@@ -43,8 +43,22 @@ def setup_logging(log_dir: Path):
 
 def load_config(config_path: str) -> dict:
     """Load configuration from YAML file."""
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
+    from src.utils.config_loader import ConfigLoader
+    
+    config_loader = ConfigLoader()
+    try:
+        config = config_loader.load_config(config_path)
+    except:
+        # Fallback to simple loading
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+            
+        # Add missing defaults
+        if 'experiment' not in config:
+            config['experiment'] = {}
+        if 'seed' not in config['experiment']:
+            config['experiment']['seed'] = 42
+            
     return config
 
 
