@@ -113,15 +113,23 @@ reward(t) = 0.7 * LP(t) + 0.3 * empowerment_bonus(t)
 
 **Validation Requirements**:
 - **Offline Testing**: Must validate LP signal stability on recorded data streams before integration
-- **Modality Normalization**: Per-sensory-channel error normalization using running statistics
+- **Online Loop Validation**: Critical "Stage 1.5" testing of LP signal stability in closed-loop with agent actions
+- **Modality Normalization**: Per-sensory-channel error normalization with variance tracking and stability checks
 - **Cheat Detection**: Monitor for "dark corner" exploits via environmental diversity metrics
-- **Fallback Mechanism**: Empowerment-based intrinsic motivation as backup reward signal
+- **Dynamic Balancing**: Adaptive weighting between LP and empowerment (start with fixed 0.7/0.3, activate adaptive logic only if conflicts observed)
+- **Stress Testing**: Validate LP stability under novel sensory input with high variance (normalization stress test)
+- **Signal Quality Metrics**: Automated validation pipeline with LP signal quality assessment
+
+**Critical Implementation Notes**:
+- **Validation Trap Awareness**: Offline validation is necessary but not sufficient - expect different behavior in closed-loop
+- **Feedback Loop Monitoring**: Watch for oscillations and instabilities when LP signal influences actions that change data distribution
 
 **Components**:
-- **Error Tracker**: Maintains per-modality running statistics and moving averages
-- **Progress Calculator**: Computes robust derivative with outlier rejection
-- **Reward Generator**: Hybrid LP + empowerment reward with configurable mixing
-- **Exploit Detector**: Monitors environmental diversity to detect reward hacking
+- **Error Tracker**: Maintains per-modality running statistics with variance tracking and stability monitoring
+- **Progress Calculator**: Computes robust derivative with adaptive bounds and outlier rejection
+- **Dynamic Reward Generator**: Adaptive weighting between LP and empowerment with conflict detection
+- **Exploit Detector**: Monitors environmental diversity and reward signal conflicts
+- **Signal Validator**: Real-time LP signal quality assessment and anomaly detection
 
 **Interface**:
 ```python
@@ -182,15 +190,23 @@ class MemoryDiagnostics:
         return {
             "memory_utilization": (read_weights.sum(dim=1) > 0.1).float().mean(),
             "write_diversity": torch.std(write_weights, dim=1).mean(),
-            "read_concentration": (read_weights.max(dim=1)[0]).mean()
+            "read_concentration": (read_weights.max(dim=1)[0]).mean(),
+            "gradient_flow_health": self.monitor_gradient_flow(),
+            "co_adaptation_score": self.measure_core_memory_cooperation()
         }
+        
+    def memory_utilization_regularizer(self, hidden_state: Tensor, memory_reads: Tensor) -> Tensor:
+        # Penalize high hidden state activity when memory is available
+        return torch.norm(hidden_state) * torch.exp(-torch.norm(memory_reads))
 ```
 
 **Memory Learning Validation**:
-- **Curriculum**: Start with simple copy tasks, progress to associative recall
-- **Usage Monitoring**: Track memory utilization to ensure DNC is actually being used
-- **Ablation Testing**: Compare performance with/without external memory
-- **Failure Detection**: If memory usage < 10%, fall back to pure recurrent model
+- **Pre-training**: DNC must master copy tasks and associative recall before integration
+- **Regularization**: Encourage memory use over hidden state reliance through loss terms
+- **Co-adaptation Monitoring**: Track predictive core vs memory controller cooperation
+- **Gradient Flow Analysis**: Monitor training stability through memory operations
+- **Usage Monitoring**: Track memory utilization with automated alerts if usage drops below 10%
+- **Ablation Testing**: Compare performance with/without external memory across multiple runs
 
 ### 4. Sleep and Dream Cycles
 
@@ -260,7 +276,27 @@ class DeathManager:
         return new_state
 ```
 
-**Meta-Learning Objective**: The importance network is trained to maximize post-death recovery speed, creating a learned curriculum of what knowledge transfers across lifetimes.
+**Phased Implementation Strategy**:
+- **Phase 1**: Rule-based importance heuristics (access frequency + LP correlation)
+- **Phase 2**: Learned importance network trained via REINFORCE on collected death/rebirth data
+- **Meta-Learning Objective**: The importance network maximizes post-death recovery speed
+- **Training Protocol**: REINFORCE-style policy gradient rewarding faster learning in new lifetimes
+
+```python
+class DeathManager:
+    def __init__(self, use_learned_importance: bool = False):
+        self.use_learned = use_learned_importance
+        self.heuristic_scorer = HeuristicImportanceScorer()
+        self.learned_network = ImportanceNetwork() if use_learned else None
+        
+    def compute_memory_importance(self, memory_matrix: Tensor, usage_history: Tensor) -> Tensor:
+        if not self.use_learned:
+            # Rule-based heuristics for Phase 1 stability
+            return self.heuristic_scorer.score(memory_matrix, usage_history)
+        else:
+            # Learned network for Phase 2 optimization
+            return self.learned_network(memory_matrix, usage_history)
+```
 
 **Interface**:
 ```python
@@ -484,6 +520,8 @@ memory:
 
 **Long-term Strategy**: This is a research prototype for understanding emergent intelligence principles, not a production system. The goal is to validate the theoretical framework, not create a robot-ready agent.
 
+**Simulator Overfitting Acceptance**: Even with multi-simulator validation and domain randomization, the agent will likely become a "multi-simulator genius" rather than learning truly general principles. This is an acceptable limitation - success is measured by emergence of recognizable cognitive patterns (planning, memory, curiosity) within the simulation paradigm, not by real-world transfer.
+
 **Empowerment Approximation**:
 ```python
 def compute_empowerment_bonus(self, state: Tensor, action_history: List[Tensor]) -> float:
@@ -495,6 +533,43 @@ def compute_empowerment_bonus(self, state: Tensor, action_history: List[Tensor])
 ```
 
 **Rationale**: True empowerment requires expensive mutual information calculation. This approximation rewards agents that visit diverse states, which correlates with empowerment while being computationally tractable.
+
+**Dynamic Reward Balancing System**:
+```python
+class DynamicRewardBalancer:
+    def __init__(self):
+        self.lp_history = deque(maxlen=1000)
+        self.empowerment_history = deque(maxlen=1000)
+        
+    def compute_adaptive_weights(self, current_lp: float, current_empowerment: float) -> Tuple[float, float]:
+        # Detect when LP and empowerment objectives conflict
+        lp_trend = self.compute_trend(self.lp_history)
+        emp_trend = self.compute_trend(self.empowerment_history)
+        
+        # If LP is stagnant but empowerment is high, increase empowerment weight
+        if abs(lp_trend) < 0.01 and emp_trend > 0.1:
+            lp_weight, emp_weight = 0.3, 0.7
+        # If both are progressing, use balanced approach
+        elif lp_trend > 0.01 and emp_trend > 0.01:
+            lp_weight, emp_weight = 0.7, 0.3
+        # If empowerment conflicts with LP (negative correlation), prioritize LP
+        elif self.detect_conflict():
+            lp_weight, emp_weight = 0.9, 0.1
+        else:
+            lp_weight, emp_weight = 0.7, 0.3  # Default balanced
+            
+        return lp_weight, emp_weight
+        
+    def detect_conflict(self) -> bool:
+        # Detect when LP and empowerment rewards push in opposite directions
+        if len(self.lp_history) < 100:
+            return False
+        correlation = np.corrcoef(list(self.lp_history), list(self.empowerment_history))[0,1]
+        return correlation < -0.3  # Strong negative correlation indicates conflict
+        
+    # CRITICAL: Start with fixed weights, only activate adaptive logic if conflicts are empirically observed
+    # The balancer itself introduces meta-control complexity that must be carefully managed
+```
 
 ## Error Handling
 
@@ -593,33 +668,54 @@ def compute_empowerment_bonus(self, state: Tensor, action_history: List[Tensor])
 
 **The Challenge**: When runs fail, high-level metrics won't reveal the root cause. Need deep visibility into agent's "thought process."
 
-**Real-Time Monitoring Dashboard**:
+**Configurable Monitoring System**:
 ```python
 class AgentIntrospection:
-    def __init__(self):
+    def __init__(self, logging_mode: str = "minimal"):
+        self.logging_mode = logging_mode  # minimal, debug, full
         self.logger = StructuredLogger()
+        self.anomaly_detector = AnomalyDetector()
+        self.performance_profiler = PerformanceProfiler()
         
     def log_step(self, agent_state: AgentState, predictions: Tensor, lp_signal: float):
-        self.logger.log({
+        # Tiered logging for performance control
+        base_metrics = {
             "timestamp": time.time(),
             "energy": agent_state.energy,
-            "position": agent_state.position.tolist(),
-            "prediction_error": float(predictions.error),
             "lp_signal": lp_signal,
-            "memory_usage": self.compute_memory_metrics(agent_state.memory),
-            "active_goals": [g.id for g in agent_state.active_goals],
-            "attention_weights": agent_state.attention_weights.tolist()
-        })
-        
-    def generate_failure_report(self, failed_run_id: str) -> Dict:
-        # Automated analysis of failure patterns
-        logs = self.logger.get_run_logs(failed_run_id)
-        return {
-            "lp_stability": self.analyze_lp_trajectory(logs),
-            "memory_utilization": self.analyze_memory_patterns(logs),
-            "goal_progression": self.analyze_goal_lifecycle(logs),
-            "death_causes": self.analyze_death_patterns(logs)
+            "prediction_error": float(predictions.error)
         }
+        
+        if self.logging_mode == "debug":
+            base_metrics.update({
+                "memory_usage": self.compute_memory_metrics(agent_state.memory),
+                "active_goals": [g.id for g in agent_state.active_goals]
+            })
+        elif self.logging_mode == "full":
+            base_metrics.update({
+                "position": agent_state.position.tolist(),
+                "memory_usage": self.compute_memory_metrics(agent_state.memory),
+                "active_goals": [g.id for g in agent_state.active_goals],
+                "attention_weights": agent_state.attention_weights.tolist(),
+                "gradient_norms": self.compute_gradient_metrics()
+            })
+            
+        # Automated anomaly detection with alert-triggered detailed logging
+        if self.anomaly_detector.detect_anomaly(base_metrics):
+            self.enable_detailed_logging_temporarily()
+            
+        self.logger.log(base_metrics)
+        
+    def measure_introspection_overhead(self) -> float:
+        overhead = self.performance_profiler.get_logging_overhead_percentage()
+        # CRITICAL: Keep overhead below 5% of step time
+        if overhead > 5.0:
+            self.reduce_logging_frequency()
+        return overhead
+        
+    def reduce_logging_frequency(self):
+        # Sample anomaly detection every N steps instead of every step
+        self.anomaly_detector.set_sampling_rate(max(1, self.anomaly_detector.sampling_rate * 2))
 ```
 
 **Visualization Tools**:
