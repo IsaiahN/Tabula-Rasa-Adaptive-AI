@@ -12,8 +12,7 @@ import logging
 from dataclasses import dataclass
 import time
 
-from ..core.data_models import SensoryInput, AgentState
-from ..core.agent import AdaptiveLearningAgent
+from core.data_models import SensoryInput, AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +128,7 @@ class SurvivalEnvironment:
         
     def step(
         self, 
-        agent: AdaptiveLearningAgent, 
+        agent,  # Remove type hint to avoid circular import
         action: torch.Tensor
     ) -> Tuple[SensoryInput, Dict[str, Any], bool]:
         """
@@ -330,8 +329,8 @@ class SurvivalEnvironment:
         # This would be replaced with actual rendering in later phases
         
         # Create a 64x64 visual field centered on the agent
-        visual_size = (3, 64, 64)
-        visual_input = torch.zeros(visual_size)
+        # visual_size should be (channels, height, width)
+        visual_input = torch.zeros(3, 64, 64)  # RGB channels, height, width
         
         # Add food source indicators
         for food_source in self.food_sources:
@@ -359,7 +358,7 @@ class SurvivalEnvironment:
             
             visual_input[0, visual_y, visual_x] = 1.0
             
-        return visual_input.unsqueeze(0)  # Add batch dimension
+        return visual_input.unsqueeze(0)  # Add batch dimension (1, 3, 64, 64)
         
     def _generate_proprioception(
         self, 
@@ -390,7 +389,7 @@ class SurvivalEnvironment:
             energy_norm      # 1 value
         ])
         
-        return proprioception.unsqueeze(0)  # Add batch dimension
+        return proprioception.unsqueeze(0)  # Add batch dimension (1, 11)
         
     def _check_episode_done(self, agent_state: AgentState) -> bool:
         """Check if episode should end."""

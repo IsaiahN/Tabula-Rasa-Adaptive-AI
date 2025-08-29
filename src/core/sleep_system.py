@@ -14,8 +14,8 @@ import logging
 from collections import deque
 import time
 
-from .data_models import Experience, AgentState
-from .predictive_core import PredictiveCore
+from core.data_models import Experience, AgentState
+from core.predictive_core import PredictiveCore
 
 logger = logging.getLogger(__name__)
 

@@ -11,8 +11,8 @@ import torch.nn.functional as F
 from typing import Tuple, Dict, Optional
 import logging
 
-from ..memory.dnc import DNCMemory
-from .data_models import SensoryInput
+from memory.dnc import DNCMemory
+from core.data_models import SensoryInput
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,8 @@ class PredictiveCore(nn.Module):
         self.architecture = architecture
         
         # Calculate input dimensions
-        visual_dim = visual_size[0] * visual_size[1] * visual_size[2]
+        # visual_size is (channels, height, width), not (batch, height, width)
+        visual_dim = visual_size[0] * visual_size[1] * visual_size[2]  # channels * height * width
         total_input_dim = visual_dim + proprioception_size + 1  # +1 for energy level
         
         # Input encoder
@@ -127,10 +128,23 @@ class PredictiveCore(nn.Module):
         Returns:
             encoded: Encoded representation
         """
-        batch_size = sensory_input.visual.size(0)
+        # Handle case where inputs don't have batch dimension
+        if sensory_input.visual.dim() == 3:
+            # Add batch dimension if missing
+            visual = sensory_input.visual.unsqueeze(0)
+            proprio = sensory_input.proprioception.unsqueeze(0) if sensory_input.proprioception.dim() == 1 else sensory_input.proprioception
+            batch_size = 1
+        else:
+            visual = sensory_input.visual
+            proprio = sensory_input.proprioception
+            batch_size = visual.size(0)
         
         # Flatten visual input
-        visual_flat = sensory_input.visual.view(batch_size, -1)
+        visual_flat = visual.view(batch_size, -1)
+        
+        # Ensure proprioception has batch dimension
+        if proprio.dim() == 1:
+            proprio = proprio.unsqueeze(0)
         
         # Normalize energy to 0-1 range
         energy_norm = torch.tensor([sensory_input.energy_level / 100.0]).expand(batch_size, 1)
@@ -140,7 +154,7 @@ class PredictiveCore(nn.Module):
         # Concatenate all inputs
         combined_input = torch.cat([
             visual_flat,
-            sensory_input.proprioception,
+            proprio,
             energy_norm
         ], dim=-1)
         

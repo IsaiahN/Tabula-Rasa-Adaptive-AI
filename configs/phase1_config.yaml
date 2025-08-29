@@ -15,7 +15,7 @@ agent:
 
 predictive_core:
   visual_size: [3, 64, 64]  # RGB, height, width
-  proprioception_size: 12    # Position, orientation, velocity, energy
+  proprioception_size: 11    # Position (3) + orientation (4) + velocity (3) + energy (1)
   hidden_size: 512           # Recurrent hidden state size
   architecture: "lstm"       # "lstm", "gru", or "mamba" (when available)
 

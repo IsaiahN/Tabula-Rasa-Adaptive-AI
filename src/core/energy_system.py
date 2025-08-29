@@ -10,7 +10,7 @@ import torch.nn as nn
 import numpy as np
 from typing import Dict, Optional, Tuple
 import logging
-from ..core.data_models import AgentState
+from core.data_models import AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -327,7 +327,7 @@ class DeathManager:
             position=self._random_spawn_position(),
             orientation=self._random_spawn_orientation(),
             energy=100.0,  # Full energy on respawn
-            hidden_state=torch.zeros_like(agent_state.hidden_state),  # Reset recurrent state
+            hidden_state=None,  # Reset recurrent state (will be reinitialized)
             active_goals=[],  # Clear goals
             memory_state=preserved_memory,
             timestamp=0

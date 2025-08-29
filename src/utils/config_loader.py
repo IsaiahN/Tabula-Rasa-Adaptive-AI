@@ -158,3 +158,9 @@ class ConfigLoader:
                 'device': 'cpu'
             }
         }
+
+
+def load_config(config_path: str) -> Dict[str, Any]:
+    """Simple function to load configuration file."""
+    loader = ConfigLoader()
+    return loader.load_config(config_path)

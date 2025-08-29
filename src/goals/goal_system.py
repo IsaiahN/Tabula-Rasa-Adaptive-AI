@@ -15,7 +15,7 @@ import logging
 from dataclasses import dataclass
 import time
 
-from ..core.data_models import Goal, AgentState
+from core.data_models import Goal, AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -453,7 +453,7 @@ class GoalInventionSystem:
             'goal_achievement_rate': self._compute_goal_achievement_rate(),
             'total_goals_attempted': len(self.goal_history),
             'total_goals_achieved': sum(self.achievement_stats.values()),
-            'active_goal_types': len(set(g.goal_type for g in self.goal_history[-10:]))
+            'active_goal_types': len(set(g.get('goal_type', 'unknown') if isinstance(g, dict) else g.goal_type for g in self.goal_history[-10:]))
         }
         
     def reset_episode(self, episode_data: Dict):

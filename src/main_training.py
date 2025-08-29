@@ -43,12 +43,12 @@ def create_default_config() -> Dict[str, Any]:
         },
         'predictive_core': {
             'visual_size': [3, 64, 64],
-            'proprioception_size': 12,
+            'proprioception_size': 11,  # Position (3) + orientation (4) + velocity (3) + energy (1)
             'hidden_size': 512,
             'architecture': 'lstm'
         },
         'memory': {
-            'enabled': True,
+            'enabled': False,  # Disable memory for now to get basic training working
             'input_size': 512,
             'hidden_size': 256,
             'num_read_heads': 4,
@@ -81,7 +81,7 @@ def create_default_config() -> Dict[str, Any]:
             'environment_bounds': [-10, 10, -10, 10]
         },
         'sleep': {
-            'sleep_trigger_energy': 20.0,
+            'sleep_trigger_energy': 0.0,  # Disable sleep for now to get basic training working
             'sleep_trigger_boredom_steps': 1000,
             'sleep_trigger_memory_pressure': 0.9,
             'sleep_duration_steps': 100,

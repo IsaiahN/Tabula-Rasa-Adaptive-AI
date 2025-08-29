@@ -14,14 +14,14 @@ import logging
 from collections import deque
 import time
 
-from .data_models import SensoryInput, Experience, AgentState, Goal
-from .predictive_core import PredictiveCore
-from .learning_progress import LearningProgressDrive
-from .energy_system import EnergySystem, DeathManager
-from .sleep_system import SleepCycle
-from ..goals.goal_system import GoalInventionSystem, GoalPhase
-from ..memory.dnc import DNCMemory
-from ..monitoring.metrics_collector import MetricsCollector
+from core.data_models import SensoryInput, Experience, AgentState, Goal
+from core.predictive_core import PredictiveCore
+from core.learning_progress import LearningProgressDrive
+from core.energy_system import EnergySystem, DeathManager
+from core.sleep_system import SleepCycle
+from goals.goal_system import GoalInventionSystem, GoalPhase
+from memory.dnc import DNCMemory
+from monitoring.metrics_collector import MetricsCollector
 
 logger = logging.getLogger(__name__)
 
@@ -102,12 +102,11 @@ class AdaptiveLearningAgent:
         
         if memory_config.get('enabled', True):
             self.memory = DNCMemory(
-                input_size=memory_config.get('input_size', 512),
-                hidden_size=memory_config.get('hidden_size', 256),
+                memory_size=memory_config.get('memory_size', 512),
+                word_size=memory_config.get('word_size', 64),
                 num_read_heads=memory_config.get('num_read_heads', 4),
                 num_write_heads=memory_config.get('num_write_heads', 1),
-                memory_size=memory_config.get('memory_size', 512),
-                word_size=memory_config.get('word_size', 64)
+                controller_size=memory_config.get('controller_size', 256)
             ).to(self.device)
             
             # Update predictive core to use memory
@@ -188,9 +187,8 @@ class AdaptiveLearningAgent:
         monitoring_config = self.config.get('monitoring', {})
         
         self.metrics_collector = MetricsCollector(
-            log_interval=monitoring_config.get('log_interval', 100),
-            save_interval=monitoring_config.get('save_interval', 1000),
-            log_dir=monitoring_config.get('log_dir', './logs')
+            buffer_size=monitoring_config.get('buffer_size', 10000),
+            logging_mode=monitoring_config.get('logging_mode', 'minimal')
         )
         
         logger.info("Monitoring and metrics system initialized")
@@ -313,6 +311,7 @@ class AdaptiveLearningAgent:
         # Initialize hidden state if needed
         if self.agent_state.hidden_state is None:
             batch_size = sensory_input.visual.size(0)
+            logger.info(f"Initializing hidden state with batch_size: {batch_size}, visual shape: {sensory_input.visual.shape}")
             if self.predictive_core.architecture == "lstm":
                 hidden_state = (
                     torch.zeros(1, batch_size, self.predictive_core.hidden_size, device=self.device),
@@ -322,6 +321,19 @@ class AdaptiveLearningAgent:
                 hidden_state = torch.zeros(1, batch_size, self.predictive_core.hidden_size, device=self.device)
         else:
             hidden_state = self.agent_state.hidden_state
+            # Ensure hidden state has correct batch size
+            if isinstance(hidden_state, tuple):
+                batch_size = sensory_input.visual.size(0)
+                if hidden_state[0].size(1) != batch_size:
+                    logger.warning(f"Hidden state batch size mismatch: expected {batch_size}, got {hidden_state[0].size(1)}")
+                    # Resize hidden state to match current batch size
+                    if self.predictive_core.architecture == "lstm":
+                        hidden_state = (
+                            hidden_state[0][:, :batch_size, :],
+                            hidden_state[1][:, :batch_size, :]
+                        )
+                    else:
+                        hidden_state = hidden_state[:, :batch_size, :]
             
         # Initialize memory reads if needed
         memory_reads = None
@@ -402,16 +414,19 @@ class AdaptiveLearningAgent:
         )
         
         # Update metrics collector
-        self.metrics_collector.record_step({
-            'step': self.step_count,
-            'episode': self.episode_count,
-            'learning_progress': lp_signal,
-            'prediction_error': total_error,
-            'energy': self.agent_state.energy,
-            'action_cost': action_cost,
-            'active_goals': len(self.agent_state.active_goals),
-            'is_sleeping': self.sleep_system.is_sleeping
-        })
+        self.metrics_collector.log_step(
+            agent_state=self.agent_state,
+            prediction_error=total_error,
+            lp_signal=lp_signal,
+            memory_usage=self._get_memory_usage(),
+            additional_metrics={
+                'step': self.step_count,
+                'episode': self.episode_count,
+                'action_cost': action_cost,
+                'active_goals': len(self.agent_state.active_goals),
+                'is_sleeping': self.sleep_system.is_sleeping
+            }
+        )
         
     def get_agent_state(self) -> AgentState:
         """Get current agent state."""
