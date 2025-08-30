@@ -1,18 +1,20 @@
 """
-Predictive Core - Recurrent world-model for sensory prediction.
+Predictive Core Module
 
-This module implements the core prediction system that builds an internal
-understanding of the environment through prediction accuracy.
+Implements the core predictive processing system that integrates memory, attention,
+and learning mechanisms for the adaptive learning agent.
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Dict, Optional
+from typing import Dict, List, Tuple, Any, Optional
 import logging
 
-from ..memory.dnc import DNCMemory
-from .data_models import SensoryInput
+# Fix relative imports by using absolute imports within the package
+from memory.dnc import DNCMemory
+from .energy_system import EnergySystem
+from .data_models import SensoryInput  # Add missing import
 
 logger = logging.getLogger(__name__)
 

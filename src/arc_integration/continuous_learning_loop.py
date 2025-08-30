@@ -28,7 +28,7 @@ src_dir = current_dir.parent
 if str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
-# Now import with absolute imports
+# Now import with absolute imports within the package
 from arc_integration.arc_meta_learning import ARCMetaLearningSystem
 from core.meta_learning import MetaLearningSystem
 from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
@@ -40,8 +40,10 @@ from memory.dnc import DNCMemory
 
 try:
     # Try to import the salience comparator
-    sys.path.insert(0, str(src_dir.parent))  # Add root directory
-    from examples.salience_mode_comparison import SalienceModeComparator
+    examples_dir = src_dir.parent / "examples"
+    if str(examples_dir) not in sys.path:
+        sys.path.insert(0, str(examples_dir))
+    from salience_mode_comparison import SalienceModeComparator
     SALIENCE_COMPARATOR_AVAILABLE = True
 except ImportError:
     SALIENCE_COMPARATOR_AVAILABLE = False

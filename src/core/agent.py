@@ -14,16 +14,16 @@ import logging
 from collections import deque
 import time
 
-from src.core.data_models import SensoryInput, Experience, AgentState, Goal
-from src.core.predictive_core import PredictiveCore
-from src.core.learning_progress import LearningProgressDrive
-from src.core.energy_system import EnergySystem, DeathManager
-from src.core.sleep_system import SleepCycle
-from src.core.action_selection import ActionSelectionNetwork, ActionExecutor, ExplorationStrategy
-from src.core.meta_learning import MetaLearningSystem
-from src.goals.goal_system import GoalInventionSystem, GoalPhase
-from src.memory.dnc import DNCMemory
-from src.monitoring.metrics_collector import MetricsCollector
+from .data_models import SensoryInput, Experience, AgentState, Goal
+from .predictive_core import PredictiveCore
+from .learning_progress import LearningProgressDrive
+from .energy_system import EnergySystem, DeathManager
+from .sleep_system import SleepCycle
+from .action_selection import ActionSelectionNetwork, ActionExecutor, ExplorationStrategy
+from .meta_learning import MetaLearningSystem
+from .goal_system import GoalInventionSystem, GoalPhase
+from .dnc import DNCMemory
+from .metrics_collector import MetricsCollector
 
 logger = logging.getLogger(__name__)
 

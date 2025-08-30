@@ -14,8 +14,9 @@ import logging
 from collections import deque
 import time
 
-from .data_models import Experience, AgentState
+# Fix imports to use relative imports within the package
 from .predictive_core import PredictiveCore
+from .data_models import Experience, AgentState
 from .meta_learning import MetaLearningSystem
 from .salience_system import SalienceCalculator, SalienceWeightedReplayBuffer, SalientExperience, SalienceMode, CompressedMemory
 
