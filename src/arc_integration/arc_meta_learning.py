@@ -15,7 +15,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 import time
 
-from core.meta_learning import MetaLearningSystem
+from src.core.meta_learning import MetaLearningSystem
 
 logger = logging.getLogger(__name__)
 

@@ -18,13 +18,13 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .arc_meta_learning import ARCMetaLearningSystem
-from core.meta_learning import MetaLearningSystem
-from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
-from core.sleep_system import SleepCycle
-from core.agent import AdaptiveLearningAgent
-from core.predictive_core import PredictiveCore
-from core.energy_system import EnergySystem
-from memory.dnc import DNCMemory
+from src.core.meta_learning import MetaLearningSystem
+from src.core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
+from src.core.sleep_system import SleepCycle
+from src.core.agent import AdaptiveLearningAgent
+from src.core.predictive_core import PredictiveCore
+from src.core.energy_system import EnergySystem
+from src.memory.dnc import DNCMemory
 
 try:
     from examples.salience_mode_comparison import SalienceModeComparator
