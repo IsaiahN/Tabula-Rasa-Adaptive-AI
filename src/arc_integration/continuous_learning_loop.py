@@ -9,6 +9,7 @@ import asyncio
 import logging
 import time
 import json
+import random
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 import subprocess
@@ -42,6 +43,44 @@ logger = logging.getLogger(__name__)
 
 # ARC-3 Test Scoreboard URL
 ARC3_SCOREBOARD_URL = "https://arcprize.org/leaderboard"
+
+# ===== GLOBAL ARC TASK CONFIGURATION =====
+
+# Complete set of ARC-3 evaluation tasks
+ARC_ALL_TASKS = [
+    "f25ffbaf", "ef135b50", "25ff71a9", "a8d7556c", "b775ac94", "c8f0f002",
+    "1e0a9b12", "3aa6fb7a", "444801d8", "508bd3b6", "5ad4f10b", "6150a2bd", 
+    "7468f01a", "7e0986d6", "8be77c9e", "9172f3a0", "97999447", "a9f96cdd",
+    "ba26e723", "c8cbb738", "d511f180", "ddf7fa4f", "e179c5f4", "f76d97a5"
+]
+
+# Task selection limits to prevent overtraining
+DEMO_TASK_LIMIT = 3              # Quick demonstration tasks
+COMPARISON_TASK_LIMIT = 4        # Tasks for mode comparison
+PERSISTENT_TASK_LIMIT = None     # No limit - use all tasks for mastery
+
+def get_demo_tasks(randomize: bool = True) -> List[str]:
+    """Get tasks for demo mode - limited and optionally randomized."""
+    if randomize:
+        return random.sample(ARC_ALL_TASKS, min(DEMO_TASK_LIMIT, len(ARC_ALL_TASKS)))
+    else:
+        return ARC_ALL_TASKS[:DEMO_TASK_LIMIT]
+
+def get_comparison_tasks(randomize: bool = True) -> List[str]:
+    """Get tasks for comparison mode - limited and optionally randomized."""
+    if randomize:
+        return random.sample(ARC_ALL_TASKS, min(COMPARISON_TASK_LIMIT, len(ARC_ALL_TASKS)))
+    else:
+        return ARC_ALL_TASKS[:COMPARISON_TASK_LIMIT]
+
+def get_persistent_tasks(randomize: bool = True) -> List[str]:
+    """Get tasks for persistent mode - all tasks, optionally shuffled."""
+    tasks = ARC_ALL_TASKS.copy()
+    if randomize:
+        random.shuffle(tasks)
+    return tasks
+
+# ===== END GLOBAL CONFIGURATION =====
 
 @dataclass
 class TrainingSession:
@@ -983,7 +1022,7 @@ class ContinuousLearningLoop:
         print("="*60)
         
         # Test subset of tasks (first 3 games)
-        demo_games = ["f25ffbaf", "ef135b50", "25ff71a9"]
+        demo_games = get_demo_tasks()
         
         # Start demo session
         session_id = self.start_training_session(
@@ -1013,12 +1052,7 @@ class ContinuousLearningLoop:
         print("="*60)
         
         # Full set of ARC tasks
-        all_tasks = [
-            "f25ffbaf", "ef135b50", "25ff71a9", "a8d7556c", "b775ac94", "c8f0f002",
-            "1e0a9b12", "3aa6fb7a", "444801d8", "508bd3b6", "5ad4f10b", "6150a2bd",
-            "7468f01a", "7e0986d6", "8be77c9e", "9172f3a0", "97999447", "a9f96cdd",
-            "ba26e723", "c8cbb738", "d511f180", "ddf7fa4f", "e179c5f4", "f76d97a5"
-        ]
+        all_tasks = get_persistent_tasks()
         
         # Start persistent training session
         session_id = self.start_training_session(
@@ -1048,7 +1082,7 @@ class ContinuousLearningLoop:
         print("="*60)
         
         # Test games for comparison
-        comparison_games = ["f25ffbaf", "ef135b50", "25ff71a9", "a8d7556c"]
+        comparison_games = get_comparison_tasks()
         results = {}
         
         # Test both salience modes
@@ -1135,7 +1169,7 @@ async def run_arc_training_demo():
     )
     
     # Start a training session with real ARC-3 task IDs
-    real_arc_games = ["f25ffbaf", "ef135b50", "25ff71a9"]  # Real ARC-3 task IDs
+    real_arc_games = get_demo_tasks()
     session_id = loop.start_training_session(
         games=real_arc_games,
         max_episodes_per_game=20,
