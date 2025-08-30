@@ -69,6 +69,12 @@ python src/main_training.py --config configs/phase1_config.yaml
 
 # Test agent on AGI puzzles
 python tests/integration/test_agent_on_puzzles.py
+
+# Demo salience modes comparison
+python examples/salience_modes_demo.py
+
+# Run salience mode comparison framework
+python examples/salience_mode_comparison.py
 ```
 
 ## Key Features
@@ -85,6 +91,10 @@ python tests/integration/test_agent_on_puzzles.py
 ### Advanced Features 
 - **Meta-Learning System**: Learns from learning experiences, extracts insights, and applies knowledge across contexts
 - **Enhanced Sleep System**: Automatic object encoding and memory consolidation during offline periods
+- **Dual Salience Mode System**: Choose between lossless memory preservation or intelligent decay/compression
+- **Salience-Driven Memory Management**: Experience importance determined by agent's own drives (Learning Progress + Energy/Survival)
+- **Adaptive Memory Compression**: Low-salience memories compressed into abstract concepts with merging capabilities
+- **Meta-Learning Parameter Optimization**: Automatic adjustment of decay rates based on performance metrics
 - **Object Recognition**: Visual pattern clustering and encoding during sleep phases
 - **Context-Aware Memory**: Meta-learning informed memory consolidation strategies
 - **AGI Puzzle Integration**: Comprehensive evaluation on cognitive benchmarks
@@ -102,10 +112,15 @@ python tests/integration/test_agent_on_puzzles.py
 - **Experience Consolidation**: Processes experiences into generalizable knowledge
 - **Context-Aware Retrieval**: Applies relevant past insights to current situations
 
-### Enhanced Sleep System
+### Enhanced Sleep System with Dual Salience Modes
 - **Automatic Object Encoding**: Learns visual object representations during sleep
-- **Memory Consolidation**: Strengthens important memories, prunes irrelevant ones
-- **Meta-Learning Integration**: Uses insights to guide consolidation strategies
+- **Salience-Based Memory Consolidation**: Strengthens high-salience memories, processes low-salience ones
+- **Dual Mode Operation**: 
+  - **Lossless Mode**: Preserves all memories without decay (optimal for critical learning phases)
+  - **Decay/Compression Mode**: Applies exponential decay and compresses low-salience memories into abstract concepts
+- **Intelligent Memory Compression**: Converts detailed experiences into high-level concepts (e.g., "food_found_here", "energy_loss_event")
+- **Memory Merging**: Combines multiple low-salience memories into single compressed representations
+- **Meta-Learning Integration**: Uses insights to guide consolidation strategies and optimize decay parameters
 - **Dream Generation**: Creates synthetic experiences for additional learning
 
 ### AGI Puzzle Performance
@@ -127,13 +142,20 @@ This system validates the hypothesis that intelligence emerges from the right en
 3. **Insight Extraction**: Generalize patterns into reusable knowledge
 4. **Application**: Apply insights to improve future learning
 
-### Sleep-Wake Cycle
-1. **Active Learning**: Normal agent operation with experience collection
+### Sleep-Wake Cycle with Salience Processing
+1. **Active Learning**: Normal agent operation with experience collection and salience calculation
 2. **Sleep Triggers**: Low energy, high boredom, or memory pressure
-3. **Object Encoding**: Visual pattern analysis and clustering
-4. **Memory Consolidation**: Strengthen/prune memories using meta-insights
-5. **Dream Generation**: Synthetic experience creation
-6. **Wake Up**: Return to active learning with enhanced capabilities
+3. **Memory Decay & Compression**: Apply exponential decay and compress low-salience memories (if enabled)
+4. **Salience-Weighted Replay**: Prioritize high-salience experiences for learning
+5. **Object Encoding**: Visual pattern analysis and clustering
+6. **Memory Consolidation**: Strengthen/prune memories using salience values and meta-insights
+7. **Dream Generation**: Synthetic experience creation
+8. **Wake Up**: Return to active learning with optimized memory and enhanced capabilities
+
+### Salience Mode Selection
+- **Automatic Discovery**: Agent can test both modes and choose optimal strategy
+- **Performance-Based Switching**: Meta-learning optimizes mode selection based on task requirements
+- **Context-Aware Adaptation**: Different modes for different learning phases or resource constraints
 
 ## Documentation
 

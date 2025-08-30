@@ -8,12 +8,29 @@ feedback loop where the agent's intrinsic motivations determine memory priority.
 
 import torch
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass
 from collections import deque
 import logging
+import time
+from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+class SalienceMode(Enum):
+    """Different salience testing modes."""
+    LOSSLESS = "lossless"  # Current implementation - no decay
+    DECAY_COMPRESSION = "decay_compression"  # Decay with memory compression
+
+@dataclass
+class CompressedMemory:
+    """Represents a compressed/summarized memory."""
+    abstract_concept: str  # High-level concept (e.g., "food_found_here")
+    original_salience: float  # Original salience before compression
+    compression_timestamp: float  # When it was compressed
+    access_count: int  # How many times accessed since compression
+    merged_count: int  # How many memories were merged into this one
+    context_summary: Dict[str, float]  # Summarized context information
 
 @dataclass
 class SalienceMetrics:
@@ -33,6 +50,8 @@ class SalientExperience:
     energy_component: float
     context: str
     timestamp: int
+    last_access_time: float = 0.0  # For decay tracking
+    access_count: int = 0  # How many times accessed
 
 class SalienceCalculator:
     """
@@ -50,7 +69,11 @@ class SalienceCalculator:
         lp_spike_threshold: float = 0.1,
         energy_change_threshold: float = 5.0,
         salience_history_size: int = 1000,
-        normalization_window: int = 100
+        normalization_window: int = 100,
+        mode: SalienceMode = SalienceMode.LOSSLESS,
+        decay_rate: float = 0.01,
+        salience_min: float = 0.1,
+        compression_threshold: float = 0.2
     ):
         self.lp_weight = lp_weight
         self.energy_weight = energy_weight
@@ -58,6 +81,12 @@ class SalienceCalculator:
         self.energy_change_threshold = energy_change_threshold
         self.salience_history_size = salience_history_size
         self.normalization_window = normalization_window
+        
+        # Decay/Compression parameters
+        self.mode = mode
+        self.decay_rate = decay_rate
+        self.salience_min = salience_min
+        self.compression_threshold = compression_threshold
         
         # Salience tracking
         self.salience_history = deque(maxlen=salience_history_size)
@@ -74,6 +103,14 @@ class SalienceCalculator:
         self.high_salience_count = 0
         self.medium_salience_count = 0
         self.low_salience_count = 0
+        
+        # Decay/Compression tracking
+        self.compressed_memories: List[CompressedMemory] = []
+        self.compression_stats = {
+            'total_compressed': 0,
+            'total_merged': 0,
+            'memory_saved': 0.0
+        }
         
     def calculate_salience(
         self,
@@ -343,6 +380,233 @@ class SalienceCalculator:
         self.high_salience_count = 0
         self.medium_salience_count = 0
         self.low_salience_count = 0
+        
+        # Reset compression stats
+        self.compressed_memories.clear()
+        self.compression_stats = {
+            'total_compressed': 0,
+            'total_merged': 0,
+            'memory_saved': 0.0
+        }
+    
+    def apply_salience_decay(self, experiences: List[SalientExperience], current_time: float) -> List[SalientExperience]:
+        """
+        Apply exponential decay to salience values based on time since last access.
+        
+        Args:
+            experiences: List of salient experiences to decay
+            current_time: Current timestamp
+            
+        Returns:
+            Updated experiences with decayed salience values
+        """
+        if self.mode == SalienceMode.LOSSLESS:
+            return experiences  # No decay in lossless mode
+        
+        decayed_experiences = []
+        
+        for exp in experiences:
+            # Calculate time since last access
+            time_since_access = current_time - max(exp.last_access_time, exp.timestamp)
+            
+            # Apply exponential decay: salience * e^(-decay_rate * time)
+            decay_factor = np.exp(-self.decay_rate * time_since_access)
+            decayed_salience = exp.salience_value * decay_factor
+            
+            # Update the experience
+            exp.salience_value = max(decayed_salience, self.salience_min)
+            decayed_experiences.append(exp)
+        
+        return decayed_experiences
+    
+    def compress_low_salience_memories(
+        self, 
+        experiences: List[SalientExperience], 
+        current_time: float
+    ) -> Tuple[List[SalientExperience], List[CompressedMemory]]:
+        """
+        Compress memories that fall below the compression threshold.
+        
+        Args:
+            experiences: List of experiences to process
+            current_time: Current timestamp
+            
+        Returns:
+            Tuple of (remaining_experiences, newly_compressed_memories)
+        """
+        if self.mode == SalienceMode.LOSSLESS:
+            return experiences, []  # No compression in lossless mode
+        
+        remaining_experiences = []
+        newly_compressed = []
+        
+        # Group low-salience experiences by context for potential merging
+        low_salience_by_context = {}
+        
+        for exp in experiences:
+            if exp.salience_value <= self.compression_threshold:
+                if exp.context not in low_salience_by_context:
+                    low_salience_by_context[exp.context] = []
+                low_salience_by_context[exp.context].append(exp)
+            else:
+                remaining_experiences.append(exp)
+        
+        # Compress and merge low-salience memories
+        for context, low_sal_exps in low_salience_by_context.items():
+            if len(low_sal_exps) == 1:
+                # Single memory - compress to abstract concept
+                compressed = self._compress_single_memory(low_sal_exps[0], current_time)
+                newly_compressed.append(compressed)
+            else:
+                # Multiple memories - merge into single compressed memory
+                merged = self._merge_memories(low_sal_exps, current_time)
+                newly_compressed.append(merged)
+        
+        # Update compression stats
+        self.compression_stats['total_compressed'] += len(newly_compressed)
+        self.compression_stats['total_merged'] += sum(len(low_salience_by_context[ctx]) for ctx in low_salience_by_context)
+        
+        return remaining_experiences, newly_compressed
+    
+    def _compress_single_memory(self, experience: SalientExperience, current_time: float) -> CompressedMemory:
+        """Compress a single memory into an abstract concept."""
+        # Extract high-level concept based on context and experience data
+        abstract_concept = self._extract_abstract_concept(experience)
+        
+        # Create context summary
+        context_summary = {
+            'avg_lp_component': experience.lp_component,
+            'avg_energy_component': experience.energy_component,
+            'access_frequency': experience.access_count / max(current_time - experience.timestamp, 1.0)
+        }
+        
+        return CompressedMemory(
+            abstract_concept=abstract_concept,
+            original_salience=experience.salience_value,
+            compression_timestamp=current_time,
+            access_count=0,
+            merged_count=1,
+            context_summary=context_summary
+        )
+    
+    def _merge_memories(self, experiences: List[SalientExperience], current_time: float) -> CompressedMemory:
+        """Merge multiple low-salience memories into a single compressed memory."""
+        if not experiences:
+            raise ValueError("Cannot merge empty experience list")
+        
+        # Use the most common context
+        context = experiences[0].context
+        
+        # Create merged abstract concept
+        abstract_concept = f"merged_{context}_{len(experiences)}_experiences"
+        
+        # Calculate averaged context summary
+        avg_lp = np.mean([exp.lp_component for exp in experiences])
+        avg_energy = np.mean([exp.energy_component for exp in experiences])
+        avg_salience = np.mean([exp.salience_value for exp in experiences])
+        total_access = sum(exp.access_count for exp in experiences)
+        
+        context_summary = {
+            'avg_lp_component': avg_lp,
+            'avg_energy_component': avg_energy,
+            'access_frequency': total_access / max(current_time - min(exp.timestamp for exp in experiences), 1.0),
+            'experience_count': len(experiences)
+        }
+        
+        return CompressedMemory(
+            abstract_concept=abstract_concept,
+            original_salience=avg_salience,
+            compression_timestamp=current_time,
+            access_count=0,
+            merged_count=len(experiences),
+            context_summary=context_summary
+        )
+    
+    def _extract_abstract_concept(self, experience: SalientExperience) -> str:
+        """Extract a high-level abstract concept from an experience."""
+        context = experience.context
+        lp_comp = experience.lp_component
+        energy_comp = experience.energy_component
+        
+        # Generate concept based on experience characteristics
+        if energy_comp > 0.3:
+            return f"{context}_energy_gain"
+        elif energy_comp < -0.3:
+            return f"{context}_energy_loss"
+        elif lp_comp > 0.2:
+            return f"{context}_learning_event"
+        else:
+            return f"{context}_routine_event"
+    
+    def access_memory(self, experience: SalientExperience, current_time: float):
+        """Mark a memory as accessed, updating access tracking for decay calculations."""
+        experience.last_access_time = current_time
+        experience.access_count += 1
+    
+    def get_compression_stats(self) -> Dict[str, Union[int, float]]:
+        """Get statistics about memory compression."""
+        return {
+            **self.compression_stats,
+            'compressed_memories_count': len(self.compressed_memories),
+            'compression_ratio': self.compression_stats['total_merged'] / max(self.compression_stats['total_compressed'], 1)
+        }
+    
+    def optimize_decay_parameters(self, performance_metrics: Dict[str, float]) -> Dict[str, float]:
+        """
+        Use meta-learning to optimize decay rate and compression threshold based on performance.
+        
+        Args:
+            performance_metrics: Dictionary containing learning_progress, survival_rate, memory_pressure
+            
+        Returns:
+            Updated parameters dictionary
+        """
+        if self.mode == SalienceMode.LOSSLESS:
+            return {'decay_rate': 0.0, 'compression_threshold': 1.0}
+        
+        # Extract performance indicators
+        learning_progress = performance_metrics.get('learning_progress', 0.5)
+        survival_rate = performance_metrics.get('survival_rate', 0.5)
+        memory_pressure = performance_metrics.get('memory_pressure', 0.5)  # 0-1, higher = more pressure
+        
+        # Adaptive decay rate based on performance
+        if learning_progress > 0.7 and survival_rate > 0.8:
+            # High performance - can afford more aggressive compression
+            new_decay_rate = min(self.decay_rate * 1.1, 0.05)
+            new_compression_threshold = max(self.compression_threshold * 0.95, 0.1)
+        elif learning_progress < 0.3 or survival_rate < 0.4:
+            # Poor performance - be more conservative with memory
+            new_decay_rate = max(self.decay_rate * 0.9, 0.001)
+            new_compression_threshold = min(self.compression_threshold * 1.05, 0.5)
+        else:
+            # Moderate performance - adjust based on memory pressure
+            if memory_pressure > 0.8:
+                # High memory pressure - increase compression
+                new_decay_rate = min(self.decay_rate * 1.05, 0.03)
+                new_compression_threshold = max(self.compression_threshold * 0.98, 0.12)
+            elif memory_pressure < 0.3:
+                # Low memory pressure - reduce compression
+                new_decay_rate = max(self.decay_rate * 0.98, 0.005)
+                new_compression_threshold = min(self.compression_threshold * 1.02, 0.3)
+            else:
+                # Maintain current parameters
+                new_decay_rate = self.decay_rate
+                new_compression_threshold = self.compression_threshold
+        
+        # Update parameters
+        self.decay_rate = new_decay_rate
+        self.compression_threshold = new_compression_threshold
+        
+        logger.info(f"Optimized decay parameters: decay_rate={self.decay_rate:.4f}, "
+                   f"compression_threshold={self.compression_threshold:.3f}")
+        
+        return {
+            'decay_rate': self.decay_rate,
+            'compression_threshold': self.compression_threshold,
+            'learning_progress': learning_progress,
+            'survival_rate': survival_rate,
+            'memory_pressure': memory_pressure
+        }
 
 
 class SalienceWeightedReplayBuffer:

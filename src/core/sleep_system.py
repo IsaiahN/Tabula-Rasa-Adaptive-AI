@@ -14,10 +14,10 @@ import logging
 from collections import deque
 import time
 
-from core.data_models import Experience, AgentState
-from core.predictive_core import PredictiveCore
-from core.meta_learning import MetaLearningSystem
-from core.salience_system import SalienceCalculator, SalienceWeightedReplayBuffer, SalientExperience
+from .data_models import Experience, AgentState
+from .predictive_core import PredictiveCore
+from .meta_learning import MetaLearningSystem
+from .salience_system import SalienceCalculator, SalienceWeightedReplayBuffer, SalientExperience, SalienceMode, CompressedMemory
 
 logger = logging.getLogger(__name__)
 
@@ -154,16 +154,26 @@ class SleepCycle:
             'consolidation_score': 0.0
         }
         
-        # Phase 1: Salience-Weighted Experience Replay
+        # Phase 1: Memory Decay and Compression (if enabled)
+        compression_results = {'decayed': 0, 'compressed': 0, 'merged': 0}
+        if hasattr(self, 'salience_calculator'):
+            compression_results = self._process_memory_decay_and_compression(
+                self.salience_calculator, time.time()
+            )
+        
+        # Phase 2: Salience-Weighted Experience Replay
         if self.use_salience_weighting:
             replay_results = self._salience_weighted_replay()
         else:
             replay_results = self._replay_experiences(replay_buffer)
         sleep_results.update(replay_results)
         
-        # Phase 2: Object Encoding Enhancement
+        # Phase 3: Object Encoding Enhancement
         encoding_results = self._enhance_object_encodings(replay_buffer)
         sleep_results.update(encoding_results)
+        
+        # Add compression results to sleep results
+        sleep_results['compression_results'] = compression_results
         
         # Phase 3: Salience-Based Memory Consolidation
         if self.predictive_core.use_memory:
@@ -388,6 +398,54 @@ class SleepCycle:
             'experiences_processed': len(high_salience_experiences),
             'avg_loss': avg_loss,
             'high_salience_count': high_salience_count
+        }
+    
+    def _process_memory_decay_and_compression(self, salience_calculator: SalienceCalculator, current_time: float) -> Dict[str, int]:
+        """
+        Process memory decay and compression during sleep cycle.
+        
+        Args:
+            salience_calculator: The salience calculator with decay/compression capabilities
+            current_time: Current timestamp for decay calculations
+            
+        Returns:
+            Dictionary with compression statistics
+        """
+        if not hasattr(self, 'salience_replay_buffer') or salience_calculator.mode == SalienceMode.LOSSLESS:
+            return {'decayed': 0, 'compressed': 0, 'merged': 0}
+        
+        # Get all experiences from replay buffer
+        all_experiences = list(self.salience_replay_buffer.experiences)
+        
+        if not all_experiences:
+            return {'decayed': 0, 'compressed': 0, 'merged': 0}
+        
+        # Apply salience decay
+        decayed_experiences = salience_calculator.apply_salience_decay(all_experiences, current_time)
+        
+        # Compress low-salience memories
+        remaining_experiences, compressed_memories = salience_calculator.compress_low_salience_memories(
+            decayed_experiences, current_time
+        )
+        
+        # Update replay buffer with remaining experiences
+        self.salience_replay_buffer.experiences.clear()
+        self.salience_replay_buffer.priorities.clear()
+        
+        for exp in remaining_experiences:
+            self.salience_replay_buffer.add(exp)
+        
+        # Store compressed memories in salience calculator
+        salience_calculator.compressed_memories.extend(compressed_memories)
+        
+        logger.info(f"Memory processing: {len(decayed_experiences)} decayed, "
+                   f"{len(compressed_memories)} compressed, "
+                   f"{len(remaining_experiences)} remaining")
+        
+        return {
+            'decayed': len(decayed_experiences),
+            'compressed': len(compressed_memories),
+            'merged': sum(cm.merged_count for cm in compressed_memories)
         }
         
     def _enhance_object_encodings(self, replay_buffer: List[Experience]) -> Dict[str, float]:
