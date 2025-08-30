@@ -1,0 +1,2415 @@
+{
+  "puzzle_name": "Tool Use (The Stick)",
+  "agent_id": "adaptive_learning_agent_v1",
+  "success_rate": 0.0,
+  "agi_signal_level": "none",
+  "key_behaviors": [
+    "spontaneous_tool_use",
+    "novel_tool_exploration"
+  ],
+  "learning_trajectory": [
+    {
+      "episode": 0,
+      "success": false,
+      "steps": 63,
+      "behaviors": [
+        {
+          "step": 7,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 7,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.5155, 4.9930, 0.0000])"
+          },
+          "timestamp": 1756518787.1348019
+        },
+        {
+          "step": 8,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 8,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.9933, 4.8102, 0.0000])"
+          },
+          "timestamp": 1756518787.6665733
+        },
+        {
+          "step": 8,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 8,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.9933, 4.8102, 0.0000])"
+          },
+          "timestamp": 1756518787.6665733
+        },
+        {
+          "step": 8,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 8,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.9933, 4.8102, 0.0000])"
+          },
+          "timestamp": 1756518787.6665733
+        },
+        {
+          "step": 11,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 11,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.6732, 4.1238, 0.0000])"
+          },
+          "timestamp": 1756518788.2012553
+        },
+        {
+          "step": 12,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 12,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.6732, 4.1238, 0.0000])"
+          },
+          "timestamp": 1756518788.3823783
+        },
+        {
+          "step": 12,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 12,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.6732, 4.1238, 0.0000])"
+          },
+          "timestamp": 1756518788.3823783
+        },
+        {
+          "step": 12,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 12,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.6732, 4.1238, 0.0000])"
+          },
+          "timestamp": 1756518788.3823783
+        },
+        {
+          "step": 15,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 15,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.3540, 4.5722, 0.0000])"
+          },
+          "timestamp": 1756518789.2138872
+        },
+        {
+          "step": 15,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 15,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.3540, 4.5722, 0.0000])"
+          },
+          "timestamp": 1756518789.2138872
+        },
+        {
+          "step": 15,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 15,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.3540, 4.5722, 0.0000])"
+          },
+          "timestamp": 1756518789.2138872
+        },
+        {
+          "step": 18,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 18,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.2331, 5.5237, 0.0000])"
+          },
+          "timestamp": 1756518789.7758691
+        },
+        {
+          "step": 19,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 19,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.8093, 5.8937, 0.0000])"
+          },
+          "timestamp": 1756518789.9151227
+        },
+        {
+          "step": 19,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 19,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.8093, 5.8937, 0.0000])"
+          },
+          "timestamp": 1756518789.9151227
+        },
+        {
+          "step": 19,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 19,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.8093, 5.8937, 0.0000])"
+          },
+          "timestamp": 1756518789.9151227
+        },
+        {
+          "step": 22,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 22,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.8630, 4.6403, 0.0000])"
+          },
+          "timestamp": 1756518790.4351392
+        },
+        {
+          "step": 23,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 23,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.5378, 4.1664, 0.0000])"
+          },
+          "timestamp": 1756518790.6747847
+        },
+        {
+          "step": 24,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 24,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.0405, 4.1847, 0.0000])"
+          },
+          "timestamp": 1756518790.8247101
+        },
+        {
+          "step": 24,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 24,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.0405, 4.1847, 0.0000])"
+          },
+          "timestamp": 1756518790.8247101
+        },
+        {
+          "step": 24,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 24,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.0405, 4.1847, 0.0000])"
+          },
+          "timestamp": 1756518790.8247101
+        },
+        {
+          "step": 27,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 27,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.1255, 4.7383, 0.0000])"
+          },
+          "timestamp": 1756518791.2704744
+        },
+        {
+          "step": 28,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 28,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.6839, 4.2594, 0.0000])"
+          },
+          "timestamp": 1756518791.4331996
+        },
+        {
+          "step": 29,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 29,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.0779, 4.0015, 0.0000])"
+          },
+          "timestamp": 1756518791.6099076
+        },
+        {
+          "step": 30,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 30,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.6592, 4.2512, 0.0000])"
+          },
+          "timestamp": 1756518791.7967227
+        },
+        {
+          "step": 31,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 31,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.9863, 4.5770, 0.0000])"
+          },
+          "timestamp": 1756518791.9212499
+        },
+        {
+          "step": 31,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 31,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.9863, 4.5770, 0.0000])"
+          },
+          "timestamp": 1756518791.9212499
+        },
+        {
+          "step": 33,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 33,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.3221, 4.6981, 0.0000])"
+          },
+          "timestamp": 1756518792.204419
+        },
+        {
+          "step": 33,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 33,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.3221, 4.6981, 0.0000])"
+          },
+          "timestamp": 1756518792.204419
+        },
+        {
+          "step": 33,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 33,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.3221, 4.6981, 0.0000])"
+          },
+          "timestamp": 1756518792.204419
+        },
+        {
+          "step": 33,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 33,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.3221, 4.6981, 0.0000])"
+          },
+          "timestamp": 1756518792.204419
+        },
+        {
+          "step": 37,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 37,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.0501, 4.0153, 0.0000])"
+          },
+          "timestamp": 1756518792.9079585
+        },
+        {
+          "step": 38,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 38,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.0146, 4.3582, 0.0000])"
+          },
+          "timestamp": 1756518793.0499537
+        },
+        {
+          "step": 39,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 39,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.5810, 4.0328, 0.0000])"
+          },
+          "timestamp": 1756518793.2140455
+        },
+        {
+          "step": 39,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 39,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.5810, 4.0328, 0.0000])"
+          },
+          "timestamp": 1756518793.2140455
+        },
+        {
+          "step": 39,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 39,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.5810, 4.0328, 0.0000])"
+          },
+          "timestamp": 1756518793.2140455
+        },
+        {
+          "step": 39,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 39,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.5810, 4.0328, 0.0000])"
+          },
+          "timestamp": 1756518793.2140455
+        },
+        {
+          "step": 39,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 39,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.5810, 4.0328, 0.0000])"
+          },
+          "timestamp": 1756518793.2140455
+        },
+        {
+          "step": 39,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 39,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.5810, 4.0328, 0.0000])"
+          },
+          "timestamp": 1756518793.2140455
+        },
+        {
+          "step": 45,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 45,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.4922, 3.9444, 0.0000])"
+          },
+          "timestamp": 1756518793.8509998
+        },
+        {
+          "step": 46,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 46,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.8682, 4.4024, 0.0000])"
+          },
+          "timestamp": 1756518793.9369466
+        },
+        {
+          "step": 47,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 47,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.5003, 4.1873, 0.0000])"
+          },
+          "timestamp": 1756518794.0469744
+        },
+        {
+          "step": 48,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 48,
+            "context": "alternative_use",
+            "agent_position": "tensor([0.9739, 3.7376, 0.0000])"
+          },
+          "timestamp": 1756518794.135355
+        },
+        {
+          "step": 49,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 49,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.0640, 3.9282, 0.0000])"
+          },
+          "timestamp": 1756518794.2351363
+        },
+        {
+          "step": 49,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 49,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.0640, 3.9282, 0.0000])"
+          },
+          "timestamp": 1756518794.2351363
+        },
+        {
+          "step": 51,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 51,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.6613, 3.6664, 0.0000])"
+          },
+          "timestamp": 1756518794.4308581
+        },
+        {
+          "step": 51,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 51,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.6613, 3.6664, 0.0000])"
+          },
+          "timestamp": 1756518794.4308581
+        },
+        {
+          "step": 53,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 53,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.8603, 3.4675, 0.0000])"
+          },
+          "timestamp": 1756518794.673588
+        },
+        {
+          "step": 53,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 53,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.8603, 3.4675, 0.0000])"
+          },
+          "timestamp": 1756518794.673588
+        },
+        {
+          "step": 53,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 53,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.8603, 3.4675, 0.0000])"
+          },
+          "timestamp": 1756518794.673588
+        },
+        {
+          "step": 53,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 53,
+            "context": "alternative_use",
+            "agent_position": "tensor([1.8603, 3.4675, 0.0000])"
+          },
+          "timestamp": 1756518794.673588
+        },
+        {
+          "step": 57,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 57,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.5002, 4.0861, 0.0000])"
+          },
+          "timestamp": 1756518795.1005044
+        },
+        {
+          "step": 58,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 58,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.9501, 3.7888, 0.0000])"
+          },
+          "timestamp": 1756518795.2331045
+        },
+        {
+          "step": 58,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 58,
+            "context": "alternative_use",
+            "agent_position": "tensor([2.9501, 3.7888, 0.0000])"
+          },
+          "timestamp": 1756518795.2331045
+        },
+        {
+          "step": 60,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 60,
+            "context": "alternative_use",
+            "agent_position": "tensor([3.0335, 3.7060, 0.0000])"
+          },
+          "timestamp": 1756518795.504406
+        },
+        {
+          "step": 61,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 61,
+            "context": "alternative_use",
+            "agent_position": "tensor([3.3275, 4.0698, 0.0000])"
+          },
+          "timestamp": 1756518795.6776702
+        },
+        {
+          "step": 61,
+          "type": "novel_tool_exploration",
+          "details": {
+            "step": 61,
+            "context": "alternative_use",
+            "agent_position": "tensor([3.3275, 4.0698, 0.0000])"
+          },
+          "timestamp": 1756518795.6776702
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        }
+      ]
+    },
+    {
+      "episode": 1,
+      "success": false,
+      "steps": 200,
+      "behaviors": [
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        },
+        {
+          "step": 63,
+          "type": "spontaneous_tool_use",
+          "details": {
+            "direct_attempts_before_tool": 4,
+            "discovery_step": 63
+          },
+          "timestamp": 1756518795.9681172
+        }
+      ]
+    }
+  ],
+  "total_steps": 263,
+  "completion_time": 0,
+  "detailed_metrics": {
+    "puzzle_name": "Tool Use (The Stick)",
+    "total_steps": 200,
+    "duration": 0.2140181064605713,
+    "behaviors_recorded": 32,
+    "learning_events": 1,
+    "surprise_events": 0,
+    "hypothesis_tests": 0,
+    "agi_signal_level": "none",
+    "puzzle_state": {
+      "reward_available": true,
+      "stick_available": true,
+      "agent_has_stick": false,
+      "direct_reach_attempts": 97,
+      "tool_use_attempts": 0,
+      "success_achieved": false
+    }
+  }
+}
