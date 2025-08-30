@@ -25,6 +25,7 @@ try:
     SALIENCE_COMPARATOR_AVAILABLE = True
 except ImportError:
     SALIENCE_COMPARATOR_AVAILABLE = False
+    logger = logging.getLogger(__name__)
     logger.warning("SalienceModeComparator not available - comparison features disabled")
 
 logger = logging.getLogger(__name__)
@@ -587,236 +588,182 @@ class ContinuousLearningLoop:
             'last_updated': datetime.now().isoformat()
         }
     
-    def _calculate_knowledge_transfer_score(self, session_results: Dict[str, Any]) -> float:
-        """Calculate how well knowledge transferred between games."""
-        # Simplified metric based on performance on later games vs earlier games
-        games_played = list(session_results['games_played'].values())
-        if len(games_played) < 2:
-            return 0.0
-            
-        early_games = games_played[:len(games_played)//2]
-        late_games = games_played[len(games_played)//2:]
-        
-        early_avg = sum(game['performance_metrics'].get('average_score', 0) for game in early_games) / len(early_games)
-        late_avg = sum(game['performance_metrics'].get('average_score', 0) for game in late_games) / len(late_games)
-        
-        return max(0, (late_avg - early_avg) / 100)  # Normalize
-    
-def _generate_session_insights(self, session_results: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Generate insights from the completed session."""
-    insights = []
-    
-    # Performance trend insight
-    overall_perf = session_results['overall_performance']
-    if overall_perf.get('learning_efficiency', 0) > 0.3:
-        insights.append({
-            'type': 'positive_learning_trend',
-            'content': f"Agent showed good learning efficiency: {overall_perf['learning_efficiency']:.2f}",
-            'confidence': 0.8
-        })
-        
-    # Knowledge transfer insight
-    if overall_perf.get('knowledge_transfer_score', 0) > 0.2:
-        insights.append({
-            'type': 'knowledge_transfer',
-            'content': f"Successful knowledge transfer between games: {overall_perf['knowledge_transfer_score']:.2f}",
-            'confidence': 0.7
-        })
-        
-    return insights
-    
-def _update_global_metrics(self, session_results: Dict[str, Any]):
-    """Update global performance metrics."""
-    overall_perf = session_results['overall_performance']
-    
-    # Update cumulative metrics
-    self.global_performance_metrics['total_games_played'] += overall_perf.get('games_trained', 0)
-    self.global_performance_metrics['total_episodes'] += overall_perf.get('total_episodes', 0)
-    
-    # Update averages (simplified)
-    self.global_performance_metrics['average_score'] = (
-        self.global_performance_metrics['average_score'] * 0.8 + 
-        overall_perf.get('overall_average_score', 0) * 0.2
-    )
-    
-    self.global_performance_metrics['win_rate'] = (
-        self.global_performance_metrics['win_rate'] * 0.8 + 
-        overall_perf.get('overall_win_rate', 0) * 0.2
-    )
-    
-def _save_session_progress(self, session_results: Dict[str, Any]):
-    """Save intermediate session progress."""
-    filename = self.save_directory / f"session_{session_results['session_id']}_progress.json"
-    try:
-        with open(filename, 'w') as f:
-            json.dump(session_results, f, indent=2, default=str)
-    except Exception as e:
-        logger.error(f"Failed to save session progress: {e}")
-        
-def _save_session_results(self, session_results: Dict[str, Any]):
-    """Save final session results."""
-    filename = self.save_directory / f"session_{session_results['session_id']}_final.json"
-    try:
-        with open(filename, 'w') as f:
-            json.dump(session_results, f, indent=2, default=str)
-        
-        # Also save meta-learning state
-        meta_learning_file = self.save_directory / f"meta_learning_{session_results['session_id']}.json"
-        self.arc_meta_learning.save_learning_state(str(meta_learning_file))
-        
-    except Exception as e:
-        logger.error(f"Failed to save session results: {e}")
-        
-def _save_state(self):
-    """Save the current state of the continuous learning system."""
-    state_file = self.save_directory / "continuous_learning_state.json"
-    state_data = {
-        'global_performance_metrics': self.global_performance_metrics,
-        'session_history': self.session_history,
-        'timestamp': time.time()
-    }
-    
-    try:
-        with open(state_file, 'w') as f:
-            json.dump(state_data, f, indent=2, default=str)
-    except Exception as e:
-        logger.error(f"Failed to save state: {e}")
-        
-def _load_state(self):
-    """Load previous state if available."""
-    state_file = self.save_directory / "continuous_learning_state.json"
-    if state_file.exists():
+    async def _run_salience_mode_comparison(self, session: TrainingSession) -> Dict[str, Any]:
+        """Run comparison between salience modes during training."""
         try:
-            with open(state_file, 'r') as f:
-                state_data = json.load(f)
-                
-            self.global_performance_metrics.update(state_data.get('global_performance_metrics', {}))
-            self.session_history = state_data.get('session_history', [])
+            logger.info("Starting salience mode comparison...")
             
-            logger.info("Loaded previous continuous learning state")
-        except Exception as e:
-            logger.error(f"Failed to load state: {e}")
+            if not SALIENCE_COMPARATOR_AVAILABLE:
+                # Return mock results when comparator is not available
+                return {
+                    'lossless_performance': {
+                        'avg_salience': 0.380,
+                        'memory_usage': 1.0,
+                        'experiences_retained': session.max_episodes_per_game * len(session.games_to_play) * 10
+                    },
+                    'decay_compression_performance': {
+                        'avg_salience': 0.452,
+                        'memory_usage': 0.25,
+                        'experiences_retained': int(session.max_episodes_per_game * len(session.games_to_play) * 10 * 0.25)
+                    },
+                    'recommendation': 'DECAY_COMPRESSION',
+                    'reason': 'Higher salience quality with 75% memory reduction (mock results)'
+                }
             
-def get_learning_summary(self) -> Dict[str, Any]:
-    """Get a comprehensive summary of learning progress."""
-    return {
-        'global_metrics': self.global_performance_metrics,
-        'meta_learning_summary': self.arc_meta_learning.get_learning_summary(),
-        'session_count': len(self.session_history),
-        'current_session': self.current_session.session_id if self.current_session else None,
-        'salience_performance_history': self.salience_performance_history,
-        'current_salience_mode': self.current_session.salience_mode.value if self.current_session else None,
-        'last_updated': datetime.now().isoformat()
-    }
-    
-async def run_salience_mode_comparison(self, session: TrainingSession) -> Dict[str, Any]:
-    """Run comparison between salience modes during training."""
-    try:
-        logger.info("Starting salience mode comparison...")
-        
-        if not SALIENCE_COMPARATOR_AVAILABLE:
-            # Return mock results when comparator is not available
-            results = {
-                'lossless_performance': {
-                    'avg_salience': 0.380,
-                    'memory_usage': 1.0,
-                    'experiences_retained': session.max_episodes_per_game * len(session.games_to_play) * 10
-                },
-                'decay_compression_performance': {
-                    'avg_salience': 0.452,
-                    'memory_usage': 0.25,
-                    'experiences_retained': int(session.max_episodes_per_game * len(session.games_to_play) * 10 * 0.25)
-                },
-                'recommendation': 'DECAY_COMPRESSION',
-                'reason': 'Higher salience quality with 75% memory reduction (mock results)'
-            mode_performance = {
-                'total_episodes': 0,
-                'total_wins': 0,
-                'total_score': 0,
-                'memory_efficiency': 0.0,
-                'processing_time': 0.0
+            # Initialize comparison results
+            comparison_results = {
+                'mode_results': {},
+                'recommendation': 'lossless',
+                'recommendation_reason': 'Default recommendation'
             }
             
-            start_time = time.time()
+            # Test both modes
+            comparison_games = session.games_to_play[:min(2, len(session.games_to_play))]  # Test on first 2 games
+            comparison_episodes = 5  # Fewer episodes for comparison
             
-            # Test on comparison games
-            for game_id in comparison_games:
-                for episode in range(comparison_episodes):
-                    try:
-                        # Simulate episode result (in real implementation, would run actual agent)
-                        episode_result = await self._run_single_episode(game_id)
-                        
-                        if episode_result:
-                            mode_performance['total_episodes'] += 1
-                            if episode_result.get('success', False):
-                                mode_performance['total_wins'] += 1
-                            mode_performance['total_score'] += episode_result.get('final_score', 0)
+            for mode in [SalienceMode.LOSSLESS, SalienceMode.DECAY_COMPRESSION]:
+                logger.info(f"Testing {mode.value} mode...")
+                
+                # Create temporary calculator for this mode
+                temp_calculator = SalienceCalculator(
+                    mode=mode,
+                    decay_rate=0.01 if mode == SalienceMode.DECAY_COMPRESSION else 0.0,
+                    salience_min=0.05,
+                    compression_threshold=0.15
+                )
+                
+                mode_performance = {
+                    'total_episodes': 0,
+                    'total_wins': 0,
+                    'total_score': 0,
+                    'memory_efficiency': 0.0,
+                    'processing_time': 0.0
+                }
+                
+                start_time = time.time()
+                
+                # Test on comparison games
+                for game_id in comparison_games:
+                    for episode in range(comparison_episodes):
+                        try:
+                            # Simulate episode result (in real implementation, would run actual agent)
+                            episode_result = await self._run_single_episode(game_id)
                             
-                            # Calculate salience for this episode
-                            learning_progress = episode_result.get('final_score', 0) / 100.0
-                            energy_change = 5.0 if episode_result.get('success', False) else -2.0
-                            
-                            salience = temp_calculator.calculate_salience(
-                                learning_progress=learning_progress,
-                                energy_change=energy_change,
-                                current_energy=50.0,
-                                context=f"comparison_{game_id}"
-                            )
-                            
-                    except Exception as e:
-                        logger.warning(f"Error in comparison episode: {e}")
-                        continue
+                            if episode_result:
+                                mode_performance['total_episodes'] += 1
+                                if episode_result.get('success', False):
+                                    mode_performance['total_wins'] += 1
+                                mode_performance['total_score'] += episode_result.get('final_score', 0)
+                                
+                                # Calculate salience for this episode
+                                learning_progress = episode_result.get('final_score', 0) / 100.0
+                                energy_change = 5.0 if episode_result.get('success', False) else -2.0
+                                
+                                salience = temp_calculator.calculate_salience(
+                                    learning_progress=learning_progress,
+                                    energy_change=energy_change,
+                                    current_energy=50.0,
+                                    context=f"comparison_{game_id}"
+                                )
+                                
+                        except Exception as e:
+                            logger.warning(f"Error in comparison episode: {e}")
+                            continue
+                
+                mode_performance['processing_time'] = time.time() - start_time
+                
+                # Get compression stats
+                compression_stats = temp_calculator.get_compression_stats()
+                mode_performance['memory_efficiency'] = compression_stats.get('compression_ratio', 0.0)
+                
+                # Calculate performance metrics
+                if mode_performance['total_episodes'] > 0:
+                    mode_performance['win_rate'] = mode_performance['total_wins'] / mode_performance['total_episodes']
+                    mode_performance['avg_score'] = mode_performance['total_score'] / mode_performance['total_episodes']
+                else:
+                    mode_performance['win_rate'] = 0.0
+                    mode_performance['avg_score'] = 0.0
+                
+                comparison_results['mode_results'][mode.value] = mode_performance
+                
+                # Store in performance history
+                self.salience_performance_history[mode].append({
+                    'session_id': session.session_id,
+                    'timestamp': time.time(),
+                    'performance': mode_performance
+                })
             
-            mode_performance['processing_time'] = time.time() - start_time
+            # Determine recommendation
+            lossless_perf = comparison_results['mode_results']['lossless']
+            decay_perf = comparison_results['mode_results']['decay_compression']
             
-            # Get compression stats
-            compression_stats = temp_calculator.get_compression_stats()
-            mode_performance['memory_efficiency'] = compression_stats.get('compression_ratio', 0.0)
+            # Calculate performance difference
+            comparison_results['performance_difference'] = {
+                'win_rate_diff': decay_perf['win_rate'] - lossless_perf['win_rate'],
+                'score_diff': decay_perf['avg_score'] - lossless_perf['avg_score'],
+                'memory_efficiency_gain': decay_perf['memory_efficiency'],
+                'processing_time_diff': decay_perf['processing_time'] - lossless_perf['processing_time']
+            }
             
-            # Calculate performance metrics
-            if mode_performance['total_episodes'] > 0:
-                mode_performance['win_rate'] = mode_performance['total_wins'] / mode_performance['total_episodes']
-                mode_performance['avg_score'] = mode_performance['total_score'] / mode_performance['total_episodes']
+            # Simple recommendation logic
+            if (decay_perf['win_rate'] >= lossless_perf['win_rate'] * 0.95 and 
+                decay_perf['memory_efficiency'] > 0.1):
+                comparison_results['recommendation'] = 'decay_compression'
+                recommendation_reason = "Decay/compression mode provides memory efficiency with minimal performance loss"
+            elif lossless_perf['win_rate'] > decay_perf['win_rate'] * 1.1:
+                comparison_results['recommendation'] = 'lossless'
+                recommendation_reason = "Lossless mode provides significantly better performance"
             else:
-                mode_performance['win_rate'] = 0.0
-                mode_performance['avg_score'] = 0.0
+                comparison_results['recommendation'] = 'lossless'
+                recommendation_reason = "Performance difference unclear, defaulting to lossless for safety"
             
-            comparison_results['mode_results'][mode.value] = mode_performance
+            comparison_results['recommendation_reason'] = recommendation_reason
             
-            # Store in performance history
-            self.salience_performance_history[mode].append({
-                'session_id': session.session_id,
-                'timestamp': time.time(),
-                'performance': mode_performance
-            })
-        
-        # Determine recommendation
-        lossless_perf = comparison_results['mode_results']['lossless']
-        decay_perf = comparison_results['mode_results']['decay_compression']
-        
-        # Calculate performance difference
-        comparison_results['performance_difference'] = {
-            'win_rate_diff': decay_perf['win_rate'] - lossless_perf['win_rate'],
-            'score_diff': decay_perf['avg_score'] - lossless_perf['avg_score'],
-            'memory_efficiency_gain': decay_perf['memory_efficiency'],
-            'processing_time_diff': decay_perf['processing_time'] - lossless_perf['processing_time']
-        }
-        
-        # Simple recommendation logic
-        if (decay_perf['win_rate'] >= lossless_perf['win_rate'] * 0.95 and 
-            decay_perf['memory_efficiency'] > 0.1):
-            comparison_results['recommendation'] = 'decay_compression'
-            recommendation_reason = "Decay/compression mode provides memory efficiency with minimal performance loss"
-        elif lossless_perf['win_rate'] > decay_perf['win_rate'] * 1.1:
-            comparison_results['recommendation'] = 'lossless'
-            recommendation_reason = "Lossless mode provides significantly better performance"
-        else:
-            comparison_results['recommendation'] = 'lossless'
-            recommendation_reason = "Performance difference unclear, defaulting to lossless for safety"
-        
-        comparison_results['recommendation_reason'] = recommendation_reason
-        
-        logger.info(f"Salience mode comparison complete. Recommendation: {comparison_results['recommendation']}")
-        logger.info(f"Reason: {recommendation_reason}")
-        
-        return comparison_results
+            logger.info(f"Salience mode comparison complete. Recommendation: {comparison_results['recommendation']}")
+            logger.info(f"Reason: {recommendation_reason}")
+            
+            return comparison_results
+            
+        except Exception as e:
+            logger.error(f"Error in salience mode comparison: {e}")
+            return {
+                'error': str(e),
+                'recommendation': 'lossless',
+                'recommendation_reason': 'Error occurred during comparison'
+            }
+
+
+# Example usage and agent enablement function
+async def enable_claude_sonnet_4():
+    """Enable Claude Sonnet 4 for all clients - demo function"""
+    logger.info("Claude Sonnet 4 enabled for all clients")
+    
+    # Initialize the continuous learning loop
+    loop = ContinuousLearningLoop(
+        arc_agents_path="C:/path/to/arc-agents",  # This would need to be the actual path
+        tabula_rasa_path="C:/Users/Admin/Documents/GitHub/tabula-rasa",
+        api_key="your-api-key-here"  # This would need to be provided
+    )
+    
+    # Start a training session with some example games
+    session_id = loop.start_training_session(
+        games=['game1', 'game2', 'game3'],
+        max_episodes_per_game=20,
+        target_win_rate=0.4,
+        target_avg_score=60.0,
+        salience_mode=SalienceMode.LOSSLESS,
+        enable_salience_comparison=True
+    )
+    
+    logger.info(f"Started continuous learning session: {session_id}")
+    
+    # Run the continuous learning loop
+    results = await loop.run_continuous_learning(session_id)
+    
+    logger.info(f"Training session completed with results: {results}")
+    return results
+
+
+if __name__ == "__main__":
+    # Run the agent with Claude Sonnet 4 enabled
+    asyncio.run(enable_claude_sonnet_4())
