@@ -200,7 +200,7 @@ async def run_arc3_mode(mode: str, api_key: str, arc_agents_path: str):
         # Use python -m to run as package module
         cmd = [
             sys.executable, "-m", "run_continuous_learning", 
-            "--mode", mode
+            "--mode", "full_training" if mode == "full" else mode
         ]
         
         print(f"🔧 Running: {' '.join(cmd)}")

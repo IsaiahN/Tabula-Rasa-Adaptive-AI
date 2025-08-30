@@ -22,20 +22,32 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
-# Fix imports for when run as module
-if __name__ == "__main__":
-    # Add src to path when run as main module
-    current_dir = Path(__file__).parent
-    src_dir = current_dir / "src"
-    if src_dir.exists() and str(src_dir) not in sys.path:
-        sys.path.insert(0, str(src_dir))
+# Fix imports for when run as module - use absolute paths
+current_dir = Path(__file__).parent.resolve()
+src_dir = current_dir / "src"
 
-# Now import with the correct path setup
+# Always add src to path
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
+
+# Now import with the correct path setup - use direct imports to avoid relative import issues
 try:
-    from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop
-except ImportError:
-    # Fallback for when run as module
     from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+    print("✅ Successfully imported ContinuousLearningLoop")
+except ImportError as e:
+    print(f"❌ Failed to import ContinuousLearningLoop: {e}")
+    # Try alternative import
+    try:
+        sys.path.insert(0, str(current_dir / "src" / "arc_integration"))
+        from continuous_learning_loop import ContinuousLearningLoop
+        print("✅ Successfully imported ContinuousLearningLoop via fallback")
+    except ImportError as e2:
+        print(f"❌ All import attempts failed: {e2}")
+        print("Available modules:")
+        import pkgutil
+        for importer, modname, ispkg in pkgutil.iter_modules():
+            print(f"  - {modname}")
+        sys.exit(1)
 
 # Set up logging
 logging.basicConfig(
@@ -43,6 +55,76 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+async def get_available_games(api_key: str, arc_agents_path: str) -> list:
+    """Get list of actually available games from ARC-3 API."""
+    import subprocess
+    import re
+    
+    try:
+        print("🎮 Fetching available games from ARC-3 API...")
+        
+        # Set up environment
+        env = os.environ.copy()
+        env['ARC_API_KEY'] = api_key
+        
+        # Run without specifying a game to get the game list
+        cmd = ['uv', 'run', 'main.py', '--agent=random']
+        
+        result = subprocess.run(
+            cmd,
+            cwd=arc_agents_path,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        # Parse game list from output
+        output = result.stdout + result.stderr
+        print(f"DEBUG - API Response: {output[:200]}...")
+        
+        # Look for game list in various formats
+        game_patterns = [
+            r'Game list:\s*\[(.*?)\]',                    # Game list: [...]
+            r'Available games:\s*\[(.*?)\]',              # Available games: [...]
+            r'games?[:\s]*\[(.*?)\]',                     # games: [...]
+            r'tasks?[:\s]*\[(.*?)\]'                      # tasks: [...]
+        ]
+        
+        games = []
+        for pattern in game_patterns:
+            match = re.search(pattern, output, re.IGNORECASE | re.DOTALL)
+            if match:
+                games_str = match.group(1)
+                print(f"DEBUG - Found games string: {games_str}")
+                
+                # Parse individual game IDs
+                game_ids = re.findall(r'["\']([a-f0-9-]{8,})["\']', games_str)
+                if game_ids:
+                    games.extend(game_ids)
+                    break
+                    
+                # Try parsing without quotes
+                game_ids = re.findall(r'([a-f0-9-]{8,})', games_str)
+                if game_ids:
+                    games.extend(game_ids)
+                    break
+        
+        # Remove duplicates and filter valid-looking game IDs
+        games = list(set([g for g in games if len(g) >= 8 and re.match(r'^[a-f0-9-]+$', g)]))
+        
+        if games:
+            print(f"✅ Found {len(games)} available games: {games[:3]}...")
+            return games
+        else:
+            print("⚠️ No games found in API response, using test mode")
+            print(f"Full API response: {output}")
+            return []
+            
+    except Exception as e:
+        print(f"❌ Error fetching games: {e}")
+        return []
 
 def find_arc_agents_path() -> str:
     """Find ARC-AGI-3-Agents repository path."""
@@ -85,8 +167,8 @@ def main():
         api_key = os.getenv('ARC_API_KEY')
         
         if not api_key:
-            print("❌ ARC_API_KEY not found in environment")
-            print("💡 Please:")
+            print("ARC_API_KEY not found in environment")
+            print("Please:")
             print("   1. Register at https://three.arcprize.org")
             print("   2. Get your API key from your profile")
             print("   3. Add it to your .env file: ARC_API_KEY=your_key_here")
@@ -113,11 +195,11 @@ def main():
         return results
         
     except ValueError as e:
-        print(f"❌ Configuration Error: {e}")
+        print(f"Configuration Error: {e}")
         sys.exit(1)
     except ImportError as e:
-        print(f"❌ Import Error: {e}")
-        print("💡 Make sure the main codebase is properly installed")
+        print(f"Import Error: {e}")
+        print("Make sure the main codebase is properly installed")
         sys.exit(1)
     except Exception as e:
         logger.error(f"Fatal error: {e}")

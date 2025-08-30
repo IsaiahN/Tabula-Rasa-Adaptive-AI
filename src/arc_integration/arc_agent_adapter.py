@@ -30,9 +30,9 @@ except ImportError:
         pass
 
 # Tabula Rasa imports
-from src.core.agent import AdaptiveLearningAgent
-from src.core.data_models import SensoryInput, AgentState
-from src.core.meta_learning import MetaLearningSystem
+from core.agent import AdaptiveLearningAgent
+from core.data_models import SensoryInput, AgentState
+from core.meta_learning import MetaLearningSystem
 
 logger = logging.getLogger(__name__)
 
