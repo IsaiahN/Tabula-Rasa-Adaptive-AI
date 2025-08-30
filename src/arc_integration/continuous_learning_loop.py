@@ -440,7 +440,7 @@ class ContinuousLearningLoop:
         max_episodes: int,
         target_performance: Dict[str, float]
     ) -> Dict[str, Any]:
-        """Train the agent on a specific game with detailed monitoring."""
+        """Train the agent on a specific game using REAL ARC API calls only."""
         game_results = {
             'game_id': game_id,
             'episodes': [],
@@ -448,24 +448,19 @@ class ContinuousLearningLoop:
             'learning_progression': [],
             'patterns_discovered': [],
             'final_performance': {},
-            'system_metrics': {
-                'salience_calculations': 0,
-                'memory_consolidations': 0,
-                'sleep_triggers': 0,
-                'object_encodings': 0
-            }
+            'scorecard_urls': []
         }
         
-        # Get applicable patterns from previous games
-        applicable_patterns = self.arc_meta_learning.get_applicable_patterns(
-            game_id, {'training_context': True}
-        )
+        # Validate ARC-AGI-3-Agents path exists
+        if not self.arc_agents_path.exists():
+            raise ValueError(f"ARC-AGI-3-Agents path does not exist: {self.arc_agents_path}")
         
-        # Get strategic recommendations
-        recommendations = self.arc_meta_learning.get_strategic_recommendations(game_id)
+        if not (self.arc_agents_path / "main.py").exists():
+            raise ValueError(f"main.py not found in ARC-AGI-3-Agents: {self.arc_agents_path}")
         
-        print(f"🔍 Training on {game_id} with {len(applicable_patterns)} applicable patterns")
-        print(f"💡 Strategic recommendations: {len(recommendations) if recommendations else 0}")
+        print(f"🎮 Starting REAL ARC-3 training on game: {game_id}")
+        print(f"🔑 Using API Key: {self.api_key[:8]}...{self.api_key[-4:]}")
+        print(f"📁 ARC-AGI-3-Agents path: {self.arc_agents_path}")
         
         episode_count = 0
         consecutive_failures = 0
@@ -473,23 +468,22 @@ class ContinuousLearningLoop:
         
         while episode_count < max_episodes:
             try:
-                # Display episode progress
-                if episode_count % 10 == 0:
-                    self._display_episode_progress(game_id, episode_count, max_episodes, game_results)
+                print(f"🚀 Episode {episode_count + 1}/{max_episodes} for {game_id}")
                 
-                # Simulate episode (in real implementation, would run actual agent)
-                episode_result = await self._run_simulated_episode(game_id, episode_count)
+                # Run REAL ARC-3 episode
+                episode_result = await self._run_real_arc_episode(game_id, episode_count)
                 
-                if episode_result:
+                if episode_result and 'error' not in episode_result:
                     game_results['episodes'].append(episode_result)
                     episode_count += 1
                     
                     # Track performance
                     current_score = episode_result.get('final_score', 0)
                     success = episode_result.get('success', False)
+                    scorecard_url = episode_result.get('scorecard_url')
                     
-                    # Update system metrics
-                    self._update_episode_metrics(game_results['system_metrics'], episode_result, episode_count)
+                    if scorecard_url:
+                        game_results['scorecard_urls'].append(scorecard_url)
                     
                     if success:
                         consecutive_failures = 0
@@ -499,303 +493,163 @@ class ContinuousLearningLoop:
                     else:
                         consecutive_failures += 1
                         
-                    # Analyze episode for patterns
-                    patterns = self.arc_meta_learning.analyze_game_episode(
-                        game_id, episode_result, success, current_score
-                    )
-                    game_results['patterns_discovered'].extend(patterns)
+                    print(f"📊 Episode {episode_count}: {'✅ WIN' if success else '❌ LOSS'} | Score: {current_score}")
                     
                     # Check if we should continue
                     if self._should_stop_training(game_results, target_performance):
                         print(f"🎯 Target performance reached for {game_id}")
                         break
                         
-                    # Simulate sleep cycles
-                    if episode_count % 10 == 0:
-                        self._simulate_sleep_cycle(game_results['system_metrics'])
-                        
-                    # Adaptive training: if too many failures, take a break
-                    if consecutive_failures >= 10:
-                        print(f"😴 Taking break after {consecutive_failures} consecutive failures")
-                        await asyncio.sleep(2)
-                        consecutive_failures = 0
+                    # Brief delay between episodes to avoid rate limiting
+                    await asyncio.sleep(2.0)
                         
                 else:
-                    logger.warning(f"Failed to get episode result for {game_id}")
-                    await asyncio.sleep(1)
+                    print(f"❌ Episode {episode_count + 1} failed: {episode_result.get('error', 'Unknown error')}")
+                    consecutive_failures += 1
                     
-            except Exception as e:
-                logger.error(f"Error in episode {episode_count} for {game_id}: {e}")
-                await asyncio.sleep(1)
-                
-        # Calculate final performance metrics
-        game_results['performance_metrics'] = self._calculate_game_performance(game_results)
-        game_results['final_performance'] = {
-            'episodes_played': episode_count,
-            'best_score': best_score,
-            'patterns_discovered': len(game_results['patterns_discovered']),
-            'win_rate': sum(1 for ep in game_results['episodes'] if ep.get('success', False)) / max(1, len(game_results['episodes'])),
-            'system_metrics': game_results['system_metrics']
-        }
-        
-        return game_results
-    
-    def _display_episode_progress(self, game_id: str, episode_count: int, max_episodes: int, game_results: Dict[str, Any]):
-        """Display compact episode progress."""
-        progress_pct = (episode_count / max_episodes) * 100
-        recent_episodes = game_results['episodes'][-10:] if len(game_results['episodes']) >= 10 else game_results['episodes']
-        
-        recent_win_rate = sum(1 for ep in recent_episodes if ep.get('success', False)) / max(1, len(recent_episodes))
-        recent_avg_score = sum(ep.get('final_score', 0) for ep in recent_episodes) / max(1, len(recent_episodes))
-        
-        win_indicator = "🏆" if recent_win_rate > 0.3 else "📈" if recent_win_rate > 0.1 else "🔄"
-        
-        print(f"{win_indicator} {game_id}: {episode_count}/{max_episodes} ({progress_pct:.0f}%) | Win: {recent_win_rate:.1%} | Score: {recent_avg_score:.0f}")
-    
-    def _update_episode_metrics(self, system_metrics: Dict[str, int], episode_result: Dict[str, Any], episode_count: int):
-        """Update system metrics based on episode results."""
-        # Increment salience calculations
-        system_metrics['salience_calculations'] += 1
-        
-        # Trigger sleep every 10 episodes
-        if episode_count % 10 == 0:
-            system_metrics['sleep_triggers'] += 1
-            system_metrics['memory_consolidations'] += 1
-            
-        # Object encodings during sleep (every 15 episodes)
-        if episode_count % 15 == 0:
-            system_metrics['object_encodings'] += 1
-    
-    def _simulate_sleep_cycle(self, system_metrics: Dict[str, int]):
-        """Simulate sleep cycle execution."""
-        print("😴 Agent entering sleep cycle...")
-        system_metrics['memory_consolidations'] += 1
-        
-        # Simulate sleep operations
-        if self.current_session and self.current_session.salience_mode == SalienceMode.DECAY_COMPRESSION:
-            print("   🗜️ Applying memory decay and compression...")
-        else:
-            print("   💾 Preserving all memories (lossless mode)...")
-        
-        print("   🔄 Replaying high-salience experiences...")
-        print("   🧠 Consolidating memory pathways...")
-        print("   🎨 Encoding visual objects...")
-        print("😊 Agent waking up refreshed!")
-    
-    async def _run_simulated_episode(self, game_id: str, episode_count: int) -> Dict[str, Any]:
-        """Run a simulated episode for demonstration purposes."""
-        # Simulate variable episode outcomes
-        import random
-        
-        # Base success rate improves over time (learning)
-        base_success_rate = min(0.1 + (episode_count * 0.01), 0.7)
-        success = random.random() < base_success_rate
-        
-        # Score varies based on success and game difficulty
-        if success:
-            score = random.randint(60, 100)
-        else:
-            score = random.randint(0, 59)
-        
-        # Add some randomness for interesting patterns
-        if episode_count > 50:  # Later episodes can have breakthrough moments
-            if random.random() < 0.1:  # 10% chance of breakthrough
-                success = True
-                score = random.randint(90, 100)
-        
-        return {
-            'game_id': game_id,
-            'episode': episode_count,
-            'timestamp': time.time(),
-            'success': success,
-            'final_score': score,
-            'actions_taken': random.randint(10, 50),
-            'learning_progress': score / 100.0,
-            'salience_value': self._calculate_episode_salience(score, success),
-            'energy_change': 5.0 if success else -2.0,
-            'reasoning_data': [],
-            'raw_output': f"Simulated episode {episode_count} for {game_id}"
-        }
-    
-    def _calculate_episode_salience(self, score: int, success: bool) -> float:
-        """Calculate salience value for an episode."""
-        if self.salience_calculator:
-            learning_progress = score / 100.0
-            energy_change = 5.0 if success else -2.0
-            return self.salience_calculator.calculate_salience(
-                learning_progress=learning_progress,
-                energy_change=energy_change,
-                current_energy=50.0,
-                context="episode"
-            )
-        return 0.5  # Default salience
-
-    async def _train_on_game(
-        self,
-        game_id: str,
-        max_episodes: int,
-        target_performance: Dict[str, float]
-    ) -> Dict[str, Any]:
-        """Train the agent on a specific game."""
-        game_results = {
-            'game_id': game_id,
-            'episodes': [],
-            'performance_metrics': {},
-            'learning_progression': [],
-            'patterns_discovered': [],
-            'final_performance': {}
-        }
-        
-        # Get applicable patterns from previous games
-        applicable_patterns = self.arc_meta_learning.get_applicable_patterns(
-            game_id, {'training_context': True}
-        )
-        
-        # Get strategic recommendations
-        recommendations = self.arc_meta_learning.get_strategic_recommendations(game_id)
-        
-        logger.info(f"Training on {game_id} with {len(applicable_patterns)} applicable patterns")
-        logger.info(f"Strategic recommendations: {recommendations}")
-        
-        episode_count = 0
-        consecutive_failures = 0
-        best_score = 0
-        
-        while episode_count < max_episodes:
-            try:
-                # Run single episode
-                episode_result = await self._run_single_episode(game_id)
-                
-                if episode_result:
-                    game_results['episodes'].append(episode_result)
-                    episode_count += 1
-                    
-                    # Track performance
-                    current_score = episode_result.get('final_score', 0)
-                    success = episode_result.get('success', False)
-                    
-                    if success:
-                        consecutive_failures = 0
-                        if current_score > best_score:
-                            best_score = current_score
-                            logger.info(f"New best score for {game_id}: {best_score}")
-                    else:
-                        consecutive_failures += 1
-                        
-                    # Analyze episode for patterns
-                    patterns = self.arc_meta_learning.analyze_game_episode(
-                        game_id, episode_result, success, current_score
-                    )
-                    game_results['patterns_discovered'].extend(patterns)
-                    
-                    # Check if we should continue
-                    if self._should_stop_training(game_results, target_performance):
-                        logger.info(f"Target performance reached for {game_id}")
+                    # Stop if too many consecutive API failures
+                    if consecutive_failures >= 5:
+                        print(f"❌ Stopping training for {game_id} after 5 consecutive API failures")
                         break
-                        
-                    # Adaptive training: if too many failures, take a break
-                    if consecutive_failures >= 10:
-                        logger.info(f"Taking break after {consecutive_failures} consecutive failures")
-                        await asyncio.sleep(5)
-                        consecutive_failures = 0
-                        
-                else:
-                    logger.warning(f"Failed to get episode result for {game_id}")
-                    await asyncio.sleep(2)
+                    
+                    await asyncio.sleep(5.0)  # Longer delay after failures
                     
             except Exception as e:
-                logger.error(f"Error in episode {episode_count} for {game_id}: {e}")
-                await asyncio.sleep(1)
+                logger.error(f"Error in episode {episode_count + 1} for {game_id}: {e}")
+                consecutive_failures += 1
+                if consecutive_failures >= 5:
+                    print(f"❌ Stopping training for {game_id} due to repeated errors")
+                    break
+                await asyncio.sleep(5.0)
                 
         # Calculate final performance metrics
         game_results['performance_metrics'] = self._calculate_game_performance(game_results)
         game_results['final_performance'] = {
-            'episodes_played': episode_count,
+            'episodes_played': len(game_results['episodes']),
             'best_score': best_score,
-            'patterns_discovered': len(game_results['patterns_discovered']),
-            'win_rate': sum(1 for ep in game_results['episodes'] if ep.get('success', False)) / max(1, len(game_results['episodes']))
+            'win_rate': sum(1 for ep in game_results['episodes'] if ep.get('success', False)) / max(1, len(game_results['episodes'])),
+            'scorecard_urls_generated': len(game_results['scorecard_urls'])
         }
         
-        return game_results
+        # Display scorecard URLs
+        if game_results['scorecard_urls']:
+            print(f"\n🎯 ARC-3 Scorecards Generated for {game_id}:")
+            for i, url in enumerate(game_results['scorecard_urls'], 1):
+                print(f"   {i}. {url}")
+        else:
+            print(f"\n⚠️  No scorecard URLs generated for {game_id}")
         
-    async def _run_single_episode(self, game_id: str) -> Optional[Dict[str, Any]]:
-        """Run a single episode of the agent on a game."""
+        return game_results
+
+    async def _run_real_arc_episode(self, game_id: str, episode_count: int) -> Dict[str, Any]:
+        """Run a real ARC-3 episode and capture the scorecard URL."""
         try:
-            # Set up environment variables
+            import subprocess
+            import sys
+            import json
+            import tempfile
+            
+            # Set up environment with API key
             env = os.environ.copy()
             env['ARC_API_KEY'] = self.api_key
-            env['PYTHONPATH'] = str(self.tabula_rasa_path) + os.pathsep + env.get('PYTHONPATH', '')
             
-            # Run the agent
-            cmd = [
-                sys.executable, 'main.py',
-                '--agent', 'adaptivelearning',
-                '--game', game_id
-            ]
-            
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                cwd=str(self.arc_agents_path),
-                env=env,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            stdout, stderr = await process.communicate()
-            
-            if process.returncode == 0:
-                # Parse results from stdout/logs
-                return self._parse_episode_results(stdout.decode(), stderr.decode(), game_id)
-            else:
-                logger.error(f"Agent process failed for {game_id}: {stderr.decode()}")
-                return None
+            # Create a temporary directory for this episode's results
+            with tempfile.TemporaryDirectory() as temp_dir:
+                result_file = Path(temp_dir) / f"result_{episode_count}.json"
                 
+                # Run the ARC agent on the specific task
+                cmd = [
+                    sys.executable, 'main.py',
+                    '--agent', 'adaptivelearning',
+                    '--game', game_id,
+                    '--output', str(result_file)
+                ]
+                
+                print(f"🚀 Running real ARC-3 episode: {' '.join(cmd)} in {self.arc_agents_path}")
+                
+                # Run the command
+                process = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    cwd=str(self.arc_agents_path),
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    timeout=180  # 3 minute timeout per episode
+                )
+                
+                stdout, stderr = await process.communicate()
+                
+                # Parse the output for scorecard URL
+                stdout_text = stdout.decode() if stdout else ""
+                stderr_text = stderr.decode() if stderr else ""
+                
+                # Look for scorecard URL in the output
+                scorecard_url = self._extract_scorecard_url(stdout_text, stderr_text)
+                
+                # Try to read results from file if it exists
+                result = {'success': False, 'final_score': 0}
+                if result_file.exists():
+                    try:
+                        with open(result_file, 'r') as f:
+                            file_result = json.load(f)
+                        result.update(file_result)
+                    except Exception as e:
+                        logger.warning(f"Could not read result file: {e}")
+                
+                # Add scorecard URL to result
+                if scorecard_url:
+                    result['scorecard_url'] = scorecard_url
+                    print(f"📊 Scorecard URL: {scorecard_url}")
+                
+                # Parse success/score from stdout if not in file
+                if not result.get('success') and ('win' in stdout_text.lower() or 'success' in stdout_text.lower()):
+                    result['success'] = True
+                
+                # Extract score if available
+                import re
+                score_match = re.search(r'score[:\s]+(\d+)', stdout_text, re.IGNORECASE)
+                if score_match:
+                    result['final_score'] = int(score_match.group(1))
+                
+                # Add metadata
+                result.update({
+                    'game_id': game_id,
+                    'episode': episode_count,
+                    'timestamp': time.time(),
+                    'actions_taken': len(stdout_text.split('\n')) if stdout_text else 0,
+                    'raw_output': stdout_text
+                })
+                
+                return result
+                
+        except asyncio.TimeoutError:
+            print(f"⏰ Episode {episode_count} timed out after 3 minutes")
+            return {'success': False, 'final_score': 0, 'error': 'timeout', 'game_id': game_id, 'episode': episode_count}
         except Exception as e:
-            logger.error(f"Error running episode for {game_id}: {e}")
-            return None
-            
-    def _parse_episode_results(self, stdout: str, stderr: str, game_id: str) -> Dict[str, Any]:
-        """Parse episode results from agent output."""
-        # This is a simplified parser - in practice, you'd want more robust parsing
-        episode_result = {
-            'game_id': game_id,
-            'timestamp': time.time(),
-            'success': False,
-            'final_score': 0,
-            'actions_taken': 0,
-            'reasoning_data': [],
-            'raw_output': stdout
-        }
-        
-        # Look for success indicators in output
-        if 'WIN' in stdout or 'success' in stdout.lower():
-            episode_result['success'] = True
-            
-        # Extract score if available
+            print(f"❌ Error running episode {episode_count}: {e}")
+            return {'success': False, 'final_score': 0, 'error': str(e), 'game_id': game_id, 'episode': episode_count}
+    
+    def _extract_scorecard_url(self, stdout: str, stderr: str) -> str:
+        """Extract scorecard URL from ARC-3 API output."""
         import re
-        score_match = re.search(r'score[:\s]+(\d+)', stdout, re.IGNORECASE)
-        if score_match:
-            episode_result['final_score'] = int(score_match.group(1))
-            
-        # Extract action count
-        action_match = re.search(r'(\d+)\s+actions?', stdout, re.IGNORECASE)
-        if action_match:
-            episode_result['actions_taken'] = int(action_match.group(1))
-            
-        return episode_result
         
-    def _should_stop_training(self, game_results: Dict[str, Any], target_performance: Dict[str, float]) -> bool:
-        """Determine if training should stop based on performance."""
-        if len(game_results['episodes']) < 10:
-            return False
-            
-        recent_episodes = game_results['episodes'][-10:]
-        recent_win_rate = sum(1 for ep in recent_episodes if ep.get('success', False)) / len(recent_episodes)
-        recent_avg_score = sum(ep.get('final_score', 0) for ep in recent_episodes) / len(recent_episodes)
+        # Look for ARC-3 scorecard URL pattern
+        url_pattern = r'https://three\.arcprize\.org/scorecards/[a-f0-9-]{36}'
         
-        return (recent_win_rate >= target_performance['win_rate'] and 
-                recent_avg_score >= target_performance['avg_score'])
-                
+        # Check stdout first
+        for line in stdout.split('\n'):
+            match = re.search(url_pattern, line, re.IGNORECASE)
+            if match:
+                return match.group(0)
+        
+        # Check stderr as backup
+        for line in stderr.split('\n'):
+            match = re.search(url_pattern, line, re.IGNORECASE)
+            if match:
+                return match.group(0)
+        
+        return None
+
     async def _apply_learning_insights(self, game_id: str, game_results: Dict[str, Any]):
         """Apply learning insights to improve future performance."""
         # This would involve updating the agent's configuration based on learned patterns

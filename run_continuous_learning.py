@@ -274,38 +274,183 @@ class ContinuousLearningSystem:
         return {'mode': 'comparison', 'results': results, 'recommendation': recommendation}
         
     async def simulate_task_training(self, task_id: str, episodes: int, salience_mode: str = "LOSSLESS") -> Dict[str, Any]:
-        """Simulate training on a specific ARC-3 task."""
+        """Train on a specific ARC-3 task using REAL API calls only."""
         wins = 0
         total_score = 0
+        scorecard_urls = []
         
-        # Simulate realistic learning progression
-        base_success_rate = 0.05  # Start low
-        improvement_rate = 0.02   # Improve over time
+        print(f"🎮 Starting REAL ARC-3 training on task: {task_id}")
+        print(f"🔑 Using API Key: {self.arc_api_key[:8]}...{self.arc_api_key[-4:]}")
+        
+        # Check if we can find the ARC-AGI-3-Agents path
+        arc_agents_path = self.find_arc_agents_path()
+        if not arc_agents_path:
+            raise ValueError(
+                "ARC-AGI-3-Agents repository not found. Please ensure it's available at one of these locations:\n"
+                f"- {Path.cwd().parent / 'ARC-AGI-3-Agents'}\n"
+                f"- {Path.cwd() / 'ARC-AGI-3-Agents'}\n"
+                f"- {Path.home() / 'ARC-AGI-3-Agents'}\n"
+                "Or set ARC_AGENTS_PATH in your .env file"
+            )
+        
+        print(f"📁 Using ARC-AGI-3-Agents at: {arc_agents_path}")
         
         for episode in range(episodes):
-            # Learning curve simulation
-            success_rate = min(0.8, base_success_rate + (episode * improvement_rate))
-            success = __import__('random').random() < success_rate
-            
-            if success:
-                score = __import__('random').randint(70, 100)
-                wins += 1
-            else:
-                score = __import__('random').randint(0, 60)
+            try:
+                # Make REAL API call using the ARC-AGI-3-Agents framework
+                result = await self._run_real_arc_episode(arc_agents_path, task_id, episode)
                 
-            total_score += score
-            
-            # Brief simulation delay
-            await asyncio.sleep(0.05)
+                if result and 'success' in result:
+                    if result['success']:
+                        wins += 1
+                        score = result.get('final_score', 0)
+                    else:
+                        score = result.get('final_score', 0)
+                    
+                    total_score += score
+                    
+                    # Extract scorecard URL from the result
+                    scorecard_url = result.get('scorecard_url')
+                    if scorecard_url:
+                        scorecard_urls.append(scorecard_url)
+                        print(f"📊 Episode {episode + 1}: Score {score} | Scorecard: {scorecard_url}")
+                    else:
+                        print(f"📊 Episode {episode + 1}: Score {score} | No scorecard URL returned")
+                        
+                else:
+                    # If API call failed completely, we need to fail the episode
+                    print(f"❌ Episode {episode + 1}: API call failed, no result returned")
+                    total_score += 0
+                
+                # Brief delay between episodes to avoid rate limiting
+                await asyncio.sleep(1.0)
+                
+            except Exception as e:
+                print(f"❌ Error in episode {episode + 1}: {e}")
+                # Don't simulate - let the episode fail properly
+                total_score += 0
         
-        return {
+        result_data = {
             'task_id': task_id,
             'episodes': episodes,
             'wins': wins,
             'win_rate': wins / episodes,
-            'avg_score': total_score / episodes,
-            'salience_mode': salience_mode
+            'avg_score': total_score / episodes if episodes > 0 else 0,
+            'salience_mode': salience_mode,
+            'scorecard_urls': scorecard_urls,
+            'api_calls_made': episodes
         }
+        
+        # Display scorecard URLs if we have any
+        if scorecard_urls:
+            print(f"\n🎯 ARC-3 Scorecards Generated for {task_id}:")
+            for i, url in enumerate(scorecard_urls, 1):  # Show all URLs
+                print(f"   {i}. {url}")
+            print(f"📊 View all results at: https://arcprize.org/leaderboard")
+        else:
+            print(f"\n⚠️  No scorecard URLs generated for {task_id} - check API connectivity")
+        
+        return result_data
+    
+    async def _run_real_arc_episode(self, arc_agents_path: str, task_id: str, episode: int) -> Dict[str, Any]:
+        """Run a real ARC-3 episode and capture the scorecard URL."""
+        try:
+            import subprocess
+            import sys
+            import json
+            import tempfile
+            from pathlib import Path
+            
+            # Set up environment with API key
+            env = __import__('os').environ.copy()
+            env['ARC_API_KEY'] = self.arc_api_key
+            
+            # Create a temporary directory for this episode's results
+            with tempfile.TemporaryDirectory() as temp_dir:
+                result_file = Path(temp_dir) / f"result_{episode}.json"
+                
+                # Run the ARC agent on the specific task
+                cmd = [
+                    sys.executable, 'main.py',
+                    '--task', task_id,
+                    '--episodes', '1',
+                    '--output', str(result_file)
+                ]
+                
+                print(f"🚀 Running: {' '.join(cmd)} in {arc_agents_path}")
+                
+                # Run the command
+                process = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    cwd=arc_agents_path,
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    timeout=120  # 2 minute timeout per episode
+                )
+                
+                stdout, stderr = await process.communicate()
+                
+                # Parse the output for scorecard URL
+                stdout_text = stdout.decode() if stdout else ""
+                stderr_text = stderr.decode() if stderr else ""
+                
+                # Look for scorecard URL in the output
+                scorecard_url = self._extract_scorecard_url(stdout_text, stderr_text)
+                
+                # Try to read results from file if it exists
+                result = {'success': False, 'final_score': 0}
+                if result_file.exists():
+                    try:
+                        with open(result_file, 'r') as f:
+                            file_result = json.load(f)
+                        result.update(file_result)
+                    except:
+                        pass
+                
+                # Add scorecard URL to result
+                if scorecard_url:
+                    result['scorecard_url'] = scorecard_url
+                
+                # Parse success/score from stdout if not in file
+                if not result.get('success') and 'success' in stdout_text.lower():
+                    result['success'] = True
+                
+                # Extract score if available
+                import re
+                score_match = re.search(r'score[:\s]+(\d+)', stdout_text, re.IGNORECASE)
+                if score_match:
+                    result['final_score'] = int(score_match.group(1))
+                
+                return result
+                
+        except asyncio.TimeoutError:
+            print(f"⏰ Episode {episode} timed out")
+            return {'success': False, 'final_score': 0, 'error': 'timeout'}
+        except Exception as e:
+            print(f"❌ Error running episode {episode}: {e}")
+            return {'success': False, 'final_score': 0, 'error': str(e)}
+    
+    def _extract_scorecard_url(self, stdout: str, stderr: str) -> str:
+        """Extract scorecard URL from ARC-3 API output."""
+        import re
+        
+        # Look for ARC-3 scorecard URL pattern
+        url_pattern = r'https://three\.arcprize\.org/scorecards/[a-f0-9-]{36}'
+        
+        # Check stdout first
+        for line in stdout.split('\n'):
+            match = re.search(url_pattern, line, re.IGNORECASE)
+            if match:
+                return match.group(0)
+        
+        # Check stderr as backup
+        for line in stderr.split('\n'):
+            match = re.search(url_pattern, line, re.IGNORECASE)
+            if match:
+                return match.group(0)
+        
+        return None
         
     async def run(self) -> Dict[str, Any]:
         """Main entry point - run the system in the specified mode."""
