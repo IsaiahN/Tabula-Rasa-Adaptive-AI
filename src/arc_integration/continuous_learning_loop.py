@@ -10,6 +10,7 @@ import logging
 import time
 import json
 import random
+import numpy as np  # Add missing numpy import
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 import subprocess
@@ -1982,11 +1983,95 @@ async def run_full_training():
 
 if __name__ == "__main__":
     import sys
+    import argparse
     
-    # Check command line arguments for training mode
-    if len(sys.argv) > 1 and sys.argv[1] == "full":
-        # Run full training mode
+    # Create argument parser for different training modes
+    parser = argparse.ArgumentParser(description='ARC-AGI-3 Adaptive Learning Agent Training')
+    parser.add_argument('--mode', choices=['demo', 'full', 'comparison'], default='demo',
+                       help='Training mode: demo (quick test), full (complete mastery), comparison (salience modes)')
+    parser.add_argument('--api-key', type=str, help='ARC-3 API key (overrides environment variable)')
+    parser.add_argument('--arc-agents-path', type=str, help='Path to ARC-AGI-3-Agents repository')
+    parser.add_argument('--episodes', type=int, default=20, help='Max episodes per game (demo/comparison mode)')
+    parser.add_argument('--win-rate', type=float, default=0.4, help='Target win rate')
+    parser.add_argument('--avg-score', type=float, default=60.0, help='Target average score')
+    
+    args = parser.parse_args()
+    
+    # Set up logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('arc_training.log'),
+            logging.StreamHandler()
+        ]
+    )
+    
+    print("🤖 ARC-AGI-3 ADAPTIVE LEARNING AGENT")
+    print("=" * 60)
+    print("Tabula Rasa: Learning from Scratch")
+    print("Advanced Memory • Meta-Learning • Salience Tracking")
+    print("=" * 60)
+    
+    # Run the appropriate training mode
+    if args.mode == "full":
+        print("🏆 LAUNCHING FULL MASTERY TRAINING MODE")
+        print("Target: Master ALL ARC-3 reasoning tasks")
+        print("This will run until 90% win rate + 85+ avg score achieved")
+        print("=" * 60)
         asyncio.run(run_full_training())
-    else:
-        # Run the continuous learning demo
+        
+    elif args.mode == "comparison":
+        print("📊 LAUNCHING SALIENCE MODE COMPARISON")
+        print("Target: Compare LOSSLESS vs DECAY_COMPRESSION modes")
+        print("This will test both memory management approaches")
+        print("=" * 60)
+        
+        # Run comparison mode
+        async def run_comparison():
+            # Check prerequisites
+            arc_api_key = args.api_key or os.getenv('ARC_API_KEY')
+            if not arc_api_key:
+                print("❌ ARC_API_KEY required for comparison mode")
+                return None
+                
+            arc_agents_path = args.arc_agents_path
+            if not arc_agents_path:
+                # Try to find it automatically
+                possible_paths = [
+                    Path.cwd().parent / "ARC-AGI-3-Agents",
+                    Path.cwd() / "ARC-AGI-3-Agents",
+                    Path.home() / "ARC-AGI-3-Agents"
+                ]
+                for path in possible_paths:
+                    if path.exists() and (path / "main.py").exists():
+                        arc_agents_path = str(path)
+                        break
+                        
+            if not arc_agents_path:
+                print("❌ ARC-AGI-3-Agents repository path required")
+                return None
+                
+            # Initialize loop
+            loop = ContinuousLearningLoop(
+                arc_agents_path=arc_agents_path,
+                tabula_rasa_path=str(Path.cwd()),
+                api_key=arc_api_key
+            )
+            
+            # Run comparison
+            return await loop.run_comparison_mode()
+            
+        asyncio.run(run_comparison())
+        
+    else:  # demo mode
+        print("🎮 LAUNCHING DEMO MODE")
+        print("Target: Quick demonstration of learning capabilities")
+        print("This will show the agent learning on sample tasks")
+        print("=" * 60)
         asyncio.run(run_continuous_learning_demo())
+    
+    print("\n🎯 Training Complete!")
+    print(f"📊 Check results at: {ARC3_SCOREBOARD_URL}")
+    print("🏆 Submit strong performance to the ARC-3 leaderboard!")
+``` 
