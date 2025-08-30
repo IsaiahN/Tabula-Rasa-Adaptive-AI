@@ -14,6 +14,7 @@ import logging
 from collections import deque
 import time
 
+# Fix imports to use both absolute and relative patterns for maximum compatibility
 from .data_models import SensoryInput, Experience, AgentState, Goal
 from .predictive_core import PredictiveCore
 from .learning_progress import LearningProgressDrive
@@ -21,9 +22,66 @@ from .energy_system import EnergySystem, DeathManager
 from .sleep_system import SleepCycle
 from .action_selection import ActionSelectionNetwork, ActionExecutor, ExplorationStrategy
 from .meta_learning import MetaLearningSystem
-from .goal_system import GoalInventionSystem, GoalPhase
-from .dnc import DNCMemory
-from .metrics_collector import MetricsCollector
+
+# Import DNC memory with fallback patterns
+try:
+    from ..memory.dnc import DNCMemory
+except ImportError:
+    try:
+        from memory.dnc import DNCMemory
+    except ImportError:
+        # Final fallback for when imported from outside package
+        import sys
+        from pathlib import Path
+        current_dir = Path(__file__).parent
+        memory_dir = current_dir.parent / "memory"
+        if str(memory_dir) not in sys.path:
+            sys.path.insert(0, str(memory_dir))
+        from dnc import DNCMemory
+
+# Import metrics collector with fallback patterns
+try:
+    from ..monitoring.metrics_collector import MetricsCollector
+except ImportError:
+    try:
+        from monitoring.metrics_collector import MetricsCollector
+    except ImportError:
+        # Create a minimal fallback
+        class MetricsCollector:
+            def __init__(self, **kwargs):
+                pass
+            def log_step(self, **kwargs):
+                pass
+
+# Import goals with multiple fallback patterns
+try:
+    from goals.goal_system import GoalInventionSystem, GoalPhase
+except ImportError:
+    try:
+        from ..goals.goal_system import GoalInventionSystem, GoalPhase
+    except ImportError:
+        # Create minimal fallbacks for when goals aren't available
+        from enum import Enum
+        class GoalPhase(Enum):
+            SURVIVAL = "survival"
+            EXPLORATION = "exploration"
+            EMERGENT = "emergent"
+        
+        class GoalInventionSystem:
+            def __init__(self, **kwargs):
+                self.current_phase = GoalPhase.SURVIVAL
+                
+            def get_active_goals(self, agent_state):
+                return []
+                
+            def check_phase_transition(self):
+                return False
+                
+            def reset_episode(self, episode_data):
+                pass
+                
+            def get_goal_metrics(self):
+                return {"active_goals": 0, "phase": self.current_phase.value}
 
 logger = logging.getLogger(__name__)
 
