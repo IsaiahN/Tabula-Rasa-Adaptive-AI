@@ -8,7 +8,7 @@ addressing the "external notebook" critique while maintaining proven stability.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, List
 import numpy as np
 
 
@@ -418,3 +418,107 @@ class DNCMemory(nn.Module):
     def reset_memory(self):
         """Reset memory to initial state."""
         self._reset_memory()
+    
+    def retrieve_salient_memories(
+        self, 
+        current_context: torch.Tensor, 
+        salience_threshold: float = 0.6,
+        max_retrievals: int = 5
+    ) -> List[Tuple[torch.Tensor, float]]:
+        """
+        Retrieve memories based on context similarity and historical salience.
+        
+        When the agent is in a situation similar to a past high-salience event,
+        those memories are primed and recalled more easily.
+        
+        Args:
+            current_context: Current state/context vector
+            salience_threshold: Minimum salience for retrieval
+            max_retrievals: Maximum number of memories to retrieve
+            
+        Returns:
+            List of (memory_vector, relevance_score) tuples
+        """
+        if not hasattr(self, 'memory_salience_map'):
+            # Initialize salience tracking if not present
+            self.register_buffer('memory_salience_map', torch.zeros(self.memory_size))
+            return []
+        
+        # Compute context similarity with stored memories
+        current_context_norm = F.normalize(current_context.unsqueeze(0), dim=-1)
+        memory_norm = F.normalize(self.memory_matrix, dim=-1)
+        
+        # Cosine similarity between current context and all memories
+        similarities = torch.matmul(current_context_norm, memory_norm.t()).squeeze(0)
+        
+        # Weight similarities by salience values
+        salience_weighted_similarities = similarities * self.memory_salience_map
+        
+        # Filter by salience threshold
+        valid_mask = self.memory_salience_map >= salience_threshold
+        if not valid_mask.any():
+            return []
+        
+        # Get top retrievals
+        valid_similarities = salience_weighted_similarities[valid_mask]
+        valid_indices = torch.nonzero(valid_mask).squeeze(-1)
+        
+        # Sort by weighted similarity
+        sorted_indices = torch.argsort(valid_similarities, descending=True)
+        top_indices = valid_indices[sorted_indices[:max_retrievals]]
+        
+        # Return memory vectors and their relevance scores
+        retrieved_memories = []
+        for idx in top_indices:
+            memory_vector = self.memory_matrix[idx]
+            relevance_score = salience_weighted_similarities[idx].item()
+            retrieved_memories.append((memory_vector, relevance_score))
+        
+        return retrieved_memories
+    
+    def update_memory_salience(self, memory_indices: torch.Tensor, salience_values: torch.Tensor):
+        """
+        Update salience values for specific memory locations.
+        
+        Args:
+            memory_indices: Indices of memory locations to update
+            salience_values: New salience values for those locations
+        """
+        if not hasattr(self, 'memory_salience_map'):
+            self.register_buffer('memory_salience_map', torch.zeros(self.memory_size))
+        
+        # Update salience values using exponential moving average
+        alpha = 0.1
+        for idx, salience in zip(memory_indices, salience_values):
+            if 0 <= idx < self.memory_size:
+                current_salience = self.memory_salience_map[idx]
+                self.memory_salience_map[idx] = (
+                    alpha * salience + (1 - alpha) * current_salience
+                )
+    
+    def get_high_salience_memories(self, threshold: float = 0.7) -> List[Tuple[int, torch.Tensor, float]]:
+        """
+        Get all memories above a salience threshold.
+        
+        Returns:
+            List of (index, memory_vector, salience) tuples
+        """
+        if not hasattr(self, 'memory_salience_map'):
+            return []
+        
+        high_salience_mask = self.memory_salience_map >= threshold
+        if not high_salience_mask.any():
+            return []
+        
+        high_salience_memories = []
+        high_salience_indices = torch.nonzero(high_salience_mask).squeeze(-1)
+        
+        for idx in high_salience_indices:
+            memory_vector = self.memory_matrix[idx]
+            salience = self.memory_salience_map[idx].item()
+            high_salience_memories.append((idx.item(), memory_vector, salience))
+        
+        # Sort by salience (highest first)
+        high_salience_memories.sort(key=lambda x: x[2], reverse=True)
+        
+        return high_salience_memories

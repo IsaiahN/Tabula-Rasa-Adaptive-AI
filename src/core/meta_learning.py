@@ -17,6 +17,7 @@ import numpy as np
 from pathlib import Path
 
 from core.data_models import Experience, AgentState
+from core.salience_system import SalienceCalculator, SalientExperience
 
 logger = logging.getLogger(__name__)
 
@@ -59,18 +60,26 @@ class MetaLearningSystem:
         memory_capacity: int = 1000,
         insight_threshold: float = 0.1,
         consolidation_interval: int = 100,
-        save_directory: str = "meta_learning_data"
+        save_directory: str = "meta_learning_data",
+        use_salience_based_goals: bool = True
     ):
         self.memory_capacity = memory_capacity
         self.insight_threshold = insight_threshold
         self.consolidation_interval = consolidation_interval
         self.save_directory = Path(save_directory)
         self.save_directory.mkdir(exist_ok=True)
+        self.use_salience_based_goals = use_salience_based_goals
         
         # Memory systems
         self.episodic_memories: deque = deque(maxlen=memory_capacity)
         self.learning_insights: Dict[str, LearningInsight] = {}
         self.experience_buffer: deque = deque(maxlen=10000)
+        
+        # Salience-based goal invention
+        if self.use_salience_based_goals:
+            self.salience_calculator = SalienceCalculator()
+            self.salient_experience_clusters: List[List[SalientExperience]] = []
+            self.invented_goals: Dict[str, Dict[str, Any]] = {}
         
         # Consolidation tracking
         self.steps_since_consolidation = 0
@@ -351,7 +360,7 @@ class MetaLearningSystem:
     
     def get_meta_learning_summary(self) -> Dict[str, Any]:
         """Get a summary of the meta-learning system's current state."""
-        return {
+        summary = {
             'total_episodes': self.total_episodes,
             'episodic_memories': len(self.episodic_memories),
             'learning_insights': len(self.learning_insights),
@@ -371,3 +380,164 @@ class MetaLearningSystem:
                                     key=lambda x: x.confidence * x.success_rate, reverse=True)[:5]
             ]
         }
+        
+        # Add salience-based goal invention metrics
+        if self.use_salience_based_goals:
+            summary.update({
+                'salient_experience_clusters': len(self.salient_experience_clusters),
+                'invented_goals': len(self.invented_goals),
+                'salience_metrics': self.salience_calculator.get_salience_metrics()._asdict() if hasattr(self, 'salience_calculator') else {}
+            })
+        
+        return summary
+    
+    def add_salient_experience(self, salient_experience: SalientExperience):
+        """Add a salient experience for goal invention analysis."""
+        if not self.use_salience_based_goals:
+            return
+            
+        # Only process high-salience experiences for goal invention
+        if salient_experience.salience_value > 0.6:
+            self._analyze_for_goal_invention(salient_experience)
+    
+    def _analyze_for_goal_invention(self, salient_experience: SalientExperience):
+        """
+        Analyze high-salience experiences to invent new goals.
+        
+        Key insight: Clusters of high-salience experiences reveal patterns
+        that the agent should actively seek out or avoid.
+        """
+        # Find similar high-salience experiences
+        similar_experiences = self._find_similar_salient_experiences(salient_experience)
+        
+        if len(similar_experiences) >= 3:  # Need cluster of similar experiences
+            # Analyze the cluster for goal patterns
+            goal_pattern = self._extract_goal_pattern_from_cluster(similar_experiences)
+            
+            if goal_pattern:
+                goal_id = f"goal_{salient_experience.context}_{len(self.invented_goals)}"
+                self.invented_goals[goal_id] = {
+                    'pattern': goal_pattern,
+                    'context': salient_experience.context,
+                    'salience_threshold': min([exp.salience_value for exp in similar_experiences]),
+                    'discovery_timestamp': salient_experience.timestamp,
+                    'success_count': 0,
+                    'attempt_count': 0,
+                    'confidence': 0.5
+                }
+                
+                logger.info(f"Invented new goal: {goal_id} from {len(similar_experiences)} high-salience experiences")
+    
+    def _find_similar_salient_experiences(self, target_experience: SalientExperience) -> List[SalientExperience]:
+        """Find similar high-salience experiences for clustering."""
+        similar_experiences = [target_experience]
+        
+        # Simple similarity based on context and salience components
+        for cluster in self.salient_experience_clusters:
+            for exp in cluster:
+                if (exp.context == target_experience.context and 
+                    abs(exp.lp_component - target_experience.lp_component) < 0.2 and
+                    abs(exp.energy_component - target_experience.energy_component) < 0.2):
+                    similar_experiences.append(exp)
+        
+        return similar_experiences
+    
+    def _extract_goal_pattern_from_cluster(self, experiences: List[SalientExperience]) -> Optional[Dict[str, Any]]:
+        """Extract a goal pattern from a cluster of similar high-salience experiences."""
+        if len(experiences) < 3:
+            return None
+        
+        # Analyze what was happening right before these high-salience events
+        pre_conditions = []
+        outcomes = []
+        
+        for exp in experiences:
+            exp_data = exp.experience_data
+            if 'state' in exp_data and 'next_state' in exp_data:
+                # Extract pre-conditions (what led to this salient event)
+                pre_condition = {
+                    'energy_level': exp_data['state'].energy_level if hasattr(exp_data['state'], 'energy_level') else 50.0,
+                    'lp_component': exp.lp_component,
+                    'energy_component': exp.energy_component
+                }
+                pre_conditions.append(pre_condition)
+                
+                # Extract outcomes (what happened)
+                outcome = {
+                    'energy_change': exp.energy_component,
+                    'learning_progress': exp.lp_component,
+                    'salience': exp.salience_value
+                }
+                outcomes.append(outcome)
+        
+        if not pre_conditions:
+            return None
+        
+        # Determine goal type based on patterns
+        avg_energy_change = np.mean([o['energy_change'] for o in outcomes])
+        avg_lp = np.mean([o['learning_progress'] for o in outcomes])
+        
+        if avg_energy_change > 0.3:
+            # Energy-gaining pattern - create "find energy source" goal
+            goal_pattern = {
+                'type': 'energy_acquisition',
+                'target_energy_change': avg_energy_change,
+                'pre_conditions': pre_conditions,
+                'description': f"Seek situations that increase energy by ~{avg_energy_change:.2f}"
+            }
+        elif avg_energy_change < -0.3:
+            # Energy-losing pattern - create "avoid energy drain" goal
+            goal_pattern = {
+                'type': 'energy_conservation',
+                'target_energy_change': avg_energy_change,
+                'pre_conditions': pre_conditions,
+                'description': f"Avoid situations that decrease energy by ~{abs(avg_energy_change):.2f}"
+            }
+        elif avg_lp > 0.2:
+            # High learning progress - create "seek learning opportunities" goal
+            goal_pattern = {
+                'type': 'learning_maximization',
+                'target_lp': avg_lp,
+                'pre_conditions': pre_conditions,
+                'description': f"Seek situations that maximize learning progress (~{avg_lp:.2f})"
+            }
+        else:
+            return None
+        
+        return goal_pattern
+    
+    def get_active_invented_goals(self, current_context: str) -> List[Dict[str, Any]]:
+        """Get invented goals relevant to current context."""
+        active_goals = []
+        
+        for goal_id, goal_data in self.invented_goals.items():
+            # Check if goal is relevant to current context
+            if (goal_data['context'] in current_context or 
+                current_context in goal_data['context']):
+                
+                # Check if goal has reasonable success rate
+                success_rate = (goal_data['success_count'] / max(goal_data['attempt_count'], 1))
+                if goal_data['confidence'] > 0.3 and success_rate > 0.2:
+                    active_goals.append({
+                        'goal_id': goal_id,
+                        'pattern': goal_data['pattern'],
+                        'confidence': goal_data['confidence'],
+                        'success_rate': success_rate
+                    })
+        
+        # Sort by confidence * success_rate
+        active_goals.sort(key=lambda x: x['confidence'] * x['success_rate'], reverse=True)
+        return active_goals[:3]  # Return top 3 most promising goals
+    
+    def update_goal_performance(self, goal_id: str, success: bool):
+        """Update performance tracking for an invented goal."""
+        if goal_id in self.invented_goals:
+            goal = self.invented_goals[goal_id]
+            goal['attempt_count'] += 1
+            if success:
+                goal['success_count'] += 1
+                goal['confidence'] = min(goal['confidence'] + 0.1, 1.0)
+            else:
+                goal['confidence'] = max(goal['confidence'] - 0.05, 0.1)
+            
+            logger.debug(f"Updated goal {goal_id}: success_rate={goal['success_count']/goal['attempt_count']:.3f}, confidence={goal['confidence']:.3f}")
