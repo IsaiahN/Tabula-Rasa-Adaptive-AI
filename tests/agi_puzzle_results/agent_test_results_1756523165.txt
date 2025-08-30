@@ -1,0 +1,8 @@
+AGI Puzzle Test Results
+==============================
+
+Hidden Cause (Baby Physics): ERROR - could not convert string to float: 'sticky'
+Object Permanence (Peekaboo): ERROR - Expected hidden[0] size (1, 1, 512), got [1, 3, 512]
+Cooperation & Deception (Food Game): ERROR - 'agent_score'
+Tool Use (The Stick): ERROR - Expected hidden[0] size (1, 1, 512), got [1, 3, 512]
+Deferred Gratification (Marshmallow): ERROR - 'wait_time'

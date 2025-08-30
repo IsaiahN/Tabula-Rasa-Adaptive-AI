@@ -18,7 +18,7 @@ from core.agent import AdaptiveLearningAgent
 from puzzle1_hidden_cause import HiddenCausePuzzle
 from puzzle2_object_permanence import ObjectPermanencePuzzle
 from puzzle3_cooperation_deception import CooperationDeceptionPuzzle
-from puzzle4_tool_use import ToolUsePuzzle
+from puzzle4_tool_use_fixed import ToolUsePuzzle
 from puzzle5_deferred_gratification import DeferredGratificationPuzzle
 
 logging.basicConfig(level=logging.INFO)

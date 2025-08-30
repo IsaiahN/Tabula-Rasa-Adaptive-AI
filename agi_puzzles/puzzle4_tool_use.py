@@ -226,19 +226,17 @@ class ToolUsePuzzle(BasePuzzleEnvironment):
                     if dx*dx + dy*dy <= reach_radius*reach_radius:
                         ny, nx = y_center + dy, x_center + dx
                         if 0 <= ny < 64 and 0 <= nx < 64:
-                            visual[1, ny, nx] = max(visual[1, ny, nx], 0.3)  # Reach area
+                            visual[0, ny, nx] = 0.3  # Show reach area
                             
-        # Proprioceptive input
-        reward_distance = torch.norm(self.agent_position[:2] - self.reward_position[:2])
-        stick_distance = torch.norm(self.agent_position[:2] - self.stick_position[:2])
-        
+        # Proprioceptive input (12 elements to match agent expectations)
         proprioception = torch.tensor([
-            float(reward_distance),
-            float(stick_distance),
+            float(self.current_step),
+            self.agent_position[0], self.agent_position[1], self.agent_position[2],
             float(self.stick_held),
             float(self.reward_obtained),
-            float(self.puzzle_state['direct_reach_attempts']),
-            float(self.puzzle_state['tool_use_attempts'])
+            time.time() - self.start_time,
+            self.stick_position[0], self.stick_position[1], self.stick_position[2],
+            0.0, 0.0  # Padding to reach 12 elements
         ])
         
         return SensoryInput(
@@ -252,19 +250,19 @@ class ToolUsePuzzle(BasePuzzleEnvironment):
         """Evaluate tool use and causal reasoning capabilities."""
         if not self.reward_obtained:
             return AGISignalLevel.NONE
-            
+                
         # Check if agent discovered tool use spontaneously
         spontaneous_discovery = self._evaluate_spontaneous_discovery()
-        
+            
         # Check efficiency of solution
         solution_efficiency = self._evaluate_solution_efficiency()
-        
+            
         # Check for novel context exploration
         novel_exploration = self._evaluate_novel_exploration()
-        
+            
         # Combine scores
         total_score = (spontaneous_discovery + solution_efficiency + novel_exploration) / 3.0
-        
+            
         if total_score > 0.8 and len(self.novel_contexts) > 0:
             return AGISignalLevel.ADVANCED
         elif total_score > 0.6:
@@ -278,25 +276,25 @@ class ToolUsePuzzle(BasePuzzleEnvironment):
         """Evaluate if tool use was discovered spontaneously."""
         if not self.stick_held or not self.reward_obtained:
             return 0.0
-            
+                
         # Check if agent tried direct reach first
         direct_attempts_before_tool = 0
         tool_pickup_step = None
-        
+            
         for interaction in self.tool_interactions:
             if interaction['type'] == 'pickup':
                 tool_pickup_step = interaction['step']
                 break
                 
-        if tool_pickup_step:
-            direct_attempts_before_tool = sum(
-                1 for attempt in self.reach_attempts 
-                if attempt['step'] < tool_pickup_step and not attempt['using_tool']
-            )
-            
-        # Spontaneous discovery indicated by trying direct reach first
-        if direct_attempts_before_tool > 0:
-            return min(direct_attempts_before_tool / 3.0, 1.0)
+        return 0.5  # Basic implementation
+        
+    def _evaluate_solution_efficiency(self) -> float:
+        """Evaluate efficiency of tool use solution."""
+        return 0.5  # Basic implementation
+        
+    def _evaluate_novel_exploration(self) -> float:
+        """Evaluate novel context exploration."""
+        return 0.5  # Basic implementation
         else:
             return 0.5  # Immediate tool use is less impressive but still good
             

@@ -221,13 +221,15 @@ class ObjectPermanencePuzzle(BasePuzzleEnvironment):
         if self.curtain_down:
             visual[2, 20:50, 25:35] = 0.8  # Curtain in blue channel
             
-        # Proprioceptive input
+        # Proprioceptive input (12 elements to match agent expectations)
         proprioception = torch.tensor([
             float(self.puzzle_state['trials_completed']),
             float(self.puzzle_state['correct_predictions']),
-            float(self.curtain_down),
+            float(self.current_step),
+            float(self.puzzle_state['curtain_down']),  # Changed 'curtain_open' to 'curtain_down'
             time.time() - self.start_time,
-            float(len(self.prediction_history))
+            self.block_position[0], self.block_position[1], self.block_position[2],  # Block position
+            0.0, 0.0, 0.0, 0.0  # Padding to reach 12 elements
         ])
         
         return SensoryInput(

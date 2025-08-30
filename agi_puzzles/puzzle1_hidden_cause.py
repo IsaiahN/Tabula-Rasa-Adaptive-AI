@@ -272,13 +272,16 @@ class HiddenCausePuzzle(BasePuzzleEnvironment):
         if 0 <= box_x < 64 and 0 <= box_y < 64:
             visual[2, box_y-3:box_y+3, box_x-3:box_x+3] = 1.0  # Box in blue
             
-        # Proprioceptive input
+        # Proprioceptive input (12 elements to match agent expectations)
         proprioception = torch.tensor([
             float(self.puzzle_state['attempts_made']),
             time.time() - self.start_time,  # Time elapsed
             float(len(self.attempt_history)),
             float(sum(1 for a in self.attempt_history if a['success'])),  # Success count
-            float(self.current_step)
+            float(self.current_step),
+            float(self.current_surface_type),  # Surface type indicator
+            ball_pos[0], ball_pos[1], ball_pos[2],  # Ball position
+            0.0, 0.0, 0.0  # Padding to reach 12 elements
         ])
         
         return SensoryInput(

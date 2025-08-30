@@ -20,6 +20,7 @@ from core.learning_progress import LearningProgressDrive
 from core.energy_system import EnergySystem, DeathManager
 from core.sleep_system import SleepCycle
 from core.action_selection import ActionSelectionNetwork, ActionExecutor, ExplorationStrategy
+from core.meta_learning import MetaLearningSystem
 from goals.goal_system import GoalInventionSystem, GoalPhase
 from memory.dnc import DNCMemory
 from monitoring.metrics_collector import MetricsCollector
@@ -52,6 +53,7 @@ class AdaptiveLearningAgent:
         self._init_action_selection()
         self._init_sleep_system()
         self._init_monitoring()
+        self._init_meta_learning()
         
         # Agent state
         self.agent_state = self._create_initial_state()
@@ -228,6 +230,19 @@ class AdaptiveLearningAgent:
         
         logger.info("Monitoring and metrics system initialized")
         
+    def _init_meta_learning(self):
+        """Initialize the meta-learning system."""
+        meta_config = self.config.get('meta_learning', {})
+        
+        self.meta_learning = MetaLearningSystem(
+            memory_capacity=meta_config.get('memory_capacity', 1000),
+            insight_threshold=meta_config.get('insight_threshold', 0.1),
+            consolidation_interval=meta_config.get('consolidation_interval', 100),
+            save_directory=meta_config.get('save_directory', 'meta_learning_data')
+        )
+        
+        logger.info("Meta-learning system initialized")
+        
     def _create_initial_state(self) -> AgentState:
         """Create initial agent state."""
         return AgentState(
@@ -321,6 +336,10 @@ class AdaptiveLearningAgent:
         
         self.experience_buffer.append(experience)
         self.sleep_system.add_experience(experience)
+        
+        # Add experience to meta-learning system
+        context = self._determine_context(sensory_input)
+        self.meta_learning.add_experience(experience, context)
         
         # 10. Update state history for empowerment calculation
         state_repr = self.predictive_core.get_state_representation(sensory_input, hidden_state)
@@ -544,6 +563,168 @@ class AdaptiveLearningAgent:
         torch.save(checkpoint, filepath)
         logger.info(f"Checkpoint saved to {filepath}")
         
+    def load_checkpoint(self, filepath: str):
+        """Load agent checkpoint."""
+        checkpoint = torch.load(filepath, map_location=self.device)
+        
+        self.agent_state = checkpoint['agent_state']
+        self.predictive_core.load_state_dict(checkpoint['predictive_core_state'])
+        
+        if self.memory and checkpoint['memory_state']:
+            self.memory.load_state_dict(checkpoint['memory_state'])
+            
+        self.optimizer.load_state_dict(checkpoint['optimizer_state'])
+        self.performance_metrics = checkpoint['performance_metrics']
+        
+        logger.info(f"Checkpoint loaded from {filepath}")
+        
+    def _determine_context(self, sensory_input: SensoryInput) -> str:
+        """Determine context for meta-learning system."""
+        # Simple context determination based on energy level and activity
+        if sensory_input.energy_level < 30:
+            return "low_energy"
+        elif sensory_input.energy_level > 80:
+            return "high_energy"
+        else:
+            return "general"
+
+    def _handle_death(self):
+        """Handle agent death and respawn."""
+        logger.info("Agent died - initiating respawn")
+        
+        # Perform selective reset
+        new_state = self.death_manager.selective_reset(self.agent_state)
+        
+        # Update agent state
+        self.agent_state = new_state
+        
+        # Reset energy system
+        self.energy_system.reset_energy()
+        
+        # Reset sleep system
+        self.sleep_system.reset()
+        
+        # Reset learning progress drive
+        self.lp_drive.reset_boredom_counter()
+        
+        # Update episode tracking
+        self.episode_count += 1
+        self.performance_metrics['deaths'] += 1
+        
+        # Record episode data
+        episode_data = {
+            'episode': self.episode_count,
+            'steps': self.step_count,
+            'died': True,
+            'final_energy': 0.0
+        }
+        self.goal_system.reset_episode(episode_data)
+        
+        logger.info(f"Agent respawned. Episode {self.episode_count} completed")
+    
+    def _enter_sleep_mode(self):
+        """Enter sleep mode for offline learning."""
+        if self.sleep_system.is_sleeping:
+            return
+            
+        logger.info("Agent entering sleep mode")
+        
+        # Enter sleep
+        self.sleep_system.enter_sleep(self.agent_state)
+        
+        # Execute sleep cycle
+        sleep_results = self.sleep_system.execute_sleep_cycle(list(self.experience_buffer))
+        
+        # Wake up
+        wake_results = self.sleep_system.wake_up()
+        
+        logger.info(f"Sleep cycle completed: {sleep_results}")
+        
+    def _get_memory_usage(self) -> Optional[float]:
+        """Get current memory usage if memory system is enabled."""
+        if self.memory is not None:
+            metrics = self.memory.get_memory_metrics()
+            return metrics.get('memory_utilization', 0.0)
+        return None
+
+    def _update_metrics(self, lp_signal: float, total_error: float, action_cost: float):
+        """Update performance metrics."""
+        self.performance_metrics['total_steps'] = self.step_count
+        self.performance_metrics['learning_progress_avg'] = (
+            (self.performance_metrics['learning_progress_avg'] * (self.step_count - 1) + lp_signal) / 
+            self.step_count
+        )
+        
+        # Update metrics collector
+        self.metrics_collector.log_step(
+            agent_state=self.agent_state,
+            prediction_error=total_error,
+            lp_signal=lp_signal,
+            memory_usage=self._get_memory_usage(),
+            additional_metrics={
+                'step': self.step_count,
+                'episode': self.episode_count,
+                'action_cost': action_cost,
+                'active_goals': len(self.agent_state.active_goals),
+                'is_sleeping': self.sleep_system.is_sleeping
+            }
+        )
+        
+    def get_agent_state(self) -> AgentState:
+        """Get current agent state."""
+        return self.agent_state
+
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """Get comprehensive performance metrics."""
+        metrics = self.performance_metrics.copy()
+        
+        # Add component-specific metrics
+        metrics.update({
+            'energy_metrics': self.energy_system.get_energy_metrics(),
+            'goal_metrics': self.goal_system.get_goal_metrics(),
+            'sleep_metrics': self.sleep_system.get_sleep_metrics(),
+            'lp_validation': self.lp_drive.get_validation_metrics(),
+            'death_metrics': self.death_manager.get_death_metrics()
+        })
+        
+        return metrics
+
+    def reset_episode(self):
+        """Reset for new episode."""
+        # Reset step counter
+        self.step_count = 0
+        
+        # Record episode data
+        episode_data = {
+            'episode': self.episode_count,
+            'steps': 0,
+            'died': False,
+            'final_energy': self.agent_state.energy
+        }
+        self.goal_system.reset_episode(episode_data)
+        
+        # Reset sleep system
+        self.sleep_system.reset()
+        
+        # Reset learning progress drive
+        self.lp_drive.reset_boredom_counter()
+        
+        logger.info(f"Episode {self.episode_count} reset")
+
+    def save_checkpoint(self, filepath: str):
+        """Save agent checkpoint."""
+        checkpoint = {
+            'agent_state': self.agent_state,
+            'predictive_core_state': self.predictive_core.state_dict(),
+            'memory_state': self.memory.state_dict() if self.memory else None,
+            'optimizer_state': self.optimizer.state_dict(),
+            'performance_metrics': self.performance_metrics,
+            'config': self.config
+        }
+        
+        torch.save(checkpoint, filepath)
+        logger.info(f"Checkpoint saved to {filepath}")
+
     def load_checkpoint(self, filepath: str):
         """Load agent checkpoint."""
         checkpoint = torch.load(filepath, map_location=self.device)

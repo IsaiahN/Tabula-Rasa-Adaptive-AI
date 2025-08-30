@@ -273,25 +273,23 @@ class CooperationDeceptionPuzzle(BasePuzzleEnvironment):
             if 0 <= apple_x < 64 and 0 <= apple_y < 64:
                 visual[2, apple_y-1:apple_y+1, apple_x-1:apple_x+1] = 1.0  # Apple in blue
                 
-        # Draw signal indicator if signal was sent
-        if self.signal_sent:
-            signal_value = 0.8 if self.signal_sent == "share" else 0.3
-            visual[0, 5:15, 5:15] = signal_value  # Signal indicator
-            
-        # Proprioceptive input
+        # Proprioceptive input (12 elements to match agent expectations)
         proprioception = torch.tensor([
             float(self.puzzle_state['round_number']),
-            self.puzzle_state['agent1_energy'] / 100.0,
-            self.puzzle_state['agent2_energy'] / 100.0,
-            float(self.signal_sent == "share") if self.signal_sent else 0.5,
-            float(len(self.interaction_history)),
-            float(sum(1 for i in self.interaction_history if i['prediction_correct'])) / max(len(self.interaction_history), 1)
+            float(self.puzzle_state['agent_score']),
+            float(self.puzzle_state['partner_score']),
+            float(self.trust_level),
+            time.time() - self.start_time,
+            float(self.current_step),
+            float(self.puzzle_state['current_phase'] == 'signaling'),
+            float(self.puzzle_state['current_phase'] == 'action'),
+            0.0, 0.0, 0.0, 0.0  # Padding to reach 12 elements
         ])
         
         return SensoryInput(
             visual=visual,
             proprioception=proprioception,
-            energy_level=self.puzzle_state['agent2_energy'],
+            energy_level=100.0,
             timestamp=int(time.time())
         )
         

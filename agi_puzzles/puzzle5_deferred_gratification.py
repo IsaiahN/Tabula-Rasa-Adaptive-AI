@@ -280,14 +280,17 @@ class DeferredGratificationPuzzle(BasePuzzleEnvironment):
             progress_width = int(wait_progress * 20)
             visual[0, 5:10, 5:5+progress_width] = 0.8  # Progress bar
             
-        # Proprioceptive input
+        # Proprioceptive input (12 elements to match agent expectations)
         proprioception = torch.tensor([
-            self.puzzle_state['current_wait_time'],
-            float(self.small_reward_taken),
-            float(self.large_reward_available),
             float(self.puzzle_state['trial_number']),
-            self.puzzle_state['total_energy_gained'] / 100.0,
-            float(self.waiting_period_active)
+            float(self.puzzle_state['wait_time']),
+            float(self.puzzle_state['max_wait_achieved']),
+            float(self.current_step),
+            time.time() - self.start_time,
+            float(self.puzzle_state['reward_available']),
+            float(self.puzzle_state['waiting']),
+            self.agent_position[0], self.agent_position[1], self.agent_position[2],
+            0.0, 0.0  # Padding to reach 12 elements
         ])
         
         return SensoryInput(
