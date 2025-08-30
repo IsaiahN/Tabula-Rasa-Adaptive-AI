@@ -16,8 +16,8 @@ from collections import deque
 import numpy as np
 from pathlib import Path
 
-from src.core.data_models import Experience, AgentState
-from src.core.salience_system import SalienceCalculator, SalientExperience
+from .data_models import Experience, AgentState
+from .salience_system import SalienceCalculator, SalientExperience
 
 logger = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ import torch.nn as nn
 import numpy as np
 from typing import Dict, Optional, Tuple
 import logging
-from src.core.data_models import AgentState
+from .data_models import AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,8 @@ class ImportanceNetwork(nn.Module):
             nn.Linear(64, 1),
             nn.Sigmoid()  # Importance score 0-1
         )
-        
+
+
     def forward(
         self, 
         memory_matrix: torch.Tensor, 
