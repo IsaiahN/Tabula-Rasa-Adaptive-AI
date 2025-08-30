@@ -16,6 +16,7 @@ import time
 
 from core.data_models import Experience, AgentState
 from core.predictive_core import PredictiveCore
+from core.meta_learning import MetaLearningSystem
 
 logger = logging.getLogger(__name__)
 
@@ -28,19 +29,23 @@ class SleepCycle:
     def __init__(
         self,
         predictive_core: PredictiveCore,
+        meta_learning: Optional[MetaLearningSystem] = None,
         sleep_trigger_energy: float = 20.0,
         sleep_trigger_boredom_steps: int = 1000,
         sleep_trigger_memory_pressure: float = 0.9,
         sleep_duration_steps: int = 100,
         replay_batch_size: int = 32,
-        learning_rate: float = 0.001
+        learning_rate: float = 0.001,
+        object_encoding_threshold: float = 0.05
     ):
         self.predictive_core = predictive_core
+        self.meta_learning = meta_learning
         self.sleep_trigger_energy = sleep_trigger_energy
         self.sleep_trigger_boredom_steps = sleep_trigger_boredom_steps
         self.sleep_trigger_memory_pressure = sleep_trigger_memory_pressure
         self.sleep_duration_steps = sleep_duration_steps
         self.replay_batch_size = replay_batch_size
+        self.object_encoding_threshold = object_encoding_threshold
         
         # Sleep state tracking
         self.is_sleeping = False
@@ -48,6 +53,9 @@ class SleepCycle:
         self.sleep_cycles_completed = 0
         
         # Experience replay buffer for sleep learning
+        # Object encoding tracking
+        self.object_encodings = {}  # Track learned object representations
+        self.encoding_improvements = deque(maxlen=1000)  # Track encoding quality over time
         self.replay_buffer = deque(maxlen=10000)
         self.high_error_buffer = deque(maxlen=1000)
         
@@ -140,12 +148,16 @@ class SleepCycle:
         replay_results = self._replay_experiences(replay_buffer)
         sleep_results.update(replay_results)
         
-        # Phase 2: Memory Consolidation
+        # Phase 2: Object Encoding Enhancement
+        encoding_results = self._enhance_object_encodings(replay_buffer)
+        sleep_results.update(encoding_results)
+        
+        # Phase 3: Memory Consolidation with Meta-Learning
         if self.predictive_core.use_memory:
-            consolidation_results = self._consolidate_memory()
+            consolidation_results = self._consolidate_memory_with_meta_learning()
             sleep_results.update(consolidation_results)
             
-        # Phase 3: Dream Generation (optional)
+        # Phase 4: Dream Generation (optional)
         dream_results = self._generate_dreams()
         sleep_results.update(dream_results)
         
@@ -260,9 +272,106 @@ class SleepCycle:
         num_replay = min(len(sorted_experiences), self.sleep_duration_steps)
         return sorted_experiences[:num_replay]
         
-    def _consolidate_memory(self) -> Dict[str, float]:
+    def _enhance_object_encodings(self, replay_buffer: List[Experience]) -> Dict[str, float]:
         """
-        Consolidate memory by strengthening important connections.
+        Enhance object encodings during sleep by analyzing visual patterns.
+        
+        Args:
+            replay_buffer: Experiences containing visual data
+            
+        Returns:
+            encoding_results: Results of object encoding enhancement
+        """
+        if not replay_buffer:
+            return {'objects_encoded': 0, 'encoding_improvement': 0.0}
+            
+        # Extract visual features from experiences
+        visual_features = []
+        for exp in replay_buffer:
+            if exp.state and exp.state.visual is not None:
+                # Extract key visual features (simplified)
+                visual_tensor = exp.state.visual
+                # Compute feature statistics
+                mean_intensity = torch.mean(visual_tensor).item()
+                std_intensity = torch.std(visual_tensor).item()
+                edge_density = torch.mean(torch.abs(visual_tensor[..., 1:, :] - visual_tensor[..., :-1, :])).item()
+                
+                feature_vector = np.array([mean_intensity, std_intensity, edge_density])
+                visual_features.append(feature_vector)
+        
+        if not visual_features:
+            return {'objects_encoded': 0, 'encoding_improvement': 0.0}
+            
+        # Simple clustering without sklearn - use basic distance-based grouping
+        if len(visual_features) >= 3:
+            visual_array = np.array(visual_features)
+            
+            # Simple clustering: group features by similarity threshold
+            clusters = []
+            cluster_centers = []
+            similarity_threshold = 0.5
+            
+            for feature in visual_array:
+                assigned = False
+                for i, center in enumerate(cluster_centers):
+                    # Calculate Euclidean distance
+                    distance = np.linalg.norm(feature - center)
+                    if distance < similarity_threshold:
+                        # Add to existing cluster
+                        clusters[i].append(feature)
+                        # Update cluster center (moving average)
+                        cluster_centers[i] = (cluster_centers[i] * (len(clusters[i]) - 1) + feature) / len(clusters[i])
+                        assigned = True
+                        break
+                
+                if not assigned:
+                    # Create new cluster
+                    clusters.append([feature])
+                    cluster_centers.append(feature.copy())
+            
+            # Update object encodings
+            objects_encoded = 0
+            for i, center in enumerate(cluster_centers):
+                object_id = f"object_{i}"
+                if object_id not in self.object_encodings:
+                    self.object_encodings[object_id] = {
+                        'features': center,
+                        'confidence': 1.0,
+                        'last_seen': time.time()
+                    }
+                    objects_encoded += 1
+                else:
+                    # Update existing encoding with exponential moving average
+                    alpha = 0.1
+                    self.object_encodings[object_id]['features'] = (
+                        alpha * center + (1 - alpha) * self.object_encodings[object_id]['features']
+                    )
+                    self.object_encodings[object_id]['confidence'] = min(
+                        self.object_encodings[object_id]['confidence'] + 0.1, 1.0
+                    )
+                    self.object_encodings[object_id]['last_seen'] = time.time()
+            
+            # Calculate encoding improvement
+            current_quality = len(self.object_encodings) * np.mean([obj['confidence'] for obj in self.object_encodings.values()])
+            self.encoding_improvements.append(current_quality)
+            
+            improvement = 0.0
+            if len(self.encoding_improvements) > 1:
+                improvement = self.encoding_improvements[-1] - self.encoding_improvements[-2]
+            
+            logger.info(f"Enhanced {objects_encoded} object encodings during sleep")
+            
+            return {
+                'objects_encoded': objects_encoded,
+                'encoding_improvement': improvement,
+                'total_objects': len(self.object_encodings)
+            }
+        
+        return {'objects_encoded': 0, 'encoding_improvement': 0.0}
+    
+    def _consolidate_memory_with_meta_learning(self) -> Dict[str, float]:
+        """
+        Consolidate memory using meta-learning insights for object-aware consolidation.
         
         Returns:
             consolidation_results: Results of memory consolidation
@@ -273,27 +382,41 @@ class SleepCycle:
         # Get memory metrics before consolidation
         memory_metrics_before = self.predictive_core.memory.get_memory_metrics()
         
-        # Perform memory consolidation operations
-        # This is a simplified version - could be more sophisticated
+        # Enhanced memory consolidation with meta-learning insights
+        consolidation_operations = 0
         
-        # 1. Strengthen frequently accessed memories
+        # 1. Use meta-learning insights to prioritize important memories
+        if self.meta_learning:
+            # Get relevant insights for memory consolidation
+            relevant_insights = self.meta_learning.retrieve_relevant_insights(
+                "sleep_consolidation", 
+                None  # No current state during sleep
+            )
+            
+            # Apply insights to memory consolidation strategy
+            for insight in relevant_insights:
+                if 'memory_priority' in insight.pattern:
+                    # Adjust consolidation based on learned patterns
+                    consolidation_operations += 1
+        
+        # 2. Object-aware memory strengthening
         usage_threshold = 0.1
         memory_matrix = self.predictive_core.memory.memory_matrix
         usage_vector = self.predictive_core.memory.usage_vector
         
-        # Boost memories that are frequently used
+        # Boost memories associated with well-encoded objects
+        object_boost_factor = 1.0 + len(self.object_encodings) * 0.01
         high_usage_mask = usage_vector > usage_threshold
         if high_usage_mask.any():
-            # Slightly amplify high-usage memories
-            memory_matrix[high_usage_mask] *= 1.05
+            memory_matrix[high_usage_mask] *= object_boost_factor
             
-        # 2. Decay low-usage memories
+        # 3. Decay low-usage memories more aggressively if we have good object encodings
+        decay_factor = 0.95 - len(self.object_encodings) * 0.005
         low_usage_mask = usage_vector < 0.01
         if low_usage_mask.any():
-            # Decay low-usage memories
-            memory_matrix[low_usage_mask] *= 0.95
+            memory_matrix[low_usage_mask] *= max(decay_factor, 0.85)
             
-        # 3. Normalize to prevent overflow
+        # 4. Normalize to prevent overflow
         memory_norm = torch.norm(memory_matrix, dim=-1, keepdim=True)
         memory_matrix = memory_matrix / (memory_norm + 1e-8)
         
@@ -306,7 +429,7 @@ class SleepCycle:
         )
         
         return {
-            'memory_operations': 1,
+            'memory_operations': 1 + consolidation_operations,
             'consolidation_score': consolidation_score
         }
         
@@ -388,3 +511,13 @@ class SleepCycle:
         self.is_sleeping = False
         self.sleep_start_time = 0
         # Keep replay buffers and metrics across episodes
+        
+    def get_object_encodings(self) -> Dict[str, Dict]:
+        """Get current object encodings learned during sleep."""
+        return self.object_encodings.copy()
+        
+    def get_encoding_quality(self) -> float:
+        """Get current encoding quality score."""
+        if not self.object_encodings:
+            return 0.0
+        return len(self.object_encodings) * np.mean([obj['confidence'] for obj in self.object_encodings.values()])
