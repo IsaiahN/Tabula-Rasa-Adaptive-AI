@@ -560,24 +560,33 @@ class ContinuousLearningLoop:
                 # Run the ARC agent on the specific task
                 cmd = [
                     sys.executable, 'main.py',
-                    '--agent', 'adaptivelearning',
-                    '--game', game_id,
+                    '--task', game_id,  # Changed from --game to --task
+                    '--episodes', '1',
                     '--output', str(result_file)
                 ]
                 
-                print(f"🚀 Running real ARC-3 episode: {' '.join(cmd)} in {self.arc_agents_path}")
+                print(f"🚀 Running: {' '.join(cmd)} in {self.arc_agents_path}")
                 
-                # Run the command
+                # Create the subprocess without timeout parameter
                 process = await asyncio.create_subprocess_exec(
                     *cmd,
                     cwd=str(self.arc_agents_path),
                     env=env,
                     stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    timeout=180  # 3 minute timeout per episode
+                    stderr=asyncio.subprocess.PIPE
                 )
                 
-                stdout, stderr = await process.communicate()
+                # Use asyncio.wait_for to implement timeout manually
+                try:
+                    stdout, stderr = await asyncio.wait_for(
+                        process.communicate(), 
+                        timeout=180.0  # 3 minute timeout per episode
+                    )
+                except asyncio.TimeoutError:
+                    # Kill the process if it times out
+                    process.kill()
+                    await process.wait()
+                    raise asyncio.TimeoutError("Episode timed out after 3 minutes")
                 
                 # Parse the output for scorecard URL
                 stdout_text = stdout.decode() if stdout else ""
@@ -600,6 +609,8 @@ class ContinuousLearningLoop:
                 if scorecard_url:
                     result['scorecard_url'] = scorecard_url
                     print(f"📊 Scorecard URL: {scorecard_url}")
+                else:
+                    print(f"📊 Episode {episode_count}: Score {result.get('final_score', 0)} | No scorecard URL returned")
                 
                 # Parse success/score from stdout if not in file
                 if not result.get('success') and ('win' in stdout_text.lower() or 'success' in stdout_text.lower()):
@@ -617,7 +628,8 @@ class ContinuousLearningLoop:
                     'episode': episode_count,
                     'timestamp': time.time(),
                     'actions_taken': len(stdout_text.split('\n')) if stdout_text else 0,
-                    'raw_output': stdout_text
+                    'raw_output': stdout_text,
+                    'stderr_output': stderr_text
                 })
                 
                 return result
