@@ -1125,6 +1125,27 @@ class ContinuousLearningLoop:
             'recommendation_reason': reason
         }
 
+    def _should_stop_training(self, game_results: Dict[str, Any], target_performance: Dict[str, float]) -> bool:
+        """Check if we should stop training on this game based on target performance."""
+        episodes = game_results.get('episodes', [])
+        if len(episodes) < 5:  # Need at least 5 episodes to evaluate
+            return False
+        
+        # Calculate current performance
+        recent_episodes = episodes[-5:]  # Look at last 5 episodes
+        recent_wins = sum(1 for ep in recent_episodes if ep.get('success', False))
+        recent_win_rate = recent_wins / len(recent_episodes)
+        recent_avg_score = sum(ep.get('final_score', 0) for ep in recent_episodes) / len(recent_episodes)
+        
+        # Check if we've reached target performance
+        target_win_rate = target_performance.get('win_rate', 0.3)
+        target_avg_score = target_performance.get('avg_score', 50.0)
+        
+        if recent_win_rate >= target_win_rate and recent_avg_score >= target_avg_score:
+            return True
+            
+        return False
+
 # Example usage and agent enablement function
 async def run_arc_training_demo():
     """Run ARC-3 training demo with real API integration"""
