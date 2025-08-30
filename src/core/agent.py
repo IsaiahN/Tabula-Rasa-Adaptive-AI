@@ -326,10 +326,16 @@ class AdaptiveLearningAgent:
         state_repr = self.predictive_core.get_state_representation(sensory_input, hidden_state)
         self.state_history.append(state_repr)
         
-        # 11. Collect metrics
+        # 11. Feed experience to emergent goal system if in emergent phase
+        if self.goal_system.current_phase.value == "emergent":
+            self.goal_system.emergent_goals.add_experience(
+                state_repr, lp_signal, self.agent_state
+            )
+        
+        # 12. Collect metrics
         self._update_metrics(lp_signal, total_error, action_cost)
         
-        # 12. Check phase transitions
+        # 13. Check phase transitions
         phase_changed = self.goal_system.check_phase_transition()
         if phase_changed:
             logger.info(f"Goal system advanced to {self.goal_system.current_phase.value} phase")

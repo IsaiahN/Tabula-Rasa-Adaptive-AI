@@ -76,7 +76,7 @@ def create_default_config() -> Dict[str, Any]:
             'preservation_ratio': 0.2
         },
         'goals': {
-            'initial_phase': 'survival',
+            'initial_phase': 'template',  # Activate Phase 2 template goals
             'environment_bounds': [-10, 10, -10, 10]
         },
         'action_selection': {

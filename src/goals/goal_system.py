@@ -14,6 +14,7 @@ from enum import Enum
 import logging
 from dataclasses import dataclass
 import time
+from collections import deque
 
 from core.data_models import Goal, AgentState
 
@@ -278,20 +279,193 @@ class TemplateGoals:
 
 
 class EmergentGoals:
-    """Phase 3: Emergent goal discovery (future implementation)."""
+    """Phase 3: Emergent goal discovery through experience clustering."""
     
-    def __init__(self):
+    def __init__(self, cluster_threshold: float = 0.8, min_cluster_size: int = 5):
         self.experience_clusters = []
         self.goal_candidates = []
+        self.high_lp_experiences = deque(maxlen=1000)  # Store high-LP experiences
+        self.cluster_threshold = cluster_threshold
+        self.min_cluster_size = min_cluster_size
+        self.active_emergent_goals = []
+        self.clustering_interval = 100  # Steps between clustering attempts
+        self.steps_since_clustering = 0
         
-    def get_active_goals(self, agent_state: AgentState) -> List[Goal]:
-        """Placeholder for emergent goal discovery."""
-        # Future implementation: cluster high-LP experiences
-        return []
+    def add_experience(self, state_representation: torch.Tensor, learning_progress: float, agent_state: AgentState):
+        """Add high learning progress experience for clustering."""
+        if learning_progress > 0.1:  # Only store high-LP experiences
+            experience = {
+                'state_repr': state_representation.clone(),
+                'lp': learning_progress,
+                'position': agent_state.position.clone(),
+                'energy': agent_state.energy,
+                'timestamp': int(time.time())
+            }
+            self.high_lp_experiences.append(experience)
+            
+        self.steps_since_clustering += 1
+        
+        # Periodically attempt goal discovery
+        if self.steps_since_clustering >= self.clustering_interval:
+            self._discover_goals()
+            self.steps_since_clustering = 0
+            
+    def _discover_goals(self):
+        """Discover new goals through experience clustering."""
+        if len(self.high_lp_experiences) < self.min_cluster_size * 2:
+            return
+            
+        # Extract state representations for clustering
+        state_reprs = torch.stack([exp['state_repr'] for exp in self.high_lp_experiences])
+        
+        # Simple k-means clustering (k=3 for now)
+        clusters = self._simple_kmeans(state_reprs, k=3)
+        
+        # Generate goal candidates from clusters
+        for cluster_id, cluster_indices in clusters.items():
+            if len(cluster_indices) >= self.min_cluster_size:
+                cluster_experiences = [self.high_lp_experiences[i] for i in cluster_indices]
+                goal_candidate = self._create_goal_from_cluster(cluster_experiences, cluster_id)
+                
+                if goal_candidate and not self._goal_already_exists(goal_candidate):
+                    self.goal_candidates.append(goal_candidate)
+                    logger.info(f"Discovered emergent goal: {goal_candidate.goal_id}")
+                    
+    def _simple_kmeans(self, data: torch.Tensor, k: int = 3, max_iters: int = 10) -> Dict[int, List[int]]:
+        """Simple k-means clustering implementation."""
+        n_samples, n_features = data.shape
+        
+        # Initialize centroids randomly
+        centroids = data[torch.randperm(n_samples)[:k]]
+        
+        for _ in range(max_iters):
+            # Assign points to nearest centroid
+            distances = torch.cdist(data, centroids)
+            assignments = torch.argmin(distances, dim=1)
+            
+            # Update centroids
+            new_centroids = torch.zeros_like(centroids)
+            for i in range(k):
+                mask = assignments == i
+                if mask.sum() > 0:
+                    new_centroids[i] = data[mask].mean(dim=0)
+                else:
+                    new_centroids[i] = centroids[i]  # Keep old centroid if no points assigned
+                    
+            # Check for convergence
+            if torch.allclose(centroids, new_centroids, atol=1e-4):
+                break
+                
+            centroids = new_centroids
+            
+        # Group indices by cluster
+        clusters = {}
+        for i in range(k):
+            cluster_indices = (assignments == i).nonzero(as_tuple=True)[0].tolist()
+            if cluster_indices:  # Only include non-empty clusters
+                clusters[i] = cluster_indices
+                
+        return clusters
+        
+    def _create_goal_from_cluster(self, cluster_experiences: List[Dict], cluster_id: int) -> Optional[Goal]:
+        """Create a goal from a cluster of high-LP experiences."""
+        if not cluster_experiences:
+            return None
+            
+        # Calculate cluster centroid in position space
+        positions = torch.stack([exp['position'] for exp in cluster_experiences])
+        centroid_position = positions.mean(dim=0)
+        
+        # Calculate average learning progress
+        avg_lp = np.mean([exp['lp'] for exp in cluster_experiences])
+        
+        # Determine achievement radius based on cluster spread
+        distances = torch.norm(positions - centroid_position.unsqueeze(0), dim=1)
+        achievement_radius = float(distances.std() + 1.0)  # Std dev + buffer
+        
+        # Create emergent goal
+        goal = Goal(
+            target_state_cluster=centroid_position,
+            achievement_radius=achievement_radius,
+            success_rate=0.0,
+            learning_progress_history=[avg_lp],
+            creation_timestamp=int(time.time()),
+            goal_id=f"emergent_cluster_{cluster_id}_{int(time.time())}",
+            goal_type="emergent"
+        )
+        
+        # Store cluster metadata
+        goal.cluster_size = len(cluster_experiences)
+        goal.avg_learning_progress = avg_lp
+        goal.discovery_method = "experience_clustering"
+        
+        return goal
+        
+    def _goal_already_exists(self, new_goal: Goal) -> bool:
+        """Check if a similar goal already exists."""
+        for existing_goal in self.active_emergent_goals + self.goal_candidates:
+            if existing_goal.goal_type == "emergent":
+                # Check if goals are spatially similar
+                distance = torch.norm(existing_goal.target_state_cluster - new_goal.target_state_cluster)
+                if distance < 3.0:  # Goals within 3 units are considered similar
+                    return True
+        return False
+        
+    def get_active_goals(self, agent_state: AgentState, max_goals: int = 2) -> List[Goal]:
+        """Get active emergent goals."""
+        # Promote goal candidates to active goals
+        while len(self.active_emergent_goals) < max_goals and self.goal_candidates:
+            new_goal = self.goal_candidates.pop(0)
+            self.active_emergent_goals.append(new_goal)
+            logger.info(f"Activated emergent goal: {new_goal.goal_id}")
+            
+        # Remove old or achieved goals
+        self._cleanup_goals()
+        
+        return self.active_emergent_goals.copy()
         
     def evaluate_achievement(self, goal: Goal, agent_state: AgentState, action_result: Dict) -> bool:
-        """Placeholder for emergent goal evaluation."""
+        """Evaluate if an emergent goal has been achieved."""
+        if goal.goal_type != "emergent":
+            return False
+            
+        # Check if agent is within achievement radius of goal target
+        current_pos = agent_state.position
+        target_pos = goal.target_state_cluster
+        distance = torch.norm(current_pos - target_pos)
+        
+        achieved = distance < goal.achievement_radius
+        
+        if achieved:
+            # Update success rate
+            goal.success_rate = min(goal.success_rate + 0.1, 1.0)
+            
+            # Track time at goal location
+            if not hasattr(goal, 'time_at_goal'):
+                goal.time_at_goal = 0
+            goal.time_at_goal += 1
+            
+            # Goal is considered fully achieved after spending some time there
+            return goal.time_at_goal > 10
+            
         return False
+        
+    def _cleanup_goals(self):
+        """Remove old or completed emergent goals."""
+        current_time = int(time.time())
+        
+        # Remove goals that are too old or have high success rate
+        self.active_emergent_goals = [
+            goal for goal in self.active_emergent_goals
+            if (current_time - goal.creation_timestamp < 600 and  # 10 minutes max
+                goal.success_rate < 0.8)  # Retire if 80% success rate
+        ]
+        
+        # Also clean up candidates
+        self.goal_candidates = [
+            goal for goal in self.goal_candidates
+            if current_time - goal.creation_timestamp < 300  # 5 minutes max for candidates
+        ]
 
 
 class GoalInventionSystem:
