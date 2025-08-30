@@ -17,6 +17,10 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
 from .arc_meta_learning import ARCMetaLearningSystem
 from src.core.meta_learning import MetaLearningSystem
 from src.core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
@@ -69,12 +73,20 @@ class ContinuousLearningLoop:
         self,
         arc_agents_path: str,
         tabula_rasa_path: str,
-        api_key: str,
+        api_key: Optional[str] = None,
         save_directory: str = "continuous_learning_data"
     ):
         self.arc_agents_path = Path(arc_agents_path)
         self.tabula_rasa_path = Path(tabula_rasa_path)
-        self.api_key = api_key
+        
+        # Get API key from environment or parameter
+        self.api_key = api_key or os.getenv('ARC_API_KEY')
+        if not self.api_key:
+            raise ValueError(
+                "ARC_API_KEY not found. Please set ARC_API_KEY environment variable "
+                "or copy .env.template to .env and add your API key."
+            )
+        
         self.save_directory = Path(save_directory)
         self.save_directory.mkdir(exist_ok=True)
         
@@ -1117,16 +1129,48 @@ async def enable_claude_sonnet_4():
     """Enable Claude Sonnet 4 for all clients - demo function"""
     logger.info("Claude Sonnet 4 enabled for all clients")
     
-    # Initialize the continuous learning loop
+    # Get real API key from environment
+    arc_api_key = os.getenv('ARC_API_KEY')
+    
+    if not arc_api_key:
+        logger.error("ARC_API_KEY environment variable not set!")
+        print("❌ ARC_API_KEY not found. Please:")
+        print("   1. Register at https://three.arcprize.org")
+        print("   2. Get your API key")
+        print("   3. Set environment variable: set ARC_API_KEY=your_key_here")
+        return None
+    
+    # Find ARC-AGI-3-Agents directory
+    possible_paths = [
+        Path.cwd().parent / "ARC-AGI-3-Agents",
+        Path.cwd() / "ARC-AGI-3-Agents",
+        Path.home() / "ARC-AGI-3-Agents",
+        Path("C:/ARC-AGI-3-Agents")
+    ]
+    
+    arc_agents_path = None
+    for path in possible_paths:
+        if path.exists() and (path / "main.py").exists():
+            arc_agents_path = str(path)
+            break
+    
+    if not arc_agents_path:
+        logger.error("ARC-AGI-3-Agents repository not found!")
+        print("❌ ARC-AGI-3-Agents not found. Please:")
+        print("   git clone https://github.com/arc-prize/ARC-AGI-3-Agents")
+        return None
+    
+    # Initialize the continuous learning loop with real API key
     loop = ContinuousLearningLoop(
-        arc_agents_path="C:/path/to/arc-agents",  # This would need to be the actual path
-        tabula_rasa_path="C:/Users/Admin/Documents/GitHub/tabula-rasa",
-        api_key="your-api-key-here"  # This would need to be provided
+        arc_agents_path=arc_agents_path,
+        tabula_rasa_path=str(Path.cwd()),
+        api_key=arc_api_key  # Use real API key from environment
     )
     
-    # Start a training session with some example games
+    # Start a training session with real ARC-3 task IDs
+    real_arc_games = ["f25ffbaf", "ef135b50", "25ff71a9"]  # Real ARC-3 task IDs
     session_id = loop.start_training_session(
-        games=['game1', 'game2', 'game3'],
+        games=real_arc_games,
         max_episodes_per_game=20,
         target_win_rate=0.4,
         target_avg_score=60.0,
@@ -1134,12 +1178,12 @@ async def enable_claude_sonnet_4():
         enable_salience_comparison=True
     )
     
-    logger.info(f"Started continuous learning session: {session_id}")
+    logger.info(f"Started continuous learning session with real ARC-3 API: {session_id}")
     
     # Run the continuous learning loop
     results = await loop.run_continuous_learning(session_id)
     
-    logger.info(f"Training session completed with results: {results}")
+    logger.info(f"Training session completed with ARC-3 API results: {results}")
     return results
 
 
@@ -1151,74 +1195,24 @@ async def run_continuous_learning_demo():
     print(f"📊 Official ARC-3 Showcase: {ARC3_SCOREBOARD_URL}")
     
     # Check if we have real ARC integration available
-    import os
-    arc_api_key = os.getenv('ARC_API_KEY', 'demo_key_replace_with_real')
+    arc_api_key = os.getenv('ARC_API_KEY')
     
-    if arc_api_key == 'demo_key_replace_with_real':
-        print("⚠️  WARNING: Using demo mode. For real API testing:")
-        print("   1. Get API key from https://three.arcprize.org")
-        print("   2. Set ARC_API_KEY environment variable")
-        print("   3. Ensure ARC-AGI-3-Agents repository is available")
-        print("   4. Run: python setup_arc_training.py")
+    if not arc_api_key:
+        print("⚠️  WARNING: ARC_API_KEY environment variable not set!")
+        print("   For real API testing:")
+        print("   1. Register at https://three.arcprize.org")
+        print("   2. Get API key from your profile")
+        print("   3. Set environment variable: set ARC_API_KEY=your_key_here")
+        print("   4. Ensure ARC-AGI-3-Agents repository is available")
+        print("   5. Run: python setup_arc_training.py")
         print("\n🔄 Running in simulation mode for demonstration...")
         use_real_api = False
     else:
-        print("✅ ARC-3 API Key detected - attempting real API connection")
+        print(f"✅ ARC-3 API Key detected: {arc_api_key[:8]}...{arc_api_key[-4:] if len(arc_api_key) > 12 else '****'}")
+        print("🌐 Attempting real API connection...")
         use_real_api = True
-    
-    # Initialize the continuous learning loop with proper paths
-    if use_real_api:
-        # Try to find ARC-AGI-3-Agents directory
-        possible_paths = [
-            Path.cwd().parent / "ARC-AGI-3-Agents",
-            Path.cwd() / "ARC-AGI-3-Agents", 
-            Path.home() / "ARC-AGI-3-Agents",
-            Path("C:/ARC-AGI-3-Agents"),  # Common Windows location
-            Path("/opt/ARC-AGI-3-Agents")   # Common Linux location
-        ]
-        
-        arc_agents_path = None
-        for path in possible_paths:
-            if path.exists() and (path / "main.py").exists():
-                arc_agents_path = str(path)
-                break
-        
-        if not arc_agents_path:
-            print("❌ ARC-AGI-3-Agents repository not found. Install with:")
-            print("   git clone https://github.com/arc-prize/ARC-AGI-3-Agents")
-            print("🔄 Falling back to simulation mode...")
-            use_real_api = False
-    
-    # Initialize continuous learning system
-    if use_real_api:
-        print(f"🌐 Initializing REAL ARC-3 connection to: {arc_agents_path}")
-        loop = ContinuousLearningLoop(
-            arc_agents_path=arc_agents_path,
-            tabula_rasa_path=str(Path.cwd().parent if Path.cwd().name == "src" else Path.cwd()),
-            api_key=arc_api_key
-        )
-        
-        # Use real ARC-3 game IDs
-        real_arc_games = [
-            "f25ffbaf",  # Real ARC task ID
-            "ef135b50",  # Real ARC task ID  
-            "25ff71a9",  # Real ARC task ID
-            "a8d7556c"   # Real ARC task ID
-        ]
-        test_games = real_arc_games[:2]  # Start with 2 for demo
-        
-        print("🎯 TESTING ON REAL ARC-3 TASKS:")
-        for i, game_id in enumerate(test_games, 1):
-            print(f"   {i}. Task {game_id} (Official ARC-3 evaluation task)")
-            
-    else:
-        print("🧪 Initializing SIMULATION mode for demonstration")
-        loop = ContinuousLearningLoop(
-            arc_agents_path=str(Path.cwd()),  # Use current directory as placeholder
-            tabula_rasa_path=str(Path.cwd().parent if Path.cwd().name == "src" else Path.cwd()),
-            api_key="demo_key"
-        )
-        test_games = ['demo_task_spatial_reasoning', 'demo_task_pattern_matching']
+
+    # ...existing code...
     
     print(f"\n{'='*80}")
     print("🧠 CONTINUOUS LEARNING SYSTEM ACTIVATED")
