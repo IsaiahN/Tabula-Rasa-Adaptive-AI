@@ -1328,7 +1328,7 @@ class ContinuousLearningLoop:
             games=demo_games,
             max_episodes_per_game=3,  # Reduced for demo
             target_win_rate=0.1,      # Lower target for demo
-            target_avg_score: 20.0,    # Lower target for demo
+            target_avg_score=20.0,    # Fixed syntax error
             salience_mode=SalienceMode.LOSSLESS
         )
         
@@ -1784,7 +1784,209 @@ async def run_offline_demo_mock():
         'integration_verified': True
     }
 
+async def run_full_training():
+    """Run full training until all ARC tasks are mastered."""
+    print("🏆 FULL TRAINING MODE - Training Until All ARC Tasks Are Mastered")
+    print("="*80)
+    
+    # Check API availability
+    arc_api_key = os.getenv('ARC_API_KEY')
+    if not arc_api_key:
+        print("❌ ARC_API_KEY required for full training mode")
+        print("Please set up your API key to access all ARC-3 tasks")
+        return None
+    
+    # Find ARC-AGI-3-Agents directory
+    possible_paths = [
+        Path.cwd().parent / "ARC-AGI-3-Agents",
+        Path.cwd() / "ARC-AGI-3-Agents",
+        Path.home() / "ARC-AGI-3-Agents",
+        Path("C:/ARC-AGI-3-Agents")
+    ]
+    
+    arc_agents_path = None
+    for path in possible_paths:
+        if path.exists() and (path / "main.py").exists():
+            arc_agents_path = str(path)
+            break
+    
+    if not arc_agents_path:
+        print("❌ ARC-AGI-3-Agents repository not found")
+        print("Please clone: git clone https://github.com/arc-prize/ARC-AGI-3-Agents")
+        return None
+    
+    # Initialize the continuous learning loop
+    try:
+        loop = ContinuousLearningLoop(
+            arc_agents_path=arc_agents_path,
+            tabula_rasa_path=str(Path.cwd()),
+            api_key=arc_api_key
+        )
+    except ValueError as e:
+        print(f"❌ Error initializing training system: {e}")
+        return None
+    
+    print(f"✅ Training system initialized")
+    print(f"API Key: {arc_api_key[:8]}...{arc_api_key[-4:]}")
+    print(f"ARC-AGI-3-Agents: {arc_agents_path}")
+    print(f"Results tracked at: {ARC3_SCOREBOARD_URL}")
+    
+    # Get all available tasks for full training
+    print("\n🔍 Fetching all available ARC-3 tasks...")
+    available_games = await loop._get_available_games()
+    
+    if not available_games:
+        print("⚠️ No games available from API - using predefined task set")
+        all_tasks = get_full_training_tasks(randomize=True)
+    else:
+        print(f"✅ Found {len(available_games)} tasks from ARC-3 API")
+        all_tasks = available_games
+        
+    print(f"📋 Total tasks for mastery training: {len(all_tasks)}")
+    print(f"🎯 Target: 90% win rate and 85+ average score on ALL tasks")
+    
+    # Start full training session with high mastery targets
+    session_id = loop.start_training_session(
+        games=all_tasks,
+        max_episodes_per_game=100,  # More episodes for mastery
+        target_win_rate=0.9,        # Very high target
+        target_avg_score=85.0,      # High score target
+        salience_mode=SalienceMode.LOSSLESS,  # Use lossless for maximum retention
+        enable_salience_comparison=False      # Focus on training, not comparison
+    )
+    
+    print(f"\n🚀 STARTING FULL MASTERY TRAINING")
+    print(f"Session ID: {session_id}")
+    print(f"Tasks: {len(all_tasks)} total")
+    print(f"Episodes per task: Up to 100 (stop early if mastery achieved)")
+    print(f"Mastery criteria: 90% win rate + 85+ average score")
+    
+    # Run the comprehensive training session
+    start_time = time.time()
+    results = await loop.run_continuous_learning(session_id)
+    training_duration = time.time() - start_time
+    
+    # Analyze mastery results
+    overall_perf = results.get('overall_performance', {})
+    overall_win_rate = overall_perf.get('overall_win_rate', 0)
+    overall_avg_score = overall_perf.get('overall_average_score', 0)
+    games_trained = overall_perf.get('games_trained', 0)
+    total_episodes = overall_perf.get('total_episodes', 0)
+    
+    print(f"\n{'='*80}")
+    print("🏆 FULL TRAINING MASTERY RESULTS")
+    print(f"{'='*80}")
+    print(f"Training Duration: {training_duration/3600:.1f} hours")
+    print(f"Tasks Attempted: {games_trained}/{len(all_tasks)}")
+    print(f"Total Episodes: {total_episodes}")
+    print(f"Overall Win Rate: {overall_win_rate:.1%}")
+    print(f"Overall Average Score: {overall_avg_score:.1f}")
+    
+    # Determine mastery status
+    mastery_achieved = overall_win_rate >= 0.9 and overall_avg_score >= 85.0
+    strong_performance = overall_win_rate >= 0.7 and overall_avg_score >= 70.0
+    
+    if mastery_achieved:
+        print("🎉 MASTERY ACHIEVED!")
+        print("✅ Agent has mastered ARC reasoning tasks")
+        print(f"✅ Win rate: {overall_win_rate:.1%} (target: 90%)")
+        print(f"✅ Average score: {overall_avg_score:.1f} (target: 85+)")
+        print(f"🏆 READY FOR ARC-3 LEADERBOARD SUBMISSION!")
+        
+    elif strong_performance:
+        print("💪 STRONG PERFORMANCE ACHIEVED!")
+        print("✅ Agent shows excellent learning capability")
+        print(f"✅ Win rate: {overall_win_rate:.1%} (strong level)")
+        print(f"✅ Average score: {overall_avg_score:.1f} (strong level)")
+        print("🎯 Continue training to reach full mastery")
+        
+    else:
+        print("📈 TRAINING IN PROGRESS")
+        print("ℹ️  Agent is learning but hasn't reached mastery yet")
+        print(f"📊 Current win rate: {overall_win_rate:.1%}")
+        print(f"📊 Current average score: {overall_avg_score:.1f}")
+        print("🔄 Consider extending training or adjusting parameters")
+    
+    # Show per-task mastery breakdown
+    print(f"\n📊 TASK-BY-TASK MASTERY STATUS:")
+    mastered_tasks = 0
+    strong_tasks = 0
+    learning_tasks = 0
+    
+    for game_id, game_data in results.get('games_played', {}).items():
+        performance = game_data.get('performance_metrics', {})
+        win_rate = performance.get('win_rate', 0)
+        avg_score = performance.get('average_score', 0)
+        
+        if win_rate >= 0.9 and avg_score >= 85:
+            status = "MASTERED"
+            mastered_tasks += 1
+        elif win_rate >= 0.7 and avg_score >= 70:
+            status = "STRONG"
+            strong_tasks += 1
+        else:
+            status = "LEARNING"
+            learning_tasks += 1
+            
+        print(f"   {game_id}: {status} (Win: {win_rate:.1%}, Score: {avg_score:.1f})")
+    
+    print(f"\n📈 MASTERY SUMMARY:")
+    print(f"   Mastered Tasks: {mastered_tasks}/{games_trained}")
+    print(f"   Strong Performance: {strong_tasks}/{games_trained}")
+    print(f"   Still Learning: {learning_tasks}/{games_trained}")
+    
+    mastery_rate = mastered_tasks / max(1, games_trained)
+    print(f"   Overall Mastery Rate: {mastery_rate:.1%}")
+    
+    # Training efficiency metrics
+    learning_efficiency = overall_perf.get('learning_efficiency', 0)
+    knowledge_transfer = overall_perf.get('knowledge_transfer_score', 0)
+    
+    print(f"\n🧠 LEARNING SYSTEM PERFORMANCE:")
+    print(f"   Learning Efficiency: {learning_efficiency:.3f}")
+    print(f"   Knowledge Transfer: {knowledge_transfer:.3f}")
+    print(f"   Episodes per Task: {total_episodes/max(1, games_trained):.1f}")
+    print(f"   Training Speed: {games_trained/(training_duration/3600):.1f} tasks/hour")
+    
+    # Show scoreboard and submission info
+    print(f"\n🌐 ARC-3 COMPETITION INTEGRATION:")
+    print(f"   Official Scoreboard: {ARC3_SCOREBOARD_URL}")
+    
+    if mastery_achieved or strong_performance:
+        print(f"   🎯 SUBMIT YOUR RESULTS TO THE LEADERBOARD!")
+        print(f"   Your agent shows {'mastery' if mastery_achieved else 'strong performance'}")
+        print(f"   Visit {ARC3_SCOREBOARD_URL} to compete officially")
+    else:
+        print(f"   🔄 Continue training to improve leaderboard position")
+        print(f"   Current performance: {overall_win_rate:.1%} win rate")
+    
+    # Save comprehensive results
+    results['mastery_analysis'] = {
+        'mastery_achieved': mastery_achieved,
+        'strong_performance': strong_performance,
+        'mastered_tasks': mastered_tasks,
+        'strong_tasks': strong_tasks,
+        'learning_tasks': learning_tasks,
+        'mastery_rate': mastery_rate,
+        'training_duration_hours': training_duration / 3600,
+        'tasks_per_hour': games_trained / (training_duration / 3600),
+        'ready_for_submission': mastery_achieved or strong_performance
+    }
+    
+    print(f"\n💾 Training results saved to: {loop.save_directory}")
+    print(f"Session data: session_{session_id}_final.json")
+    print("="*80)
+    
+    return results
+
 
 if __name__ == "__main__":
-    # Run the continuous learning demo
-    asyncio.run(run_continuous_learning_demo())
+    import sys
+    
+    # Check command line arguments for training mode
+    if len(sys.argv) > 1 and sys.argv[1] == "full":
+        # Run full training mode
+        asyncio.run(run_full_training())
+    else:
+        # Run the continuous learning demo
+        asyncio.run(run_continuous_learning_demo())
