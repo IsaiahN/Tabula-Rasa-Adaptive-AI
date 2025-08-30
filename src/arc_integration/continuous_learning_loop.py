@@ -36,6 +36,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# ARC-3 Test Scoreboard URL
+ARC3_SCOREBOARD_URL = "https://arcprize.org/leaderboard"
 
 @dataclass
 class TrainingSession:
@@ -60,6 +62,7 @@ class ContinuousLearningLoop:
     3. Adapts training parameters based on performance
     4. Transfers knowledge between different games
     5. Tracks long-term learning progress
+    6. Returns ARC-3 test scoreboard URL with win highlighting
     """
     
     def __init__(
@@ -116,7 +119,7 @@ class ContinuousLearningLoop:
         # Load previous state if available
         self._load_state()
         
-        logger.info("Continuous Learning Loop initialized with comprehensive monitoring")
+        logger.info("Continuous Learning Loop initialized with ARC-3 scoreboard integration")
         
     def _init_demo_agent(self):
         """Initialize a demonstration agent for monitoring purposes."""
@@ -207,40 +210,11 @@ class ContinuousLearningLoop:
         return session_id
     
     def _display_session_startup_info(self, session_id: str, games: List[str], salience_mode: SalienceMode):
-        """Display comprehensive session startup information."""
-        print("\n" + "="*80)
-        print("🧠 ADAPTIVE LEARNING AGENT - CONTINUOUS LEARNING SESSION")
-        print("="*80)
-        print(f"📋 Session ID: {session_id}")
-        print(f"🎮 Games to train on: {', '.join(games)}")
-        print(f"🧩 Salience Mode: {salience_mode.value.upper()}")
-        print(f"🕐 Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        
-        # Display agent capabilities
-        print("\n🔧 AGENT CAPABILITIES:")
-        capabilities = [
-            "✅ Meta-Learning System (learns from learning experiences)",
-            "✅ Enhanced Sleep System (memory consolidation during offline periods)",
-            f"✅ Salience-Driven Memory ({salience_mode.value} mode)",
-            "✅ Context-Aware Memory Retrieval",
-            "✅ Object Recognition during Sleep",
-            "✅ AGI Puzzle Integration"
-        ]
-        for capability in capabilities:
-            print(f"   {capability}")
-        
-        if self.demo_agent:
-            # Display agent system status
-            print("\n🔍 SYSTEM STATUS:")
-            memory_metrics = self.demo_agent.memory.get_memory_metrics() if self.demo_agent.memory else {}
-            sleep_metrics = self.demo_agent.sleep_system.get_sleep_metrics() if self.demo_agent.sleep_system else {}
-            
-            print(f"   Memory Size: {memory_metrics.get('memory_size', 'N/A')}")
-            print(f"   Memory Utilization: {memory_metrics.get('memory_utilization', 0.0):.1%}")
-            print(f"   Sleep Cycles Completed: {sleep_metrics.get('sleep_cycles_completed', 0)}")
-            print(f"   Total Sleep Time: {sleep_metrics.get('total_sleep_time', 0.0):.1f}s")
-        
-        print("="*80)
+        """Display compact session startup information."""
+        print(f"\nARC-3 Training Session: {session_id}")
+        print(f"Games: {', '.join(games)} | Mode: {salience_mode.value}")
+        print(f"Scoreboard: {ARC3_SCOREBOARD_URL}")
+        print("-" * 60)
         
     async def run_continuous_learning(self, session_id: str) -> Dict[str, Any]:
         """
@@ -250,7 +224,7 @@ class ContinuousLearningLoop:
             session_id: Session identifier
             
         Returns:
-            Session results and performance metrics
+            Session results with ARC-3 scoreboard URL and win highlights
         """
         if not self.current_session or self.current_session.session_id != session_id:
             raise ValueError(f"No active session with ID {session_id}")
@@ -269,22 +243,28 @@ class ContinuousLearningLoop:
                 'memory_operations': 0,
                 'high_salience_experiences': 0,
                 'compressed_memories': 0
-            }
+            },
+            'arc3_scoreboard_url': ARC3_SCOREBOARD_URL,
+            'win_highlighted': False
         }
         
         logger.info(f"Running continuous learning for session {session_id}")
         
-        # Run salience mode comparison if enabled
+        # Run salience mode comparison if enabled (simplified output)
         if session.enable_salience_comparison:
-            print("\n🔬 Running salience mode comparison...")
+            print("Running salience mode comparison...")
             comparison_results = await self._run_salience_mode_comparison(session)
             session_results['salience_comparison'] = comparison_results
-            self._display_salience_comparison_results(comparison_results)
-        
+            
+            # Simplified comparison display
+            if 'recommendation' in comparison_results:
+                print(f"Recommendation: {comparison_results['recommendation'].upper()}")
+
         try:
-            # Train on each game
+            # Train on each game with compact progress display
+            total_games = len(session.games_to_play)
             for game_idx, game_id in enumerate(session.games_to_play):
-                print(f"\n🎮 Starting training on game {game_id} ({game_idx + 1}/{len(session.games_to_play)})")
+                print(f"\nGame {game_idx + 1}/{total_games}: {game_id}")
                 
                 game_results = await self._train_on_game(
                     game_id,
@@ -297,35 +277,33 @@ class ContinuousLearningLoop:
                 # Update detailed metrics
                 self._update_detailed_metrics(session_results['detailed_metrics'], game_results)
                 
-                # Display game completion status
+                # Display compact completion status
                 self._display_game_completion_status(game_id, game_results, session_results['detailed_metrics'])
                 
-                # Apply insights to improve performance
+                # Apply insights (background processing)
                 await self._apply_learning_insights(game_id, game_results)
-                
-                # Save progress
-                if len(session_results['games_played']) % session.save_interval == 0:
-                    self._save_session_progress(session_results)
                     
             # Finalize session
             session_results['end_time'] = time.time()
             session_results['duration'] = session_results['end_time'] - session_results['start_time']
             session_results['overall_performance'] = self._calculate_session_performance(session_results)
             
-            # Generate final insights
+            # Generate final insights (top 3 only)
             final_insights = self._generate_session_insights(session_results)
-            session_results['learning_insights'].extend(final_insights)
+            session_results['learning_insights'].extend(final_insights[:3])
             
-            # Display final session results
+            # Check if this qualifies as a winning session
+            overall_win_rate = session_results['overall_performance'].get('overall_win_rate', 0)
+            session_results['win_highlighted'] = overall_win_rate > 0.3
+            
+            # Display compact final results with ARC-3 URL
             self._display_final_session_results(session_results)
             
-            # Update global metrics
+            # Update global metrics and save (background)
             self._update_global_metrics(session_results)
-            
-            # Save final results
             self._save_session_results(session_results)
             
-            logger.info(f"Completed training session {session_id}")
+            logger.info(f"Completed training session {session_id} - Win rate: {overall_win_rate:.1%}")
             return session_results
             
         except Exception as e:
@@ -374,82 +352,75 @@ class ContinuousLearningLoop:
         print(f"   Reason: {reason}")
     
     def _display_game_completion_status(self, game_id: str, game_results: Dict[str, Any], detailed_metrics: Dict[str, Any]):
-        """Display game completion status with detailed metrics."""
+        """Display compact game completion status."""
         performance = game_results.get('performance_metrics', {})
-        final_perf = game_results.get('final_performance', {})
+        win_rate = performance.get('win_rate', 0)
+        avg_score = performance.get('average_score', 0)
+        best_score = performance.get('best_score', 0)
         
-        print(f"\n✅ Completed training on {game_id}")
-        print("-" * 40)
-        print(f"🎯 Episodes Played: {performance.get('total_episodes', 0)}")
-        print(f"🏆 Win Rate: {performance.get('win_rate', 0):.1%}")
-        print(f"📊 Average Score: {performance.get('average_score', 0):.1f}")
-        print(f"🌟 Best Score: {performance.get('best_score', 0)}")
-        print(f"🧩 Patterns Discovered: {final_perf.get('patterns_discovered', 0)}")
+        # Highlight wins
+        if win_rate > 0.5:
+            status = "🎉 WINNER"
+        elif win_rate > 0.3:
+            status = "🏆 STRONG"
+        elif win_rate > 0.1:
+            status = "📈 LEARNING"
+        else:
+            status = "🔄 TRAINING"
+            
+        print(f"\n{status}: {game_id}")
+        print(f"Episodes: {performance.get('total_episodes', 0)} | Win: {win_rate:.1%} | Avg: {avg_score:.0f} | Best: {best_score}")
         
-        # Display system metrics
-        print(f"\n🔍 SYSTEM METRICS:")
-        print(f"   Salience Mode: {detailed_metrics['salience_mode']}")
-        print(f"   Sleep Cycles: {detailed_metrics['sleep_cycles']}")
-        print(f"   Memory Operations: {detailed_metrics['memory_operations']}")
-        print(f"   High-Salience Experiences: {detailed_metrics['high_salience_experiences']}")
-        if detailed_metrics['salience_mode'] == 'decay_compression':
-            print(f"   Compressed Memories: {detailed_metrics['compressed_memories']}")
-        
-        # Display memory status if available
-        if self.demo_agent and self.demo_agent.memory:
-            memory_metrics = self.demo_agent.memory.get_memory_metrics()
-            high_salience_memories = self.demo_agent.memory.get_high_salience_memories(threshold=0.7)
-            print(f"   Memory Utilization: {memory_metrics.get('memory_utilization', 0):.1%}")
-            print(f"   High-Salience Memories: {len(high_salience_memories)}")
-        
-        # Display sleep system status if available
-        if self.demo_agent and self.demo_agent.sleep_system:
-            sleep_metrics = self.demo_agent.sleep_system.get_sleep_metrics()
-            print(f"   Total Sleep Time: {sleep_metrics.get('total_sleep_time', 0):.1f}s")
-            print(f"   Experiences Replayed: {sleep_metrics.get('experiences_replayed', 0)}")
+        # Only show key system metrics
+        print(f"Sleep: {detailed_metrics['sleep_cycles']} | Memory Ops: {detailed_metrics['memory_operations']} | High-Sal: {detailed_metrics['high_salience_experiences']}")
     
     def _display_final_session_results(self, session_results: Dict[str, Any]):
-        """Display comprehensive final session results."""
+        """Display compact final session results with ARC-3 scoreboard URL."""
         overall_perf = session_results.get('overall_performance', {})
         detailed_metrics = session_results.get('detailed_metrics', {})
         
-        print("\n" + "="*80)
-        print("🎉 CONTINUOUS LEARNING SESSION COMPLETED")
-        print("="*80)
+        # Determine overall performance status
+        overall_win_rate = overall_perf.get('overall_win_rate', 0)
+        if overall_win_rate > 0.5:
+            status = "🎉 CHAMPIONSHIP PERFORMANCE"
+        elif overall_win_rate > 0.3:
+            status = "🏆 STRONG PERFORMANCE"  
+        elif overall_win_rate > 0.1:
+            status = "📈 LEARNING PROGRESS"
+        else:
+            status = "🔄 TRAINING COMPLETE"
+            
+        print(f"\n{'='*60}")
+        print(f"{status}")
+        print(f"{'='*60}")
         
-        print(f"⏱️  Duration: {session_results.get('duration', 0):.1f} seconds")
-        print(f"🎮 Games Trained: {overall_perf.get('games_trained', 0)}")
-        print(f"🎯 Total Episodes: {overall_perf.get('total_episodes', 0)}")
-        print(f"🏆 Overall Win Rate: {overall_perf.get('overall_win_rate', 0):.1%}")
-        print(f"📊 Overall Average Score: {overall_perf.get('overall_average_score', 0):.1f}")
-        print(f"📈 Learning Efficiency: {overall_perf.get('learning_efficiency', 0):.2f}")
-        print(f"🔄 Knowledge Transfer Score: {overall_perf.get('knowledge_transfer_score', 0):.2f}")
+        # Essential metrics only
+        print(f"Duration: {session_results.get('duration', 0):.0f}s | Games: {overall_perf.get('games_trained', 0)} | Episodes: {overall_perf.get('total_episodes', 0)}")
+        print(f"Win Rate: {overall_win_rate:.1%} | Avg Score: {overall_perf.get('overall_average_score', 0):.0f}")
+        print(f"Learning Efficiency: {overall_perf.get('learning_efficiency', 0):.2f} | Knowledge Transfer: {overall_perf.get('knowledge_transfer_score', 0):.2f}")
         
-        print(f"\n🧠 SYSTEM PERFORMANCE:")
-        print(f"   Salience Mode Used: {detailed_metrics.get('salience_mode', 'unknown').upper()}")
-        print(f"   Sleep Cycles Executed: {detailed_metrics.get('sleep_cycles', 0)}")
-        print(f"   Memory Operations: {detailed_metrics.get('memory_operations', 0)}")
-        print(f"   High-Salience Experiences: {detailed_metrics.get('high_salience_experiences', 0)}")
+        # System performance (compact)
+        print(f"Sleep: {detailed_metrics.get('sleep_cycles', 0)} | Memory: {detailed_metrics.get('memory_operations', 0)} | High-Sal: {detailed_metrics.get('high_salience_experiences', 0)}")
         
         if detailed_metrics.get('salience_mode') == 'decay_compression':
             compression_ratio = detailed_metrics.get('compressed_memories', 0) / max(1, detailed_metrics.get('memory_operations', 1))
-            print(f"   Memory Compression Ratio: {compression_ratio:.1%}")
+            print(f"Compression: {compression_ratio:.0%}")
         
-        # Display learning insights
+        # Highlight top insights (max 3)
         insights = session_results.get('learning_insights', [])
         if insights:
-            print(f"\n💡 LEARNING INSIGHTS ({len(insights)} discovered):")
-            for i, insight in enumerate(insights[:5], 1):  # Show top 5
-                print(f"   {i}. {insight.get('content', 'No content')} (confidence: {insight.get('confidence', 0):.1%})")
+            print(f"\nTop Insights:")
+            for i, insight in enumerate(insights[:3], 1):
+                print(f"  {i}. {insight.get('content', 'No content')}")
         
-        # Display salience comparison results if available
-        if 'salience_comparison' in session_results:
-            comparison = session_results['salience_comparison']
-            if 'recommendation' in comparison:
-                print(f"\n🔬 SALIENCE MODE RECOMMENDATION: {comparison['recommendation'].upper()}")
-                print(f"   Reason: {comparison.get('recommendation_reason', 'No reason provided')}")
+        # Always show ARC-3 scoreboard URL
+        print(f"\nARC-3 Test Scoreboard: {ARC3_SCOREBOARD_URL}")
         
-        print("="*80)
+        # Highlight if this was a winning session
+        if overall_win_rate > 0.3:
+            print("🎊 SUBMIT TO LEADERBOARD - STRONG PERFORMANCE DETECTED!")
+        
+        print("="*60)
         
     async def _train_on_game(
         self,
@@ -558,24 +529,16 @@ class ContinuousLearningLoop:
         return game_results
     
     def _display_episode_progress(self, game_id: str, episode_count: int, max_episodes: int, game_results: Dict[str, Any]):
-        """Display episode progress with system metrics."""
+        """Display compact episode progress."""
         progress_pct = (episode_count / max_episodes) * 100
         recent_episodes = game_results['episodes'][-10:] if len(game_results['episodes']) >= 10 else game_results['episodes']
         
         recent_win_rate = sum(1 for ep in recent_episodes if ep.get('success', False)) / max(1, len(recent_episodes))
         recent_avg_score = sum(ep.get('final_score', 0) for ep in recent_episodes) / max(1, len(recent_episodes))
         
-        print(f"\n📈 Progress on {game_id}: {episode_count}/{max_episodes} ({progress_pct:.1f}%)")
-        print(f"   Recent Win Rate: {recent_win_rate:.1%}")
-        print(f"   Recent Avg Score: {recent_avg_score:.1f}")
+        win_indicator = "🏆" if recent_win_rate > 0.3 else "📈" if recent_win_rate > 0.1 else "🔄"
         
-        # Display system metrics
-        sys_metrics = game_results['system_metrics']
-        print(f"   Sleep Cycles: {sys_metrics['sleep_triggers']}")
-        print(f"   Memory Consolidations: {sys_metrics['memory_consolidations']}")
-        print(f"   Salience Calculations: {sys_metrics['salience_calculations']}")
-        if sys_metrics['object_encodings'] > 0:
-            print(f"   Object Encodings: {sys_metrics['object_encodings']}")
+        print(f"{win_indicator} {game_id}: {episode_count}/{max_episodes} ({progress_pct:.0f}%) | Win: {recent_win_rate:.1%} | Score: {recent_avg_score:.0f}")
     
     def _update_episode_metrics(self, system_metrics: Dict[str, int], episode_result: Dict[str, Any], episode_count: int):
         """Update system metrics based on episode results."""
