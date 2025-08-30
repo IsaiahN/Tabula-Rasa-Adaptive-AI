@@ -14,16 +14,16 @@ import logging
 from collections import deque
 import time
 
-from core.data_models import SensoryInput, Experience, AgentState, Goal
-from core.predictive_core import PredictiveCore
-from core.learning_progress import LearningProgressDrive
-from core.energy_system import EnergySystem, DeathManager
-from core.sleep_system import SleepCycle
-from core.action_selection import ActionSelectionNetwork, ActionExecutor, ExplorationStrategy
-from core.meta_learning import MetaLearningSystem
-from goals.goal_system import GoalInventionSystem, GoalPhase
-from memory.dnc import DNCMemory
-from monitoring.metrics_collector import MetricsCollector
+from src.core.data_models import SensoryInput, Experience, AgentState, Goal
+from src.core.predictive_core import PredictiveCore
+from src.core.learning_progress import LearningProgressDrive
+from src.core.energy_system import EnergySystem, DeathManager
+from src.core.sleep_system import SleepCycle
+from src.core.action_selection import ActionSelectionNetwork, ActionExecutor, ExplorationStrategy
+from src.core.meta_learning import MetaLearningSystem
+from src.goals.goal_system import GoalInventionSystem, GoalPhase
+from src.memory.dnc import DNCMemory
+from src.monitoring.metrics_collector import MetricsCollector
 
 logger = logging.getLogger(__name__)
 
@@ -758,4 +758,4 @@ class BootstrapManager:
         
     def reset(self):
         """Reset bootstrap protection (for new episodes)."""
-        self.steps_taken = 0 
+        self.steps_taken = 0
