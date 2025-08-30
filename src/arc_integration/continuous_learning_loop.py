@@ -22,22 +22,32 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
-from .arc_meta_learning import ARCMetaLearningSystem
-from src.core.meta_learning import MetaLearningSystem
-from src.core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
-from src.core.sleep_system import SleepCycle
-from src.core.agent import AdaptiveLearningAgent
-from src.core.predictive_core import PredictiveCore
-from src.core.energy_system import EnergySystem
-from src.memory.dnc import DNCMemory
+# Add the src directory to the path for imports
+current_dir = Path(__file__).parent
+src_dir = current_dir.parent
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
+
+# Now import with absolute imports
+from arc_integration.arc_meta_learning import ARCMetaLearningSystem
+from core.meta_learning import MetaLearningSystem
+from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
+from core.sleep_system import SleepCycle
+from core.agent import AdaptiveLearningAgent
+from core.predictive_core import PredictiveCore
+from core.energy_system import EnergySystem
+from memory.dnc import DNCMemory
 
 try:
+    # Try to import the salience comparator
+    sys.path.insert(0, str(src_dir.parent))  # Add root directory
     from examples.salience_mode_comparison import SalienceModeComparator
     SALIENCE_COMPARATOR_AVAILABLE = True
 except ImportError:
     SALIENCE_COMPARATOR_AVAILABLE = False
     logger = logging.getLogger(__name__)
-    logger.warning("SalienceModeComparator not available - comparison features disabled")
+    if logger.hasHandlers():
+        logger.warning("SalienceModeComparator not available - comparison features disabled")
 
 logger = logging.getLogger(__name__)
 

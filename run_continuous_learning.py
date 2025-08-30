@@ -6,9 +6,9 @@ A lightweight wrapper script that uses the existing ContinuousLearningLoop class
 from the main codebase instead of duplicating logic.
 
 Usage:
-    python run_continuous_learning.py --mode demo          # Quick demonstration
-    python run_continuous_learning.py --mode full_training # Run until all levels mastered
-    python run_continuous_learning.py --mode comparison    # Compare salience modes
+    python -m run_continuous_learning --mode demo          # Quick demonstration
+    python -m run_continuous_learning --mode full_training # Run until all levels mastered
+    python -m run_continuous_learning --mode comparison    # Compare salience modes
 """
 
 import asyncio
@@ -22,8 +22,20 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
-# Import the actual implementation from the main codebase
-from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop
+# Fix imports for when run as module
+if __name__ == "__main__":
+    # Add src to path when run as main module
+    current_dir = Path(__file__).parent
+    src_dir = current_dir / "src"
+    if src_dir.exists() and str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
+
+# Now import with the correct path setup
+try:
+    from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop
+except ImportError:
+    # Fallback for when run as module
+    from arc_integration.continuous_learning_loop import ContinuousLearningLoop
 
 # Set up logging
 logging.basicConfig(
