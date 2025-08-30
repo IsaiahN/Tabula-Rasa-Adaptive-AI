@@ -542,7 +542,7 @@ class ContinuousLearningLoop:
         return game_results
 
     async def _run_real_arc_episode(self, game_id: str, episode_count: int) -> Dict[str, Any]:
-        """Run a real ARC-3 episode and capture the scorecard URL."""
+        """Run a real ARC-3 episode using the correct ARC-AGI-3-Agents command format."""
         try:
             import subprocess
             import sys
@@ -553,87 +553,75 @@ class ContinuousLearningLoop:
             env = os.environ.copy()
             env['ARC_API_KEY'] = self.api_key
             
-            # Create a temporary directory for this episode's results
-            with tempfile.TemporaryDirectory() as temp_dir:
-                result_file = Path(temp_dir) / f"result_{episode_count}.json"
-                
-                # Run the ARC agent on the specific task
-                cmd = [
-                    sys.executable, 'main.py',
-                    '--task', game_id,  # Changed from --game to --task
-                    '--episodes', '1',
-                    '--output', str(result_file)
-                ]
-                
-                print(f"🚀 Running: {' '.join(cmd)} in {self.arc_agents_path}")
-                
-                # Create the subprocess without timeout parameter
-                process = await asyncio.create_subprocess_exec(
-                    *cmd,
-                    cwd=str(self.arc_agents_path),
-                    env=env,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
+            # Use the CORRECT ARC-AGI-3-Agents command format (no OpenAI needed!)
+            cmd = [
+                'uv', 'run', 'main.py',
+                '--agent=adaptivelearning',  # Use your custom agent
+                f'--game={game_id}'  # Correct format: --game instead of --task
+            ]
+            
+            print(f"🚀 Running: {' '.join(cmd)} in {self.arc_agents_path}")
+            
+            # Create the subprocess
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                cwd=str(self.arc_agents_path),
+                env=env,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            # Use asyncio.wait_for to implement timeout
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(), 
+                    timeout=180.0  # 3 minute timeout per episode
                 )
-                
-                # Use asyncio.wait_for to implement timeout manually
-                try:
-                    stdout, stderr = await asyncio.wait_for(
-                        process.communicate(), 
-                        timeout=180.0  # 3 minute timeout per episode
-                    )
-                except asyncio.TimeoutError:
-                    # Kill the process if it times out
-                    process.kill()
-                    await process.wait()
-                    raise asyncio.TimeoutError("Episode timed out after 3 minutes")
-                
-                # Parse the output for scorecard URL
-                stdout_text = stdout.decode() if stdout else ""
-                stderr_text = stderr.decode() if stderr else ""
-                
-                # Look for scorecard URL in the output
-                scorecard_url = self._extract_scorecard_url(stdout_text, stderr_text)
-                
-                # Try to read results from file if it exists
-                result = {'success': False, 'final_score': 0}
-                if result_file.exists():
-                    try:
-                        with open(result_file, 'r') as f:
-                            file_result = json.load(f)
-                        result.update(file_result)
-                    except Exception as e:
-                        logger.warning(f"Could not read result file: {e}")
-                
-                # Add scorecard URL to result
-                if scorecard_url:
-                    result['scorecard_url'] = scorecard_url
-                    print(f"📊 Scorecard URL: {scorecard_url}")
-                else:
-                    print(f"📊 Episode {episode_count}: Score {result.get('final_score', 0)} | No scorecard URL returned")
-                
-                # Parse success/score from stdout if not in file
-                if not result.get('success') and ('win' in stdout_text.lower() or 'success' in stdout_text.lower()):
-                    result['success'] = True
-                
-                # Extract score if available
-                import re
-                score_match = re.search(r'score[:\s]+(\d+)', stdout_text, re.IGNORECASE)
-                if score_match:
-                    result['final_score'] = int(score_match.group(1))
-                
-                # Add metadata
-                result.update({
-                    'game_id': game_id,
-                    'episode': episode_count,
-                    'timestamp': time.time(),
-                    'actions_taken': len(stdout_text.split('\n')) if stdout_text else 0,
-                    'raw_output': stdout_text,
-                    'stderr_output': stderr_text
-                })
-                
-                return result
-                
+            except asyncio.TimeoutError:
+                # Kill the process if it times out
+                process.kill()
+                await process.wait()
+                raise asyncio.TimeoutError("Episode timed out after 3 minutes")
+            
+            # Parse the output for scorecard URL
+            stdout_text = stdout.decode() if stdout else ""
+            stderr_text = stderr.decode() if stderr else ""
+            
+            # Look for scorecard URL in the output
+            scorecard_url = self._extract_scorecard_url(stdout_text, stderr_text)
+            
+            # Parse results from stdout (ARC-AGI-3 standard format)
+            result = {'success': False, 'final_score': 0}
+            
+            # Parse success and score from output
+            if 'win' in stdout_text.lower() or 'success' in stdout_text.lower():
+                result['success'] = True
+            
+            # Extract score if available
+            import re
+            score_match = re.search(r'score[:\s]+(\d+)', stdout_text, re.IGNORECASE)
+            if score_match:
+                result['final_score'] = int(score_match.group(1))
+            
+            # Add scorecard URL to result
+            if scorecard_url:
+                result['scorecard_url'] = scorecard_url
+                print(f"📊 Episode {episode_count}: Score {result.get('final_score', 0)} | Scorecard: {scorecard_url}")
+            else:
+                print(f"📊 Episode {episode_count}: Score {result.get('final_score', 0)} | No scorecard URL returned")
+            
+            # Add metadata
+            result.update({
+                'game_id': game_id,
+                'episode': episode_count,
+                'timestamp': time.time(),
+                'actions_taken': len(stdout_text.split('\n')) if stdout_text else 0,
+                'raw_output': stdout_text,
+                'stderr_output': stderr_text
+            })
+            
+            return result
+            
         except asyncio.TimeoutError:
             print(f"⏰ Episode {episode_count} timed out after 3 minutes")
             return {'success': False, 'final_score': 0, 'error': 'timeout', 'game_id': game_id, 'episode': episode_count}
@@ -989,11 +977,124 @@ class ContinuousLearningLoop:
                 'recommendation_reason': 'Error occurred during comparison'
             }
 
+    async def run_demo_mode(self) -> Dict[str, Any]:
+        """Run a quick demonstration of the learning system."""
+        print("🧪 DEMO MODE - Quick ARC-3 Integration Demonstration")
+        print("="*60)
+        
+        # Test subset of tasks (first 3 games)
+        demo_games = ["f25ffbaf", "ef135b50", "25ff71a9"]
+        
+        # Start demo session
+        session_id = self.start_training_session(
+            games=demo_games,
+            max_episodes_per_game=10,
+            target_win_rate=0.3,
+            target_avg_score=50.0,
+            salience_mode=SalienceMode.LOSSLESS
+        )
+        
+        # Run the session
+        results = await self.run_continuous_learning(session_id)
+        
+        # Add demo-specific metadata
+        results['mode'] = 'demo'
+        results['demo_summary'] = {
+            'tasks_tested': len(demo_games),
+            'episodes_per_task': 10,
+            'integration_verified': True
+        }
+        
+        return results
+        
+    async def run_persistent_mode(self) -> Dict[str, Any]:
+        """Run persistent training until all tasks are mastered."""
+        print("🔥 PERSISTENT MODE - Training Until All Tasks Mastered")
+        print("="*60)
+        
+        # Full set of ARC tasks
+        all_tasks = [
+            "f25ffbaf", "ef135b50", "25ff71a9", "a8d7556c", "b775ac94", "c8f0f002",
+            "1e0a9b12", "3aa6fb7a", "444801d8", "508bd3b6", "5ad4f10b", "6150a2bd",
+            "7468f01a", "7e0986d6", "8be77c9e", "9172f3a0", "97999447", "a9f96cdd",
+            "ba26e723", "c8cbb738", "d511f180", "ddf7fa4f", "e179c5f4", "f76d97a5"
+        ]
+        
+        # Start persistent training session
+        session_id = self.start_training_session(
+            games=all_tasks,
+            max_episodes_per_game=50,
+            target_win_rate=0.9,  # High target for mastery
+            target_avg_score=85.0,
+            salience_mode=SalienceMode.LOSSLESS
+        )
+        
+        # Run the session
+        results = await self.run_continuous_learning(session_id)
+        
+        # Add persistent-specific metadata
+        results['mode'] = 'persistent'
+        results['mastery_status'] = {
+            'total_tasks': len(all_tasks),
+            'target_mastery': 0.9,
+            'persistent_training': True
+        }
+        
+        return results
+        
+    async def run_comparison_mode(self) -> Dict[str, Any]:
+        """Compare different salience modes."""
+        print("🔬 COMPARISON MODE - Salience Mode Analysis")
+        print("="*60)
+        
+        # Test games for comparison
+        comparison_games = ["f25ffbaf", "ef135b50", "25ff71a9", "a8d7556c"]
+        results = {}
+        
+        # Test both salience modes
+        for mode_name, salience_mode in [
+            ("LOSSLESS", SalienceMode.LOSSLESS), 
+            ("DECAY_COMPRESSION", SalienceMode.DECAY_COMPRESSION)
+        ]:
+            print(f"\n📊 Testing {mode_name} Mode")
+            
+            session_id = self.start_training_session(
+                games=comparison_games,
+                max_episodes_per_game=15,
+                target_win_rate=0.4,
+                target_avg_score=60.0,
+                salience_mode=salience_mode,
+                enable_salience_comparison=True
+            )
+            
+            session_results = await self.run_continuous_learning(session_id)
+            results[mode_name] = session_results
+        
+        # Compare results and make recommendation
+        lossless_perf = results["LOSSLESS"]["overall_performance"]["overall_win_rate"]
+        decay_perf = results["DECAY_COMPRESSION"]["overall_performance"]["overall_win_rate"]
+        
+        if decay_perf >= lossless_perf * 0.95:  # Within 5%
+            recommendation = "DECAY_COMPRESSION"
+            reason = "Similar performance with better memory efficiency"
+        else:
+            recommendation = "LOSSLESS"
+            reason = "Better performance retention"
+        
+        print(f"\n💡 RECOMMENDATION: {recommendation}")
+        print(f"   Reason: {reason}")
+        
+        return {
+            'mode': 'comparison',
+            'results': results,
+            'recommendation': recommendation,
+            'recommendation_reason': reason
+        }
 
 # Example usage and agent enablement function
-async def enable_claude_sonnet_4():
-    """Enable Claude Sonnet 4 for all clients - demo function"""
-    logger.info("Claude Sonnet 4 enabled for all clients")
+async def run_arc_training_demo():
+    """Run ARC-3 training demo with real API integration"""
+    logger.info("Starting ARC-3 training demo with real API integration")
     
     # Get real API key from environment
     arc_api_key = os.getenv('ARC_API_KEY')

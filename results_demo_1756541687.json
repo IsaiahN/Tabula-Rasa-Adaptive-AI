@@ -1,0 +1,39 @@
+{
+  "mode": "demo",
+  "results": {
+    "f25ffbaf": {
+      "task_id": "f25ffbaf",
+      "episodes": 10,
+      "wins": 0,
+      "win_rate": 0.0,
+      "avg_score": 0.0,
+      "salience_mode": "LOSSLESS",
+      "scorecard_urls": [],
+      "api_calls_made": 10
+    },
+    "ef135b50": {
+      "task_id": "ef135b50",
+      "episodes": 10,
+      "wins": 0,
+      "win_rate": 0.0,
+      "avg_score": 0.0,
+      "salience_mode": "LOSSLESS",
+      "scorecard_urls": [],
+      "api_calls_made": 10
+    },
+    "25ff71a9": {
+      "task_id": "25ff71a9",
+      "episodes": 10,
+      "wins": 0,
+      "win_rate": 0.0,
+      "avg_score": 0.0,
+      "salience_mode": "LOSSLESS",
+      "scorecard_urls": [],
+      "api_calls_made": 10
+    }
+  },
+  "overall_performance": {
+    "win_rate": 0.0,
+    "avg_score": 0.0
+  }
+}
