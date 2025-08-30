@@ -347,6 +347,13 @@ class ContinuousLearningLoop:
             overall_win_rate = session_results['overall_performance'].get('overall_win_rate', 0)
             session_results['win_highlighted'] = overall_win_rate > 0.3
             
+            # Collect and display comprehensive scorecard summary
+            scorecard_summary = self._collect_all_scorecards(session_results)
+            session_results['scorecard_summary'] = scorecard_summary
+            
+            # Display the comprehensive scorecard and pass/fail summary
+            self._display_scorecard_summary(scorecard_summary)
+
             # Display compact final results with ARC-3 URL
             self._display_final_session_results(session_results)
             
@@ -848,7 +855,7 @@ class ContinuousLearningLoop:
     def _load_state(self):
         """Load previous state if available."""
         state_file = self.save_directory / "continuous_learning_state.json"
-        if state_file.exists():
+        if (state_file.exists()):
             try:
                 with open(state_file, 'r') as f:
                     state_data = json.load(f)
@@ -1145,6 +1152,89 @@ class ContinuousLearningLoop:
             return True
             
         return False
+
+    def _collect_all_scorecards(self, session_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Collect all scorecard URLs and pass/fail status from session results."""
+        scorecard_summary = {
+            'total_scorecards': 0,
+            'scorecards_by_game': {},
+            'all_scorecard_urls': [],
+            'pass_fail_summary': {
+                'total_episodes': 0,
+                'total_wins': 0,
+                'total_losses': 0,
+                'overall_pass_rate': 0.0
+            }
+        }
+        
+        # Extract scorecard URLs and pass/fail from each game
+        for game_id, game_data in session_results.get('games_played', {}).items():
+            game_scorecards = game_data.get('scorecard_urls', [])
+            episodes = game_data.get('episodes', [])
+            
+            # Count wins/losses for this game
+            game_wins = sum(1 for ep in episodes if ep.get('success', False))
+            game_losses = len(episodes) - game_wins
+            
+            scorecard_summary['scorecards_by_game'][game_id] = {
+                'scorecard_urls': game_scorecards,
+                'scorecard_count': len(game_scorecards),
+                'episodes_played': len(episodes),
+                'wins': game_wins,
+                'losses': game_losses,
+                'win_rate': game_wins / max(1, len(episodes))
+            }
+            
+            # Add to totals
+            scorecard_summary['total_scorecards'] += len(game_scorecards)
+            scorecard_summary['all_scorecard_urls'].extend(game_scorecards)
+            scorecard_summary['pass_fail_summary']['total_episodes'] += len(episodes)
+            scorecard_summary['pass_fail_summary']['total_wins'] += game_wins
+            scorecard_summary['pass_fail_summary']['total_losses'] += game_losses
+        
+        # Calculate overall pass rate
+        total_episodes = scorecard_summary['pass_fail_summary']['total_episodes']
+        if total_episodes > 0:
+            scorecard_summary['pass_fail_summary']['overall_pass_rate'] = (
+                scorecard_summary['pass_fail_summary']['total_wins'] / total_episodes
+            )
+        
+        return scorecard_summary
+
+    def _display_scorecard_summary(self, scorecard_summary: Dict[str, Any]):
+        """Display a comprehensive summary of all scorecards and pass/fail status."""
+        print(f"\n🎯 ARC-3 SCORECARD & RESULTS SUMMARY")
+        print(f"{'='*60}")
+        
+        # Overall statistics
+        pass_fail = scorecard_summary['pass_fail_summary']
+        print(f"📊 Total Episodes: {pass_fail['total_episodes']}")
+        print(f"✅ Wins: {pass_fail['total_wins']} ({pass_fail['overall_pass_rate']:.1%})")
+        print(f"❌ Losses: {pass_fail['total_losses']} ({(1-pass_fail['overall_pass_rate']):.1%})")
+        print(f"🎯 Scorecards Generated: {scorecard_summary['total_scorecards']}")
+        
+        # Per-game breakdown
+        print(f"\n📋 BY GAME BREAKDOWN:")
+        for game_id, game_data in scorecard_summary['scorecards_by_game'].items():
+            print(f"\n🎮 {game_id}:")
+            print(f"   Episodes: {game_data['episodes_played']} | Win Rate: {game_data['win_rate']:.1%}")
+            print(f"   Scorecards: {game_data['scorecard_count']}")
+            
+            if game_data['scorecard_urls']:
+                print(f"   📊 Scorecard URLs:")
+                for i, url in enumerate(game_data['scorecard_urls'], 1):
+                    print(f"      {i}. {url}")
+            else:
+                print(f"   ⚠️  No scorecards generated")
+        
+        # All scorecard URLs (for easy copy-paste)
+        if scorecard_summary['all_scorecard_urls']:
+            print(f"\n📋 ALL SCORECARD URLs:")
+            for i, url in enumerate(scorecard_summary['all_scorecard_urls'], 1):
+                print(f"{i:2d}. {url}")
+        
+        print(f"\n🌐 View all results at: {ARC3_SCOREBOARD_URL}")
+        print(f"{'='*60}")
 
 # Example usage and agent enablement function
 async def run_arc_training_demo():
