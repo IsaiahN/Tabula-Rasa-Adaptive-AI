@@ -6,8 +6,8 @@ Demonstrates how to test the actual adaptive learning agent on the AGI puzzle su
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'agi_puzzles'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'agi_puzzles'))
 
 import torch
 import yaml

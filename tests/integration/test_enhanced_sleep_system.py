@@ -5,7 +5,7 @@ Test script for enhanced sleep system with automatic object encoding and consoli
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 import torch
 import numpy as np

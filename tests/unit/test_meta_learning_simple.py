@@ -5,8 +5,7 @@ Simple test to verify meta-learning system functionality.
 
 import sys
 import os
-sys.path.append('src')
-
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 import torch
 import time
 from core.meta_learning import MetaLearningSystem
