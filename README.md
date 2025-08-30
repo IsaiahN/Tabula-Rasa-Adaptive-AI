@@ -1,6 +1,6 @@
-# Adaptive Learning Agent
+# Tabula Rasa: Self-Learning Adaptive Learning Agent
 
-An AI system that develops intelligence through intrinsic motivation, curiosity, and survival pressure rather than external programming. Features advanced meta-learning capabilities and automatic object encoding during sleep phases.
+A sophisticated AI system that develops intelligence through intrinsic motivation, curiosity, and survival pressure rather than external programming. Features advanced meta-learning capabilities, automatic object encoding during sleep phases, and **real ARC-AGI-3 integration** for competitive reasoning evaluation.
 
 ## Overview
 
@@ -12,16 +12,18 @@ This project implements a "digital childhood" paradigm where an agent learns thr
 - **Embedded Memory**: Differentiable Neural Computer for integrated memory
 - **Energy & Death**: Survival pressure through limited resources
 - **Goal Invention**: Self-generated objectives from high-learning-progress experiences
+- **ARC-3 Integration**: Real competition evaluation on abstract reasoning tasks
 
 ## Project Structure
 
 ```
-adaptive-learning-agent/
+tabula-rasa/
 ├── src/
 │   ├── core/              # Core agent components (includes meta-learning)
 │   ├── environment/       # Simulation environments
 │   ├── memory/           # Memory systems (DNC)
 │   ├── goals/            # Goal invention and management
+│   ├── arc_integration/  # ARC-AGI-3 competition integration
 │   ├── monitoring/       # Debugging and introspection
 │   └── utils/            # Utilities and helpers
 ├── tests/                # Organized test suite
@@ -32,25 +34,32 @@ adaptive-learning-agent/
 ├── configs/              # Configuration files
 ├── experiments/          # Experiment scripts and results
 ├── docs/                 # Centralized documentation
+├── examples/             # Demo scripts and comparisons
 └── research_results/     # Research evaluation results
 ```
 
 ## Development Phases
 
-- **Phase 0** (Weeks 1-4): Component isolation and validation 
-- **Phase 1** (Weeks 5-12): Integrated system development 
-- **Phase 1+** (Current): Meta-learning integration and enhanced sleep system **CURRENT**
-- **Phase 2** (Weeks 13-24): Complexity scaling and advanced features
+- **Phase 0** (Weeks 1-4): Component isolation and validation ✅
+- **Phase 1** (Weeks 5-12): Integrated system development ✅
+- **Phase 1+** (Current): Meta-learning integration and enhanced sleep system ✅
+- **Phase 2** (Weeks 13-24): ARC-3 competition integration and advanced reasoning **CURRENT**
 - **Phase 3** (Month 7+): Multi-agent and emergent behaviors
 
 ## Installation
 
 ```bash
+# Install dependencies
 pip install -r requirements.txt
+
+# Set up environment variables (copy .env.template to .env and configure)
+cp .env.template .env
+# Add your ARC-3 API key and paths to .env
 ```
 
 ## Quick Start
 
+### Basic System Testing
 ```bash
 # Test basic functionality
 python tests/unit/test_basic_functionality.py
@@ -64,11 +73,20 @@ python tests/integration/test_enhanced_sleep_system.py
 # Run Phase 1 training
 python src/main_training.py
 
-# Run with custom configuration
-python src/main_training.py --config configs/phase1_config.yaml
-
 # Test agent on AGI puzzles
 python tests/integration/test_agent_on_puzzles.py
+```
+
+### ARC-3 Competition Integration
+```bash
+# Quick ARC-3 integration test (3 random tasks, ~30 minutes)
+python run_continuous_learning.py --mode demo
+
+# Comprehensive training on all 24 ARC tasks (hours to days)
+python run_continuous_learning.py --mode full_training
+
+# Compare memory management strategies (scientific analysis)
+python run_continuous_learning.py --mode comparison
 
 # Demo salience modes comparison
 python examples/salience_modes_demo.py
@@ -99,12 +117,31 @@ python examples/salience_mode_comparison.py
 - **Context-Aware Memory**: Meta-learning informed memory consolidation strategies
 - **AGI Puzzle Integration**: Comprehensive evaluation on cognitive benchmarks
 
+### ARC-3 Competition Features ✨
+- **Real API Integration**: Direct connection to official ARC-AGI-3 servers
+- **Global Task Configuration**: Smart task selection with randomization to prevent overtraining
+- **Three Training Modes**:
+  - **Demo Mode**: Quick integration test (3 random tasks)
+  - **Full Training Mode**: Comprehensive mastery training (all 24 tasks)
+  - **Comparison Mode**: Scientific analysis of memory strategies (4 random tasks)
+- **Scorecard Generation**: Real competition scorecards from https://three.arcprize.org
+- **Performance Tracking**: Win rates, learning efficiency, knowledge transfer metrics
+- **Clean Architecture**: Unified system without code duplication
+
 ### Testing & Organization 
 - **Organized Test Suite**: Unit, integration, and system tests
 - **AGI Puzzle Validation**: Performance testing on cognitive challenges
 - **Centralized Documentation**: All docs organized in `/docs` folder
 
 ## Recent Achievements
+
+### ARC-3 Competition Integration 🏆
+- **Official API Integration**: Real-time connection to ARC-AGI-3 servers
+- **Adaptive Learning Agent**: Custom agent that uses tabula-rasa's self-learning capabilities
+- **Global Task Management**: Prevents overtraining through randomized task selection
+- **Performance Analytics**: Comprehensive metrics tracking and learning insights
+- **Code Architecture Cleanup**: Eliminated duplication, proper separation of concerns
+- **Three Training Modes**: Demo, full training, and scientific comparison modes
 
 ### Meta-Learning Integration
 - **Episodic Memory**: Records complete learning episodes with contextual information
@@ -130,9 +167,36 @@ python examples/salience_mode_comparison.py
 - **Tool Use**: Problem-solving with environmental objects
 - **Deferred Gratification**: Long-term planning and impulse control
 
+## ARC-3 Training Modes
+
+### 🧪 Demo Mode
+- **Purpose**: Quick verification that your system works with real ARC-3 servers
+- **Tasks**: 3 randomly selected ARC tasks
+- **Episodes**: 10 per task (30 total episodes)
+- **Duration**: ~15-30 minutes
+- **Use When**: Testing integration, verifying scorecard URL generation
+
+### 🔥 Full Training Mode  
+- **Purpose**: Comprehensive training until agent masters all ARC tasks
+- **Tasks**: All 24 ARC-3 evaluation tasks
+- **Episodes**: Up to 50 per task (up to 1,200 total episodes)
+- **Target**: 90% win rate, 85+ average score (mastery level)
+- **Duration**: Several hours to days depending on performance
+- **Use When**: Achieving human-level or superhuman performance
+
+### 🔬 Comparison Mode
+- **Purpose**: Scientific comparison of memory management strategies
+- **Tasks**: 4 randomly selected tasks
+- **Episodes**: 15 per task in each mode (120 total episodes)
+- **Analysis**: Tests both LOSSLESS and DECAY_COMPRESSION salience modes
+- **Output**: Performance comparison and optimization recommendations
+- **Use When**: Optimizing memory system, understanding trade-offs
+
 ## Research Goals
 
 This system validates the hypothesis that intelligence emerges from the right environmental conditions and internal drives, not from explicit programming. The meta-learning capabilities demonstrate how agents can develop increasingly sophisticated cognitive strategies through self-reflection and experience consolidation.
+
+**ARC-3 Integration** extends this research by testing the system on one of the most challenging AI benchmarks for abstract reasoning, providing objective measurement of emergent intelligence.
 
 ## Architecture Highlights
 
@@ -152,10 +216,48 @@ This system validates the hypothesis that intelligence emerges from the right en
 7. **Dream Generation**: Synthetic experience creation
 8. **Wake Up**: Return to active learning with optimized memory and enhanced capabilities
 
+### ARC-3 Competition Pipeline
+1. **Task Selection**: Global configuration with randomization to prevent overtraining
+2. **Agent Deployment**: Self-learning tabula-rasa agent connects to ARC-AGI-3 framework
+3. **Real API Calls**: Direct communication with official competition servers
+4. **Performance Tracking**: Win rates, scores, learning efficiency, knowledge transfer
+5. **Scorecard Generation**: Official competition URLs for result verification
+6. **Meta-Learning Application**: Insights from previous tasks improve performance on new ones
+
 ### Salience Mode Selection
 - **Automatic Discovery**: Agent can test both modes and choose optimal strategy
 - **Performance-Based Switching**: Meta-learning optimizes mode selection based on task requirements
 - **Context-Aware Adaptation**: Different modes for different learning phases or resource constraints
+
+## Configuration
+
+### Environment Variables (.env)
+```bash
+# ARC-3 API Configuration
+ARC_API_KEY=your_arc_api_key_here                    # Get from https://three.arcprize.org
+ARC_AGENTS_PATH=/path/to/ARC-AGI-3-Agents           # Optional: path to ARC-AGI-3-Agents repo
+
+# Training Configuration  
+TARGET_WIN_RATE=0.90                                 # Target win rate for mastery
+TARGET_AVG_SCORE=85.0                               # Target average score
+MAX_EPISODES_PER_GAME=50                            # Maximum episodes per task
+
+# ARC-AGI-3-Agents Server Configuration
+DEBUG=False
+RECORDINGS_DIR=recordings
+SCHEME=https
+HOST=three.arcprize.org
+PORT=443
+WDM_LOG=0
+```
+
+## Getting Started with ARC-3
+
+1. **Register** at https://three.arcprize.org and get your API key
+2. **Clone** the ARC-AGI-3-Agents repository: `git clone https://github.com/arcprize/ARC-AGI-3-Agents`
+3. **Configure** your `.env` file with your API key
+4. **Run** a quick demo: `python run_continuous_learning.py --mode demo`
+5. **View** your results at the official ARC-3 scoreboard: https://arcprize.org/leaderboard
 
 ## Documentation
 

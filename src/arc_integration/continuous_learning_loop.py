@@ -73,8 +73,8 @@ def get_comparison_tasks(randomize: bool = True) -> List[str]:
     else:
         return ARC_ALL_TASKS[:COMPARISON_TASK_LIMIT]
 
-def get_persistent_tasks(randomize: bool = True) -> List[str]:
-    """Get tasks for persistent mode - all tasks, optionally shuffled."""
+def get_full_training_tasks(randomize: bool = False) -> List[str]:
+    """Get tasks for full training mode - all tasks, optionally shuffled."""
     tasks = ARC_ALL_TASKS.copy()
     if randomize:
         random.shuffle(tasks)
@@ -1046,15 +1046,15 @@ class ContinuousLearningLoop:
         
         return results
         
-    async def run_persistent_mode(self) -> Dict[str, Any]:
-        """Run persistent training until all tasks are mastered."""
-        print("🔥 PERSISTENT MODE - Training Until All Tasks Mastered")
+    async def run_full_training_mode(self) -> Dict[str, Any]:
+        """Run full training until all tasks are mastered."""
+        print("🔥 FULL TRAINING MODE - Training Until All Tasks Are Mastered")
         print("="*60)
         
         # Full set of ARC tasks
-        all_tasks = get_persistent_tasks()
+        all_tasks = get_full_training_tasks()
         
-        # Start persistent training session
+        # Start full training session
         session_id = self.start_training_session(
             games=all_tasks,
             max_episodes_per_game=50,
@@ -1066,12 +1066,12 @@ class ContinuousLearningLoop:
         # Run the session
         results = await self.run_continuous_learning(session_id)
         
-        # Add persistent-specific metadata
-        results['mode'] = 'persistent'
+        # Add full training-specific metadata
+        results['mode'] = 'full_training'
         results['mastery_status'] = {
             'total_tasks': len(all_tasks),
             'target_mastery': 0.9,
-            'persistent_training': True
+            'full_training': True
         }
         
         return results

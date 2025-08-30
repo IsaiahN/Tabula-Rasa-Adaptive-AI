@@ -7,7 +7,7 @@ from the main codebase instead of duplicating logic.
 
 Usage:
     python run_continuous_learning.py --mode demo          # Quick demonstration
-    python run_continuous_learning.py --mode persistent    # Run until all levels mastered
+    python run_continuous_learning.py --mode full_training # Run until all levels mastered
     python run_continuous_learning.py --mode comparison    # Compare salience modes
 """
 
@@ -61,7 +61,7 @@ def find_arc_agents_path() -> str:
 def main():
     """Main function - simple wrapper that delegates to the actual implementation."""
     parser = argparse.ArgumentParser(description='ARC-3 Continuous Learning System')
-    parser.add_argument('--mode', choices=['demo', 'persistent', 'comparison'], 
+    parser.add_argument('--mode', choices=['demo', 'full_training', 'comparison'], 
                         default='demo', help='Operation mode')
     
     args = parser.parse_args()
@@ -90,8 +90,8 @@ def main():
         # Run the appropriate mode
         if args.mode == "demo":
             results = asyncio.run(learning_loop.run_demo_mode())
-        elif args.mode == "persistent":
-            results = asyncio.run(learning_loop.run_persistent_mode())
+        elif args.mode == "full_training":
+            results = asyncio.run(learning_loop.run_full_training_mode())
         elif args.mode == "comparison":
             results = asyncio.run(learning_loop.run_comparison_mode())
         else:
