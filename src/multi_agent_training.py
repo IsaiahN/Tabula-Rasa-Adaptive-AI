@@ -15,10 +15,10 @@ from typing import Dict, List, Any, Optional
 from dataclasses import asdict
 import matplotlib.pyplot as plt
 
-from core.agent import AdaptiveLearningAgent
-from environment.multi_agent_environment import MultiAgentSurvivalEnvironment
-from core.data_models import SensoryInput, AgentState
-from utils.monitoring import MetricsLogger
+from src.core.agent import AdaptiveLearningAgent
+from src.environment.multi_agent_environment import MultiAgentSurvivalEnvironment
+from src.core.data_models import SensoryInput, AgentState
+from src.utils.monitoring import MetricsLogger
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

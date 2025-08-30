@@ -11,8 +11,8 @@ import torch.nn.functional as F
 from typing import Tuple, Dict, Optional
 import logging
 
-from src.memory.dnc import DNCMemory
-from src.core.data_models import SensoryInput
+from ..memory.dnc import DNCMemory
+from .data_models import SensoryInput
 
 logger = logging.getLogger(__name__)
 

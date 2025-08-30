@@ -12,8 +12,8 @@ import logging
 from dataclasses import dataclass
 import time
 
-from core.data_models import SensoryInput, AgentState
-from environment.survival_environment import SurvivalEnvironment
+from src.core.data_models import SensoryInput, AgentState
+from src.environment.survival_environment import SurvivalEnvironment
 
 logger = logging.getLogger(__name__)
 

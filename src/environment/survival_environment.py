@@ -12,7 +12,7 @@ import logging
 from dataclasses import dataclass
 import time
 
-from core.data_models import SensoryInput, AgentState
+from src.core.data_models import SensoryInput, AgentState
 
 logger = logging.getLogger(__name__)
 
