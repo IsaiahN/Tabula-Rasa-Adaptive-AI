@@ -4,21 +4,20 @@ Continuous Learning Loop for ARC-AGI-3 Training
 This module implements a continuous learning system that runs the Adaptive Learning Agent
 against ARC-AGI-3 tasks, collecting insights and improving performance over time.
 """
-
-import sys
-import os
-import json
-import time
 import asyncio
+import aiohttp
+import json
 import logging
-import random
 import numpy as np
-import re
+import os
+import random
+import sys
+import time
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
-import aiohttp  # Add HTTP client for API calls
+from enum import Enum
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -1856,6 +1855,303 @@ class ContinuousLearningLoop:
         print(f"   • Submit to leaderboard: {ARC3_SCOREBOARD_URL}")
         
         return demo_results
+
+class GameActionType(Enum):
+    """ARC-3 Action Types"""
+    RESET = "RESET"
+    ACTION1 = "ACTION1"  # Simple action (up/select A)
+    ACTION2 = "ACTION2"  # Simple action (down/select B)
+    ACTION3 = "ACTION3"  # Simple action (left/select C)
+    ACTION4 = "ACTION4"  # Simple action (right/select D)
+    ACTION5 = "ACTION5"  # Simple action (interact/rotate/fire)
+    ACTION6 = "ACTION6"  # Complex action (x,y coordinates)
+    ACTION7 = "ACTION7"  # Undo action
+
+@dataclass
+class GameAction:
+    """Represents a game action with optional coordinates and reasoning"""
+    action_type: GameActionType
+    x: Optional[int] = None
+    y: Optional[int] = None
+    reasoning: Optional[Dict[str, Any]] = None
+    
+    def __post_init__(self):
+        """Validate action parameters"""
+        if self.action_type == GameActionType.ACTION6:
+            if self.x is None or self.y is None:
+                raise ValueError("ACTION6 requires x,y coordinates")
+            if not (0 <= self.x <= 63) or not (0 <= self.y <= 63):
+                raise ValueError("ACTION6 coordinates must be in range 0-63")
+        elif self.action_type != GameActionType.RESET:
+            if self.x is not None or self.y is not None:
+                raise ValueError(f"{self.action_type.value} does not accept coordinates")
+
+class ARC3ActionHandler:
+    """Handles all ARC-3 action types through the official API"""
+    
+    def __init__(self, api_key: str, base_url: str = ARC3_BASE_URL):
+        self.api_key = api_key
+        self.base_url = base_url
+        self.session = None
+        
+    async def __aenter__(self):
+        """Async context manager entry"""
+        self.session = aiohttp.ClientSession()
+        return self
+        
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit"""
+        if self.session:
+            await self.session.close()
+            
+    def _get_headers(self) -> Dict[str, str]:
+        """Get standard headers for API requests"""
+        return {
+            "X-API-Key": self.api_key,
+            "Content-Type": "application/json"
+        }
+        
+    async def send_action(
+        self,
+        game_id: str,
+        guid: str,
+        action: GameAction
+    ) -> Optional[Dict[str, Any]]:
+        """Send any action type to the ARC-3 API"""
+        
+        if not self.session:
+            raise RuntimeError("ActionHandler not initialized - use async with")
+            
+        # Construct URL and payload based on action type
+        url = f"{self.base_url}/api/cmd/{action.action_type.value}"
+        payload = {
+            "game_id": game_id,
+            "guid": guid
+        }
+        
+        # Add coordinates for ACTION6
+        if action.action_type == GameActionType.ACTION6:
+            payload["x"] = action.x
+            payload["y"] = action.y
+            
+        # Add card_id for RESET actions
+        elif action.action_type == GameActionType.RESET:
+            # RESET needs card_id instead of guid for new sessions
+            if guid:
+                payload["guid"] = guid  # Reset existing session
+            else:
+                # New session needs card_id - this should be handled by caller
+                pass
+                
+        # Add reasoning if provided
+        if action.reasoning:
+            payload["reasoning"] = action.reasoning
+            
+        try:
+            async with self.session.post(url, headers=self._get_headers(), json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data
+                else:
+                    error_text = await response.text()
+                    logger.warning(f"Action {action.action_type.value} failed: {response.status} - {error_text}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Error sending action {action.action_type.value}: {e}")
+            return None
+            
+    async def reset_game(
+        self,
+        game_id: str,
+        card_id: str,
+        guid: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Reset or start a game session"""
+        reset_action = GameAction(GameActionType.RESET)
+        
+        # Special handling for RESET - needs card_id
+        url = f"{self.base_url}/api/cmd/RESET"
+        payload = {
+            "game_id": game_id,
+            "card_id": card_id
+        }
+        
+        if guid:
+            payload["guid"] = guid  # Reset existing session
+            
+        try:
+            async with self.session.post(url, headers=self._get_headers(), json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data
+                else:
+                    error_text = await response.text()
+                    logger.warning(f"RESET failed: {response.status} - {error_text}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Error in RESET: {e}")
+            return None
+            
+    async def send_simple_action(
+        self,
+        game_id: str,
+        guid: str,
+        action_number: int,
+        reasoning: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Send a simple action (ACTION1-5, ACTION7)"""
+        
+        if action_number not in [1, 2, 3, 4, 5, 7]:
+            raise ValueError(f"Invalid simple action number: {action_number}")
+            
+        action_type = {
+            1: GameActionType.ACTION1,
+            2: GameActionType.ACTION2,
+            3: GameActionType.ACTION3,
+            4: GameActionType.ACTION4,
+            5: GameActionType.ACTION5,
+            7: GameActionType.ACTION7
+        }[action_number]
+        
+        action = GameAction(action_type, reasoning=reasoning)
+        return await self.send_action(game_id, guid, action)
+        
+    async def send_coordinate_action(
+        self,
+        game_id: str,
+        guid: str,
+        x: int,
+        y: int,
+        reasoning: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Send a coordinate-based action (ACTION6)"""
+        
+        action = GameAction(GameActionType.ACTION6, x=x, y=y, reasoning=reasoning)
+        return await self.send_action(game_id, guid, action)
+        
+    async def get_available_actions(
+        self,
+        response_data: Dict[str, Any]
+    ) -> List[int]:
+        """Extract available actions from a response"""
+        return response_data.get('available_actions', [])
+        
+    async def is_action_available(
+        self,
+        response_data: Dict[str, Any],
+        action_number: int
+    ) -> bool:
+        """Check if a specific action is available"""
+        available = await self.get_available_actions(response_data)
+        return action_number in available
+
+class GameSessionManager:
+    """Manages game sessions and action sequences"""
+    
+    def __init__(self, action_handler: ARC3ActionHandler):
+        self.action_handler = action_handler
+        self.active_sessions: Dict[str, str] = {}  # game_id -> guid
+        self.session_history: Dict[str, List[Dict]] = {}  # game_id -> action history
+        
+    async def start_game(self, game_id: str, card_id: str) -> Optional[str]:
+        """Start a new game session"""
+        result = await self.action_handler.reset_game(game_id, card_id)
+        
+        if result:
+            guid = result.get('guid')
+            if guid:
+                self.active_sessions[game_id] = guid
+                self.session_history[game_id] = []
+                logger.info(f"Started game session {game_id}: {guid}")
+                return guid
+                
+        logger.error(f"Failed to start game session for {game_id}")
+        return None
+        
+    async def reset_game(self, game_id: str, card_id: str) -> Optional[Dict[str, Any]]:
+        """Reset an existing game session"""
+        guid = self.active_sessions.get(game_id)
+        if not guid:
+            logger.warning(f"No active session for game {game_id}")
+            return await self.start_game(game_id, card_id)
+            
+        result = await self.action_handler.reset_game(game_id, card_id, guid)
+        
+        if result:
+            # Clear action history for this game
+            self.session_history[game_id] = []
+            logger.info(f"Reset game session {game_id}")
+            return result
+            
+        logger.error(f"Failed to reset game session for {game_id}")
+        return None
+        
+    async def send_action_sequence(
+        self,
+        game_id: str,
+        actions: List[GameAction],
+        delay_between_actions: float = 1.0
+    ) -> List[Dict[str, Any]]:
+        """Send a sequence of actions with delays"""
+        
+        guid = self.active_sessions.get(game_id)
+        if not guid:
+            logger.error(f"No active session for game {game_id}")
+            return []
+            
+        results = []
+        
+        for i, action in enumerate(actions):
+            logger.info(f"Sending action {i+1}/{len(actions)} to {game_id}: {action.action_type.value}")
+            
+            result = await self.action_handler.send_action(game_id, guid, action)
+            
+            if result:
+                results.append(result)
+                
+                # Record in history
+                self.session_history[game_id].append({
+                    'action': action,
+                    'result': result,
+                    'timestamp': time.time()
+                })
+                
+                # Check game state
+                state = result.get('state', 'UNKNOWN')
+                if state in ['WIN', 'GAME_OVER']:
+                    logger.info(f"Game {game_id} ended with state: {state}")
+                    break
+                    
+            else:
+                logger.warning(f"Action {i+1} failed for game {game_id}")
+                results.append({'error': f'Action {i+1} failed'})
+                
+            # Delay between actions to avoid rate limiting
+            if i < len(actions) - 1:
+                await asyncio.sleep(delay_between_actions)
+                
+        return results
+        
+    def get_session_history(self, game_id: str) -> List[Dict]:
+        """Get action history for a game session"""
+        return self.session_history.get(game_id, [])
+        
+    def get_active_sessions(self) -> Dict[str, str]:
+        """Get all active game sessions"""
+        return self.active_sessions.copy()
+        
+    async def cleanup_session(self, game_id: str):
+        """Clean up a game session"""
+        if game_id in self.active_sessions:
+            del self.active_sessions[game_id]
+        if game_id in self.session_history:
+            # Keep history but mark as cleaned up
+            self.session_history[game_id].append({
+                'action': 'SESSION_CLEANUP',
+                'timestamp': time.time()
+            })
 
 # Example usage and agent enablement function
 async def run_arc_training_demo():
