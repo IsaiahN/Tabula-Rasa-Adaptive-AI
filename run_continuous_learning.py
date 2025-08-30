@@ -32,8 +32,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('continuous_learning.log')
+        logging.StreamHandler()  # Only console output - no file logging for security
     ]
 )
 logger = logging.getLogger(__name__)
@@ -74,7 +73,7 @@ class ContinuousLearningSystem:
         signal.signal(signal.SIGTERM, self.signal_handler)
         
         logger.info(f"Initialized ContinuousLearningSystem in {mode} mode")
-        logger.info(f"API Key: {self.arc_api_key[:8]}...{self.arc_api_key[-4:]}")
+        # SECURITY: Never log API keys - removed API key from logging
         
     def signal_handler(self, signum, frame):
         """Handle shutdown signals gracefully."""
@@ -111,7 +110,6 @@ class ContinuousLearningSystem:
         demo_episodes = 10
         
         print(f"🎯 Testing {len(demo_tasks)} ARC-3 tasks with {demo_episodes} episodes each")
-        print(f"🔑 Using API Key: {self.arc_api_key[:8]}...{self.arc_api_key[-4:]}")
         print(f"📊 ARC-3 Leaderboard: https://arcprize.org/leaderboard")
         
         results = {}
@@ -280,7 +278,6 @@ class ContinuousLearningSystem:
         scorecard_urls = []
         
         print(f"🎮 Starting REAL ARC-3 training on task: {task_id}")
-        print(f"🔑 Using API Key: {self.arc_api_key[:8]}...{self.arc_api_key[-4:]}")
         
         # Check if we can find the ARC-AGI-3-Agents path
         arc_agents_path = self.find_arc_agents_path()
@@ -379,17 +376,26 @@ class ContinuousLearningSystem:
                 
                 print(f"🚀 Running: {' '.join(cmd)} in {arc_agents_path}")
                 
-                # Run the command
+                # Create the subprocess without timeout parameter
                 process = await asyncio.create_subprocess_exec(
                     *cmd,
                     cwd=arc_agents_path,
                     env=env,
                     stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    timeout=120  # 2 minute timeout per episode
+                    stderr=asyncio.subprocess.PIPE
                 )
                 
-                stdout, stderr = await process.communicate()
+                # Use asyncio.wait_for to implement timeout manually
+                try:
+                    stdout, stderr = await asyncio.wait_for(
+                        process.communicate(), 
+                        timeout=120.0  # 2 minute timeout per episode
+                    )
+                except asyncio.TimeoutError:
+                    # Kill the process if it times out
+                    process.kill()
+                    await process.wait()
+                    raise asyncio.TimeoutError("Episode timed out after 2 minutes")
                 
                 # Parse the output for scorecard URL
                 stdout_text = stdout.decode() if stdout else ""
@@ -499,7 +505,7 @@ def main():
         print(f"❌ Configuration Error: {e}")
         print("💡 Setup Instructions:")
         print("   1. Copy .env.template to .env")
-        print("   2. Add your ARC-3 API key from https://three.arcprize.org")
+        print("    2. Add your ARC-3 API key from https://three.arcprize.org")
         print("   3. Run: python run_continuous_learning.py --mode demo")
         sys.exit(1)
     except Exception as e:
