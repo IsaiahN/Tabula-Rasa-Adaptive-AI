@@ -4,9 +4,7 @@ This directory contains all project documentation files.
 
 ## Contents
 
-- **FINAL_AGI_PUZZLE_SUMMARY.md** - Summary of AGI puzzle evaluation results
 - **IMPLEMENTATION_STATUS.md** - Current implementation status and progress
-- **PHASE1_IMPLEMENTATION.md** - Phase 1 implementation details and specifications
 - **RESEARCH_FINDINGS_SUMMARY.md** - Summary of research findings and insights
 - **research_report.md** - Detailed research evaluation report
 

@@ -70,6 +70,7 @@ pip install -r requirements.txt
 # Set up environment variables (copy .env.template to .env and configure)
 cp .env.template .env
 # Add your ARC-3 API key and paths to .env
+# Note: .env.template has been updated to include all required variables with proper Windows paths
 ```
 
 ## Quick Start
@@ -343,6 +344,9 @@ tail -f continuous_learning_data/*.json          # Performance tracking data
 ## Configuration
 
 ### Environment Variables (.env)
+
+**Updated .env.template**: The template file has been updated with comprehensive configuration including Windows-specific paths, all required variables, and proper documentation for each setting.
+
 ```bash
 # ARC-3 API Configuration
 ARC_API_KEY=your_arc_api_key_here                    # Get from https://three.arcprize.org
