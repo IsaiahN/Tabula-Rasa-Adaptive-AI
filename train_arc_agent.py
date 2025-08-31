@@ -333,10 +333,13 @@ Examples:
         """
     )
     
-    parser.add_argument('--mode', 
-                       choices=['sequential', 'swarm'], 
-                       default='sequential',
-                       help='Training mode: sequential (one game at a time) or swarm (concurrent)')
+    parser.add_argument(
+        "--mode", 
+        type=str, 
+        choices=["sequential", "swarm", "continuous"], 
+        default="sequential",
+        help="Training mode: sequential (one game at a time) or swarm (multiple concurrent games) or continuous (adaptive learning)"
+    )
     
     parser.add_argument('--salience',
                        choices=['lossless', 'decay', 'adaptive'],
