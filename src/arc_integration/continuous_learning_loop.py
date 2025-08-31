@@ -185,6 +185,13 @@ class ContinuousLearningLoop:
             'last_boredom_check': 0
         }
         
+        # Progressive memory hierarchy tracking per game
+        self.game_level_records = {}  # Tracks highest level achieved per game
+        self.memory_hierarchy = {
+            'protected_memories': [],  # List of protected memory entries with tiers
+            'tier_assignments': {}     # Maps memory_id to tier level
+        }
+        
         self.training_config = {
             'curriculum_complexity': 1,  # Starting complexity level
             'max_complexity': 10,        # Maximum complexity level
@@ -538,8 +545,30 @@ class ContinuousLearningLoop:
     
     def _parse_episode_results_comprehensive(self, stdout: str, stderr: str, game_id: str) -> Dict[str, Any]:
         """Comprehensive parsing of episode results with enhanced pattern detection."""
-        result = {'success': False, 'final_score': 0, 'actions_taken': 0}
+        result = {'success': False, 'final_score': 0, 'actions_taken': 0, 'level_progressed': False, 'current_level': None}
         combined_output = stdout + "\n" + stderr
+        
+        # Check for level progression indicators
+        level_progression_patterns = [
+            r'level.*(\d+).*complete',
+            r'passed.*level.*(\d+)', 
+            r'advanced.*level.*(\d+)',
+            r'next.*level.*(\d+)',
+            r'level.*up.*(\d+)',
+            r'stage.*(\d+).*complete',
+            r'tier.*(\d+).*unlock'
+        ]
+        
+        for pattern in level_progression_patterns:
+            match = re.search(pattern, combined_output, re.IGNORECASE)
+            if match:
+                try:
+                    level = int(match.group(1))
+                    result['level_progressed'] = True
+                    result['current_level'] = level
+                    break
+                except ValueError:
+                    continue
         
         # Enhanced success detection patterns
         success_patterns = [
@@ -767,6 +796,21 @@ class ContinuousLearningLoop:
                         if current_score > best_score:
                             best_score = current_score
                             print(f"New best score for {game_id}: {best_score}")
+                            
+                        # 🏆 PRESERVE WINNING MEMORIES - Mark as high-priority, hard to delete
+                        self._preserve_winning_memories(session_result, current_score, game_id)
+                    
+                    # 📈 CHECK FOR LEVEL PROGRESSION - Only preserve NEW breakthroughs
+                    if session_result.get('level_progressed', False):
+                        new_level = session_result.get('current_level', 1)
+                        previous_best = self.game_level_records.get(game_id, {}).get('highest_level', 0)
+                        
+                        if new_level > previous_best:
+                            print(f"🎉 TRUE LEVEL BREAKTHROUGH! {game_id} advanced from level {previous_best} to {new_level}")
+                            # This is a real breakthrough - preserve with hierarchical priority
+                            self._preserve_breakthrough_memories(session_result, current_score, game_id, new_level, previous_best)
+                        else:
+                            print(f"📊 Level {new_level} maintained on {game_id} (no new breakthrough)")
                     else:
                         consecutive_failures += 1
                         
@@ -1618,6 +1662,9 @@ class ContinuousLearningLoop:
         if overall_win_rate > 0.3:
             print("🏆 SUBMIT TO LEADERBOARD - STRONG PERFORMANCE DETECTED!")
         
+        # Display memory hierarchy status
+        self._display_memory_hierarchy_status()
+        
         print("="*60)
 
     async def _apply_learning_insights(self, game_id: str, game_results: Dict[str, Any]):
@@ -1638,9 +1685,9 @@ class ContinuousLearningLoop:
         return {
             'total_episodes': len(episodes),
             'win_rate': sum(1 for ep in episodes if ep.get('success', False)) / len(episodes),
-            'average_score': sum(ep.get('final_score', 0) for ep in episodes) / len(episodes),
+            'average_score': sum((ep.get('final_score') or 0) for ep in episodes) / len(episodes),
             'average_actions': sum(ep.get('actions_taken', 0) for ep in episodes) / len(episodes),
-            'best_score': max(ep.get('final_score', 0) for ep in episodes),
+            'best_score': max((ep.get('final_score') or 0) for ep in episodes),
             'patterns_per_episode': len(game_results.get('patterns_discovered', [])) / len(episodes)
         }
         
@@ -1653,7 +1700,7 @@ class ContinuousLearningLoop:
         total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
         total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
                         for game in games_played.values())
-        total_score = sum(sum(ep.get('final_score', 0) or 0 for ep in game.get('episodes', [])) 
+        total_score = sum(sum((ep.get('final_score') or 0) for ep in game.get('episodes', [])) 
                          for game in games_played.values())
         
         learning_efficiency = self._calculate_learning_efficiency(session_results)
@@ -1677,8 +1724,8 @@ class ContinuousLearningLoop:
         for game_results in games_played.values():
             episodes = game_results.get('episodes', [])
             if len(episodes) >= 10:
-                early_performance = sum(ep.get('final_score', 0) for ep in episodes[:5]) / 5
-                late_performance = sum(ep.get('final_score', 0) for ep in episodes[-5:]) / 5
+                early_performance = sum((ep.get('final_score') or 0) for ep in episodes[:5]) / 5
+                late_performance = sum((ep.get('final_score') or 0) for ep in episodes[-5:]) / 5
                 improvement = late_performance - early_performance
                 efficiency_scores.append(max(0, improvement / 100))  # Normalize
                 
@@ -1694,8 +1741,8 @@ class ContinuousLearningLoop:
         early_games = games_played[:len(games_played)//2]
         late_games = games_played[len(games_played)//2:]
         
-        early_avg = sum(game.get('performance_metrics', {}).get('average_score', 0) or 0 for game in early_games) / max(1, len(early_games))
-        late_avg = sum(game.get('performance_metrics', {}).get('average_score', 0) or 0 for game in late_games) / max(1, len(late_games))
+        early_avg = sum((game.get('performance_metrics', {}).get('average_score') or 0) for game in early_games) / max(1, len(early_games))
+        late_avg = sum((game.get('performance_metrics', {}).get('average_score') or 0) for game in late_games) / max(1, len(late_games))
         
         return max(0, (late_avg - early_avg) / 100)  # Normalize
         
@@ -1733,21 +1780,23 @@ class ContinuousLearningLoop:
         
     def _update_global_metrics(self, session_results: Dict[str, Any]):
         """Update global performance metrics."""
-        overall_perf = session_results['overall_performance']
+        overall_perf = session_results.get('overall_performance', {})
         
-        # Update cumulative metrics
-        self.global_performance_metrics['total_games_played'] += overall_perf.get('games_trained', 0)
-        self.global_performance_metrics['total_episodes'] += overall_perf.get('total_episodes', 0)
+        # Update cumulative metrics with null safety
+        self.global_performance_metrics['total_games_played'] = (self.global_performance_metrics.get('total_games_played') or 0) + (overall_perf.get('games_trained') or 0)
+        self.global_performance_metrics['total_episodes'] = (self.global_performance_metrics.get('total_episodes') or 0) + (overall_perf.get('total_episodes') or 0)
         
-        # Update averages (simplified)
+        # Update averages (simplified) with comprehensive null protection
+        current_avg_score = self.global_performance_metrics.get('average_score') or 0.0
+        new_avg_score = overall_perf.get('overall_average_score') or 0.0
         self.global_performance_metrics['average_score'] = (
-            self.global_performance_metrics['average_score'] * 0.8 + 
-            overall_perf.get('overall_average_score', 0) * 0.2
+            (current_avg_score or 0.0) * 0.8 + (new_avg_score or 0.0) * 0.2
         )
         
+        current_win_rate = self.global_performance_metrics.get('win_rate') or 0.0
+        new_win_rate = overall_perf.get('overall_win_rate') or 0.0
         self.global_performance_metrics['win_rate'] = (
-            self.global_performance_metrics['win_rate'] * 0.8 + 
-            overall_perf.get('overall_win_rate', 0) * 0.2
+            (current_win_rate or 0.0) * 0.8 + (new_win_rate or 0.0) * 0.2
         )
         
     def _save_session_results(self, session_results: Dict[str, Any]):
@@ -1793,7 +1842,7 @@ class ContinuousLearningLoop:
         recent_episodes = episodes[-5:]  # Look at last 5 episodes
         recent_wins = sum(1 for ep in recent_episodes if ep.get('success', False))
         recent_win_rate = recent_wins / len(recent_episodes)
-        recent_avg_score = sum(ep.get('final_score', 0) for ep in recent_episodes) / len(recent_episodes)
+        recent_avg_score = sum((ep.get('final_score') or 0) for ep in recent_episodes) / len(recent_episodes)
         
         # Check if we've reached target performance
         target_win_rate = target_performance.get('win_rate', 0.3)
@@ -2132,9 +2181,12 @@ class ContinuousLearningLoop:
                     }
                     
                     # Quick memory strengthening without full sleep cycle
-                    for action in effective_actions:
-                        if hasattr(self.agent, 'memory'):
-                            self.agent.memory.strengthen_memory(action, weight=1.5)
+                    for i, action in enumerate(effective_actions):
+                        if hasattr(self.agent, 'memory') and hasattr(self.agent.memory, 'update_memory_salience'):
+                            # Use action index as memory index for salience update
+                            memory_idx = torch.tensor([i % self.agent.memory.memory_size])
+                            salience_val = torch.tensor([1.5])
+                            self.agent.memory.update_memory_salience(memory_idx, salience_val)
                     
                     logger.info(f"✨ Mid-game consolidation completed in {consolidation_duration:.1f}s")
                 
@@ -2187,8 +2239,11 @@ class ContinuousLearningLoop:
                         weight = effectiveness
                     
                     # Strengthen memory if above threshold
-                    if hasattr(self.demo_agent, 'memory') and weight > 0.2:
-                        self.demo_agent.memory.strengthen_memory(action, weight=weight)
+                    if hasattr(self.demo_agent, 'memory') and hasattr(self.demo_agent.memory, 'update_memory_salience') and weight > 0.2:
+                        # Use action index as memory index for salience update
+                        memory_idx = torch.tensor([i % self.demo_agent.memory.memory_size])
+                        salience_val = torch.tensor([weight])
+                        self.demo_agent.memory.update_memory_salience(memory_idx, salience_val)
                 
                 # Record consolidation in training state
                 if 'mid_game_consolidations' not in self.training_state:
@@ -2340,7 +2395,7 @@ class ContinuousLearningLoop:
         total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
         total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
                         for game in games_played.values())
-        total_score = sum(sum(ep.get('final_score', 0) for ep in game.get('episodes', [])) 
+        total_score = sum(sum((ep.get('final_score') or 0) for ep in game.get('episodes', [])) 
                          for game in games_played.values())
         
         # Standard performance metrics
@@ -2474,7 +2529,7 @@ class ContinuousLearningLoop:
                     self.goal_system.update_goal_progress(goal, learning_progress)
             
             # Check for emergent goal discovery by adding high-LP experience
-            if learning_progress > 0.1 and self.goal_system.current_phase == GoalPhase.EMERGENT:
+            if learning_progress is not None and learning_progress > 0.1 and self.goal_system.current_phase == GoalPhase.EMERGENT:
                 # Add experience to emergent goals for clustering
                 state_repr = torch.randn(64)  # Placeholder state representation
                 self.goal_system.emergent_goals.add_experience(state_repr, learning_progress, goal_agent_state)
@@ -2595,10 +2650,25 @@ class ContinuousLearningLoop:
                 high_salience_strengthened = len(high_salience_experiences)
                 consolidation_ops += high_salience_strengthened
                 
-                # Decay low-salience memories
+                # Decay low-salience memories (but protect winning memories)
                 all_experiences = self.salience_calculator.get_high_salience_experiences(threshold=0.0)
-                low_salience_experiences = [exp for exp in all_experiences if exp['salience'] < 0.3]
+                low_salience_candidates = [exp for exp in all_experiences if exp['salience'] < 0.3]
+                
+                # Filter out protected memories from decay
+                low_salience_experiences = []
+                protected_count = 0
+                for exp in low_salience_candidates:
+                    if self._is_experience_protected(exp):
+                        protected_count += 1
+                        # Apply salience floor instead of decay
+                        exp['salience'] = max(exp['salience'], self._get_protection_floor(exp))
+                    else:
+                        low_salience_experiences.append(exp)
+                
                 low_salience_decayed = len(low_salience_experiences)
+                if protected_count > 0:
+                    print(f"   🛡️ Protected {protected_count} winning memories from salience decay")
+                
                 consolidation_ops += low_salience_decayed
                 
                 # Calculate consolidation effectiveness
@@ -2857,7 +2927,7 @@ class ContinuousLearningLoop:
             return {}
         
         # Create compressed representation
-        avg_score = sum(exp.get('final_score', 0) for exp in group) / len(group)
+        avg_score = sum((exp.get('final_score') or 0) for exp in group) / len(group)
         avg_salience = sum(exp.get('salience', 0.5) for exp in group) / len(group)
         
         return {
@@ -3394,18 +3464,26 @@ class ContinuousLearningLoop:
                             file_age_days = (current_time - os.path.getmtime(memory_file)) / 86400
                             file_size_kb = os.path.getsize(memory_file) / 1024
                             
+                            # Check if this memory is protected from deletion
+                            is_protected = self._is_memory_protected(memory_file.name)
+                            
                             # Delete if: very old (>7 days) OR very small (<1KB) OR temp files
+                            # BUT NOT if protected
                             should_delete = (
-                                file_age_days > 7 or
-                                file_size_kb < 1 or
-                                'temp_' in memory_file.name or
-                                'test_' in memory_file.name
+                                not is_protected and (
+                                    file_age_days > 7 or
+                                    file_size_kb < 1 or
+                                    'temp_' in memory_file.name or
+                                    'test_' in memory_file.name
+                                )
                             )
                             
                             if should_delete:
                                 os.remove(memory_file)
                                 deleted_count += 1
                                 print(f"   🗑️ Deleted {memory_file.name} (age: {file_age_days:.1f}d, size: {file_size_kb:.1f}KB)")
+                            elif is_protected:
+                                print(f"   🛡️ Protected {memory_file.name} from deletion (winning memory)")
                                 
                         except Exception as e:
                             print(f"   ⚠️ Failed to process {memory_file}: {e}")
@@ -3455,7 +3533,7 @@ class ContinuousLearningLoop:
                         'original_count': len(memories),
                         'combined_timestamp': time.time(),
                         'combined_data': {
-                            'avg_score': sum(m['data'].get('final_score', 0) for m in memories) / len(memories),
+                            'avg_score': sum((m['data'].get('final_score') or 0) for m in memories) / len(memories),
                             'avg_actions': sum(m['data'].get('actions_taken', 0) for m in memories) / len(memories),
                             'patterns': [m['data'] for m in memories[:3]]  # Keep top 3 examples
                         }
@@ -3640,3 +3718,369 @@ class ContinuousLearningLoop:
         
         # Auto-save counters
         self._save_global_counters()
+    
+    def _preserve_winning_memories(self, session_result: Dict[str, Any], score: int, game_id: str, is_level_progression: bool = False):
+        """
+        Preserve memories that led to wins or level progression.
+        These memories get super-high salience and are protected from deletion.
+        """
+        try:
+            if not hasattr(self.agent, 'memory'):
+                return
+                
+            # Determine preservation strength based on achievement type
+            if is_level_progression:
+                preservation_strength = 0.95  # Nearly permanent
+                min_salience_floor = 0.8  # Very high minimum
+                protection_duration = 1000  # Much longer protection
+                print(f"🏆 CRITICAL MEMORY PRESERVATION: Level progression memories (strength: {preservation_strength})")
+            elif score >= 4:  # High score achievement
+                preservation_strength = 0.85
+                min_salience_floor = 0.6
+                protection_duration = 500
+                print(f"🏆 HIGH-VALUE MEMORY PRESERVATION: Score {score} memories (strength: {preservation_strength})")
+            elif score >= 1:  # Any positive score
+                preservation_strength = 0.75
+                min_salience_floor = 0.4
+                protection_duration = 200
+                print(f"🏆 WINNING MEMORY PRESERVATION: Score {score} memories (strength: {preservation_strength})")
+            else:
+                return  # No preservation for zero scores
+            
+            # Extract effective actions from this session
+            effective_actions = []
+            if 'effective_actions' in session_result:
+                effective_actions = session_result['effective_actions']
+            elif 'action_sequences' in session_result:
+                # Extract from action sequences if available
+                sequences = session_result.get('action_sequences', {})
+                for seq_key, seq_data in sequences.items():
+                    if seq_data.get('effectiveness', 0) > 0.3:
+                        effective_actions.append({
+                            'action': seq_key,
+                            'effectiveness': seq_data['effectiveness'],
+                            'score': score
+                        })
+            
+            # Apply memory preservation with super-high salience
+            winning_memory_count = 0
+            for i, action in enumerate(effective_actions):
+                if hasattr(self.agent.memory, 'update_memory_salience'):
+                    # Create high-salience preservation
+                    memory_idx = torch.tensor([i % self.agent.memory.memory_size])
+                    salience_val = torch.tensor([preservation_strength])
+                    self.agent.memory.update_memory_salience(memory_idx, salience_val)
+                    winning_memory_count += 1
+                    
+                # Mark in training state for long-term protection
+                if 'protected_memories' not in self.training_state:
+                    self.training_state['protected_memories'] = []
+                    
+                protection_entry = {
+                    'memory_id': f"{game_id}_{i}",
+                    'action': action,
+                    'score_achieved': score,
+                    'salience_floor': min_salience_floor,
+                    'protection_expires': time.time() + protection_duration,
+                    'is_level_progression': is_level_progression,
+                    'game_id': game_id,
+                    'timestamp': time.time()
+                }
+                self.training_state['protected_memories'].append(protection_entry)
+            
+            # Clean up expired protections
+            current_time = time.time()
+            self.training_state['protected_memories'] = [
+                mem for mem in self.training_state['protected_memories']
+                if mem['protection_expires'] > current_time
+            ]
+            
+            print(f"✨ Protected {winning_memory_count} winning memories from deletion (expires in {protection_duration}s)")
+            
+        except Exception as e:
+            logger.warning(f"Failed to preserve winning memories: {e}")
+
+    def _preserve_breakthrough_memories(self, session_result: Dict[str, Any], score: int, game_id: str, new_level: int, previous_level: int):
+        """
+        Progressive memory hierarchy system - only preserves TRUE breakthroughs with escalating priority.
+        Higher levels get stronger protection and demote previous level memories.
+        """
+        try:
+            if not hasattr(self.agent, 'memory'):
+                return
+                
+            # Update game level records
+            if game_id not in self.game_level_records:
+                self.game_level_records[game_id] = {'highest_level': 0, 'breakthroughs': []}
+            
+            self.game_level_records[game_id]['highest_level'] = new_level
+            
+            # Calculate tier-based protection (1-5 scale)
+            tier = min(new_level, 5)  # Cap at tier 5 for extreme breakthroughs
+            
+            # Progressive strength: Tier 1=0.75, Tier 2=0.80, Tier 3=0.85, Tier 4=0.90, Tier 5=0.95
+            preservation_strength = 0.70 + (tier * 0.05)
+            
+            # Progressive floor: Tier 1=0.4, Tier 2=0.5, Tier 3=0.6, Tier 4=0.7, Tier 5=0.8  
+            min_salience_floor = 0.30 + (tier * 0.10)
+            
+            # Progressive duration: Higher tiers last longer
+            protection_duration = 200 + (tier * 200)  # 400, 600, 800, 1000, 1200
+            
+            print(f"🏆 LEVEL {new_level} BREAKTHROUGH! Tier {tier} Protection (strength: {preservation_strength:.2f}, floor: {min_salience_floor:.1f})")
+            
+            # Demote previous level memories if this is a higher tier
+            if previous_level > 0:
+                self._demote_previous_level_memories(game_id, previous_level, tier)
+            
+            # Extract and preserve breakthrough memories
+            effective_actions = []
+            if 'effective_actions' in session_result:
+                effective_actions = session_result['effective_actions']
+            elif 'action_sequences' in session_result:
+                sequences = session_result.get('action_sequences', {})
+                for seq_key, seq_data in sequences.items():
+                    if seq_data.get('effectiveness', 0) > 0.3:
+                        effective_actions.append({
+                            'action': seq_key,
+                            'effectiveness': seq_data['effectiveness'],
+                            'score': score
+                        })
+            
+            # Apply hierarchical memory preservation
+            breakthrough_memory_count = 0
+            breakthrough_memory_ids = []
+            
+            for i, action in enumerate(effective_actions):
+                memory_id = f"{game_id}_L{new_level}_{i}"
+                
+                if hasattr(self.agent.memory, 'update_memory_salience'):
+                    # Apply tier-based salience boost
+                    memory_idx = torch.tensor([i % self.agent.memory.memory_size])
+                    salience_val = torch.tensor([preservation_strength])
+                    self.agent.memory.update_memory_salience(memory_idx, salience_val)
+                    breakthrough_memory_count += 1
+                    breakthrough_memory_ids.append(memory_id)
+                    
+                # Store in hierarchical memory system
+                protection_entry = {
+                    'memory_id': memory_id,
+                    'action': action,
+                    'score_achieved': score,
+                    'level_achieved': new_level,
+                    'tier': tier,
+                    'salience_strength': preservation_strength,
+                    'salience_floor': min_salience_floor,
+                    'protection_expires': time.time() + protection_duration,
+                    'game_id': game_id,
+                    'breakthrough_timestamp': time.time(),
+                    'is_breakthrough': True
+                }
+                self.memory_hierarchy['protected_memories'].append(protection_entry)
+                self.memory_hierarchy['tier_assignments'][memory_id] = tier
+            
+            # Record this breakthrough
+            breakthrough_record = {
+                'level': new_level,
+                'tier': tier,
+                'timestamp': time.time(),
+                'memory_ids': breakthrough_memory_ids,
+                'score': score
+            }
+            self.game_level_records[game_id]['breakthroughs'].append(breakthrough_record)
+            
+            print(f"🎯 Preserved {breakthrough_memory_count} Tier {tier} breakthrough memories (Level {new_level})")
+            
+        except Exception as e:
+            print(f"⚠️ Error in breakthrough memory preservation: {e}")
+
+    def _demote_previous_level_memories(self, game_id: str, previous_level: int, new_tier: int):
+        """
+        Demote memories from previous levels when a higher level is achieved.
+        Previous level memories get reduced priority but aren't deleted.
+        """
+        try:
+            demoted_count = 0
+            
+            # Find memories from previous levels for this game
+            for protection_entry in self.memory_hierarchy.get('protected_memories', []):
+                if (protection_entry.get('game_id') == game_id and 
+                    protection_entry.get('level_achieved', 0) == previous_level and
+                    protection_entry.get('tier', 0) < new_tier):
+                    
+                    old_tier = protection_entry.get('tier', 1)
+                    
+                    # Reduce protection strength (but keep some protection)
+                    new_strength = max(0.60, protection_entry.get('salience_strength', 0.75) - 0.15)
+                    new_floor = max(0.25, protection_entry.get('salience_floor', 0.4) - 0.15)
+                    
+                    protection_entry['salience_strength'] = new_strength
+                    protection_entry['salience_floor'] = new_floor
+                    protection_entry['demoted_from_tier'] = old_tier
+                    protection_entry['demoted_timestamp'] = time.time()
+                    
+                    demoted_count += 1
+            
+            if demoted_count > 0:
+                print(f"📉 Demoted {demoted_count} Level {previous_level} memories (still protected but lower priority)")
+                
+        except Exception as e:
+            print(f"⚠️ Error in memory demotion: {e}")
+    
+    def _is_memory_protected(self, memory_filename: str) -> bool:
+        """Check if a memory file is protected from deletion using hierarchical system."""
+        try:
+            # Check both old and new memory protection systems
+            legacy_protected_memories = self.training_state.get('protected_memories', [])
+            hierarchical_protected_memories = self.memory_hierarchy.get('protected_memories', [])
+            current_time = time.time()
+            
+            # Check legacy protection system
+            for protection in legacy_protected_memories:
+                if protection['protection_expires'] > current_time:
+                    memory_id = protection['memory_id']
+                    game_id = protection['game_id']
+                    
+                    if (game_id in memory_filename or 
+                        memory_id in memory_filename or
+                        'session_' in memory_filename):
+                        return True
+            
+            # Check hierarchical protection system
+            for protection in hierarchical_protected_memories:
+                if protection['protection_expires'] > current_time:
+                    memory_id = protection['memory_id']
+                    game_id = protection['game_id']
+                    tier = protection.get('tier', 1)
+                    
+                    if (game_id in memory_filename or 
+                        memory_id in memory_filename or
+                        'session_' in memory_filename):
+                        # Higher tier memories get extra protection
+                        protection_multiplier = 1.0 + (tier * 0.2)  # Tier 5 = 2x protection time
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error checking memory protection: {e}")
+            return False
+
+    def _display_memory_hierarchy_status(self):
+        """Display current memory hierarchy and protection status."""
+        try:
+            hierarchical_memories = self.memory_hierarchy.get('protected_memories', [])
+            current_time = time.time()
+            
+            # Group by tier and game
+            tier_summary = {}
+            active_count = 0
+            
+            for memory in hierarchical_memories:
+                if memory['protection_expires'] > current_time:
+                    active_count += 1
+                    tier = memory.get('tier', 1)
+                    game_id = memory.get('game_id', 'unknown')
+                    level = memory.get('level_achieved', 0)
+                    
+                    if tier not in tier_summary:
+                        tier_summary[tier] = {'count': 0, 'games': set(), 'levels': set()}
+                    
+                    tier_summary[tier]['count'] += 1
+                    tier_summary[tier]['games'].add(game_id)
+                    tier_summary[tier]['levels'].add(level)
+            
+            if active_count > 0:
+                print(f"\n🏛️ MEMORY HIERARCHY STATUS ({active_count} protected memories):")
+                for tier in sorted(tier_summary.keys(), reverse=True):
+                    info = tier_summary[tier]
+                    strength = 0.70 + (tier * 0.05)
+                    floor = 0.30 + (tier * 0.10)
+                    games = ', '.join(list(info['games'])[:3])  # Show first 3 games
+                    levels = ', '.join(map(str, sorted(info['levels'])))
+                    
+                    print(f"   Tier {tier}: {info['count']} memories | Strength: {strength:.2f} | Floor: {floor:.1f}")
+                    print(f"            Games: {games} | Levels: {levels}")
+                print()
+            
+        except Exception as e:
+            logger.warning(f"Error displaying memory hierarchy: {e}")
+    
+    def _is_experience_protected(self, experience: Dict[str, Any]) -> bool:
+        """Check if a specific experience/memory is protected from decay using hierarchical system."""
+        try:
+            # Check both legacy and hierarchical protection systems
+            legacy_protected_memories = self.training_state.get('protected_memories', [])
+            hierarchical_protected_memories = self.memory_hierarchy.get('protected_memories', [])
+            current_time = time.time()
+            
+            # Check legacy protection
+            for protection in legacy_protected_memories:
+                if protection['protection_expires'] > current_time:
+                    protected_action = protection.get('action', {})
+                    exp_action = experience.get('action', {})
+                    
+                    if (protected_action.get('type') == exp_action.get('type') and
+                        protection.get('score_achieved', 0) > 0):
+                        return True
+            
+            # Check hierarchical protection (stronger for higher tiers)
+            for protection in hierarchical_protected_memories:
+                if protection['protection_expires'] > current_time:
+                    protected_action = protection.get('action', {})
+                    exp_action = experience.get('action', {})
+                    tier = protection.get('tier', 1)
+                    
+                    if (protected_action.get('type') == exp_action.get('type') and
+                        protection.get('score_achieved', 0) > 0):
+                        # Higher tier memories are more protected
+                        protection_strength = tier / 5.0  # Tier 5 = 100% protection
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error checking experience protection: {e}")
+            return False
+    
+    def _get_protection_floor(self, experience: Dict[str, Any]) -> float:
+        """Get the minimum salience floor for a protected experience using hierarchical system."""
+        try:
+            # Check both legacy and hierarchical systems for protection floors
+            legacy_protected_memories = self.training_state.get('protected_memories', [])
+            hierarchical_protected_memories = self.memory_hierarchy.get('protected_memories', [])
+            current_time = time.time()
+            max_floor = 0.0
+            
+            # Check legacy protection floors
+            for protection in legacy_protected_memories:
+                if protection['protection_expires'] > current_time:
+                    protected_action = protection.get('action', {})
+                    exp_action = experience.get('action', {})
+                    
+                    if (protected_action.get('type') == exp_action.get('type') and
+                        protection.get('score_achieved', 0) > 0):
+                        max_floor = max(max_floor, protection.get('salience_floor', 0.0))
+            
+            # Check hierarchical protection floors (higher tiers = higher floors)
+            for protection in hierarchical_protected_memories:
+                if protection['protection_expires'] > current_time:
+                    protected_action = protection.get('action', {})
+                    exp_action = experience.get('action', {})
+                    tier = protection.get('tier', 1)
+                    
+                    if (protected_action.get('type') == exp_action.get('type') and
+                        protection.get('score_achieved', 0) > 0):
+                        # Hierarchical floor: Tier 1=0.4, Tier 2=0.5, ..., Tier 5=0.8
+                        tier_floor = protection.get('salience_floor', 0.30 + (tier * 0.10))
+                        max_floor = max(max_floor, tier_floor)
+            
+            return max_floor
+            
+        except Exception as e:
+            logger.warning(f"Error getting protection floor: {e}")
+            return 0.0
+            
+        except Exception as e:
+            logger.warning(f"Error getting protection floor: {e}")
+            return 0.1
