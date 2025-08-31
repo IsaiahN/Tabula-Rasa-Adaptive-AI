@@ -856,7 +856,7 @@ class ContinuousLearningLoop:
         """Enhanced version that runs COMPLETE episodes with multiple actions until WIN/GAME_OVER."""
         try:
             # 1. Check for boredom and trigger curriculum advancement
-            boredom_detected = await self._check_and_handle_boredom(game_id, episode_count)
+            boredom_results = self._check_and_handle_boredom(episode_count)
             
             # 2. Check if agent should sleep before episode
             agent_state = self._get_current_agent_state()
