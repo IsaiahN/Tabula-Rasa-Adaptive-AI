@@ -229,6 +229,9 @@ class ContinuousLearningLoop:
         # Load previous state if available
         self._load_state()
         
+        # GLOBAL PERSISTENT COUNTERS - Load from previous sessions
+        self.global_counters = self._load_global_counters()
+        
         logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
 
     async def get_available_games(self) -> List[Dict[str, str]]:
@@ -810,8 +813,10 @@ class ContinuousLearningLoop:
             print(f"📊 PRE-EPISODE MEMORY STATUS:")
             pre_memory_status = self._get_memory_consolidation_status()
             pre_sleep_status = self._get_current_sleep_state_info()
-            print(f"   Memory Operations: {pre_memory_status.get('consolidation_operations_completed', 0)}")
-            print(f"   Sleep Cycles: {pre_sleep_status.get('sleep_cycles_completed', 0)}")
+            
+            # SHOW GLOBAL CUMULATIVE COUNTERS - THE FIX!
+            print(f"   Memory Operations: {self.global_counters.get('total_memory_operations', 0)}")
+            print(f"   Sleep Cycles: {self.global_counters.get('total_sleep_cycles', 0)}")
             print(f"   Energy Level: {pre_sleep_status.get('current_energy_level', 1.0):.2f}")
             
             # VERBOSE: Check existing memory files
@@ -2370,6 +2375,15 @@ class ContinuousLearningLoop:
             print(f"   💪 {sleep_result['memories_strengthened']} memories strengthened")
             print(f"   💡 {sleep_result['insights_generated']} insights generated")
             
+            # UPDATE GLOBAL COUNTERS - THIS IS THE FIX!
+            self._update_global_counters(
+                sleep_cycle_completed=True,
+                memory_ops=sleep_result['priority_memories_loaded'],
+                memories_deleted=sleep_result['memories_deleted'],
+                memories_combined=sleep_result['memories_combined'],
+                memories_strengthened=sleep_result['memories_strengthened']
+            )
+            
         except Exception as e:
             print(f"⚠️ Error during sleep cycle: {e}")
         
@@ -2750,3 +2764,55 @@ class ContinuousLearningLoop:
             print(f"   ⚠️ Error preparing guidance: {e}")
         
         return guidance
+
+    def _load_global_counters(self) -> Dict[str, int]:
+        """Load global counters that persist across sessions."""
+        try:
+            import json
+            counter_file = self.save_directory / "global_counters.json"
+            if counter_file.exists():
+                with open(counter_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"Could not load global counters: {e}")
+        
+        # Default counters
+        return {
+            'total_sleep_cycles': 0,
+            'total_memory_operations': 0,
+            'total_sessions': 0,
+            'cumulative_energy_spent': 0.0,
+            'total_memories_deleted': 0,
+            'total_memories_combined': 0,
+            'total_memories_strengthened': 0
+        }
+    
+    def _save_global_counters(self):
+        """Save global counters to persist across sessions."""
+        try:
+            import json
+            counter_file = self.save_directory / "global_counters.json"
+            with open(counter_file, 'w') as f:
+                json.dump(self.global_counters, f, indent=2)
+        except Exception as e:
+            print(f"Could not save global counters: {e}")
+    
+    def _update_global_counters(self, sleep_cycle_completed: bool = False, memory_ops: int = 0, memories_deleted: int = 0, memories_combined: int = 0, memories_strengthened: int = 0):
+        """Update global counters and save to disk."""
+        if sleep_cycle_completed:
+            self.global_counters['total_sleep_cycles'] += 1
+        
+        if memory_ops > 0:
+            self.global_counters['total_memory_operations'] += memory_ops
+            
+        if memories_deleted > 0:
+            self.global_counters['total_memories_deleted'] += memories_deleted
+            
+        if memories_combined > 0:
+            self.global_counters['total_memories_combined'] += memories_combined
+            
+        if memories_strengthened > 0:
+            self.global_counters['total_memories_strengthened'] += memories_strengthened
+            
+        # Auto-save counters
+        self._save_global_counters()

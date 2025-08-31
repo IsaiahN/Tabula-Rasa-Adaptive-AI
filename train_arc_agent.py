@@ -266,8 +266,12 @@ class UnifiedTrainer:
                 sleep_info = status.get('sleep_status', {})
                 memory_info = status.get('memory_consolidation_status', {})
                 
-                print(f"   Sleep Cycles: {sleep_info.get('sleep_cycles_this_session', 0)}")
-                print(f"   Memory Consolidations: {memory_info.get('consolidation_operations_completed', 0)}")
+                # Show GLOBAL cumulative counters instead of session-only
+                global_sleep_cycles = getattr(self.continuous_loop, 'global_counters', {}).get('total_sleep_cycles', 0)
+                global_memory_ops = getattr(self.continuous_loop, 'global_counters', {}).get('total_memory_operations', 0)
+                
+                print(f"   Sleep Cycles: {global_sleep_cycles}")
+                print(f"   Memory Consolidations: {global_memory_ops}")
                 print(f"   Energy Level: {sleep_info.get('current_energy_level', 1.0):.2f}")
             
             # Check for recent file activity
