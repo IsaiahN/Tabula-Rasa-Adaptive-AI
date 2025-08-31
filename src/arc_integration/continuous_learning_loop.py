@@ -807,17 +807,17 @@ class ContinuousLearningLoop:
                         self.training_state['lp_history'] = self.training_state['lp_history'][-20:]
                     
                     # Update episode count
-                    self.training_state['episode_count'] = episode_count
+                    self.training_state['episode_count'] = session_count
                     
                     # Check for boredom and handle curriculum advancement
-                    boredom_results = self._check_and_handle_boredom(episode_count)
+                    boredom_results = self._check_and_handle_boredom(session_count)
                     if boredom_results['boredom_detected']:
                         print(f"🧠 Boredom detected: {boredom_results['reason']}")
                         if boredom_results['curriculum_advanced']:
                             print(f"📈 Curriculum complexity advanced to level {boredom_results['new_complexity']}")
                     
                     # Integrate goal invention system - discover emergent goals from patterns
-                    goal_results = self._process_emergent_goals(episode_result, game_results, learning_progress)
+                    goal_results = self._process_emergent_goals(session_result, game_results, learning_progress)
                     if goal_results['new_goals_discovered']:
                         print(f"🎯 Discovered {len(goal_results['new_goals'])} new emergent goals")
                         for goal in goal_results['new_goals']:
@@ -837,7 +837,7 @@ class ContinuousLearningLoop:
                     await asyncio.sleep(2.0)
                         
                 else:
-                    print(f"Episode {episode_count + 1} failed: {episode_result.get('error', 'Unknown error')}")
+                    print(f"Session {session_count + 1} failed: {session_result.get('error', 'Unknown error')}")
                     consecutive_failures += 1
                     
                     # Stop if too many consecutive API failures
@@ -848,7 +848,7 @@ class ContinuousLearningLoop:
                     await asyncio.sleep(5.0)  # Longer delay after failures
                     
             except Exception as e:
-                logger.error(f"Error in episode {episode_count + 1} for {game_id}: {e}")
+                logger.error(f"Error in session {session_count + 1} for {game_id}: {e}")
                 consecutive_failures += 1
                 if consecutive_failures >= 5:
                     print(f"Stopping training for {game_id} due to repeated errors")
@@ -1653,16 +1653,19 @@ class ContinuousLearningLoop:
         total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
         total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
                         for game in games_played.values())
-        total_score = sum(sum(ep.get('final_score', 0) for ep in game.get('episodes', [])) 
+        total_score = sum(sum(ep.get('final_score', 0) or 0 for ep in game.get('episodes', [])) 
                          for game in games_played.values())
+        
+        learning_efficiency = self._calculate_learning_efficiency(session_results)
+        knowledge_transfer = self._calculate_knowledge_transfer_score(session_results)
         
         return {
             'games_trained': len(games_played),
             'total_episodes': total_episodes,
             'overall_win_rate': total_wins / max(1, total_episodes),
             'overall_average_score': total_score / max(1, total_episodes),
-            'learning_efficiency': self._calculate_learning_efficiency(session_results),
-            'knowledge_transfer_score': self._calculate_knowledge_transfer_score(session_results)
+            'learning_efficiency': learning_efficiency or 0.0,
+            'knowledge_transfer_score': knowledge_transfer or 0.0
         }
         
     def _calculate_learning_efficiency(self, session_results: Dict[str, Any]) -> float:
@@ -1691,8 +1694,8 @@ class ContinuousLearningLoop:
         early_games = games_played[:len(games_played)//2]
         late_games = games_played[len(games_played)//2:]
         
-        early_avg = sum(game.get('performance_metrics', {}).get('average_score', 0) for game in early_games) / len(early_games)
-        late_avg = sum(game.get('performance_metrics', {}).get('average_score', 0) for game in late_games) / len(late_games)
+        early_avg = sum(game.get('performance_metrics', {}).get('average_score', 0) or 0 for game in early_games) / max(1, len(early_games))
+        late_avg = sum(game.get('performance_metrics', {}).get('average_score', 0) or 0 for game in late_games) / max(1, len(late_games))
         
         return max(0, (late_avg - early_avg) / 100)  # Normalize
         
@@ -2464,10 +2467,11 @@ class ContinuousLearningLoop:
                 timestamp=self.training_state.get('episode_count', 0)
             )
             
-            # Update current goals with learning progress
+            # Update current goals with learning progress (with error handling)
             current_goals = self.goal_system.get_active_goals(goal_agent_state)
             for goal in current_goals:
-                self.goal_system.update_goal_progress(goal, learning_progress)
+                if learning_progress is not None and hasattr(goal, 'progress') and goal.progress is not None:
+                    self.goal_system.update_goal_progress(goal, learning_progress)
             
             # Check for emergent goal discovery by adding high-LP experience
             if learning_progress > 0.1 and self.goal_system.current_phase == GoalPhase.EMERGENT:
@@ -3050,10 +3054,34 @@ class ContinuousLearningLoop:
             if actions_match:
                 result['total_actions'] = int(actions_match.group(1))
             
-            # Extract effective actions by looking for score changes
+            # Extract effective actions by looking for action patterns (more permissive)
             effective_actions = []
             
-            # Look for ACTION patterns with score improvements (more conservative matching)
+            # Look for ACTION patterns - treat all attempted actions as potentially effective for learning
+            action_pattern = r'ACTION(\d+)'
+            action_matches = re.findall(action_pattern, stdout_text, re.IGNORECASE)
+            
+            # Count action attempts even if they didn't score
+            action_counts = {}
+            for action_num in action_matches:
+                action_counts[action_num] = action_counts.get(action_num, 0) + 1
+            
+            # Create effective actions from attempts (for learning purposes)
+            for action_num, count in action_counts.items():
+                if count >= 2:  # Actions used multiple times might be more significant
+                    effectiveness = min(0.5, count / 10.0)  # Lower baseline effectiveness
+                else:
+                    effectiveness = 0.1  # Minimal effectiveness for single attempts
+                
+                effective_actions.append({
+                    'action_number': int(action_num),
+                    'action_type': f'ACTION{action_num}',
+                    'score_achieved': result['final_score'],
+                    'effectiveness': effectiveness,
+                    'attempt_count': count
+                })
+            
+            # Look for score improvements (original logic preserved)
             action_score_pattern = r'ACTION(\d+).*?score[:\s]+(\d+)'
             action_matches = re.findall(action_score_pattern, stdout_text, re.IGNORECASE)
             
@@ -3064,12 +3092,18 @@ class ContinuousLearningLoop:
                 
                 if score > 0 and action_key not in seen_actions:  # This action had a positive effect
                     seen_actions.add(action_key)
-                    effective_actions.append({
-                        'action_number': int(action_num),
-                        'action_type': f'ACTION{action_num}',
-                        'score_achieved': score,
-                        'effectiveness': min(1.0, score / 100.0)  # Normalize effectiveness
-                    })
+                    # Update existing action or add new high-effectiveness action
+                    existing_action = next((a for a in effective_actions if a['action_number'] == int(action_num)), None)
+                    if existing_action:
+                        existing_action['effectiveness'] = min(1.0, score / 100.0)  # Boost effectiveness
+                        existing_action['score_achieved'] = score
+                    else:
+                        effective_actions.append({
+                            'action_number': int(action_num),
+                            'action_type': f'ACTION{action_num}',
+                            'score_achieved': score,
+                            'effectiveness': min(1.0, score / 100.0)  # Normalize effectiveness
+                        })
             
             # Look for successful RESET sequences (avoid double-counting)
             reset_score_pattern = r'RESET.*?score[:\s]+(\d+)'

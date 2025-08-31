@@ -385,7 +385,11 @@ class TestRunner:
             success &= self.run_integration_tests()
             success &= self.run_system_tests()
         elif test_type == 'arc3':
-            success &= asyncio.run(self.run_arc3_tests(arc3_mode))
+            # Handle nested event loop by using a separate thread
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(lambda: asyncio.run(self.run_arc3_tests(arc3_mode)))
+                success &= future.result()
         elif test_type == 'performance':
             success &= self.run_performance_tests()
         elif test_type == 'agi-puzzles':
