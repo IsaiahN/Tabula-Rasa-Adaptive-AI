@@ -102,13 +102,15 @@ def get_full_training_tasks(randomize: bool = False) -> List[str]:
 
 @dataclass
 class TrainingSession:
-    """Represents a training session configuration."""
+    """Represents a learning cycle configuration."""
     session_id: str
     games_to_play: List[str]
-    max_episodes_per_game: int
+    max_mastery_sessions_per_game: int  # Renamed from episodes to mastery_sessions
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
+    max_actions_per_session: int = 100000  # New configurable action limit
+    enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.LOSSLESS
     enable_salience_comparison: bool = False
     swarm_enabled: bool = True
@@ -705,7 +707,7 @@ class ContinuousLearningLoop:
     async def _train_on_game(
         self,
         game_id: str,
-        max_episodes: int,
+        max_mastery_sessions: int,  # Renamed from max_episodes
         target_performance: Dict[str, float]
     ) -> Dict[str, Any]:
         """Train the agent on a specific game using REAL ARC API calls with enhanced game state handling."""
@@ -731,31 +733,31 @@ class ContinuousLearningLoop:
         print(f"Using API Key: {self.api_key[:8]}...{self.api_key[-4:]}")
         print(f"ARC-AGI-3-Agents path: {self.arc_agents_path}")
         
-        episode_count = 1
+        session_count = 1  # Renamed from episode_count 
         consecutive_failures = 0
         best_score = 0
         
-        while episode_count < max_episodes:
+        while session_count < max_mastery_sessions:  # Renamed from max_episodes
             try:
-                print(f"Episode {episode_count + 1}/{max_episodes} for {game_id}")
+                print(f"Mastery Session {session_count + 1}/{max_mastery_sessions} for {game_id}")  # Updated naming
                 
-                # Run ENHANCED ARC-3 episode with proper state checking
-                episode_result = await self._run_real_arc_episode_enhanced(game_id, episode_count)
+                # Run ENHANCED ARC-3 mastery session with proper state checking
+                session_result = await self._run_real_arc_mastery_session_enhanced(game_id, session_count)  # Renamed method
                 
-                if episode_result and 'error' not in episode_result:
-                    game_results['episodes'].append(episode_result)
-                    episode_count += 1
+                if session_result and 'error' not in session_result:  # Updated variable name
+                    game_results['episodes'].append(session_result)  # Updated variable name
+                    session_count += 1  # Updated variable name
                     
                     # Update grid dimensions if detected
-                    if 'grid_dimensions' in episode_result:
-                        game_results['grid_dimensions'] = episode_result['grid_dimensions']
-                        print(f"Grid size detected: {episode_result['grid_dimensions'][0]}x{episode_result['grid_dimensions'][1]}")
+                    if 'grid_dimensions' in session_result:  # Updated variable name
+                        game_results['grid_dimensions'] = session_result['grid_dimensions']  # Updated variable name
+                        print(f"Grid size detected: {session_result['grid_dimensions'][0]}x{session_result['grid_dimensions'][1]}")  # Updated variable name
                     
                     # Track performance
-                    current_score = episode_result.get('final_score', 0)
-                    success = episode_result.get('success', False)
-                    game_state = episode_result.get('game_state', 'NOT_FINISHED')
-                    scorecard_url = episode_result.get('scorecard_url')
+                    current_score = session_result.get('final_score', 0)  # Updated variable name
+                    success = session_result.get('success', False)  # Updated variable name
+                    game_state = session_result.get('game_state', 'NOT_FINISHED')  # Updated variable name
+                    scorecard_url = session_result.get('scorecard_url')  # Updated variable name
                     
                     if scorecard_url:
                         game_results['scorecard_urls'].append(scorecard_url)
@@ -768,15 +770,15 @@ class ContinuousLearningLoop:
                     else:
                         consecutive_failures += 1
                         
-                    print(f"Episode {episode_count}: {'WIN' if success else 'LOSS'} | Score: {current_score} | State: {game_state}")
+                    print(f"Mastery Session {session_count}: {'WIN' if success else 'LOSS'} | Score: {current_score} | State: {game_state}")  # Updated naming
                     
                     # Track learning progress for boredom detection
-                    effectiveness = self._calculate_episode_effectiveness(episode_result, game_results)
+                    effectiveness = self._calculate_session_effectiveness(session_result, game_results)  # Updated method name
                     learning_progress = self._convert_effectiveness_to_lp(effectiveness)
                     
                     # Store LP history entry with ENHANCED CONTINUOUS LEARNING METRICS
                     lp_entry = {
-                        'episode': episode_count,
+                        'session': session_count,  # Updated key name
                         'game_id': game_id,
                         'learning_progress': learning_progress,
                         'effectiveness': effectiveness,
@@ -784,13 +786,15 @@ class ContinuousLearningLoop:
                         'success': success,
                         'timestamp': time.time(),
                         # CONTINUOUS LEARNING ENHANCEMENTS
-                        'actions_taken': episode_result.get('actions_taken', 0),
-                        'action_sequences': episode_result.get('action_sequences', {}),
-                        'mid_game_consolidations': episode_result.get('mid_game_consolidations', 0),
-                        'success_weighted_memories': episode_result.get('success_weighted_memories', 0),
-                        'continuous_learning_metrics': episode_result.get('continuous_learning_metrics', {}),
+                        'actions_taken': session_result.get('actions_taken', 0),  # Updated variable name
+                        'action_sequences': session_result.get('action_sequences', {}),  # Updated variable name
+                        'mid_game_consolidations': session_result.get('mid_game_consolidations', 0),  # Updated variable name
+                        'success_weighted_memories': session_result.get('success_weighted_memories', 0),  # Updated variable name
+                        'continuous_learning_metrics': session_result.get('continuous_learning_metrics', {}),  # Updated variable name
                         'available_actions_used': len(set(getattr(self.available_actions_memory, 'action_history', []))),
                         'strategy_switches': self.training_state.get('strategy_switches', 0),
+                        'contrarian_mode': session_result.get('contrarian_mode', False),  # Get from session result
+                        'contrarian_confidence': session_result.get('contrarian_confidence', 0.0),  # Get from session result
                         'experiment_mode_triggered': getattr(self.available_actions_memory, 'experiment_mode', False)
                     }
                     
@@ -871,22 +875,27 @@ class ContinuousLearningLoop:
         
         return game_results
 
-    async def _run_real_arc_episode_enhanced(self, game_id: str, episode_count: int) -> Dict[str, Any]:
-        """Enhanced version that runs COMPLETE episodes with multiple actions until WIN/GAME_OVER."""
+    async def _run_real_arc_mastery_session_enhanced(self, game_id: str, session_count: int) -> Dict[str, Any]:  # Renamed method and parameter
+        """Enhanced version that runs COMPLETE mastery sessions with up to 100K actions until WIN/GAME_OVER."""
         try:
             # 1. Check for boredom and trigger curriculum advancement
-            boredom_results = self._check_and_handle_boredom(episode_count)
+            boredom_results = self._check_and_handle_boredom(session_count)  # Updated parameter name
             
-            # 2. Check if agent should sleep before episode
+            # 2. Check if agent should sleep before mastery session
             agent_state = self._get_current_agent_state()
-            should_sleep_now = self._should_agent_sleep(agent_state, episode_count)
+            should_sleep_now = self._should_agent_sleep(agent_state, session_count)  # Updated parameter name
             
             sleep_cycle_results = {}
             if should_sleep_now:
-                sleep_cycle_results = await self._execute_sleep_cycle(game_id, episode_count)
+                sleep_cycle_results = await self._execute_sleep_cycle(game_id, session_count)  # Updated parameter name
             
             # Check if model decides to reset the game
-            reset_decision = self._evaluate_game_reset_decision(game_id, episode_count, agent_state)
+            reset_decision = self._evaluate_game_reset_decision(game_id, session_count, agent_state)  # Updated parameter name
+            
+            # Check if contrarian strategy should be activated for consistent GAME_OVER states  
+            consecutive_failures = agent_state.get('consecutive_failures', 0)
+            contrarian_decision = self._should_activate_contrarian_strategy(game_id, consecutive_failures)
+            self.contrarian_strategy_active = contrarian_decision['activate']
             
             # Set up environment with API key
             env = os.environ.copy()
@@ -898,12 +907,12 @@ class ContinuousLearningLoop:
             best_score = 0
             final_state = 'NOT_FINISHED'
             episode_start_time = time.time()
-            max_actions_per_episode = 1000  # Allow for complex puzzles
+            max_actions_per_session = 100000  # Allow for complex ARC puzzles (was 1000)
             
-            print(f"🎮 Starting complete episode {episode_count} for {game_id}")
+            print(f"🎮 Starting complete mastery session {session_count} for {game_id}")  # Updated naming
             
-            # VERBOSE: Show memory state before episode
-            print(f"📊 PRE-EPISODE MEMORY STATUS:")
+            # VERBOSE: Show memory state before mastery session
+            print(f"📊 PRE-SESSION MEMORY STATUS:")  # Updated naming
             pre_memory_status = self._get_memory_consolidation_status()
             pre_sleep_status = self._get_current_sleep_state_info()
             
@@ -951,8 +960,17 @@ class ContinuousLearningLoop:
             if reset_decision['should_reset']:
                 cmd.append('--reset')
             
-            # Add tags to identify this episode
-            cmd.extend(['--tags', f'Attempt#{episode_count}'])
+            # Apply contrarian strategy if activated
+            cmd = self._apply_contrarian_strategy_to_command(cmd, contrarian_decision)
+            
+            # Dynamic contextual tags for better tracking
+            energy_state = "High" if current_energy > 0.7 else "Med" if current_energy > 0.4 else "Low"
+            memory_ops = self.global_counters.get('total_memory_operations', 0)
+            sleep_cycles = self.global_counters.get('total_sleep_cycles', 0)
+            contrarian_mode = "Contrarian" if getattr(self, 'contrarian_strategy_active', False) else "Standard"
+            
+            dynamic_tag = f"S{session_count}_{energy_state}E_M{memory_ops}_Z{sleep_cycles}_{contrarian_mode}"  # Updated variable name
+            cmd.extend(['--tags', dynamic_tag])
             
             # Run the complete game session until WIN/GAME_OVER
             try:
@@ -1113,7 +1131,7 @@ class ContinuousLearningLoop:
                 'best_score': best_score,
                 'game_state': final_state,
                 'game_id': game_id,
-                'episode': episode_count,
+                'session': session_count,  # Updated key and variable name
                 'actions_taken': episode_actions,
                 'episode_duration': episode_duration,
                 'timestamp': time.time(),
@@ -1371,7 +1389,7 @@ class ContinuousLearningLoop:
                 swarm_results = await self.run_swarm_mode(
                     session.games_to_play,
                     max_concurrent=3,
-                    max_episodes_per_game=session.max_episodes_per_game
+                    max_mastery_sessions_per_game=session.max_mastery_sessions_per_game  # Updated attribute name
                 )
                 
                 # Convert SWARM results to session format
@@ -1398,7 +1416,7 @@ class ContinuousLearningLoop:
                     
                     game_results = await self._train_on_game(
                         game_id,
-                        session.max_episodes_per_game,
+                        session.max_mastery_sessions_per_game,  # Updated attribute name
                         session.target_performance
                     )
                     
@@ -1786,7 +1804,9 @@ class ContinuousLearningLoop:
     def start_training_session(
         self,
         games: List[str],
-        max_episodes_per_game: int = 50,
+        max_mastery_sessions_per_game: int = 50,  # Updated parameter name
+        max_actions_per_session: int = 100000,  # New parameter
+        enable_contrarian_mode: bool = False,  # New parameter
         target_win_rate: float = 0.3,
         target_avg_score: float = 50.0,
         salience_mode: SalienceMode = SalienceMode.LOSSLESS,
@@ -1798,7 +1818,7 @@ class ContinuousLearningLoop:
         
         Args:
             games: List of ARC game IDs to train on
-            max_episodes_per_game: Maximum episodes per game
+            max_mastery_sessions_per_game: Maximum mastery sessions per game (renamed from episodes)
             target_win_rate: Target win rate to achieve
             target_avg_score: Target average score
             salience_mode: Which salience mode to use (LOSSLESS or DECAY_COMPRESSION)
@@ -1812,7 +1832,7 @@ class ContinuousLearningLoop:
         self.current_session = TrainingSession(
             session_id=session_id,
             games_to_play=games,
-            max_episodes_per_game=max_episodes_per_game,
+            max_mastery_sessions_per_game=max_mastery_sessions_per_game,  # Updated parameter name
             learning_rate_schedule={
                 'initial': 0.001,
                 'mid': 0.0005,
@@ -1823,6 +1843,8 @@ class ContinuousLearningLoop:
                 'win_rate': target_win_rate,
                 'avg_score': target_avg_score
             },
+            max_actions_per_session=max_actions_per_session,  # New parameter
+            enable_contrarian_strategy=enable_contrarian_mode,  # New parameter
             salience_mode=salience_mode,
             enable_salience_comparison=enable_salience_comparison,
             swarm_enabled=swarm_enabled
@@ -2249,8 +2271,8 @@ class ContinuousLearningLoop:
         except:
             return 0.0
     
-    def _calculate_episode_effectiveness(self, episode_result: Dict[str, Any], game_results: Dict[str, Any]) -> float:
-        """Calculate episode effectiveness with SUCCESS-WEIGHTED PRIORITY for memory retention.
+    def _calculate_session_effectiveness(self, session_result: Dict[str, Any], game_results: Dict[str, Any]) -> float:  # Renamed method
+        """Calculate mastery session effectiveness with SUCCESS-WEIGHTED PRIORITY for memory retention.
         
         WIN attempts get 10x higher effectiveness for memory prioritization.
         This ensures successful strategies are strongly retained.
@@ -2258,7 +2280,7 @@ class ContinuousLearningLoop:
         base_effectiveness = 0.0
         
         # SUCCESS MULTIPLIER - Critical for memory retention
-        success = episode_result.get('success', False)
+        success = session_result.get('success', False)  # Updated parameter name
         if success:
             success_multiplier = 10.0  # WIN attempts get 10x priority
             base_effectiveness += 0.5   # Base bonus for success
@@ -2266,11 +2288,11 @@ class ContinuousLearningLoop:
             success_multiplier = 1.0    # Normal priority for failures
         
         # Score-based effectiveness
-        current_score = episode_result.get('final_score', 0)
-        previous_episodes = game_results.get('episodes', [])
+        current_score = session_result.get('final_score', 0)  # Updated parameter name
+        previous_sessions = game_results.get('episodes', [])  # Will eventually rename this key too
         
-        if len(previous_episodes) > 1:
-            previous_scores = [ep.get('final_score', 0) for ep in previous_episodes[-5:]]
+        if len(previous_sessions) > 1:  # Updated variable name
+            previous_scores = [session.get('final_score', 0) for session in previous_sessions[-5:]]  # Updated variable name
             avg_previous_score = sum(previous_scores) / len(previous_scores)
             
             if avg_previous_score > 0:
@@ -2278,13 +2300,13 @@ class ContinuousLearningLoop:
                 base_effectiveness += max(0, score_improvement * 0.3)
         
         # Action efficiency effectiveness
-        actions_taken = episode_result.get('actions_taken', 0)
+        actions_taken = session_result.get('actions_taken', 0)  # Updated parameter name
         if actions_taken > 0 and current_score > 0:
             efficiency = current_score / actions_taken  # Score per action
             base_effectiveness += min(efficiency * 0.1, 0.2)
         
         # Pattern discovery effectiveness
-        patterns_found = len(episode_result.get('patterns_discovered', []))
+        patterns_found = len(session_result.get('patterns_discovered', []))  # Updated parameter name
         base_effectiveness += min(patterns_found * 0.05, 0.1)
         
         # Apply success multiplier for memory prioritization
@@ -2439,9 +2461,7 @@ class ContinuousLearningLoop:
                 hidden_state=torch.zeros(64),
                 active_goals=[],
                 memory_state=None,
-                timestamp=self.training_state.get('episode_count', 0),
-                is_alive=True,
-                step_count=self.training_state.get('episode_count', 0)
+                timestamp=self.training_state.get('episode_count', 0)
             )
             
             # Update current goals with learning progress
@@ -2636,6 +2656,57 @@ class ContinuousLearningLoop:
             
         finally:
             self.memory_consolidation_tracker['memory_compression_active'] = False
+    
+    def _should_activate_contrarian_strategy(self, game_id: str, consecutive_failures: int) -> Dict[str, Any]:
+        """
+        Determine if contrarian strategy should be activated when consistently reaching GAME_OVER.
+        
+        Contrarian strategy: If normal actions consistently fail, try the opposite approach
+        based on memory of previous failed patterns.
+        """
+        contrarian_decision = {
+            'activate': False,
+            'reason': None,
+            'confidence': 0.0,
+            'strategy_type': 'standard'
+        }
+        
+        # Activate contrarian if:
+        # 1. Multiple consecutive failures (3+ GAME_OVER states)
+        # 2. Same game repeatedly failing
+        # 3. No learning progress being made
+        
+        if consecutive_failures >= 3:
+            # Check if this specific game has been consistently failing
+            game_history = self.game_complexity_history.get(game_id, {})
+            recent_effectiveness = game_history.get('recent_effectiveness', [])
+            
+            if len(recent_effectiveness) >= 3 and all(eff < 0.1 for eff in recent_effectiveness[-3:]):
+                contrarian_decision.update({
+                    'activate': True,
+                    'reason': f'Consistent GAME_OVER on {game_id} after {consecutive_failures} failures',
+                    'confidence': min(0.9, consecutive_failures * 0.2),
+                    'strategy_type': 'memory_inverse'
+                })
+                print(f"🔄 CONTRARIAN MODE ACTIVATED: {contrarian_decision['reason']}")
+                print(f"   Confidence: {contrarian_decision['confidence']:.1%}")
+        
+        return contrarian_decision
+
+    def _apply_contrarian_strategy_to_command(self, cmd: List[str], contrarian_decision: Dict[str, Any]) -> List[str]:
+        """
+        Modify the command to implement contrarian strategy based on memory analysis.
+        """
+        if not contrarian_decision['activate']:
+            return cmd
+        
+        # Add contrarian flags to the command
+        if contrarian_decision['strategy_type'] == 'memory_inverse':
+            cmd.extend(['--strategy', 'contrarian'])
+            cmd.extend(['--invert-memory-patterns', 'true'])
+            
+        print(f"🔄 Applied contrarian strategy: {contrarian_decision['strategy_type']}")
+        return cmd
     
     def _evaluate_game_reset_decision(self, game_id: str, episode_count: int, agent_state: Dict[str, Any]) -> Dict[str, Any]:
         """Evaluate whether the model should decide to reset the game."""
