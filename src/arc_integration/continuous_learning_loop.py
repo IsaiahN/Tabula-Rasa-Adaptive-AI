@@ -191,10 +191,14 @@ class ContinuousLearningLoop:
         # Initialize goal invention system
         self.goal_system = GoalInventionSystem()
         
-        # Game-specific available actions memory (specialized memory type)
-        self.game_actions_memory = {}  # game_id -> {'available_actions': set, 'action_effectiveness': dict, 'action_patterns': list}
-        self.game_actions_memory_file = self.save_directory / "game_actions_memory.json"
-        self._load_game_actions_memory()
+        # Specialized Available Actions Memory - persists per game until new game starts
+        self.available_actions_memory = {
+            'current_game_id': None,
+            'available_actions': [],
+            'action_effectiveness_history': {},  # Track which actions work for this game
+            'winning_action_sequences': [],      # Store successful action patterns
+            'failed_action_patterns': []         # Store failed patterns to avoid
+        }
         
         # Salience system components
         self.salience_calculator: Optional[SalienceCalculator] = None
@@ -769,7 +773,7 @@ class ContinuousLearningLoop:
                     effectiveness = self._calculate_episode_effectiveness(episode_result, game_results)
                     learning_progress = self._convert_effectiveness_to_lp(effectiveness)
                     
-                    # Store LP history entry
+                    # Store LP history entry with ENHANCED CONTINUOUS LEARNING METRICS
                     lp_entry = {
                         'episode': episode_count,
                         'game_id': game_id,
@@ -777,7 +781,16 @@ class ContinuousLearningLoop:
                         'effectiveness': effectiveness,
                         'score': current_score,
                         'success': success,
-                        'timestamp': time.time()
+                        'timestamp': time.time(),
+                        # CONTINUOUS LEARNING ENHANCEMENTS
+                        'actions_taken': episode_result.get('actions_taken', 0),
+                        'action_sequences': episode_result.get('action_sequences', {}),
+                        'mid_game_consolidations': episode_result.get('mid_game_consolidations', 0),
+                        'success_weighted_memories': episode_result.get('success_weighted_memories', 0),
+                        'continuous_learning_metrics': episode_result.get('continuous_learning_metrics', {}),
+                        'available_actions_used': len(set(getattr(self.available_actions_memory, 'action_history', []))),
+                        'strategy_switches': self.training_state.get('strategy_switches', 0),
+                        'experiment_mode_triggered': getattr(self.available_actions_memory, 'experiment_mode', False)
                     }
                     
                     if 'lp_history' not in self.training_state:
@@ -973,37 +986,9 @@ class ContinuousLearningLoop:
                     print(f"🎯 Game Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
                     print(f"🎯 Effective Actions Found: {len(effective_actions)}")
                     
-                    # Update game-specific actions memory with session results
-                    game_id = f"game_{episode_count}_{int(time.time())}"
-                    if effective_actions:
-                        # Extract available actions from effective actions
-                        available_actions = [int(action.get('action_type', 'ACTION1').replace('ACTION', '')) 
-                                           for action in effective_actions 
-                                           if action.get('action_type', '').startswith('ACTION')]
-                        
-                        # Update memory for each effective action
-                        for action in effective_actions:
-                            action_type = action.get('action_type', 'ACTION1')
-                            if action_type.startswith('ACTION'):
-                                action_id = int(action_type.replace('ACTION', ''))
-                                effectiveness = self._update_game_actions_memory(
-                                    game_id=game_id,
-                                    available_actions=available_actions,
-                                    action_taken=action_id,
-                                    success=action.get('score_achieved', 0) > 0,
-                                    score=action.get('score_achieved', 0),
-                                    coordinates=None  # Add coordinate tracking if needed
-                                )
-                        
-                        # Log action effectiveness learning
-                        best_actions = self._get_best_actions_for_game(game_id)
-                        if best_actions:
-                            print(f"🎯 Action Effectiveness Learning: Top actions for this game:")
-                            for action_id, eff_score in best_actions[:3]:  # Top 3
-                                print(f"   ACTION{action_id}: effectiveness {eff_score:.2f}")
-                        
-                        # Save actions memory to persist learning
-                        self._save_game_actions_memory()
+                    # CRITICAL: Simulate mid-game consolidation for actions during gameplay
+                    if episode_actions > 100:  # Only for substantial games
+                        await self._simulate_mid_game_consolidation(effective_actions, episode_actions)
                     
                 except asyncio.TimeoutError:
                     print(f"⏰ Complete game session timed out after 10 minutes - killing process")
@@ -1135,7 +1120,18 @@ class ContinuousLearningLoop:
                 'sleep_cycle_results': sleep_cycle_results,
                 'reset_decision': reset_decision,
                 'memory_consolidation_status': self._get_memory_consolidation_status(),
-                'sleep_state_info': self._get_current_sleep_state_info()
+                'sleep_state_info': self._get_current_sleep_state_info(),
+                # ENHANCED: Action sequence tracking for continuous learning
+                'effective_actions': effective_actions,
+                'action_sequences': self._analyze_action_sequences(effective_actions),
+                'mid_game_consolidations': self.training_state.get('mid_game_consolidations', 0),
+                'success_weighted_memories': len([a for a in effective_actions if a.get('success', False)]),
+                'continuous_learning_metrics': {
+                    'consolidation_points': max(1, episode_actions // 150),
+                    'memory_strength_ops': len([a for a in effective_actions if a.get('effectiveness', 0) > 0.2]),
+                    'pattern_discoveries': len(effective_actions),
+                    'learning_velocity': len(effective_actions) / max(1, episode_duration / 60)  # Patterns per minute
+                }
             }
             
             if grid_dims:
@@ -1899,76 +1895,374 @@ class ContinuousLearningLoop:
         return should_sleep
     
     def _check_and_handle_boredom(self, episode_count: int) -> Dict[str, Any]:
-        """Check for boredom (LP saturation) and automatically advance curriculum complexity.
+        """Enhanced boredom detection that triggers strategy switching and action experimentation.
+        
+        Detects when agent gets stuck in action loops or repeated failures and triggers:
+        1. New action combination strategies
+        2. Random exploration using available actions
+        3. Strategy switching to break bad cycles
         
         Returns:
-            Dict containing boredom detection results and any curriculum changes made.
+            Dict containing boredom detection results and strategy changes made.
         """
         boredom_results = {
             'boredom_detected': False,
-            'lp_stagnation_episodes': 0,
+            'boredom_type': 'none',
+            'strategy_switched': False,
+            'new_strategy': None,
+            'action_experimentation_triggered': False,
             'curriculum_advanced': False,
             'new_complexity': None,
             'reason': 'no_boredom'
         }
         
-        # Only check after enough episodes for meaningful trend
-        if episode_count < 10:
+        # Only check after enough episodes for meaningful pattern detection
+        if episode_count < 5:
             return boredom_results
         
-        # Get recent LP history (last 10 episodes)
+        # Get recent LP history and action patterns
         recent_lp_history = self.training_state.get('lp_history', [])[-10:]
+        recent_action_patterns = self._analyze_recent_action_patterns()
         
-        if len(recent_lp_history) < 5:
+        if len(recent_lp_history) < 3:
             return boredom_results
         
-        # Calculate LP trend - are we stagnating?
+        # Calculate LP trend and action repetition patterns
         recent_lp_values = [entry.get('learning_progress', 0) for entry in recent_lp_history]
         lp_variance = np.var(recent_lp_values) if recent_lp_values else 0
         mean_lp = np.mean(recent_lp_values) if recent_lp_values else 0
         
-        # Boredom detection criteria
+        # Enhanced boredom detection criteria
         is_lp_stagnant = lp_variance < 0.001  # Very low variance = stagnation
         is_lp_low = mean_lp < 0.03  # Consistently low LP
         consecutive_low_episodes = sum(1 for lp in recent_lp_values[-5:] if lp < 0.05)
+        action_loop_detected = recent_action_patterns.get('repetitive_loops', 0) > 2
+        strategy_effectiveness_declining = recent_action_patterns.get('effectiveness_trend', 0) < -0.1
         
-        # Detect boredom state
-        boredom_detected = (
-            is_lp_stagnant and is_lp_low and 
-            consecutive_low_episodes >= 3
-        )
-        
-        if boredom_detected:
+        # Detect different types of boredom
+        if action_loop_detected and consecutive_low_episodes >= 2:
             boredom_results['boredom_detected'] = True
-            boredom_results['lp_stagnation_episodes'] = consecutive_low_episodes
+            boredom_results['boredom_type'] = 'action_loops'
+            boredom_results['reason'] = f'Detected {recent_action_patterns["repetitive_loops"]} action loops with low LP'
+            
+            # Trigger action experimentation using available actions
+            self._trigger_action_experimentation()
+            boredom_results['action_experimentation_triggered'] = True
+            
+        elif is_lp_stagnant and is_lp_low and consecutive_low_episodes >= 3:
+            boredom_results['boredom_detected'] = True
+            boredom_results['boredom_type'] = 'lp_stagnation'
             boredom_results['reason'] = f'LP stagnation: variance={lp_variance:.6f}, mean={mean_lp:.3f}'
             
-            # Automatically advance curriculum complexity
+            # Advance curriculum complexity
             current_complexity = self.training_config.get('curriculum_complexity', 1)
-            new_complexity = min(current_complexity + 1, 10)  # Cap at complexity 10
+            new_complexity = min(current_complexity + 1, 10)
             
             if new_complexity > current_complexity:
                 self.training_config['curriculum_complexity'] = new_complexity
                 boredom_results['curriculum_advanced'] = True
                 boredom_results['new_complexity'] = new_complexity
                 
-                logger.info(f"🎯 Boredom detected! Advancing curriculum complexity: {current_complexity} → {new_complexity}")
-                logger.info(f"   LP stagnation: {consecutive_low_episodes} episodes, variance: {lp_variance:.6f}")
-            else:
-                boredom_results['reason'] += ' (already at max complexity)'
+        elif strategy_effectiveness_declining:
+            boredom_results['boredom_detected'] = True
+            boredom_results['boredom_type'] = 'strategy_ineffective'
+            boredom_results['reason'] = f'Strategy effectiveness declining: {recent_action_patterns["effectiveness_trend"]:.3f}'
+            
+            # Switch to new strategy
+            new_strategy = self._switch_action_strategy()
+            boredom_results['strategy_switched'] = True
+            boredom_results['new_strategy'] = new_strategy
+        
+        if boredom_results['boredom_detected']:
+            logger.info(f"🧠 Boredom detected ({boredom_results['boredom_type']}): {boredom_results['reason']}")
         
         return boredom_results
     
-    def _calculate_episode_effectiveness(self, episode_result: Dict[str, Any], game_results: Dict[str, Any]) -> float:
-        """Calculate episode effectiveness as a measure of learning signal strength.
+    def _analyze_recent_action_patterns(self) -> Dict[str, Any]:
+        """Analyze recent action patterns to detect loops and ineffective strategies."""
+        lp_history = self.training_state.get('lp_history', [])
+        if len(lp_history) < 3:
+            return {'repetitive_loops': 0, 'effectiveness_trend': 0}
         
-        Effectiveness combines multiple factors:
-        - Score improvement
-        - Success rate improvement
-        - Novel pattern discovery
-        - Memory efficiency gains
+        # Get recent episodes
+        recent_episodes = lp_history[-5:]
+        
+        # Check for repetitive action patterns (simplified detection)
+        action_sequences = []
+        effectiveness_values = []
+        
+        for episode in recent_episodes:
+            # Track effectiveness trend
+            effectiveness_values.append(episode.get('effectiveness', 0))
+        
+        # Calculate effectiveness trend (positive = improving, negative = declining)
+        if len(effectiveness_values) >= 3:
+            early_avg = np.mean(effectiveness_values[:2])
+            late_avg = np.mean(effectiveness_values[-2:])
+            effectiveness_trend = late_avg - early_avg
+        else:
+            effectiveness_trend = 0
+        
+        # Simple loop detection based on similar effectiveness scores
+        loop_count = 0
+        if len(effectiveness_values) >= 3:
+            for i in range(len(effectiveness_values) - 2):
+                if abs(effectiveness_values[i] - effectiveness_values[i+1]) < 0.01:
+                    loop_count += 1
+        
+        return {
+            'repetitive_loops': loop_count,
+            'effectiveness_trend': effectiveness_trend,
+            'recent_effectiveness': effectiveness_values[-1] if effectiveness_values else 0
+        }
+    
+    def _trigger_action_experimentation(self):
+        """Trigger experimentation with available actions to break out of bad cycles."""
+        current_game = self.available_actions_memory.get('current_game_id')
+        if current_game:
+            # Mark that we should try random/experimental actions
+            self.available_actions_memory['experiment_mode'] = True
+            self.available_actions_memory['experiment_started'] = time.time()
+            logger.info(f"🧪 Action experimentation triggered for {current_game}")
+    
+    def _switch_action_strategy(self) -> str:
+        """Switch to a new action strategy to break ineffective patterns."""
+        strategies = ['focused_exploration', 'random_sampling', 'pattern_matching', 'conservative_moves']
+        current_strategy = self.training_state.get('current_strategy', 'focused_exploration')
+        
+        # Pick a different strategy
+        available_strategies = [s for s in strategies if s != current_strategy]
+        new_strategy = random.choice(available_strategies)
+        
+        self.training_state['current_strategy'] = new_strategy
+        logger.info(f"🔄 Strategy switched: {current_strategy} → {new_strategy}")
+        
+        return new_strategy
+
+    def _should_trigger_mid_game_sleep(self, step_count: int, recent_actions: List[Dict]) -> bool:
+        """Determine if mid-game sleep should be triggered for pattern consolidation.
+        
+        Mid-game sleep enables continuous learning within episodes, matching top performers.
+        Triggers on:
+        - Pattern accumulation (every 100-200 actions)
+        - Significant learning signals
+        - Energy threshold with consolidation opportunities
+        """
+        # Don't sleep too early or too frequently
+        last_sleep = getattr(self, '_last_mid_game_sleep_step', 0)
+        min_sleep_interval = 100  # Minimum actions between sleep cycles
+        
+        if step_count - last_sleep < min_sleep_interval:
+            return False
+        
+        # Trigger conditions for mid-game sleep
+        pattern_accumulation_trigger = step_count % 150 == 0  # Regular pattern consolidation
+        
+        # Check for significant learning signals in recent actions
+        if len(recent_actions) >= 10:
+            recent_scores = [action.get('effectiveness', 0) for action in recent_actions[-10:]]
+            high_learning_signal = np.mean(recent_scores) > 0.3
+            
+            if pattern_accumulation_trigger or high_learning_signal:
+                return True
+        
+        # Energy-based trigger with learning opportunity
+        current_energy = getattr(self.agent.energy_system, 'current_energy', 1.0)
+        if current_energy < 0.6 and len(recent_actions) >= 20:
+            # Check if we have patterns worth consolidating
+            effectiveness_values = [action.get('effectiveness', 0) for action in recent_actions[-20:]]
+            if len([e for e in effectiveness_values if e > 0.2]) >= 5:  # At least 5 effective actions
+                return True
+        
+        return False
+
+    async def _execute_mid_game_sleep(self, recent_actions: List[Dict], step_count: int) -> None:
+        """Execute mid-game sleep cycle for pattern consolidation during gameplay.
+        
+        This is CRITICAL for matching top performer capabilities - consolidates patterns
+        without ending the episode, enabling continuous learning within games.
+        """
+        self._last_mid_game_sleep_step = step_count
+        
+        # Extract high-value actions for consolidation
+        effective_actions = [
+            action for action in recent_actions[-50:]  # Last 50 actions
+            if action.get('effectiveness', 0) > 0.2
+        ]
+        
+        if len(effective_actions) > 0:
+            logger.info(f"🌙 Mid-game consolidating {len(effective_actions)} effective actions")
+            
+            # Quick memory consolidation (shorter than post-episode sleep)
+            try:
+                if hasattr(self.agent, 'sleep_system'):
+                    # Trigger short consolidation cycle
+                    consolidation_duration = min(10, len(effective_actions) * 0.5)  # 0.5s per action
+                    
+                    sleep_input = {
+                        'effective_actions': effective_actions,
+                        'consolidation_type': 'mid_game',
+                        'duration': consolidation_duration
+                    }
+                    
+                    # Quick memory strengthening without full sleep cycle
+                    for action in effective_actions:
+                        if hasattr(self.agent, 'memory'):
+                            self.agent.memory.strengthen_memory(action, weight=1.5)
+                    
+                    logger.info(f"✨ Mid-game consolidation completed in {consolidation_duration:.1f}s")
+                
+            except Exception as e:
+                logger.warning(f"Mid-game sleep error: {e}")
+        
+        # Partial energy restoration (not full like post-episode)
+        if hasattr(self.agent, 'energy_system'):
+            current_energy = getattr(self.agent.energy_system, 'current_energy', 1.0)
+            restored_energy = min(1.0, current_energy + 0.2)  # Small restoration
+            self.agent.energy_system.current_energy = restored_energy
+            logger.info(f"⚡ Energy restored: {current_energy:.2f} → {restored_energy:.2f}")
+
+    async def _simulate_mid_game_consolidation(self, effective_actions: List[Dict], total_actions: int) -> None:
+        """Simulate mid-game consolidation points as if sleep occurred during gameplay.
+        
+        Since we run complete game sessions, this retroactively applies the consolidation
+        that would have happened if we had mid-game sleep cycles. This simulates the
+        continuous learning that top performers achieve.
+        """
+        if not effective_actions:
+            return
+        
+        # Calculate consolidation points based on action count
+        consolidation_points = max(1, total_actions // 150)  # Every 150 actions
+        actions_per_consolidation = len(effective_actions) // max(1, consolidation_points)
+        
+        logger.info(f"🔄 Simulating {consolidation_points} mid-game consolidation points for {total_actions} actions")
+        
+        # Process effective actions in chunks as if consolidated during gameplay
+        for i in range(consolidation_points):
+            start_idx = i * actions_per_consolidation
+            end_idx = min((i + 1) * actions_per_consolidation, len(effective_actions))
+            action_chunk = effective_actions[start_idx:end_idx]
+            
+            if not action_chunk:
+                continue
+                
+            logger.info(f"  🌙 Consolidation point {i+1}: {len(action_chunk)} actions")
+            
+            # Strengthen memories for this chunk with success weighting
+            try:
+                for action in action_chunk:
+                    effectiveness = action.get('effectiveness', 0)
+                    
+                    # Apply success weighting (10x for wins)
+                    if action.get('success', False):
+                        weight = effectiveness * 10.0  # SUCCESS-WEIGHTED PRIORITY
+                    else:
+                        weight = effectiveness
+                    
+                    # Strengthen memory if above threshold
+                    if hasattr(self.agent, 'memory') and weight > 0.2:
+                        self.agent.memory.strengthen_memory(action, weight=weight)
+                
+                # Record consolidation in training state
+                if 'mid_game_consolidations' not in self.training_state:
+                    self.training_state['mid_game_consolidations'] = 0
+                self.training_state['mid_game_consolidations'] += 1
+                
+            except Exception as e:
+                logger.warning(f"Consolidation point {i+1} error: {e}")
+
+    def _analyze_action_sequences(self, effective_actions: List[Dict]) -> Dict[str, Any]:
+        """Analyze action sequences to identify learning patterns and strategies.
+        
+        This transforms the traditional episode structure into action sequences,
+        enabling continuous learning analysis like top performers.
+        """
+        if not effective_actions:
+            return {'sequences': [], 'patterns': [], 'strategy_effectiveness': {}}
+        
+        # Group actions into sequences based on effectiveness patterns
+        sequences = []
+        current_sequence = []
+        
+        for i, action in enumerate(effective_actions):
+            effectiveness = action.get('effectiveness', 0)
+            
+            # Start new sequence on effectiveness jumps or strategy changes
+            if (current_sequence and 
+                abs(effectiveness - current_sequence[-1].get('effectiveness', 0)) > 0.3):
+                sequences.append(current_sequence)
+                current_sequence = []
+            
+            current_sequence.append(action)
+        
+        if current_sequence:
+            sequences.append(current_sequence)
+        
+        # Analyze patterns within sequences
+        patterns = []
+        for seq in sequences:
+            if len(seq) >= 3:
+                pattern = {
+                    'length': len(seq),
+                    'avg_effectiveness': np.mean([a.get('effectiveness', 0) for a in seq]),
+                    'effectiveness_trend': self._calculate_trend([a.get('effectiveness', 0) for a in seq]),
+                    'action_types': [a.get('action_type', 'unknown') for a in seq],
+                    'success_rate': len([a for a in seq if a.get('success', False)]) / len(seq)
+                }
+                patterns.append(pattern)
+        
+        # Strategy effectiveness analysis
+        strategy_effectiveness = {}
+        for action in effective_actions:
+            strategy = action.get('strategy', 'unknown')
+            if strategy not in strategy_effectiveness:
+                strategy_effectiveness[strategy] = {'total': 0, 'count': 0}
+            strategy_effectiveness[strategy]['total'] += action.get('effectiveness', 0)
+            strategy_effectiveness[strategy]['count'] += 1
+        
+        # Calculate average effectiveness per strategy
+        for strategy in strategy_effectiveness:
+            count = strategy_effectiveness[strategy]['count']
+            if count > 0:
+                strategy_effectiveness[strategy]['avg'] = strategy_effectiveness[strategy]['total'] / count
+        
+        return {
+            'sequences': sequences,
+            'patterns': patterns,
+            'strategy_effectiveness': strategy_effectiveness,
+            'total_sequences': len(sequences),
+            'avg_sequence_length': np.mean([len(seq) for seq in sequences]) if sequences else 0
+        }
+
+    def _calculate_trend(self, values: List[float]) -> float:
+        """Calculate trend in a list of values."""
+        if len(values) < 2:
+            return 0.0
+        
+        # Simple linear trend calculation
+        x = np.arange(len(values))
+        try:
+            slope = np.polyfit(x, values, 1)[0]
+            return slope
+        except:
+            return 0.0
+    
+    def _calculate_episode_effectiveness(self, episode_result: Dict[str, Any], game_results: Dict[str, Any]) -> float:
+        """Calculate episode effectiveness with SUCCESS-WEIGHTED PRIORITY for memory retention.
+        
+        WIN attempts get 10x higher effectiveness for memory prioritization.
+        This ensures successful strategies are strongly retained.
         """
         base_effectiveness = 0.0
+        
+        # SUCCESS MULTIPLIER - Critical for memory retention
+        success = episode_result.get('success', False)
+        if success:
+            success_multiplier = 10.0  # WIN attempts get 10x priority
+            base_effectiveness += 0.5   # Base bonus for success
+        else:
+            success_multiplier = 1.0    # Normal priority for failures
         
         # Score-based effectiveness
         current_score = episode_result.get('final_score', 0)
@@ -1980,22 +2274,22 @@ class ContinuousLearningLoop:
             
             if avg_previous_score > 0:
                 score_improvement = (current_score - avg_previous_score) / avg_previous_score
-                base_effectiveness += max(0, score_improvement * 0.5)  # Weight score improvement
+                base_effectiveness += max(0, score_improvement * 0.3)
         
-        # Success-based effectiveness
-        if episode_result.get('success', False):
-            base_effectiveness += 0.3  # Bonus for success
+        # Action efficiency effectiveness
+        actions_taken = episode_result.get('actions_taken', 0)
+        if actions_taken > 0 and current_score > 0:
+            efficiency = current_score / actions_taken  # Score per action
+            base_effectiveness += min(efficiency * 0.1, 0.2)
         
         # Pattern discovery effectiveness
         patterns_found = len(episode_result.get('patterns_discovered', []))
-        base_effectiveness += min(patterns_found * 0.1, 0.2)  # Cap pattern bonus
+        base_effectiveness += min(patterns_found * 0.05, 0.1)
         
-        # Memory efficiency (if available)
-        memory_operations = episode_result.get('memory_operations', 0)
-        if memory_operations > 0:
-            base_effectiveness += min(memory_operations * 0.05, 0.1)
+        # Apply success multiplier for memory prioritization
+        final_effectiveness = base_effectiveness * success_multiplier
         
-        return min(base_effectiveness, 1.0)  # Cap at 1.0
+        return min(final_effectiveness, 5.0)  # Cap but allow high values for wins
     
     def _convert_effectiveness_to_lp(self, effectiveness: float) -> float:
         """Convert episode effectiveness to learning progress using Tabula Rasa principles.
@@ -2171,179 +2465,6 @@ class ContinuousLearningLoop:
             logger.warning(f"Goal processing failed: {e}")
         
         return goal_results
-    
-    def _initialize_game_actions_memory(self, game_id: str):
-        """Initialize specialized memory for game-specific available actions."""
-        if game_id not in self.game_actions_memory:
-            self.game_actions_memory[game_id] = {
-                'available_actions': set(),  # Actions available in this game
-                'action_effectiveness': {},  # action_id -> effectiveness_score
-                'action_patterns': [],       # Successful action sequences
-                'action_coordinates': {},    # For ACTION6 - successful coordinate patterns
-                'last_updated': time.time(),
-                'total_attempts': 0,
-                'successful_attempts': 0
-            }
-            logger.info(f"🎯 Initialized actions memory for game {game_id}")
-    
-    def _update_game_actions_memory(self, game_id: str, available_actions: List[int], 
-                                  action_taken: int, success: bool, score: int, 
-                                  coordinates: Optional[Tuple[int, int]] = None):
-        """Update game-specific actions memory with effectiveness data."""
-        self._initialize_game_actions_memory(game_id)
-        
-        memory = self.game_actions_memory[game_id]
-        
-        # Update available actions set
-        memory['available_actions'].update(available_actions)
-        
-        # Update action effectiveness
-        if action_taken not in memory['action_effectiveness']:
-            memory['action_effectiveness'][action_taken] = {'total_score': 0, 'attempts': 0, 'successes': 0}
-        
-        action_stats = memory['action_effectiveness'][action_taken]
-        action_stats['total_score'] += score
-        action_stats['attempts'] += 1
-        if success:
-            action_stats['successes'] += 1
-        
-        # Store successful coordinate patterns for ACTION6
-        if action_taken == 6 and coordinates and success:
-            if 'action_coordinates' not in memory:
-                memory['action_coordinates'] = {}
-            if action_taken not in memory['action_coordinates']:
-                memory['action_coordinates'][action_taken] = []
-            memory['action_coordinates'][action_taken].append({
-                'coordinates': coordinates,
-                'score': score,
-                'timestamp': time.time()
-            })
-        
-        # Update totals
-        memory['total_attempts'] += 1
-        if success:
-            memory['successful_attempts'] += 1
-        memory['last_updated'] = time.time()
-        
-        # Calculate action effectiveness scores
-        effectiveness = {}
-        for action_id, stats in memory['action_effectiveness'].items():
-            if stats['attempts'] > 0:
-                avg_score = stats['total_score'] / stats['attempts']
-                success_rate = stats['successes'] / stats['attempts']
-                effectiveness[action_id] = (avg_score * 0.7) + (success_rate * 30.0)  # Weight success heavily
-        
-        logger.info(f"🎯 Updated actions memory for {game_id}: {len(memory['available_actions'])} actions, "
-                   f"{memory['successful_attempts']}/{memory['total_attempts']} success rate")
-        
-        return effectiveness
-    
-    def _get_best_actions_for_game(self, game_id: str) -> List[Tuple[int, float]]:
-        """Get the most effective actions for a specific game, ranked by effectiveness."""
-        if game_id not in self.game_actions_memory:
-            return []
-        
-        memory = self.game_actions_memory[game_id]
-        action_effectiveness = {}
-        
-        for action_id, stats in memory['action_effectiveness'].items():
-            if stats['attempts'] > 0:
-                avg_score = stats['total_score'] / stats['attempts']
-                success_rate = stats['successes'] / stats['attempts']
-                effectiveness = (avg_score * 0.7) + (success_rate * 30.0)
-                action_effectiveness[action_id] = effectiveness
-        
-        # Sort by effectiveness descending
-        sorted_actions = sorted(action_effectiveness.items(), key=lambda x: x[1], reverse=True)
-        return sorted_actions
-    
-    def _clear_game_actions_memory(self, game_id: str):
-        """Clear actions memory when starting a new game (as requested)."""
-        if game_id in self.game_actions_memory:
-            del self.game_actions_memory[game_id]
-            logger.info(f"🗑️ Cleared actions memory for new game: {game_id}")
-    
-    def _get_success_weighted_salience(self, base_salience: float, success: bool, score: int) -> float:
-        """Calculate success-weighted salience for memory prioritization."""
-        if success:
-            # SUCCESS = 10x higher priority + score bonus
-            success_multiplier = 10.0
-            score_bonus = min(score / 100.0, 2.0)  # Up to 2x bonus for high scores
-            return base_salience * success_multiplier * (1.0 + score_bonus)
-        else:
-            # FAILURE = normal priority (still valuable for learning what NOT to do)
-            return base_salience * 1.0
-    
-    def _get_action_guidance_for_game(self, game_id: str) -> Dict[str, Any]:
-        """Get action selection guidance based on game-specific memory."""
-        guidance = {
-            'preferred_actions': [],
-            'avoid_actions': [],
-            'effective_patterns': [],
-            'success_rate': 0.0
-        }
-        
-        if game_id not in self.game_actions_memory:
-            return guidance
-        
-        memory = self.game_actions_memory[game_id]
-        
-        # Calculate success rate
-        if memory['total_attempts'] > 0:
-            guidance['success_rate'] = memory['successful_attempts'] / memory['total_attempts']
-        
-        # Get preferred actions (high effectiveness)
-        best_actions = self._get_best_actions_for_game(game_id)
-        if best_actions:
-            # Actions with effectiveness > 20.0 are preferred
-            guidance['preferred_actions'] = [action_id for action_id, eff in best_actions if eff > 20.0]
-            # Actions with effectiveness < 5.0 should be avoided
-            guidance['avoid_actions'] = [action_id for action_id, eff in best_actions if eff < 5.0]
-        
-        # Extract successful action patterns
-        if len(memory['action_patterns']) > 0:
-            guidance['effective_patterns'] = memory['action_patterns'][-5:]  # Last 5 patterns
-        
-        return guidance
-    
-    def _load_game_actions_memory(self):
-        """Load game actions memory from persistent storage."""
-        try:
-            if self.game_actions_memory_file.exists():
-                with open(self.game_actions_memory_file, 'r') as f:
-                    data = json.load(f)
-                    # Convert sets back from lists
-                    for game_id, memory in data.items():
-                        if 'available_actions' in memory and isinstance(memory['available_actions'], list):
-                            memory['available_actions'] = set(memory['available_actions'])
-                    self.game_actions_memory = data
-                    logger.info(f"🎯 Loaded game actions memory: {len(self.game_actions_memory)} games")
-            else:
-                self.game_actions_memory = {}
-                logger.info(f"🎯 Initialized new game actions memory")
-        except Exception as e:
-            logger.error(f"❌ Error loading game actions memory: {e}")
-            self.game_actions_memory = {}
-    
-    def _save_game_actions_memory(self):
-        """Save game actions memory to persistent storage."""
-        try:
-            # Convert sets to lists for JSON serialization
-            serializable_data = {}
-            for game_id, memory in self.game_actions_memory.items():
-                serializable_memory = memory.copy()
-                if 'available_actions' in serializable_memory:
-                    serializable_memory['available_actions'] = list(serializable_memory['available_actions'])
-                serializable_data[game_id] = serializable_memory
-            
-            # Ensure directory exists
-            self.game_actions_memory_file.parent.mkdir(exist_ok=True)
-            
-            with open(self.game_actions_memory_file, 'w') as f:
-                json.dump(serializable_data, f, indent=2)
-            logger.info(f"💾 Saved game actions memory: {len(self.game_actions_memory)} games")
-        except Exception as e:
-            logger.error(f"❌ Error saving game actions memory: {e}")
     
     async def _execute_sleep_cycle(self, game_id: str, episode_count: int) -> Dict[str, Any]:
         """Execute a sleep cycle with memory consolidation."""
