@@ -837,48 +837,97 @@ class ContinuousLearningLoop:
                 if episode_actions == 1 and reset_decision['should_reset']:
                     cmd.append('--reset')
                 
-                # Create the subprocess for this action
-                process = await asyncio.create_subprocess_exec(
-                    *cmd,
-                    cwd=str(self.arc_agents_path),
-                    env=env,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
+                # Add tags to identify this specific episode/action
+                cmd.extend(['--tags', f'episode{episode_count}_action{episode_actions}'])
                 
-                # Wait for action completion with timeout
+                # Create the subprocess for this action with improved handling
                 try:
-                    stdout, stderr = await asyncio.wait_for(
-                        process.communicate(), 
-                        timeout=60.0  # Timeout per action
+                    process = await asyncio.create_subprocess_exec(
+                        *cmd,
+                        cwd=str(self.arc_agents_path),
+                        env=env,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
                     )
-                except asyncio.TimeoutError:
-                    process.kill()
-                    await process.wait()
-                    print(f"⏰ Action {episode_actions} timed out")
-                    final_state = 'TIMEOUT'
-                    break
+                    
+                    # Wait for action completion with shorter timeout for stuck processes
+                    try:
+                        stdout, stderr = await asyncio.wait_for(
+                            process.communicate(), 
+                            timeout=30.0  # Reduced timeout to detect stuck processes faster
+                        )
+                    except asyncio.TimeoutError:
+                        print(f"⏰ Action {episode_actions} timed out - killing process")
+                        try:
+                            process.kill()
+                            await asyncio.wait_for(process.wait(), timeout=5.0)
+                        except:
+                            pass  # Process cleanup failed, continue anyway
+                        print(f"🔄 Attempting to continue episode after timeout")
+                        continue  # Try next action instead of breaking
+                    
+                    stdout_text = stdout.decode('utf-8', errors='ignore') if stdout else ""
+                    stderr_text = stderr.decode('utf-8', errors='ignore') if stderr else ""
+                    
+                    # Check if we're getting initialization messages instead of game play
+                    if "OK Tabula-rasa found" in stdout_text and "OK Full Ada" in stdout_text:
+                        if episode_actions <= 3:
+                            print(f"🔧 Action {episode_actions}: Agent initializing...")
+                        else:
+                            print(f"⚠️ Action {episode_actions}: Agent stuck in initialization loop")
+                            print(f"   This may indicate a game state issue")
+                    
+                    # Parse action result with better error handling
+                    try:
+                        action_result = self._parse_episode_results_comprehensive(stdout_text, stderr_text, game_id)
+                        action_score = action_result.get('final_score', 0)
+                        action_state = self._extract_game_state_from_output(stdout_text, stderr_text)
+                    except Exception as parse_error:
+                        print(f"⚠️ Parse error on action {episode_actions}: {parse_error}")
+                        action_score = 0
+                        action_state = 'NOT_FINISHED'
+                    
+                except Exception as subprocess_error:
+                    print(f"❌ Subprocess error on action {episode_actions}: {subprocess_error}")
+                    action_score = 0
+                    action_state = 'NOT_FINISHED'
+                    stdout_text = ""
+                    stderr_text = ""
                 
-                stdout_text = stdout.decode() if stdout else ""
-                stderr_text = stderr.decode() if stderr else ""
-                
-                # Parse action result
-                action_result = self._parse_episode_results_comprehensive(stdout_text, stderr_text, game_id)
-                action_score = action_result.get('final_score', 0)
-                action_state = self._extract_game_state_from_output(stdout_text, stderr_text)
-                
-                # VERBOSE: Show what's happening
+                # VERBOSE: Show what's happening with better initialization detection
                 print(f"    🎯 Action {episode_actions}: Score={action_score}, State={action_state}")
+                
+                # Check for different types of output
                 if stdout_text.strip():
-                    print(f"    📝 Output: {stdout_text.strip()[:100]}...")
+                    if "OK Tabula-rasa found" in stdout_text and "OK Full Ada" in stdout_text:
+                        if episode_actions <= 3:
+                            print(f"    � Agent Setup: Initializing tabula-rasa connection...")
+                        else:
+                            print(f"    ⚠️  Setup Loop: Agent repeating initialization (possible issue)")
+                    else:
+                        # Show actual game output
+                        clean_output = stdout_text.strip().replace('\n', ' ')[:150]
+                        print(f"    📝 Game Output: {clean_output}...")
+                
                 if stderr_text.strip():
-                    print(f"    ⚠️  Error: {stderr_text.strip()[:100]}...")
+                    clean_error = stderr_text.strip().replace('\n', ' ')[:150]
+                    print(f"    ⚠️  Error: {clean_error}...")
                 
                 # Update episode totals
                 if action_score > best_score:
                     best_score = action_score
                     total_score = action_score
                     print(f"    🏆 NEW BEST SCORE: {best_score}")
+                
+                # Check for stuck initialization and try to break out
+                if (episode_actions > 5 and action_score == 0 and 
+                    "OK Tabula-rasa found" in stdout_text and action_state == 'NOT_FINISHED'):
+                    print(f"    🔄 Detected initialization loop - attempting to break out")
+                    # Try a few more actions, then give up on this episode
+                    if episode_actions > 10:
+                        print(f"    ❌ Episode stuck in initialization - ending early")
+                        final_state = 'GAME_OVER'
+                        break
                 
                 final_state = action_state if action_state in ['WIN', 'GAME_OVER'] else 'NOT_FINISHED'
                 
