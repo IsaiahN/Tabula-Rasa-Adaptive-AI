@@ -38,6 +38,7 @@ from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeigh
 from core.sleep_system import SleepCycle
 from core.agent import AdaptiveLearningAgent
 from core.predictive_core import PredictiveCore
+from goals.goal_system import GoalInventionSystem, GoalPhase
 from core.energy_system import EnergySystem
 from memory.dnc import DNCMemory
 
@@ -173,6 +174,22 @@ class ContinuousLearningLoop:
             'learning_efficiency': 0.0,
             'knowledge_transfer_success': 0.0
         }
+        
+        # Training state and configuration for boredom detection
+        self.training_state = {
+            'lp_history': [],  # Stores learning progress history for boredom detection
+            'episode_count': 0,
+            'last_boredom_check': 0
+        }
+        
+        self.training_config = {
+            'curriculum_complexity': 1,  # Starting complexity level
+            'max_complexity': 10,        # Maximum complexity level
+            'boredom_threshold': 3       # Episodes of low LP before boredom triggers
+        }
+        
+        # Initialize goal invention system
+        self.goal_system = GoalInventionSystem()
         
         # Salience system components
         self.salience_calculator: Optional[SalienceCalculator] = None
@@ -743,6 +760,46 @@ class ContinuousLearningLoop:
                         
                     print(f"Episode {episode_count}: {'WIN' if success else 'LOSS'} | Score: {current_score} | State: {game_state}")
                     
+                    # Track learning progress for boredom detection
+                    effectiveness = self._calculate_episode_effectiveness(episode_result, game_results)
+                    learning_progress = self._convert_effectiveness_to_lp(effectiveness)
+                    
+                    # Store LP history entry
+                    lp_entry = {
+                        'episode': episode_count,
+                        'game_id': game_id,
+                        'learning_progress': learning_progress,
+                        'effectiveness': effectiveness,
+                        'score': current_score,
+                        'success': success,
+                        'timestamp': time.time()
+                    }
+                    
+                    if 'lp_history' not in self.training_state:
+                        self.training_state['lp_history'] = []
+                    self.training_state['lp_history'].append(lp_entry)
+                    
+                    # Keep only last 20 episodes in history
+                    if len(self.training_state['lp_history']) > 20:
+                        self.training_state['lp_history'] = self.training_state['lp_history'][-20:]
+                    
+                    # Update episode count
+                    self.training_state['episode_count'] = episode_count
+                    
+                    # Check for boredom and handle curriculum advancement
+                    boredom_results = self._check_and_handle_boredom(episode_count)
+                    if boredom_results['boredom_detected']:
+                        print(f"🧠 Boredom detected: {boredom_results['reason']}")
+                        if boredom_results['curriculum_advanced']:
+                            print(f"📈 Curriculum complexity advanced to level {boredom_results['new_complexity']}")
+                    
+                    # Integrate goal invention system - discover emergent goals from patterns
+                    goal_results = self._process_emergent_goals(episode_result, game_results, learning_progress)
+                    if goal_results['new_goals_discovered']:
+                        print(f"🎯 Discovered {len(goal_results['new_goals'])} new emergent goals")
+                        for goal in goal_results['new_goals']:
+                            print(f"   New goal: {goal.description} (priority: {goal.priority:.2f})")
+                    
                     # CRITICAL: Stop if game reached terminal state (WIN or GAME_OVER)
                     if game_state in ['WIN', 'GAME_OVER']:
                         print(f"🎯 Game {game_id} reached terminal state: {game_state}")
@@ -798,7 +855,10 @@ class ContinuousLearningLoop:
     async def _run_real_arc_episode_enhanced(self, game_id: str, episode_count: int) -> Dict[str, Any]:
         """Enhanced version that runs COMPLETE episodes with multiple actions until WIN/GAME_OVER."""
         try:
-            # Check if agent should sleep before episode
+            # 1. Check for boredom and trigger curriculum advancement
+            boredom_detected = await self._check_and_handle_boredom(game_id, episode_count)
+            
+            # 2. Check if agent should sleep before episode
             agent_state = self._get_current_agent_state()
             should_sleep_now = self._should_agent_sleep(agent_state, episode_count)
             
@@ -1800,6 +1860,280 @@ class ContinuousLearningLoop:
             logger.info(f"Sleep triggered by: {', '.join(trigger_reasons)}")
         
         return should_sleep
+    
+    def _check_and_handle_boredom(self, episode_count: int) -> Dict[str, Any]:
+        """Check for boredom (LP saturation) and automatically advance curriculum complexity.
+        
+        Returns:
+            Dict containing boredom detection results and any curriculum changes made.
+        """
+        boredom_results = {
+            'boredom_detected': False,
+            'lp_stagnation_episodes': 0,
+            'curriculum_advanced': False,
+            'new_complexity': None,
+            'reason': 'no_boredom'
+        }
+        
+        # Only check after enough episodes for meaningful trend
+        if episode_count < 10:
+            return boredom_results
+        
+        # Get recent LP history (last 10 episodes)
+        recent_lp_history = self.training_state.get('lp_history', [])[-10:]
+        
+        if len(recent_lp_history) < 5:
+            return boredom_results
+        
+        # Calculate LP trend - are we stagnating?
+        recent_lp_values = [entry.get('learning_progress', 0) for entry in recent_lp_history]
+        lp_variance = np.var(recent_lp_values) if recent_lp_values else 0
+        mean_lp = np.mean(recent_lp_values) if recent_lp_values else 0
+        
+        # Boredom detection criteria
+        is_lp_stagnant = lp_variance < 0.001  # Very low variance = stagnation
+        is_lp_low = mean_lp < 0.03  # Consistently low LP
+        consecutive_low_episodes = sum(1 for lp in recent_lp_values[-5:] if lp < 0.05)
+        
+        # Detect boredom state
+        boredom_detected = (
+            is_lp_stagnant and is_lp_low and 
+            consecutive_low_episodes >= 3
+        )
+        
+        if boredom_detected:
+            boredom_results['boredom_detected'] = True
+            boredom_results['lp_stagnation_episodes'] = consecutive_low_episodes
+            boredom_results['reason'] = f'LP stagnation: variance={lp_variance:.6f}, mean={mean_lp:.3f}'
+            
+            # Automatically advance curriculum complexity
+            current_complexity = self.training_config.get('curriculum_complexity', 1)
+            new_complexity = min(current_complexity + 1, 10)  # Cap at complexity 10
+            
+            if new_complexity > current_complexity:
+                self.training_config['curriculum_complexity'] = new_complexity
+                boredom_results['curriculum_advanced'] = True
+                boredom_results['new_complexity'] = new_complexity
+                
+                logger.info(f"🎯 Boredom detected! Advancing curriculum complexity: {current_complexity} → {new_complexity}")
+                logger.info(f"   LP stagnation: {consecutive_low_episodes} episodes, variance: {lp_variance:.6f}")
+            else:
+                boredom_results['reason'] += ' (already at max complexity)'
+        
+        return boredom_results
+    
+    def _calculate_episode_effectiveness(self, episode_result: Dict[str, Any], game_results: Dict[str, Any]) -> float:
+        """Calculate episode effectiveness as a measure of learning signal strength.
+        
+        Effectiveness combines multiple factors:
+        - Score improvement
+        - Success rate improvement
+        - Novel pattern discovery
+        - Memory efficiency gains
+        """
+        base_effectiveness = 0.0
+        
+        # Score-based effectiveness
+        current_score = episode_result.get('final_score', 0)
+        previous_episodes = game_results.get('episodes', [])
+        
+        if len(previous_episodes) > 1:
+            previous_scores = [ep.get('final_score', 0) for ep in previous_episodes[-5:]]
+            avg_previous_score = sum(previous_scores) / len(previous_scores)
+            
+            if avg_previous_score > 0:
+                score_improvement = (current_score - avg_previous_score) / avg_previous_score
+                base_effectiveness += max(0, score_improvement * 0.5)  # Weight score improvement
+        
+        # Success-based effectiveness
+        if episode_result.get('success', False):
+            base_effectiveness += 0.3  # Bonus for success
+        
+        # Pattern discovery effectiveness
+        patterns_found = len(episode_result.get('patterns_discovered', []))
+        base_effectiveness += min(patterns_found * 0.1, 0.2)  # Cap pattern bonus
+        
+        # Memory efficiency (if available)
+        memory_operations = episode_result.get('memory_operations', 0)
+        if memory_operations > 0:
+            base_effectiveness += min(memory_operations * 0.05, 0.1)
+        
+        return min(base_effectiveness, 1.0)  # Cap at 1.0
+    
+    def _convert_effectiveness_to_lp(self, effectiveness: float) -> float:
+        """Convert episode effectiveness to learning progress using Tabula Rasa principles.
+        
+        LP should reflect intrinsic motivation and genuine learning advancement,
+        not just external rewards.
+        """
+        # Base conversion with diminishing returns
+        lp = effectiveness * 0.8  # Base conversion factor
+        
+        # Add noise for exploration
+        noise = random.uniform(-0.05, 0.05)
+        lp += noise
+        
+        # Ensure positive but realistic LP
+    def _calculate_session_performance(self, session_results: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate comprehensive session performance using Tabula Rasa metrics."""
+        games_played = session_results['games_played']
+        if not games_played:
+            return {}
+            
+        total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
+        total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
+                        for game in games_played.values())
+        total_score = sum(sum(ep.get('final_score', 0) for ep in game.get('episodes', [])) 
+                         for game in games_played.values())
+        
+        # Standard performance metrics
+        standard_metrics = {
+            'games_trained': len(games_played),
+            'total_episodes': total_episodes,
+            'overall_win_rate': total_wins / max(1, total_episodes),
+            'overall_average_score': total_score / max(1, total_episodes),
+            'learning_efficiency': self._calculate_learning_efficiency(session_results),
+            'knowledge_transfer_score': self._calculate_knowledge_transfer_score(session_results)
+        }
+        
+        # Comprehensive Tabula Rasa metrics
+        tabula_rasa_metrics = self._calculate_tabula_rasa_metrics()
+        
+        # Combine all metrics
+        comprehensive_metrics = {**standard_metrics, **tabula_rasa_metrics}
+        
+        return comprehensive_metrics
+    
+    def _calculate_tabula_rasa_metrics(self) -> Dict[str, float]:
+        """Calculate comprehensive metrics for all Tabula Rasa principles."""
+        metrics = {}
+        
+        # 1. Learning Progress Stability
+        lp_history = self.training_state.get('lp_history', [])
+        if len(lp_history) >= 5:
+            recent_lp = [entry['learning_progress'] for entry in lp_history[-10:]]
+            lp_variance = np.var(recent_lp)
+            lp_mean = np.mean(recent_lp)
+            metrics['lp_stability'] = max(0, 1.0 - lp_variance)  # Lower variance = higher stability
+            metrics['lp_magnitude'] = lp_mean
+        else:
+            metrics['lp_stability'] = 0.0
+            metrics['lp_magnitude'] = 0.0
+        
+        # 2. Memory System Effectiveness
+        memory_tracker = self.memory_consolidation_tracker
+        metrics['memory_consolidation_rate'] = memory_tracker.get('last_consolidation_score', 0.0)
+        metrics['memory_operations_efficiency'] = min(
+            memory_tracker.get('memory_operations_per_cycle', 0) / 10.0, 1.0
+        )
+        
+        # 3. Sleep Cycle Quality
+        sleep_tracker = self.sleep_state_tracker
+        sleep_scores = sleep_tracker.get('sleep_quality_scores', [])
+        if sleep_scores:
+            metrics['sleep_quality'] = np.mean(sleep_scores)
+            metrics['sleep_efficiency'] = sleep_tracker.get('sleep_efficiency', 0.0)
+        else:
+            metrics['sleep_quality'] = 0.0
+            metrics['sleep_efficiency'] = 0.0
+        
+        # 4. Energy System Health
+        metrics['energy_management'] = 1.0  # Placeholder - would need energy state tracking
+        
+        # 5. Boredom Detection Effectiveness
+        boredom_detections = sum(1 for entry in lp_history if entry.get('boredom_detected', False))
+        metrics['boredom_detection_rate'] = boredom_detections / max(1, len(lp_history))
+        
+        # 6. Curriculum Complexity Progress
+        complexity_level = self.training_config.get('curriculum_complexity', 1)
+        max_complexity = self.training_config.get('max_complexity', 10)
+        metrics['curriculum_progress'] = complexity_level / max_complexity
+        
+        # 7. Goal System Progress
+        discovered_goals = len(self.training_state.get('discovered_goals', []))
+        metrics['goal_discovery_rate'] = min(discovered_goals / 10.0, 1.0)  # Normalize to 10 goals
+        metrics['goal_system_phase'] = {'survival': 0.33, 'template': 0.67, 'emergent': 1.0}.get(
+            self.goal_system.current_phase.value, 0.0
+        )
+        
+        # 8. Overall Tabula Rasa Health Score
+        core_scores = [
+            metrics['lp_stability'],
+            metrics['memory_consolidation_rate'],
+            metrics['sleep_quality'],
+            metrics['curriculum_progress']
+        ]
+        metrics['tabula_rasa_health'] = np.mean([s for s in core_scores if s > 0])
+        
+        return metrics
+    
+    def _process_emergent_goals(self, episode_result: Dict[str, Any], game_results: Dict[str, Any], learning_progress: float) -> Dict[str, Any]:
+        """Process emergent goal discovery from episode patterns and outcomes.
+        
+        This integrates the goal invention system to automatically discover new goals
+        based on patterns, failures, and learning progress signals.
+        """
+        goal_results = {
+            'new_goals_discovered': False,
+            'new_goals': [],
+            'goal_updates': [],
+            'phase_transition': False
+        }
+        
+        # Extract patterns and context for goal discovery
+        patterns = episode_result.get('patterns_discovered', [])
+        success = episode_result.get('success', False)
+        score = episode_result.get('final_score', 0)
+        game_state = episode_result.get('game_state', 'NOT_FINISHED')
+        
+        # Create agent state for goal system
+        agent_state = {
+            'learning_progress': learning_progress,
+            'score': score,
+            'success': success,
+            'game_state': game_state,
+            'patterns': patterns,
+            'episode_count': self.training_state['episode_count']
+        }
+        
+        # Process goals through the goal invention system
+        try:
+            # Update current goals with learning progress
+            current_goals = self.goal_system.get_current_goals()
+            for goal in current_goals:
+                self.goal_system.update_goal_progress(goal, learning_progress)
+            
+            # Check for emergent goal discovery
+            new_goals = self.goal_system.discover_emergent_goals(agent_state)
+            if new_goals:
+                goal_results['new_goals_discovered'] = True
+                goal_results['new_goals'] = new_goals
+                
+                # Store discovered goals for tracking
+                if 'discovered_goals' not in self.training_state:
+                    self.training_state['discovered_goals'] = []
+                
+                for goal in new_goals:
+                    goal_entry = {
+                        'goal_id': goal.goal_id,
+                        'description': goal.description,
+                        'priority': goal.priority,
+                        'discovered_at_episode': self.training_state['episode_count'],
+                        'discovered_at_score': score,
+                        'timestamp': time.time()
+                    }
+                    self.training_state['discovered_goals'].append(goal_entry)
+            
+            # Check for phase transitions
+            if self.goal_system.check_phase_transition():
+                goal_results['phase_transition'] = True
+                new_phase = self.goal_system.current_phase
+                print(f"🚀 Goal system transitioned to {new_phase.value} phase!")
+                
+        except Exception as e:
+            logger.warning(f"Goal processing failed: {e}")
+        
+        return goal_results
     
     async def _execute_sleep_cycle(self, game_id: str, episode_count: int) -> Dict[str, Any]:
         """Execute a sleep cycle with memory consolidation."""
