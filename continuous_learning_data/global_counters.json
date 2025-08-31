@@ -1,9 +1,10 @@
 {
-  "total_sleep_cycles": 9,
-  "total_memory_operations": 43,
+  "total_sleep_cycles": 12,
+  "total_memory_operations": 57,
   "total_sessions": 3,
   "cumulative_energy_spent": 10.5,
-  "total_memories_deleted": 23,
-  "total_memories_combined": 5,
-  "total_memories_strengthened": 0
+  "total_memories_deleted": 29,
+  "total_memories_combined": 7,
+  "total_memories_strengthened": 0,
+  "persistent_energy_level": 0.8999999999999999
 }

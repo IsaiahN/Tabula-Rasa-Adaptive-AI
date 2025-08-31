@@ -2834,5 +2834,8 @@ class ContinuousLearningLoop:
         if memories_strengthened > 0:
             self.global_counters['total_memories_strengthened'] += memories_strengthened
             
+        # Always update current energy level for persistence
+        self.global_counters['persistent_energy_level'] = getattr(self, 'current_energy', 1.0)
+        
         # Auto-save counters
         self._save_global_counters()
