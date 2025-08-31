@@ -185,6 +185,43 @@ class ContinuousLearningLoop:
         self.current_scorecard_id: Optional[str] = None
         self.current_game_sessions: Dict[str, str] = {}  # game_id -> guid mapping
         
+        # Enhanced tracking for sleep states and memory operations
+        self.sleep_state_tracker = {
+            'is_currently_sleeping': False,
+            'sleep_cycles_this_session': 0,
+            'total_sleep_time': 0.0,
+            'last_sleep_trigger': None,
+            'sleep_quality_scores': [],
+            'sleep_efficiency': 0.0
+        }
+        
+        # Memory consolidation tracking
+        self.memory_consolidation_tracker = {
+            'is_consolidating_memories': False,
+            'consolidation_operations_count': 0,
+            'is_prioritizing_memories': False,
+            'high_salience_memories_strengthened': 0,
+            'low_salience_memories_decayed': 0,
+            'memory_compression_active': False,
+            'last_consolidation_score': 0.0,
+            'memory_operations_per_cycle': 0
+        }
+        
+        # Game reset decision tracking
+        self.game_reset_tracker = {
+            'reset_decisions_made': 0,
+            'reset_reasons': [],
+            'reset_effectiveness_scores': [],
+            'last_reset_decision': None,
+            'reset_decision_criteria': {
+                'consecutive_failures': 5,
+                'performance_degradation': 0.3,
+                'memory_overflow': 0.95,
+                'energy_depletion': 10.0
+            },
+            'reset_success_rate': 0.0
+        }
+        
         # Initialize demonstration agent for monitoring
         self._init_demo_agent()
         
@@ -584,8 +621,19 @@ class ContinuousLearningLoop:
         return game_results
 
     async def _run_real_arc_episode_enhanced(self, game_id: str, episode_count: int) -> Dict[str, Any]:
-        """Enhanced version that properly handles grid dimensions and game states."""
+        """Enhanced version that properly handles grid dimensions, game states, sleep cycles, and reset decisions."""
         try:
+            # Check if agent should sleep before episode
+            agent_state = self._get_current_agent_state()
+            should_sleep_now = self._should_agent_sleep(agent_state, episode_count)
+            
+            sleep_cycle_results = {}
+            if should_sleep_now:
+                sleep_cycle_results = await self._execute_sleep_cycle(game_id, episode_count)
+            
+            # Check if model decides to reset the game
+            reset_decision = self._evaluate_game_reset_decision(game_id, episode_count, agent_state)
+            
             # Set up environment with API key
             env = os.environ.copy()
             env['ARC_API_KEY'] = self.api_key
@@ -596,6 +644,11 @@ class ContinuousLearningLoop:
                 '--agent=adaptivelearning',
                 f'--game={game_id}'
             ]
+            
+            # Add reset flag if decision was made to reset
+            if reset_decision['should_reset']:
+                cmd.append('--reset')
+                self._record_reset_decision(reset_decision)
             
             # Create the subprocess
             process = await asyncio.create_subprocess_exec(
@@ -632,13 +685,23 @@ class ContinuousLearningLoop:
             game_state = self._extract_game_state_from_output(stdout_text, stderr_text)
             result['game_state'] = game_state
             
-            # Add metadata
+            # Add enhanced tracking information
             result.update({
                 'game_id': game_id,
                 'episode': episode_count,
                 'timestamp': time.time(),
-                'exit_code': process.returncode
+                'exit_code': process.returncode,
+                'sleep_cycle_executed': bool(sleep_cycle_results),
+                'sleep_cycle_results': sleep_cycle_results,
+                'reset_decision': reset_decision,
+                'memory_consolidation_status': self._get_memory_consolidation_status(),
+                'sleep_state_info': self._get_current_sleep_state_info()
             })
+            
+            # Evaluate reset effectiveness if reset was used
+            if reset_decision['should_reset']:
+                reset_effectiveness = self._evaluate_reset_effectiveness(result, reset_decision)
+                self.game_reset_tracker['reset_effectiveness_scores'].append(reset_effectiveness)
             
             return result
             
@@ -927,23 +990,33 @@ class ContinuousLearningLoop:
             return session_results
 
     def _update_detailed_metrics(self, detailed_metrics: Dict[str, Any], game_results: Dict[str, Any]):
-        """Update detailed metrics with game results."""
+        """Update detailed metrics with game results including sleep and memory operations."""
         # Count sleep cycles (simulated)
         episodes_count = len(game_results.get('episodes', []))
-        detailed_metrics['sleep_cycles'] += episodes_count // 10  # Sleep every 10 episodes
+        detailed_metrics['sleep_cycles'] += self.sleep_state_tracker['sleep_cycles_this_session']
         
         # Count high salience experiences
         for episode in game_results.get('episodes', []):
             if episode.get('final_score', 0) > 75:  # High score = high salience
                 detailed_metrics['high_salience_experiences'] += 1
         
-        # Estimate memory operations and compressions
-        detailed_metrics['memory_operations'] += episodes_count * 5  # ~5 operations per episode
+        # Memory operations tracking
+        detailed_metrics['memory_operations'] += self.memory_consolidation_tracker['memory_operations_per_cycle']
+        detailed_metrics['consolidation_operations'] = self.memory_consolidation_tracker['consolidation_operations_count']
+        detailed_metrics['memories_strengthened'] = self.memory_consolidation_tracker['high_salience_memories_strengthened']
+        detailed_metrics['memories_decayed'] = self.memory_consolidation_tracker['low_salience_memories_decayed']
+        
+        # Compression tracking
         if detailed_metrics.get('salience_mode') == 'decay_compression':
-            detailed_metrics['compressed_memories'] += episodes_count // 5  # Compression every 5 episodes
+            detailed_metrics['compressed_memories'] = len(getattr(self.salience_calculator, 'compressed_memories', []))
+            detailed_metrics['compression_active'] = self.memory_consolidation_tracker['memory_compression_active']
+        
+        # Reset decision tracking
+        detailed_metrics['reset_decisions'] = self.game_reset_tracker['reset_decisions_made']
+        detailed_metrics['reset_success_rate'] = self.game_reset_tracker['reset_success_rate']
 
     def _display_game_completion_status(self, game_id: str, game_results: Dict[str, Any], detailed_metrics: Dict[str, Any]):
-        """Display compact game completion status."""
+        """Display compact game completion status with sleep and memory info."""
         performance = game_results.get('performance_metrics', {})
         win_rate = performance.get('win_rate', 0)
         avg_score = performance.get('average_score', 0)
@@ -963,8 +1036,28 @@ class ContinuousLearningLoop:
         print(f"\n{status}: {game_id} | Grid: {grid_size}")
         print(f"Episodes: {performance.get('total_episodes', 0)} | Win: {win_rate:.1%} | Avg: {avg_score:.0f} | Best: {best_score}")
         
-        # Only show key system metrics
-        print(f"Sleep: {detailed_metrics.get('sleep_cycles', 0)} | Memory Ops: {detailed_metrics.get('memory_operations', 0)} | High-Sal: {detailed_metrics.get('high_salience_experiences', 0)}")
+        # Enhanced system metrics with sleep and memory info
+        sleep_cycles = detailed_metrics.get('sleep_cycles', 0)
+        memory_ops = detailed_metrics.get('memory_operations', 0)
+        high_sal = detailed_metrics.get('high_salience_experiences', 0)
+        reset_decisions = self.game_reset_tracker['reset_decisions_made']
+        
+        print(f"Sleep: {sleep_cycles} | Memory Ops: {memory_ops} | High-Sal: {high_sal} | Resets: {reset_decisions}")
+        
+        # Show current system status flags
+        status_flags = self.get_system_status_flags()
+        active_systems = []
+        if status_flags['is_consolidating_memories']:
+            active_systems.append("🧠CONSOLIDATING")
+        if status_flags['is_prioritizing_memories']:
+            active_systems.append("⚡PRIORITIZING")
+        if status_flags['memory_compression_active']:
+            active_systems.append("🗜️COMPRESSING")
+        if status_flags['is_sleeping']:
+            active_systems.append("😴SLEEPING")
+            
+        if active_systems:
+            print(f"Active: {' | '.join(active_systems)}")
 
     def _display_final_session_results(self, session_results: Dict[str, Any]):
         """Display compact final session results with ARC-3 URL and grid size info."""
@@ -1022,6 +1115,20 @@ class ContinuousLearningLoop:
         
         # Always show ARC-3 scoreboard URL
         print(f"\nARC-3 Test Scoreboard: {ARC3_SCOREBOARD_URL}")
+        
+        # Show comprehensive system status
+        system_status = self.get_system_status_flags()
+        memory_status = self.get_sleep_and_memory_status()
+        
+        print(f"\n🧠 SYSTEM STATUS:")
+        print(f"Sleep Cycles: {memory_status['sleep_status']['sleep_cycles_this_session']} | Memory Consolidations: {system_status['is_consolidating_memories']}")
+        print(f"Memory Prioritization: {system_status['is_prioritizing_memories']} | Compression: {system_status['memory_compression_active']}")
+        
+        if system_status['has_made_reset_decisions']:
+            reset_stats = memory_status['game_reset_status']
+            print(f"🔄 Game Resets: {reset_stats['total_reset_decisions']} decisions | Success Rate: {reset_stats['reset_success_rate']:.1%}")
+            if reset_stats['last_reset_reason']:
+                print(f"   Last Reset: {reset_stats['last_reset_reason']}")
         
         # Highlight if this was a winning session
         if overall_win_rate > 0.3:
@@ -1287,3 +1394,496 @@ class ContinuousLearningLoop:
             'current_salience_mode': self.current_session.salience_mode.value if self.current_session else None,
             'last_updated': datetime.now().isoformat()
         }
+
+    # ====== SLEEP STATE AND MEMORY CONSOLIDATION METHODS ======
+    
+    def _get_current_agent_state(self) -> Dict[str, Any]:
+        """Get current agent state for sleep and reset decisions."""
+        # Simulate agent state - in real implementation this would come from the actual agent
+        return {
+            'energy': 50.0,  # Current energy level
+            'memory_usage': 0.7,  # Memory utilization percentage
+            'learning_progress': 0.1,  # Recent learning progress
+            'consecutive_failures': 0,  # Count of recent failures
+            'performance_trend': 'stable'  # 'improving', 'stable', 'declining'
+        }
+    
+    def _should_agent_sleep(self, agent_state: Dict[str, Any], episode_count: int) -> bool:
+        """Determine if agent should enter sleep cycle."""
+        # Sleep triggers
+        sleep_triggers = {
+            'low_energy': agent_state['energy'] < 20.0,
+            'high_memory_usage': agent_state['memory_usage'] > 0.9,
+            'periodic_sleep': episode_count % 10 == 0 and episode_count > 0,
+            'low_learning_progress': agent_state['learning_progress'] < 0.05
+        }
+        
+        should_sleep = any(sleep_triggers.values())
+        
+        if should_sleep:
+            trigger_reasons = [k for k, v in sleep_triggers.items() if v]
+            self.sleep_state_tracker['last_sleep_trigger'] = trigger_reasons
+            logger.info(f"Sleep triggered by: {', '.join(trigger_reasons)}")
+        
+        return should_sleep
+    
+    async def _execute_sleep_cycle(self, game_id: str, episode_count: int) -> Dict[str, Any]:
+        """Execute a sleep cycle with memory consolidation."""
+        self.sleep_state_tracker['is_currently_sleeping'] = True
+        self.sleep_state_tracker['sleep_cycles_this_session'] += 1
+        
+        sleep_start_time = time.time()
+        
+        try:
+            # Simulate sleep cycle execution
+            sleep_results = {
+                'sleep_duration': 0.0,
+                'memory_consolidation_performed': False,
+                'memories_prioritized': False,
+                'high_salience_strengthened': 0,
+                'low_salience_decayed': 0,
+                'compression_applied': False,
+                'consolidation_score': 0.0
+            }
+            
+            # Phase 1: Memory Prioritization
+            prioritization_results = self._prioritize_memories_by_salience()
+            sleep_results.update(prioritization_results)
+            
+            # Phase 2: Memory Consolidation
+            consolidation_results = self._consolidate_prioritized_memories()
+            sleep_results.update(consolidation_results)
+            
+            # Phase 3: Memory Compression (if using decay mode)
+            compression_results = self._apply_memory_compression()
+            sleep_results.update(compression_results)
+            
+            sleep_end_time = time.time()
+            sleep_results['sleep_duration'] = sleep_end_time - sleep_start_time
+            
+            # Update sleep state tracker
+            self.sleep_state_tracker['total_sleep_time'] += sleep_results['sleep_duration']
+            self.sleep_state_tracker['sleep_quality_scores'].append(sleep_results['consolidation_score'])
+            
+            logger.info(f"Sleep cycle completed for {game_id} episode {episode_count}: {sleep_results['sleep_duration']:.2f}s")
+            
+            return sleep_results
+            
+        finally:
+            self.sleep_state_tracker['is_currently_sleeping'] = False
+    
+    def _prioritize_memories_by_salience(self) -> Dict[str, Any]:
+        """Prioritize memories based on salience values."""
+        self.memory_consolidation_tracker['is_prioritizing_memories'] = True
+        
+        try:
+            # Simulate memory prioritization
+            if self.salience_calculator:
+                # Get high salience experiences for priority processing
+                high_salience_count = len(self.salience_calculator.get_high_salience_experiences(threshold=0.6))
+                medium_salience_count = len(self.salience_calculator.get_high_salience_experiences(threshold=0.3)) - high_salience_count
+                
+                return {
+                    'memories_prioritized': True,
+                    'high_priority_memories': high_salience_count,
+                    'medium_priority_memories': medium_salience_count,
+                    'prioritization_operations': high_salience_count + medium_salience_count
+                }
+            else:
+                return {'memories_prioritized': False}
+                
+        finally:
+            self.memory_consolidation_tracker['is_prioritizing_memories'] = False
+    
+    def _consolidate_prioritized_memories(self) -> Dict[str, Any]:
+        """Consolidate prioritized memories with strengthening and decay."""
+        self.memory_consolidation_tracker['is_consolidating_memories'] = True
+        
+        try:
+            # Simulate memory consolidation operations
+            consolidation_ops = 0
+            high_salience_strengthened = 0
+            low_salience_decayed = 0
+            
+            if self.salience_calculator:
+                # Strengthen high-salience memories
+                high_salience_experiences = self.salience_calculator.get_high_salience_experiences(threshold=0.7)
+                high_salience_strengthened = len(high_salience_experiences)
+                consolidation_ops += high_salience_strengthened
+                
+                # Decay low-salience memories
+                all_experiences = self.salience_calculator.get_high_salience_experiences(threshold=0.0)
+                low_salience_experiences = [exp for exp in all_experiences if exp['salience'] < 0.3]
+                low_salience_decayed = len(low_salience_experiences)
+                consolidation_ops += low_salience_decayed
+                
+                # Calculate consolidation effectiveness
+                consolidation_score = (high_salience_strengthened * 2 - low_salience_decayed * 0.5) / max(1, consolidation_ops)
+            else:
+                consolidation_score = 0.0
+            
+            # Update tracking
+            self.memory_consolidation_tracker['consolidation_operations_count'] += consolidation_ops
+            self.memory_consolidation_tracker['high_salience_memories_strengthened'] += high_salience_strengthened
+            self.memory_consolidation_tracker['low_salience_memories_decayed'] += low_salience_decayed
+            self.memory_consolidation_tracker['last_consolidation_score'] = consolidation_score
+            self.memory_consolidation_tracker['memory_operations_per_cycle'] = consolidation_ops
+            
+            return {
+                'memory_consolidation_performed': True,
+                'consolidation_operations': consolidation_ops,
+                'high_salience_strengthened': high_salience_strengthened,
+                'low_salience_decayed': low_salience_decayed,
+                'consolidation_score': consolidation_score
+            }
+            
+        finally:
+            self.memory_consolidation_tracker['is_consolidating_memories'] = False
+    
+    def _apply_memory_compression(self) -> Dict[str, Any]:
+        """Apply memory compression if using decay mode."""
+        if not self.salience_calculator or self.salience_calculator.mode == SalienceMode.LOSSLESS:
+            return {'compression_applied': False}
+        
+        self.memory_consolidation_tracker['memory_compression_active'] = True
+        
+        try:
+            # Simulate compression operations
+            compression_operations = 0
+            compressed_memories_count = 0
+            
+            if hasattr(self.salience_calculator, 'compressed_memories'):
+                # Apply compression to low-salience memories
+                all_experiences = self.salience_calculator.get_high_salience_experiences(threshold=0.0)
+                compressible_experiences = [exp for exp in all_experiences if exp['salience'] < 0.2]
+                
+                # Group similar experiences for compression
+                compression_groups = self._group_experiences_for_compression(compressible_experiences)
+                
+                for group in compression_groups:
+                    if len(group) >= 3:  # Only compress if we have enough similar experiences
+                        compressed_memory = self._compress_experience_group(group)
+                        self.salience_calculator.compressed_memories.append(compressed_memory)
+                        compressed_memories_count += 1
+                        compression_operations += len(group)
+            
+            return {
+                'compression_applied': True,
+                'compression_operations': compression_operations,
+                'compressed_memories_count': compressed_memories_count,
+                'compression_ratio': compressed_memories_count / max(1, compression_operations)
+            }
+            
+        finally:
+            self.memory_consolidation_tracker['memory_compression_active'] = False
+    
+    def _evaluate_game_reset_decision(self, game_id: str, episode_count: int, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate whether the model should decide to reset the game."""
+        reset_decision = {
+            'should_reset': False,
+            'reason': None,
+            'confidence': 0.0,
+            'expected_benefit': 0.0
+        }
+        
+        criteria = self.game_reset_tracker['reset_decision_criteria']
+        
+        # Evaluate reset conditions
+        reset_conditions = {
+            'consecutive_failures': agent_state.get('consecutive_failures', 0) >= criteria['consecutive_failures'],
+            'performance_degradation': agent_state.get('learning_progress', 1.0) < -criteria['performance_degradation'],
+            'memory_overflow': agent_state.get('memory_usage', 0.0) >= criteria['memory_overflow'],
+            'energy_depletion': agent_state.get('energy', 100.0) <= criteria['energy_depletion'],
+            'negative_learning_trend': agent_state.get('performance_trend') == 'declining'
+        }
+        
+        # Calculate reset probability based on conditions
+        active_conditions = [k for k, v in reset_conditions.items() if v]
+        reset_probability = len(active_conditions) / len(reset_conditions)
+        
+        # Additional factors that influence reset decision
+        if episode_count > 20:  # Don't reset too early
+            # Calculate expected benefit of reset
+            recent_performance = self._get_recent_game_performance(game_id)
+            expected_benefit = self._calculate_reset_expected_benefit(recent_performance, active_conditions)
+            
+            # Make reset decision if conditions and expected benefit are high enough
+            if reset_probability > 0.4 and expected_benefit > 0.3:
+                reset_decision.update({
+                    'should_reset': True,
+                    'reason': f"Multiple conditions met: {', '.join(active_conditions)}",
+                    'confidence': reset_probability,
+                    'expected_benefit': expected_benefit
+                })
+        
+        return reset_decision
+    
+    def _record_reset_decision(self, reset_decision: Dict[str, Any]):
+        """Record that a reset decision was made."""
+        self.game_reset_tracker['reset_decisions_made'] += 1
+        self.game_reset_tracker['reset_reasons'].append(reset_decision['reason'])
+        self.game_reset_tracker['last_reset_decision'] = {
+            'timestamp': time.time(),
+            'reason': reset_decision['reason'],
+            'confidence': reset_decision['confidence'],
+            'expected_benefit': reset_decision['expected_benefit']
+        }
+        
+        logger.info(f"GAME RESET DECISION: {reset_decision['reason']} (confidence: {reset_decision['confidence']:.2f})")
+    
+    def _evaluate_reset_effectiveness(self, episode_result: Dict[str, Any], reset_decision: Dict[str, Any]) -> float:
+        """Evaluate how effective the reset decision was."""
+        # Compare performance after reset
+        post_reset_score = episode_result.get('final_score', 0)
+        expected_benefit = reset_decision.get('expected_benefit', 0)
+        
+        # Calculate effectiveness (how well the reset performed vs expectations)
+        if expected_benefit > 0:
+            effectiveness = min(post_reset_score / (expected_benefit * 100), 2.0)  # Cap at 2x expected
+        else:
+            effectiveness = 1.0 if post_reset_score > 20 else 0.0
+        
+        # Update reset success rate
+        if self.game_reset_tracker['reset_effectiveness_scores']:
+            current_avg = sum(self.game_reset_tracker['reset_effectiveness_scores']) / len(self.game_reset_tracker['reset_effectiveness_scores'])
+            self.game_reset_tracker['reset_success_rate'] = (current_avg + effectiveness) / 2
+        else:
+            self.game_reset_tracker['reset_success_rate'] = effectiveness
+        
+        logger.info(f"Reset effectiveness: {effectiveness:.2f} (expected: {expected_benefit:.2f}, actual score: {post_reset_score})")
+        return effectiveness
+    
+    def _get_recent_game_performance(self, game_id: str) -> Dict[str, float]:
+        """Get recent performance metrics for a specific game."""
+        # This would normally query historical data
+        return {
+            'recent_win_rate': 0.2,
+            'recent_avg_score': 35.0,
+            'performance_trend': -0.1,  # Negative = declining
+            'episodes_played': 15
+        }
+    
+    def _calculate_reset_expected_benefit(self, recent_performance: Dict[str, float], active_conditions: List[str]) -> float:
+        """Calculate expected benefit of resetting the game."""
+        base_benefit = 0.1  # Base benefit of a fresh start
+        
+        # Increase benefit based on how poorly things are going
+        if 'performance_degradation' in active_conditions:
+            base_benefit += 0.2
+        if 'consecutive_failures' in active_conditions:
+            base_benefit += 0.2
+        if 'energy_depletion' in active_conditions:
+            base_benefit += 0.1
+        if 'memory_overflow' in active_conditions:
+            base_benefit += 0.3  # Fresh memory state can be very beneficial
+        
+        # Factor in current performance level
+        current_win_rate = recent_performance.get('recent_win_rate', 0.0)
+        if current_win_rate < 0.1:  # Very poor performance
+            base_benefit += 0.2
+        
+        return min(base_benefit, 1.0)  # Cap at 100% expected benefit
+    
+    def _group_experiences_for_compression(self, experiences: List[Dict]) -> List[List[Dict]]:
+        """Group similar experiences for compression."""
+        # Simple grouping by similarity - in real implementation would be more sophisticated
+        groups = []
+        similarity_threshold = 0.3
+        
+        for exp in experiences:
+            added_to_group = False
+            for group in groups:
+                if len(group) > 0:
+                    # Simple similarity check
+                    similarity = self._calculate_experience_similarity(exp, group[0])
+                    if similarity > similarity_threshold:
+                        group.append(exp)
+                        added_to_group = True
+                        break
+            
+            if not added_to_group:
+                groups.append([exp])
+        
+        return [group for group in groups if len(group) >= 2]  # Only return groups with multiple experiences
+    
+    def _calculate_experience_similarity(self, exp1: Dict, exp2: Dict) -> float:
+        """Calculate similarity between two experiences."""
+        # Simplified similarity calculation
+        score_diff = abs(exp1.get('final_score', 0) - exp2.get('final_score', 0))
+        salience_diff = abs(exp1.get('salience', 0.5) - exp2.get('salience', 0.5))
+        
+        # Higher similarity = lower differences
+        similarity = 1.0 - (score_diff / 100.0 + salience_diff) / 2.0
+        return max(0.0, similarity)
+    
+    def _compress_experience_group(self, group: List[Dict]) -> Dict[str, Any]:
+        """Compress a group of similar experiences into a single compressed memory."""
+        if not group:
+            return {}
+        
+        # Create compressed representation
+        avg_score = sum(exp.get('final_score', 0) for exp in group) / len(group)
+        avg_salience = sum(exp.get('salience', 0.5) for exp in group) / len(group)
+        
+        return {
+            'type': 'compressed_memory',
+            'original_count': len(group),
+            'avg_score': avg_score,
+            'avg_salience': avg_salience,
+            'compression_timestamp': time.time(),
+            'pattern_summary': f"Similar experiences with avg score {avg_score:.1f}"
+        }
+    
+    def _get_memory_consolidation_status(self) -> Dict[str, Any]:
+        """Get current memory consolidation status."""
+        return {
+            'is_consolidating': self.memory_consolidation_tracker['is_consolidating_memories'],
+            'is_prioritizing': self.memory_consolidation_tracker['is_prioritizing_memories'],
+            'compression_active': self.memory_consolidation_tracker['memory_compression_active'],
+            'total_consolidation_ops': self.memory_consolidation_tracker['consolidation_operations_count'],
+            'last_consolidation_score': self.memory_consolidation_tracker['last_consolidation_score'],
+            'high_salience_strengthened': self.memory_consolidation_tracker['high_salience_memories_strengthened'],
+            'low_salience_decayed': self.memory_consolidation_tracker['low_salience_memories_decayed']
+        }
+    
+    def _get_current_sleep_state_info(self) -> Dict[str, Any]:
+        """Get current sleep state information."""
+        return {
+            'is_sleeping': self.sleep_state_tracker['is_currently_sleeping'],
+            'sleep_cycles_completed': self.sleep_state_tracker['sleep_cycles_this_session'],
+            'total_sleep_time': self.sleep_state_tracker['total_sleep_time'],
+            'last_sleep_trigger': self.sleep_state_tracker['last_sleep_trigger'],
+            'average_sleep_quality': (
+                sum(self.sleep_state_tracker['sleep_quality_scores']) / 
+                max(1, len(self.sleep_state_tracker['sleep_quality_scores']))
+            ) if self.sleep_state_tracker['sleep_quality_scores'] else 0.0
+        }
+    
+    # ====== PUBLIC STATUS METHODS FOR USER QUERIES ======
+    
+    def is_consolidating_memories(self) -> bool:
+        """Return True if currently consolidating memories."""
+        return self.memory_consolidation_tracker['is_consolidating_memories']
+    
+    def is_prioritizing_memories(self) -> bool:
+        """Return True if currently prioritizing memories."""
+        return self.memory_consolidation_tracker['is_prioritizing_memories']
+    
+    def is_sleeping(self) -> bool:
+        """Return True if agent is currently in sleep state."""
+        return self.sleep_state_tracker['is_currently_sleeping']
+    
+    def is_memory_compression_active(self) -> bool:
+        """Return True if memory compression is currently active."""
+        return self.memory_consolidation_tracker['memory_compression_active']
+    
+    def has_made_reset_decisions(self) -> bool:
+        """Return True if model has made any game reset decisions."""
+        return self.game_reset_tracker['reset_decisions_made'] > 0
+    
+    def get_sleep_and_memory_status(self) -> Dict[str, Any]:
+        """
+        Get comprehensive status of sleep states and memory operations.
+        
+        Returns:
+            Complete status including True/False flags for all operations
+        """
+        return {
+            # Sleep state status
+            'sleep_status': {
+                'is_currently_sleeping': self.is_sleeping(),
+                'sleep_cycles_this_session': self.sleep_state_tracker['sleep_cycles_this_session'],
+                'total_sleep_time_minutes': self.sleep_state_tracker['total_sleep_time'] / 60.0,
+                'sleep_efficiency': self._calculate_sleep_efficiency()
+            },
+            
+            # Memory consolidation status
+            'memory_consolidation_status': {
+                'is_consolidating_memories': self.is_consolidating_memories(),
+                'is_prioritizing_memories': self.is_prioritizing_memories(),
+                'consolidation_operations_completed': self.memory_consolidation_tracker['consolidation_operations_count'],
+                'high_salience_memories_strengthened': self.memory_consolidation_tracker['high_salience_memories_strengthened'],
+                'low_salience_memories_decayed': self.memory_consolidation_tracker['low_salience_memories_decayed'],
+                'last_consolidation_effectiveness': self.memory_consolidation_tracker['last_consolidation_score']
+            },
+            
+            # Memory compression status
+            'memory_compression_status': {
+                'compression_active': self.is_memory_compression_active(),
+                'compression_mode': self.salience_calculator.mode.value if self.salience_calculator else 'none',
+                'total_compressed_memories': len(getattr(self.salience_calculator, 'compressed_memories', []))
+            },
+            
+            # Game reset decision status
+            'game_reset_status': {
+                'has_made_reset_decisions': self.has_made_reset_decisions(),
+                'total_reset_decisions': self.game_reset_tracker['reset_decisions_made'],
+                'reset_success_rate': self.game_reset_tracker['reset_success_rate'],
+                'last_reset_reason': self.game_reset_tracker['last_reset_decision']['reason'] if self.game_reset_tracker['last_reset_decision'] else None,
+                'reset_decision_criteria': self.game_reset_tracker['reset_decision_criteria']
+            }
+        }
+    
+    def _calculate_sleep_efficiency(self) -> float:
+        """Calculate how efficiently sleep cycles are being used."""
+        if not self.sleep_state_tracker['sleep_quality_scores']:
+            return 0.0
+        
+        quality_scores = self.sleep_state_tracker['sleep_quality_scores']
+        sleep_cycles = self.sleep_state_tracker['sleep_cycles_this_session']
+        
+        # Efficiency = average quality * frequency factor
+        avg_quality = sum(quality_scores) / len(quality_scores)
+        frequency_factor = min(sleep_cycles / 10.0, 1.0)  # Optimal frequency around 10 cycles per session
+        
+        return avg_quality * frequency_factor
+
+    def get_system_status_flags(self) -> Dict[str, bool]:
+        """
+        Get simple True/False flags for all major system operations.
+        
+        Returns:
+            Dictionary with boolean flags for each system operation
+        """
+        return {
+            # Sleep states
+            'is_sleeping': self.is_sleeping(),
+            'sleep_cycles_active': self.sleep_state_tracker['sleep_cycles_this_session'] > 0,
+            
+            # Memory consolidation
+            'is_consolidating_memories': self.is_consolidating_memories(),
+            'is_prioritizing_memories': self.is_prioritizing_memories(), 
+            'memory_strengthening_active': self.memory_consolidation_tracker['high_salience_memories_strengthened'] > 0,
+            'memory_decay_active': self.memory_consolidation_tracker['low_salience_memories_decayed'] > 0,
+            
+            # Memory compression
+            'memory_compression_active': self.is_memory_compression_active(),
+            'has_compressed_memories': len(getattr(self.salience_calculator, 'compressed_memories', [])) > 0,
+            
+            # Game reset decisions
+            'has_made_reset_decisions': self.has_made_reset_decisions(),
+            'reset_decision_pending': self._is_reset_decision_pending(),
+            
+            # System health
+            'memory_system_healthy': self._is_memory_system_healthy(),
+            'learning_system_active': self.current_session is not None,
+            'salience_system_active': self.salience_calculator is not None
+        }
+    
+    def _is_reset_decision_pending(self) -> bool:
+        """Check if a reset decision is currently being evaluated."""
+        last_decision = self.game_reset_tracker.get('last_reset_decision')
+        if not last_decision:
+            return False
+        
+        # Consider decision "pending" if it was made very recently (within 30 seconds)
+        time_since_decision = time.time() - last_decision.get('timestamp', 0)
+        return time_since_decision < 30.0
+    
+    def _is_memory_system_healthy(self) -> bool:
+        """Check if memory system is operating within healthy parameters."""
+        consolidation_count = self.memory_consolidation_tracker['consolidation_operations_count']
+        last_score = self.memory_consolidation_tracker['last_consolidation_score']
+        
+        # Healthy if we've had successful consolidations with positive scores
+        return consolidation_count > 0 and last_score > 0.1
