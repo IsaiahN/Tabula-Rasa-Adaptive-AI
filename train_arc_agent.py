@@ -218,8 +218,8 @@ class UnifiedTrainer:
                     
                     # Rest between iterations
                     if iteration < self.max_iterations:
-                        print(f"😴 Rest 30s before iteration {iteration + 1}...")
-                        await asyncio.sleep(30)
+                        print(f"😴 Rest 5s before iteration {iteration + 1}...")
+                        await asyncio.sleep(5)
                 
                 except Exception as e:
                     print(f"❌ ITERATION {iteration} ERROR: {e}")

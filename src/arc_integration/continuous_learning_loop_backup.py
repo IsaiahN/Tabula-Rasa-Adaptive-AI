@@ -687,7 +687,7 @@ class ContinuousLearningLoop:
         print(f"Using API Key: {self.api_key[:8]}...{self.api_key[-4:]}")
         print(f"ARC-AGI-3-Agents path: {self.arc_agents_path}")
         
-        episode_count = 1
+        episode_count = 0
         consecutive_failures = 0
         best_score = 0
         
@@ -797,14 +797,10 @@ class ContinuousLearningLoop:
             env['ARC_API_KEY'] = self.api_key
             
             # COMPLETE EPISODE: Run actions in loop until terminal state
-            episode_actions = 0
-            total_score = 0
-            best_score = 0
-            final_state = 'NOT_FINISHED'
+            # Run one complete game session (not individual actions)
             episode_start_time = time.time()
-            max_actions_per_episode = 1000  # Allow for complex puzzles
             
-            print(f"🎮 Starting complete episode {episode_count} for {game_id}")
+            print(f"🎮 Starting complete game session {episode_count} for {game_id}")
             
             # VERBOSE: Show memory state before episode
             print(f"📊 PRE-EPISODE MEMORY STATUS:")
@@ -818,31 +814,12 @@ class ContinuousLearningLoop:
             memory_files_before = self._count_memory_files()
             print(f"   Memory Files: {memory_files_before}")
             
-            # Adaptive energy allocation based on game history
-            current_energy = pre_sleep_status.get('current_energy_level', 1.0)
-            estimated_complexity = self._estimate_game_complexity(game_id)
-            
-            # Boost energy if we predict a complex game
-            if estimated_complexity == 'high' and current_energy < 0.8:
-                energy_boost = 0.2
-                current_energy = min(1.0, current_energy + energy_boost)
-                print(f"⚡ Energy boost: +{energy_boost:.2f} for predicted high-complexity game -> {current_energy:.2f}")
-                self._update_energy_level(current_energy)
-            elif estimated_complexity == 'medium' and current_energy < 0.6:
-                energy_boost = 0.1
-                current_energy = min(1.0, current_energy + energy_boost)
-                print(f"⚡ Energy boost: +{energy_boost:.2f} for predicted medium-complexity game -> {current_energy:.2f}")
-                self._update_energy_level(current_energy)
-            
-            # Reset game at start of episode if needed
+            # Reset game at start if needed
             if reset_decision['should_reset']:
                 print(f"🔄 Resetting game {game_id}")
                 self._record_reset_decision(reset_decision)
             
-            # Run complete game session (not individual actions)
-            print(f"🎮 Starting complete game session for {game_id}")
-            
-            # Build command for complete game session
+            # Run complete game session
             cmd = [
                 'python', 'main.py',
                 '--agent=adaptivelearning',
@@ -854,11 +831,11 @@ class ContinuousLearningLoop:
                 cmd.append('--reset')
             
             # Add tags to identify this episode
-            cmd.extend(['--tags', f'Attempt#{episode_count}'])
+            cmd.extend(['--tags', f'episode{episode_count}'])
             
-            # Run the complete game session until WIN/GAME_OVER
+            # Run the complete game session
             try:
-                print(f"🚀 Executing complete game session: {' '.join(cmd)}")
+                print(f"🚀 Executing complete game: {' '.join(cmd)}")
                 process = await asyncio.create_subprocess_exec(
                     *cmd,
                     cwd=str(self.arc_agents_path),
@@ -867,137 +844,131 @@ class ContinuousLearningLoop:
                     stderr=asyncio.subprocess.PIPE
                 )
                 
-                # Wait for complete game session with longer timeout (games can take thousands of actions)
+                # Wait for complete game completion with longer timeout
                 try:
                     stdout, stderr = await asyncio.wait_for(
                         process.communicate(), 
-                        timeout=600.0  # 10 minutes for complete game session
+                        timeout=300.0  # 5 minutes for complete game
                     )
                     
                     stdout_text = stdout.decode('utf-8', errors='ignore') if stdout else ""
                     stderr_text = stderr.decode('utf-8', errors='ignore') if stderr else ""
                     
-                    print(f"✅ Complete game session finished")
+                    print(f"✅ Game session completed")
                     
-                    # Parse complete game results
-                    game_results = self._parse_complete_game_session(stdout_text, stderr_text)
-                    total_score = game_results.get('final_score', 0)
-                    episode_actions = game_results.get('total_actions', 0) 
+                    # Parse game results from output
+                    game_results = self._parse_arc_agent_output(stdout_text, stderr_text)
+                    total_score = game_results.get('score', 0)
+                    episode_actions = game_results.get('total_actions', 0)
                     final_state = game_results.get('final_state', 'UNKNOWN')
                     effective_actions = game_results.get('effective_actions', [])
                     
                     print(f"🎯 Game Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                    print(f"🎯 Effective Actions Found: {len(effective_actions)}")
+                    print(f"🎯 Effective Actions: {len(effective_actions)} identified")
                     
                 except asyncio.TimeoutError:
-                    print(f"⏰ Complete game session timed out after 10 minutes - killing process")
+                    print(f"⏰ Complete game session timed out after 5 minutes - killing process")
                     try:
                         process.kill()
                         await asyncio.wait_for(process.wait(), timeout=5.0)
                     except:
                         pass
                     
-                    # Set timeout defaults
+                    # Set default failure values
                     total_score = 0
-                    episode_actions = 1000  # Assume many actions were attempted
+                    episode_actions = 300  # Assume max actions were used
                     final_state = 'TIMEOUT'
                     effective_actions = []
-                    stdout_text = ""
-                    stderr_text = ""
                     
             except Exception as e:
-                print(f"❌ Error during complete game session: {e}")
+                print(f"❌ Error during game session: {e}")
                 total_score = 0
                 episode_actions = 0
                 final_state = 'ERROR'
-                effective_actions = []
-                stdout_text = ""
-                stderr_text = ""
             
-            # Now process the complete game session results
-            # Dynamic energy system based on game complexity and learning opportunities
-            
-            # Calculate adaptive energy cost based on actions and effectiveness
-            base_energy_cost = episode_actions * 0.005  # Base rate: 0.005 per action
-            
-            # Adjust energy cost based on game complexity
-            if episode_actions > 500:  # Very complex game
-                energy_multiplier = 1.5  # Higher cost for complex games
-                sleep_frequency_target = 200  # Trigger sleep every ~200 actions worth
-            elif episode_actions > 200:  # Moderately complex game  
-                energy_multiplier = 1.2
-                sleep_frequency_target = 150  # Trigger sleep every ~150 actions worth
-            else:  # Simple game
-                energy_multiplier = 1.0
-                sleep_frequency_target = 100  # Trigger sleep every ~100 actions worth
-            
-            # Additional cost if no effective actions (wasted energy)
-            if len(effective_actions) == 0 and episode_actions > 50:
-                energy_multiplier *= 1.3  # Penalty for ineffective long games
-                print(f"⚡ Energy penalty applied for {episode_actions} ineffective actions")
-            
-            # Calculate final energy cost
-            energy_cost = base_energy_cost * energy_multiplier
+            # Energy depletion based on actions taken
+            energy_cost = episode_actions * 0.1  # Each action costs 0.1 energy
             current_energy = pre_sleep_status.get('current_energy_level', 1.0)
             remaining_energy = max(0.0, current_energy - energy_cost)
             
-            print(f"⚡ Energy: {current_energy:.2f} -> {remaining_energy:.2f}")
-            print(f"   Cost: {energy_cost:.3f} (base: {base_energy_cost:.3f} × {energy_multiplier:.1f} multiplier)")
-            print(f"   Game complexity: {episode_actions} actions -> {'High' if episode_actions > 500 else 'Medium' if episode_actions > 200 else 'Low'}")
+            print(f"⚡ Energy: {current_energy:.2f} -> {remaining_energy:.2f} (cost: {energy_cost:.2f})")
             
-            # Dynamic sleep threshold based on learning opportunities
-            if len(effective_actions) > 0:
-                # Lower threshold when we have effective actions to consolidate
-                sleep_threshold = 0.4 + (len(effective_actions) * 0.1)  # More effective actions = higher threshold
-                sleep_reason = f"Learning consolidation needed ({len(effective_actions)} effective actions)"
-            else:
-                # Higher threshold when no learning occurred
-                sleep_threshold = 0.2
-                sleep_reason = f"Energy depletion (no effective actions found)"
-            
-            # Trigger sleep based on adaptive thresholds
-            sleep_triggered = False
-            if remaining_energy <= sleep_threshold:
-                print(f"😴 Sleep triggered: {sleep_reason}")
-                print(f"   Energy {remaining_energy:.2f} <= threshold {sleep_threshold:.2f}")
-                
+            # Check if sleep is needed due to low energy
+            if remaining_energy <= 0.2:  # Sleep threshold
+                print(f"� Energy depleted ({remaining_energy:.2f} <= 0.2), initiating sleep cycle")
                 sleep_result = await self._trigger_sleep_cycle(effective_actions)
                 print(f"🌅 Sleep completed: {sleep_result}")
-                sleep_triggered = True
                 
-                # Adaptive energy replenishment based on learning quality
-                base_replenishment = 0.6  # Base 60% restoration
-                
-                # Bonus energy for effective learning
-                if len(effective_actions) > 0:
-                    learning_bonus = min(0.3, len(effective_actions) * 0.05)  # Up to 30% bonus
-                    print(f"⚡ Learning bonus: +{learning_bonus:.2f} energy for {len(effective_actions)} effective actions")
-                else:
-                    learning_bonus = 0.0
-                
-                # Bonus energy for complex games (they teach more)
-                if episode_actions > 500:
-                    complexity_bonus = 0.2  # 20% bonus for complex games
-                    print(f"⚡ Complexity bonus: +{complexity_bonus:.2f} energy for {episode_actions}-action game")
-                elif episode_actions > 200:
-                    complexity_bonus = 0.1  # 10% bonus for medium games
-                    print(f"⚡ Complexity bonus: +{complexity_bonus:.2f} energy for {episode_actions}-action game")
-                else:
-                    complexity_bonus = 0.0
-                
-                total_replenishment = base_replenishment + learning_bonus + complexity_bonus
-                remaining_energy = min(1.0, remaining_energy + total_replenishment)
-                print(f"⚡ Energy replenished: {total_replenishment:.2f} total -> {remaining_energy:.2f}")
-            else:
-                print(f"⚡ Sleep not needed: Energy {remaining_energy:.2f} > threshold {sleep_threshold:.2f}")
+                # Replenish energy after sleep (bucket refill concept)
+                energy_replenishment = 0.8  # Sleep restores 80% of energy
+                remaining_energy = min(1.0, remaining_energy + energy_replenishment)
+                print(f"⚡ Energy replenished to {remaining_energy:.2f}")
             
             # Update energy level in system
             self._update_energy_level(remaining_energy)
             
-            # Update game complexity history for future energy allocation
-            effectiveness_ratio = len(effective_actions) / max(1, episode_actions)  # Avoid division by zero
-            self._update_game_complexity_history(game_id, episode_actions, effectiveness_ratio)
-            print(f"📈 Updated complexity history for {game_id}: {episode_actions} actions, {effectiveness_ratio:.2%} effective")
+            episode_end_time = time.time()
+            episode_duration = episode_end_time - episode_start_time
+            
+            # Build comprehensive episode result
+                    if "OK Tabula-rasa found" in stdout_text and "OK Full Ada" in stdout_text:
+                        if episode_actions <= 3:
+                            print(f"    � Agent Setup: Initializing tabula-rasa connection...")
+                        else:
+                            print(f"    ⚠️  Setup Loop: Agent repeating initialization (possible issue)")
+                    else:
+                        # Show actual game output
+                        clean_output = stdout_text.strip().replace('\n', ' ')[:150]
+                        print(f"    📝 Game Output: {clean_output}...")
+                
+                if stderr_text.strip():
+                    clean_error = stderr_text.strip().replace('\n', ' ')[:150]
+                    print(f"    ⚠️  Error: {clean_error}...")
+                
+                # Update episode totals
+                if action_score > best_score:
+                    best_score = action_score
+                    total_score = action_score
+                    print(f"    🏆 NEW BEST SCORE: {best_score}")
+                
+                # Check for stuck initialization and try to break out
+                if (episode_actions > 5 and action_score == 0 and 
+                    "OK Tabula-rasa found" in stdout_text and action_state == 'NOT_FINISHED'):
+                    print(f"    🔄 Detected initialization loop - attempting to break out")
+                    # Try a few more actions, then give up on this episode
+                    if episode_actions > 10:
+                        print(f"    ❌ Episode stuck in initialization - ending early")
+                        final_state = 'GAME_OVER'
+                        break
+                
+                final_state = action_state if action_state in ['WIN', 'GAME_OVER'] else 'NOT_FINISHED'
+                
+                # VERBOSE: Check memory operations every 10 actions
+                if episode_actions % 10 == 0:
+                    print(f"    💾 MEMORY CHECK after {episode_actions} actions:")
+                    memory_status = self._get_memory_consolidation_status()
+                    sleep_status = self._get_current_sleep_state_info()
+                    
+                    print(f"       Memory Ops: {memory_status.get('consolidation_operations_completed', 0)}")
+                    print(f"       Sleep Cycles: {sleep_status.get('sleep_cycles_completed', 0)}")
+                    print(f"       Energy Level: {sleep_status.get('current_energy_level', 1.0):.2f}")
+                
+                # Print action progress every 50 actions or on terminal states
+                if episode_actions % 50 == 0 or final_state in ['WIN', 'GAME_OVER']:
+                    print(f"  Action {episode_actions}: Score {action_score}, State: {action_state}")
+                
+                # Check for terminal states
+                if final_state in ['WIN', 'GAME_OVER']:
+                    print(f"🏁 Episode {episode_count} completed after {episode_actions} actions: {final_state}")
+                    break
+                
+                # Small delay between actions to avoid rate limiting
+                await asyncio.sleep(0.2)
+            
+            # Handle case where max actions reached
+            if episode_actions >= max_actions_per_episode and final_state == 'NOT_FINISHED':
+                print(f"⏰ Episode {episode_count} reached max actions ({max_actions_per_episode})")
+                final_state = 'MAX_ACTIONS_REACHED'
             
             # Build comprehensive episode result
             episode_duration = time.time() - episode_start_time
@@ -1158,10 +1129,10 @@ class ContinuousLearningLoop:
         }
         
         try:
-            episode_count = 1
+            episode_count = 0
             consecutive_failures = 0
             
-            while episode_count <= max_episodes:
+            while episode_count < max_episodes:
                 # Run episode with proper game state checking
                 episode_result = await self._run_real_arc_episode_enhanced(game_id, episode_count)
                 
@@ -1435,7 +1406,7 @@ class ContinuousLearningLoop:
         
         # Essential metrics only
         print(f"Duration: {session_results.get('duration', 0):.0f}s | Games: {overall_perf.get('games_trained', 0)} | Episodes: {overall_perf.get('total_episodes', 0)}")
-        print(f"Win Rate: {overall_win_rate:.1%} | Avg Score: {overall_perf.get('overall_average_score', 0):.0f}")
+        print(f"Win Rate: {overall_win_rate:.1%} | Avg Score: {overall_perf.get('overall_average_score', 0)::.0f}")
         
         # Grid size information - CRITICAL NEW FEATURE
         if grid_summary.get('dynamic_sizing_verified'):
@@ -2243,132 +2214,80 @@ class ContinuousLearningLoop:
         # Healthy if we've had successful consolidations with positive scores
         return consolidation_count > 0 and last_score > 0.1
 
-    def _parse_complete_game_session(self, stdout_text: str, stderr_text: str) -> Dict[str, Any]:
-        """Parse complete game session output to extract results and effective actions."""
+    def _parse_arc_agent_output(self, stdout_text: str, stderr_text: str) -> Dict[str, Any]:
+        """Parse ARC agent output to extract game results and effective actions."""
         import re
         
         result = {
-            'final_score': 0,
+            'score': 0,
             'total_actions': 0,
             'final_state': 'UNKNOWN',
             'effective_actions': []
         }
         
         try:
-            # Look for final scorecard in output
-            if '"won": 1' in stdout_text:
+            # Look for final score in output
+            score_match = re.search(r'"score":\s*(\d+)', stdout_text)
+            if score_match:
+                result['score'] = int(score_match.group(1))
+            
+            # Look for total actions
+            action_match = re.search(r'"total_actions":\s*(\d+)', stdout_text)
+            if action_match:
+                result['total_actions'] = int(action_match.group(1))
+            
+            # Look for final state
+            if '"won": 1' in stdout_text or 'WIN' in stdout_text.upper():
                 result['final_state'] = 'WIN'
-            elif '"won": 0' in stdout_text:
+            elif '"won": 0' in stdout_text or 'GAME_OVER' in stdout_text.upper():
                 result['final_state'] = 'GAME_OVER'
             elif 'TIMEOUT' in stdout_text.upper():
                 result['final_state'] = 'TIMEOUT'
             
-            # Extract score from scorecard
-            score_match = re.search(r'"score":\s*(\d+)', stdout_text)
-            if score_match:
-                result['final_score'] = int(score_match.group(1))
-            
-            # Extract total actions from scorecard
-            actions_match = re.search(r'"total_actions":\s*(\d+)', stdout_text)
-            if actions_match:
-                result['total_actions'] = int(actions_match.group(1))
-            
-            # Extract effective actions by looking for score changes
+            # Extract effective actions (actions that changed game state)
             effective_actions = []
-            
-            # Look for ACTION patterns with score improvements
-            action_lines = re.findall(r'ACTION\d+:.*?score\s+(\d+)', stdout_text, re.IGNORECASE)
-            for i, score_str in enumerate(action_lines):
-                score = int(score_str)
-                if score > 0:  # This action had a positive effect
+            action_pattern = r'ACTION(\d+).*?score[:\s]*(\d+)'
+            for match in re.finditer(action_pattern, stdout_text, re.IGNORECASE):
+                action_num = int(match.group(1))
+                score = int(match.group(2))
+                if score > 0:  # Action had positive effect
                     effective_actions.append({
-                        'action_number': i + 1,
-                        'action_type': f'ACTION{(i % 8) + 1}',  # ARC has 8 action types
-                        'score_achieved': score,
-                        'effectiveness': min(1.0, score / 100.0)  # Normalize effectiveness
-                    })
-            
-            # Also look for successful state changes (RESET -> ACTION sequences)
-            reset_action_sequences = re.findall(r'RESET.*?ACTION\d+.*?score\s+(\d+)', stdout_text, re.IGNORECASE | re.DOTALL)
-            for score_str in reset_action_sequences:
-                score = int(score_str)
-                if score > 0:
-                    effective_actions.append({
-                        'action_type': 'RESET_SEQUENCE',
-                        'score_achieved': score,
-                        'effectiveness': min(1.0, score / 50.0)  # Reset sequences are valuable
+                        'action_number': action_num,
+                        'action_type': f'ACTION{action_num}',
+                        'score_change': score,
+                        'effectiveness': min(1.0, score / 100.0)  # Normalize to 0-1
                     })
             
             result['effective_actions'] = effective_actions
             
-            print(f"📊 Parsed game session: {result['total_actions']} actions, {len(effective_actions)} effective, final score {result['final_score']}")
-            
         except Exception as e:
-            print(f"⚠️ Error parsing complete game session: {e}")
+            print(f"⚠️ Error parsing ARC agent output: {e}")
         
         return result
 
-    async def _trigger_sleep_cycle(self, effective_actions: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Trigger a sleep cycle to process and consolidate effective actions with real memory operations."""
-        print(f"💤 SLEEP CYCLE INITIATED - Processing {len(effective_actions)} effective actions...")
-        
+    def _trigger_sleep_cycle(self, effective_actions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Trigger a sleep cycle to process and consolidate effective actions."""
         sleep_result = {
             'actions_processed': len(effective_actions),
             'memories_strengthened': 0,
-            'memories_deleted': 0,
-            'memories_combined': 0,
-            'energy_restored': 0.7,
-            'insights_generated': 0,
-            'priority_memories_loaded': 0
+            'energy_restored': 0.8,
+            'insights_generated': 0
         }
         
         try:
-            # 1. LOAD AND PRIORITIZE EXISTING MEMORIES
-            print(f"🧠 Phase 1: Loading and prioritizing existing memories...")
-            relevant_memories = await self._load_prioritized_memories()
-            sleep_result['priority_memories_loaded'] = len(relevant_memories)
-            print(f"   Loaded {len(relevant_memories)} prioritized memories")
-            
-            # 2. GARBAGE COLLECT IRRELEVANT MEMORIES  
-            print(f"🗑️ Phase 2: Garbage collecting irrelevant memories...")
-            deleted_count = await self._garbage_collect_memories()
-            sleep_result['memories_deleted'] = deleted_count
-            print(f"   Deleted {deleted_count} irrelevant memories")
-            
-            # 3. COMBINE/COMPRESS SIMILAR MEMORIES
-            print(f"🔗 Phase 3: Combining similar memory patterns...")
-            combined_count = await self._combine_similar_memories()
-            sleep_result['memories_combined'] = combined_count
-            print(f"   Combined {combined_count} similar memory clusters")
-            
-            # 4. STRENGTHEN EFFECTIVE ACTION MEMORIES
-            print(f"💪 Phase 4: Strengthening effective action memories...")
+            # Process effective actions into memory
             for action in effective_actions:
-                effectiveness = action.get('effectiveness', 0)
-                if effectiveness > 0.3:  # Lower threshold to capture more learnings
-                    await self._strengthen_action_memory_with_context(action, relevant_memories)
+                if action.get('effectiveness', 0) > 0.5:  # High effectiveness threshold
+                    # Strengthen memory of effective action
+                    self._strengthen_action_memory(action)
                     sleep_result['memories_strengthened'] += 1
             
-            # 5. GENERATE INSIGHTS FROM MEMORY PATTERNS
-            print(f"🔍 Phase 5: Generating insights from memory patterns...")
-            if len(effective_actions) >= 2 or len(relevant_memories) >= 5:
-                insights = await self._generate_memory_insights(effective_actions, relevant_memories)
+            # Generate insights from patterns
+            if len(effective_actions) >= 3:
+                insights = self._generate_action_insights(effective_actions)
                 sleep_result['insights_generated'] = len(insights)
-                for insight in insights:
-                    print(f"💡 Insight: {insight}")
             
-            # 6. PREPARE MEMORY GUIDANCE FOR NEXT GAME
-            print(f"🎯 Phase 6: Preparing memory-informed guidance...")
-            guidance = await self._prepare_memory_guidance(relevant_memories, effective_actions)
-            sleep_result['guidance_prepared'] = len(guidance)
-            print(f"   Prepared {len(guidance)} guidance points for next game")
-            
-            print(f"💤 SLEEP CYCLE COMPLETED:")
-            print(f"   📚 {sleep_result['priority_memories_loaded']} memories loaded")
-            print(f"   🗑️ {sleep_result['memories_deleted']} memories deleted")  
-            print(f"   🔗 {sleep_result['memories_combined']} memories combined")
-            print(f"   💪 {sleep_result['memories_strengthened']} memories strengthened")
-            print(f"   💡 {sleep_result['insights_generated']} insights generated")
+            print(f"💤 Sleep cycle processed {len(effective_actions)} actions, strengthened {sleep_result['memories_strengthened']} memories")
             
         except Exception as e:
             print(f"⚠️ Error during sleep cycle: {e}")
@@ -2377,376 +2296,32 @@ class ContinuousLearningLoop:
 
     def _strengthen_action_memory(self, action: Dict[str, Any]) -> None:
         """Strengthen memory of an effective action."""
-        action_type = action.get('action_type', 'unknown')
-        effectiveness = action.get('effectiveness', 0)
-        score = action.get('score_achieved', 0)
-        
-        print(f"🧠 Strengthening memory: {action_type} (effectiveness: {effectiveness:.2f}, score: {score})")
-        
         # This would integrate with the existing memory system
-        # For now, we track it for the learning system
-        if not hasattr(self, 'effective_action_memories'):
-            self.effective_action_memories = []
-        
-        self.effective_action_memories.append({
-            'action_type': action_type,
-            'effectiveness': effectiveness,
-            'score': score,
-            'timestamp': time.time()
-        })
+        # For now, just log the action for debugging
+        print(f"🧠 Strengthening memory of {action.get('action_type', 'unknown')} (effectiveness: {action.get('effectiveness', 0):.2f})")
 
     def _generate_action_insights(self, actions: List[Dict[str, Any]]) -> List[str]:
         """Generate insights from patterns in effective actions."""
         insights = []
         
-        try:
-            # Look for patterns in action types
-            action_types = [a.get('action_type', '') for a in actions]
-            type_counts = {}
-            for action_type in action_types:
-                type_counts[action_type] = type_counts.get(action_type, 0) + 1
-            
-            # Find most effective action type
-            if type_counts:
-                most_common = max(type_counts, key=type_counts.get)
-                if type_counts[most_common] >= 2:
-                    insights.append(f"Most effective action type: {most_common} (used {type_counts[most_common]} times)")
-            
-            # Look for effectiveness trends
-            effectiveness_scores = [a.get('effectiveness', 0) for a in actions]
-            if len(effectiveness_scores) >= 3:
-                avg_effectiveness = sum(effectiveness_scores) / len(effectiveness_scores)
-                if avg_effectiveness > 0.7:
-                    insights.append("High overall action effectiveness detected")
-                elif effectiveness_scores[-1] > effectiveness_scores[0]:
-                    insights.append("Action effectiveness improving over time")
-            
-            # Look for score achievements
-            scores = [a.get('score_achieved', 0) for a in actions]
-            total_score = sum(scores)
-            if total_score > 0:
-                insights.append(f"Total effective score contribution: {total_score}")
-            
-        except Exception as e:
-            print(f"⚠️ Error generating insights: {e}")
+        # Look for patterns in action types
+        action_types = [a.get('action_type', '') for a in actions]
+        if len(set(action_types)) < len(action_types):
+            insights.append("Repetitive actions showing effectiveness")
+        
+        # Look for effectiveness trends
+        effectiveness_scores = [a.get('effectiveness', 0) for a in actions]
+        if len(effectiveness_scores) >= 3:
+            if effectiveness_scores[-1] > effectiveness_scores[0]:
+                insights.append("Action effectiveness improving over time")
         
         return insights
 
     def _update_energy_level(self, new_energy: float) -> None:
         """Update the system's energy level."""
-        self.current_energy = max(0.0, min(1.0, new_energy))
-        
-        # Update in sleep state info if available
-        if hasattr(self, 'sleep_system') and self.sleep_system:
-            try:
-                # This would integrate with the actual energy system
-                print(f"⚡ Energy level updated to {self.current_energy:.2f}")
-            except:
-                pass
-
-    def _estimate_game_complexity(self, game_id: str) -> str:
-        """Estimate game complexity based on game ID pattern and historical data."""
-        
-        # Check if we have historical data for this game
-        if hasattr(self, 'game_complexity_history'):
-            if game_id in self.game_complexity_history:
-                historical_actions = self.game_complexity_history[game_id]['avg_actions']
-                if historical_actions > 500:
-                    return 'high'
-                elif historical_actions > 200:
-                    return 'medium'
-                else:
-                    return 'low'
-        
-        # Estimate based on game ID patterns (some game types are known to be complex)
-        try:
-            # Games with certain patterns tend to be more complex
-            if any(pattern in game_id.lower() for pattern in ['complex', 'multi', 'transform', 'sequence']):
-                return 'high'
-            elif any(pattern in game_id.lower() for pattern in ['simple', 'basic', 'easy']):
-                return 'low'
-            else:
-                return 'medium'  # Default assumption
-        except:
-            return 'medium'
-
-    def _update_game_complexity_history(self, game_id: str, actions_taken: int, effectiveness_ratio: float):
-        """Update historical complexity data for a game."""
-        if not hasattr(self, 'game_complexity_history'):
-            self.game_complexity_history = {}
-        
-        if game_id not in self.game_complexity_history:
-            self.game_complexity_history[game_id] = {
-                'total_plays': 0,
-                'total_actions': 0,
-                'avg_actions': 0,
-                'effectiveness_history': []
-            }
-        
-        history = self.game_complexity_history[game_id]
-        history['total_plays'] += 1
-        history['total_actions'] += actions_taken
-        history['avg_actions'] = history['total_actions'] / history['total_plays']
-        history['effectiveness_history'].append(effectiveness_ratio)
-        
-        # Keep only last 10 effectiveness scores
-        if len(history['effectiveness_history']) > 10:
-            history['effectiveness_history'] = history['effectiveness_history'][-10:]
-
-    async def _load_prioritized_memories(self) -> List[Dict[str, Any]]:
-        """Load and prioritize existing memories based on relevance and recency."""
-        try:
-            import os
-            import json
-            from pathlib import Path
-            
-            memories = []
-            
-            # Look for memory files in the continuous learning data directory
-            memory_dirs = [
-                Path("continuous_learning_data"),
-                Path("meta_learning_data"), 
-                Path("test_meta_learning_data")
-            ]
-            
-            for memory_dir in memory_dirs:
-                if memory_dir.exists():
-                    for memory_file in memory_dir.glob("*.json"):
-                        try:
-                            with open(memory_file, 'r') as f:
-                                memory_data = json.load(f)
-                                # Add metadata
-                                memory_data['file_path'] = str(memory_file)
-                                memory_data['file_age'] = os.path.getmtime(memory_file)
-                                memories.append(memory_data)
-                        except Exception as e:
-                            print(f"   ⚠️ Failed to load {memory_file}: {e}")
-            
-            # Prioritize memories by relevance (recent + effective)
-            def priority_score(memory):
-                recency_score = memory.get('file_age', 0) / 1000000  # Recent files score higher
-                effectiveness_score = memory.get('final_score', 0) * 10  # Effective memories score higher
-                return recency_score + effectiveness_score
-            
-            memories.sort(key=priority_score, reverse=True)
-            
-            # Return top 10 most relevant memories
-            return memories[:10]
-            
-        except Exception as e:
-            print(f"   ⚠️ Error loading memories: {e}")
-            return []
-
-    async def _garbage_collect_memories(self) -> int:
-        """Delete irrelevant, old, or low-value memories to free up space."""
-        try:
-            import os
-            import time
-            from pathlib import Path
-            
-            deleted_count = 0
-            current_time = time.time()
-            
-            memory_dirs = [
-                Path("continuous_learning_data"),
-                Path("meta_learning_data"),
-                Path("test_meta_learning_data") 
-            ]
-            
-            for memory_dir in memory_dirs:
-                if memory_dir.exists():
-                    for memory_file in memory_dir.glob("*.json"):
-                        try:
-                            file_age_days = (current_time - os.path.getmtime(memory_file)) / 86400
-                            file_size_kb = os.path.getsize(memory_file) / 1024
-                            
-                            # Delete if: very old (>7 days) OR very small (<1KB) OR temp files
-                            should_delete = (
-                                file_age_days > 7 or
-                                file_size_kb < 1 or
-                                'temp_' in memory_file.name or
-                                'test_' in memory_file.name
-                            )
-                            
-                            if should_delete:
-                                os.remove(memory_file)
-                                deleted_count += 1
-                                print(f"   🗑️ Deleted {memory_file.name} (age: {file_age_days:.1f}d, size: {file_size_kb:.1f}KB)")
-                                
-                        except Exception as e:
-                            print(f"   ⚠️ Failed to process {memory_file}: {e}")
-            
-            return deleted_count
-            
-        except Exception as e:
-            print(f"   ⚠️ Error during garbage collection: {e}")
-            return 0
-
-    async def _combine_similar_memories(self) -> int:
-        """Combine similar memory patterns to reduce redundancy."""
-        try:
-            import json
-            import time
-            import os
-            from pathlib import Path
-            from collections import defaultdict
-            
-            combined_count = 0
-            memory_clusters = defaultdict(list)
-            
-            # Group memories by similarity patterns
-            memory_dir = Path("continuous_learning_data")
-            if memory_dir.exists():
-                for memory_file in memory_dir.glob("*.json"):
-                    try:
-                        with open(memory_file, 'r') as f:
-                            memory_data = json.load(f)
-                            
-                            # Cluster by game patterns and scores
-                            cluster_key = f"score_{memory_data.get('final_score', 0)//10}_actions_{memory_data.get('actions_taken', 0)//50}"
-                            memory_clusters[cluster_key].append({
-                                'file': memory_file,
-                                'data': memory_data
-                            })
-                    except:
-                        continue
-            
-            # Combine clusters with multiple similar memories
-            for cluster_key, memories in memory_clusters.items():
-                if len(memories) > 2:  # Combine if 3+ similar memories
-                    # Create combined memory
-                    combined_memory = {
-                        'type': 'combined_memory_cluster',
-                        'cluster_key': cluster_key,
-                        'original_count': len(memories),
-                        'combined_timestamp': time.time(),
-                        'combined_data': {
-                            'avg_score': sum(m['data'].get('final_score', 0) for m in memories) / len(memories),
-                            'avg_actions': sum(m['data'].get('actions_taken', 0) for m in memories) / len(memories),
-                            'patterns': [m['data'] for m in memories[:3]]  # Keep top 3 examples
-                        }
-                    }
-                    
-                    # Save combined memory
-                    combined_file = memory_dir / f"combined_{cluster_key}_{int(time.time())}.json"
-                    with open(combined_file, 'w') as f:
-                        json.dump(combined_memory, f, indent=2)
-                    
-                    # Delete original files
-                    for memory in memories:
-                        try:
-                            os.remove(memory['file'])
-                        except:
-                            pass
-                    
-                    combined_count += 1
-                    print(f"   🔗 Combined {len(memories)} memories into {combined_file.name}")
-            
-            return combined_count
-            
-        except Exception as e:
-            print(f"   ⚠️ Error combining memories: {e}")
-            return 0
-
-    async def _strengthen_action_memory_with_context(self, action: Dict[str, Any], context_memories: List[Dict[str, Any]]) -> None:
-        """Strengthen memory of an effective action with contextual information."""
-        try:
-            import time
-            
-            action_type = action.get('action_type', 'unknown')
-            effectiveness = action.get('effectiveness', 0)
-            score = action.get('score_achieved', 0)
-            
-            print(f"   💪 Strengthening: {action_type} (effectiveness: {effectiveness:.2f}, score: {score})")
-            
-            # Create enhanced memory entry
-            enhanced_memory = {
-                'action_type': action_type,
-                'effectiveness': effectiveness,
-                'score': score,
-                'timestamp': time.time(),
-                'context': {
-                    'similar_patterns': len([m for m in context_memories if m.get('final_score', 0) > 0]),
-                    'learning_context': f"Enhanced during sleep cycle with {len(context_memories)} context memories"
-                },
-                'strengthened': True
-            }
-            
-            # Add to effective action memories
-            if not hasattr(self, 'effective_action_memories'):
-                self.effective_action_memories = []
-            
-            self.effective_action_memories.append(enhanced_memory)
-            
-            # Keep only last 50 strengthened memories
-            if len(self.effective_action_memories) > 50:
-                self.effective_action_memories = self.effective_action_memories[-50:]
-                
-        except Exception as e:
-            print(f"   ⚠️ Error strengthening memory: {e}")
-
-    async def _generate_memory_insights(self, effective_actions: List[Dict[str, Any]], memories: List[Dict[str, Any]]) -> List[str]:
-        """Generate insights from memory patterns and current effective actions."""
-        insights = []
-        
-        try:
-            # Pattern analysis from memories
-            if memories:
-                successful_games = [m for m in memories if m.get('final_score', 0) > 0]
-                if len(successful_games) >= 2:
-                    avg_successful_actions = sum(m.get('actions_taken', 0) for m in successful_games) / len(successful_games)
-                    insights.append(f"Historical pattern: Successful games average {avg_successful_actions:.0f} actions")
-                
-                # Look for game type patterns
-                game_types = [m.get('game_id', '')[:4] for m in memories if m.get('game_id')]
-                if game_types:
-                    most_common_type = max(set(game_types), key=game_types.count)
-                    insights.append(f"Most practiced game type: {most_common_type}* patterns")
-            
-            # Current action effectiveness
-            if effective_actions:
-                action_types = [a.get('action_type', '') for a in effective_actions]
-                if action_types:
-                    most_effective = max(set(action_types), key=action_types.count)
-                    insights.append(f"Current session: {most_effective} actions showing highest effectiveness")
-                    
-                avg_effectiveness = sum(a.get('effectiveness', 0) for a in effective_actions) / len(effective_actions)
-                if avg_effectiveness > 0.7:
-                    insights.append("High effectiveness session - patterns worth reinforcing")
-            
-            # Cross-reference current actions with memory patterns
-            if effective_actions and memories:
-                insights.append("Memory consolidation: Linking current learnings with historical patterns")
-                
-        except Exception as e:
-            print(f"   ⚠️ Error generating insights: {e}")
-        
-        return insights
-
-    async def _prepare_memory_guidance(self, memories: List[Dict[str, Any]], effective_actions: List[Dict[str, Any]]) -> List[str]:
-        """Prepare memory-informed guidance for the next game session."""
-        guidance = []
-        
-        try:
-            # Guidance from historical successes
-            successful_memories = [m for m in memories if m.get('final_score', 0) > 0]
-            if successful_memories:
-                guidance.append(f"Historical success: Focus on patterns from {len(successful_memories)} successful games")
-                
-                # Extract successful action patterns
-                if hasattr(self, 'effective_action_memories') and self.effective_action_memories:
-                    top_actions = sorted(self.effective_action_memories, key=lambda x: x.get('effectiveness', 0), reverse=True)[:3]
-                    for action in top_actions:
-                        guidance.append(f"Prioritize: {action.get('action_type', 'unknown')} actions (proven effective)")
-            
-            # Guidance from current session
-            if effective_actions:
-                guidance.append(f"Current learnings: {len(effective_actions)} effective action patterns identified")
-                
-            # Energy and complexity guidance
-            guidance.append("Energy management: Monitor action effectiveness to optimize sleep timing")
-            
-        except Exception as e:
-            print(f"   ⚠️ Error preparing guidance: {e}")
-        
-        return guidance
+        # This would integrate with the existing energy system
+        # For now, just track it
+        if hasattr(self, 'current_energy'):
+            self.current_energy = new_energy
+        else:
+            self.current_energy = new_energy
