@@ -191,6 +191,11 @@ class ContinuousLearningLoop:
         # Initialize goal invention system
         self.goal_system = GoalInventionSystem()
         
+        # Game-specific available actions memory (specialized memory type)
+        self.game_actions_memory = {}  # game_id -> {'available_actions': set, 'action_effectiveness': dict, 'action_patterns': list}
+        self.game_actions_memory_file = self.save_directory / "game_actions_memory.json"
+        self._load_game_actions_memory()
+        
         # Salience system components
         self.salience_calculator: Optional[SalienceCalculator] = None
         self.salience_comparator: Optional[SalienceModeComparator] = None
@@ -967,6 +972,38 @@ class ContinuousLearningLoop:
                     
                     print(f"🎯 Game Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
                     print(f"🎯 Effective Actions Found: {len(effective_actions)}")
+                    
+                    # Update game-specific actions memory with session results
+                    game_id = f"game_{episode_count}_{int(time.time())}"
+                    if effective_actions:
+                        # Extract available actions from effective actions
+                        available_actions = [int(action.get('action_type', 'ACTION1').replace('ACTION', '')) 
+                                           for action in effective_actions 
+                                           if action.get('action_type', '').startswith('ACTION')]
+                        
+                        # Update memory for each effective action
+                        for action in effective_actions:
+                            action_type = action.get('action_type', 'ACTION1')
+                            if action_type.startswith('ACTION'):
+                                action_id = int(action_type.replace('ACTION', ''))
+                                effectiveness = self._update_game_actions_memory(
+                                    game_id=game_id,
+                                    available_actions=available_actions,
+                                    action_taken=action_id,
+                                    success=action.get('score_achieved', 0) > 0,
+                                    score=action.get('score_achieved', 0),
+                                    coordinates=None  # Add coordinate tracking if needed
+                                )
+                        
+                        # Log action effectiveness learning
+                        best_actions = self._get_best_actions_for_game(game_id)
+                        if best_actions:
+                            print(f"🎯 Action Effectiveness Learning: Top actions for this game:")
+                            for action_id, eff_score in best_actions[:3]:  # Top 3
+                                print(f"   ACTION{action_id}: effectiveness {eff_score:.2f}")
+                        
+                        # Save actions memory to persist learning
+                        self._save_game_actions_memory()
                     
                 except asyncio.TimeoutError:
                     print(f"⏰ Complete game session timed out after 10 minutes - killing process")
@@ -2134,6 +2171,179 @@ class ContinuousLearningLoop:
             logger.warning(f"Goal processing failed: {e}")
         
         return goal_results
+    
+    def _initialize_game_actions_memory(self, game_id: str):
+        """Initialize specialized memory for game-specific available actions."""
+        if game_id not in self.game_actions_memory:
+            self.game_actions_memory[game_id] = {
+                'available_actions': set(),  # Actions available in this game
+                'action_effectiveness': {},  # action_id -> effectiveness_score
+                'action_patterns': [],       # Successful action sequences
+                'action_coordinates': {},    # For ACTION6 - successful coordinate patterns
+                'last_updated': time.time(),
+                'total_attempts': 0,
+                'successful_attempts': 0
+            }
+            logger.info(f"🎯 Initialized actions memory for game {game_id}")
+    
+    def _update_game_actions_memory(self, game_id: str, available_actions: List[int], 
+                                  action_taken: int, success: bool, score: int, 
+                                  coordinates: Optional[Tuple[int, int]] = None):
+        """Update game-specific actions memory with effectiveness data."""
+        self._initialize_game_actions_memory(game_id)
+        
+        memory = self.game_actions_memory[game_id]
+        
+        # Update available actions set
+        memory['available_actions'].update(available_actions)
+        
+        # Update action effectiveness
+        if action_taken not in memory['action_effectiveness']:
+            memory['action_effectiveness'][action_taken] = {'total_score': 0, 'attempts': 0, 'successes': 0}
+        
+        action_stats = memory['action_effectiveness'][action_taken]
+        action_stats['total_score'] += score
+        action_stats['attempts'] += 1
+        if success:
+            action_stats['successes'] += 1
+        
+        # Store successful coordinate patterns for ACTION6
+        if action_taken == 6 and coordinates and success:
+            if 'action_coordinates' not in memory:
+                memory['action_coordinates'] = {}
+            if action_taken not in memory['action_coordinates']:
+                memory['action_coordinates'][action_taken] = []
+            memory['action_coordinates'][action_taken].append({
+                'coordinates': coordinates,
+                'score': score,
+                'timestamp': time.time()
+            })
+        
+        # Update totals
+        memory['total_attempts'] += 1
+        if success:
+            memory['successful_attempts'] += 1
+        memory['last_updated'] = time.time()
+        
+        # Calculate action effectiveness scores
+        effectiveness = {}
+        for action_id, stats in memory['action_effectiveness'].items():
+            if stats['attempts'] > 0:
+                avg_score = stats['total_score'] / stats['attempts']
+                success_rate = stats['successes'] / stats['attempts']
+                effectiveness[action_id] = (avg_score * 0.7) + (success_rate * 30.0)  # Weight success heavily
+        
+        logger.info(f"🎯 Updated actions memory for {game_id}: {len(memory['available_actions'])} actions, "
+                   f"{memory['successful_attempts']}/{memory['total_attempts']} success rate")
+        
+        return effectiveness
+    
+    def _get_best_actions_for_game(self, game_id: str) -> List[Tuple[int, float]]:
+        """Get the most effective actions for a specific game, ranked by effectiveness."""
+        if game_id not in self.game_actions_memory:
+            return []
+        
+        memory = self.game_actions_memory[game_id]
+        action_effectiveness = {}
+        
+        for action_id, stats in memory['action_effectiveness'].items():
+            if stats['attempts'] > 0:
+                avg_score = stats['total_score'] / stats['attempts']
+                success_rate = stats['successes'] / stats['attempts']
+                effectiveness = (avg_score * 0.7) + (success_rate * 30.0)
+                action_effectiveness[action_id] = effectiveness
+        
+        # Sort by effectiveness descending
+        sorted_actions = sorted(action_effectiveness.items(), key=lambda x: x[1], reverse=True)
+        return sorted_actions
+    
+    def _clear_game_actions_memory(self, game_id: str):
+        """Clear actions memory when starting a new game (as requested)."""
+        if game_id in self.game_actions_memory:
+            del self.game_actions_memory[game_id]
+            logger.info(f"🗑️ Cleared actions memory for new game: {game_id}")
+    
+    def _get_success_weighted_salience(self, base_salience: float, success: bool, score: int) -> float:
+        """Calculate success-weighted salience for memory prioritization."""
+        if success:
+            # SUCCESS = 10x higher priority + score bonus
+            success_multiplier = 10.0
+            score_bonus = min(score / 100.0, 2.0)  # Up to 2x bonus for high scores
+            return base_salience * success_multiplier * (1.0 + score_bonus)
+        else:
+            # FAILURE = normal priority (still valuable for learning what NOT to do)
+            return base_salience * 1.0
+    
+    def _get_action_guidance_for_game(self, game_id: str) -> Dict[str, Any]:
+        """Get action selection guidance based on game-specific memory."""
+        guidance = {
+            'preferred_actions': [],
+            'avoid_actions': [],
+            'effective_patterns': [],
+            'success_rate': 0.0
+        }
+        
+        if game_id not in self.game_actions_memory:
+            return guidance
+        
+        memory = self.game_actions_memory[game_id]
+        
+        # Calculate success rate
+        if memory['total_attempts'] > 0:
+            guidance['success_rate'] = memory['successful_attempts'] / memory['total_attempts']
+        
+        # Get preferred actions (high effectiveness)
+        best_actions = self._get_best_actions_for_game(game_id)
+        if best_actions:
+            # Actions with effectiveness > 20.0 are preferred
+            guidance['preferred_actions'] = [action_id for action_id, eff in best_actions if eff > 20.0]
+            # Actions with effectiveness < 5.0 should be avoided
+            guidance['avoid_actions'] = [action_id for action_id, eff in best_actions if eff < 5.0]
+        
+        # Extract successful action patterns
+        if len(memory['action_patterns']) > 0:
+            guidance['effective_patterns'] = memory['action_patterns'][-5:]  # Last 5 patterns
+        
+        return guidance
+    
+    def _load_game_actions_memory(self):
+        """Load game actions memory from persistent storage."""
+        try:
+            if self.game_actions_memory_file.exists():
+                with open(self.game_actions_memory_file, 'r') as f:
+                    data = json.load(f)
+                    # Convert sets back from lists
+                    for game_id, memory in data.items():
+                        if 'available_actions' in memory and isinstance(memory['available_actions'], list):
+                            memory['available_actions'] = set(memory['available_actions'])
+                    self.game_actions_memory = data
+                    logger.info(f"🎯 Loaded game actions memory: {len(self.game_actions_memory)} games")
+            else:
+                self.game_actions_memory = {}
+                logger.info(f"🎯 Initialized new game actions memory")
+        except Exception as e:
+            logger.error(f"❌ Error loading game actions memory: {e}")
+            self.game_actions_memory = {}
+    
+    def _save_game_actions_memory(self):
+        """Save game actions memory to persistent storage."""
+        try:
+            # Convert sets to lists for JSON serialization
+            serializable_data = {}
+            for game_id, memory in self.game_actions_memory.items():
+                serializable_memory = memory.copy()
+                if 'available_actions' in serializable_memory:
+                    serializable_memory['available_actions'] = list(serializable_memory['available_actions'])
+                serializable_data[game_id] = serializable_memory
+            
+            # Ensure directory exists
+            self.game_actions_memory_file.parent.mkdir(exist_ok=True)
+            
+            with open(self.game_actions_memory_file, 'w') as f:
+                json.dump(serializable_data, f, indent=2)
+            logger.info(f"💾 Saved game actions memory: {len(self.game_actions_memory)} games")
+        except Exception as e:
+            logger.error(f"❌ Error saving game actions memory: {e}")
     
     async def _execute_sleep_cycle(self, game_id: str, episode_count: int) -> Dict[str, Any]:
         """Execute a sleep cycle with memory consolidation."""

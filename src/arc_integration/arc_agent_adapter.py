@@ -163,7 +163,7 @@ class AdaptiveLearningARCAgent(Agent):
     to be applied to abstract reasoning tasks in the ARC framework.
     """
     
-    MAX_ACTIONS = 200  # Allow more actions for learning
+    MAX_ACTIONS = 20000  # Allow enough actions for complex puzzles (matching leaderboard agents)
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
