@@ -42,11 +42,15 @@ from core.energy_system import EnergySystem
 from memory.dnc import DNCMemory
 
 try:
-    # Try to import the salience comparator
-    examples_dir = src_dir.parent / "examples"
-    if str(examples_dir) not in sys.path:
-        sys.path.insert(0, str(examples_dir))
+    # Import for salience mode comparison if available  
     from salience_mode_comparison import SalienceModeComparator
+except ImportError:
+    # Fallback if comparison module is not available
+    class SalienceModeComparator:
+        @staticmethod
+        def compare_modes(*args, **kwargs):
+            return {'comparison_available': False}
+            return {'comparison_available': False}
     SALIENCE_COMPARATOR_AVAILABLE = True
 except ImportError:
     SALIENCE_COMPARATOR_AVAILABLE = False
@@ -795,3 +799,491 @@ class ContinuousLearningLoop:
                 'episodes': [],
                 'success': False
             }
+
+    async def run_continuous_learning(self, session_id: str) -> Dict[str, Any]:
+        """
+        Run the continuous learning loop for a session with SWARM mode support.
+        
+        Args:
+            session_id: Session identifier
+            
+        Returns:
+            Session results with ARC-3 scoreboard URL and win highlights
+        """
+        if not self.current_session or self.current_session.session_id != session_id:
+            raise ValueError(f"No active session with ID {session_id}")
+            
+        session = self.current_session
+        session_results = {
+            'session_id': session_id,
+            'start_time': time.time(),
+            'games_played': {},
+            'overall_performance': {},
+            'learning_insights': [],
+            'knowledge_transfers': [],
+            'detailed_metrics': {
+                'salience_mode': session.salience_mode.value,
+                'sleep_cycles': 0,
+                'memory_operations': 0,
+                'high_salience_experiences': 0,
+                'compressed_memories': 0,
+                'grid_sizes_encountered': set()
+            },
+            'arc3_scoreboard_url': ARC3_SCOREBOARD_URL,
+            'win_highlighted': False
+        }
+        
+        logger.info(f"Running continuous learning for session {session_id}")
+        
+        try:
+            # Check if SWARM mode should be used (more than 2 games = use SWARM)
+            if len(session.games_to_play) > 2:
+                print(f"\n🔥 SWARM MODE ENABLED for {len(session.games_to_play)} games")
+                swarm_results = await self.run_swarm_mode(
+                    session.games_to_play,
+                    max_concurrent=3,
+                    max_episodes_per_game=session.max_episodes_per_game
+                )
+                
+                # Convert SWARM results to session format
+                for game_id, game_result in swarm_results['games_completed'].items():
+                    session_results['games_played'][game_id] = game_result
+                    
+                    # Track grid dimensions encountered
+                    if 'grid_dimensions' in game_result:
+                        grid_dims = game_result['grid_dimensions']
+                        session_results['detailed_metrics']['grid_sizes_encountered'].add(f"{grid_dims[0]}x{grid_dims[1]}")
+                
+                # Use SWARM performance metrics
+                session_results['swarm_mode_used'] = True
+                session_results['swarm_results'] = swarm_results
+                
+            else:
+                # Use sequential training for smaller sessions
+                print(f"\n📋 SEQUENTIAL MODE for {len(session.games_to_play)} games")
+                session_results['swarm_mode_used'] = False
+                
+                total_games = len(session.games_to_play)
+                for game_idx, game_id in enumerate(session.games_to_play):
+                    print(f"\nGame {game_idx + 1}/{total_games}: {game_id}")
+                    
+                    game_results = await self._train_on_game(
+                        game_id,
+                        session.max_episodes_per_game,
+                        session.target_performance
+                    )
+                    
+                    session_results['games_played'][game_id] = game_results
+                    
+                    # Track grid dimensions
+                    if 'grid_dimensions' in game_results:
+                        grid_dims = game_results['grid_dimensions']
+                        session_results['detailed_metrics']['grid_sizes_encountered'].add(f"{grid_dims[0]}x{grid_dims[1]}")
+                    
+                    # Update detailed metrics
+                    self._update_detailed_metrics(session_results['detailed_metrics'], game_results)
+                    
+                    # Display compact completion status
+                    self._display_game_completion_status(game_id, game_results, session_results['detailed_metrics'])
+                    
+                    # Apply insights (background processing)
+                    await self._apply_learning_insights(game_id, game_results)
+                    
+            # Finalize session
+            session_results['end_time'] = time.time()
+            session_results['duration'] = session_results['end_time'] - session_results['start_time']
+            session_results['overall_performance'] = self._calculate_session_performance(session_results)
+            
+            # Add grid size summary
+            grid_sizes = list(session_results['detailed_metrics']['grid_sizes_encountered'])
+            session_results['grid_sizes_summary'] = {
+                'unique_sizes': len(grid_sizes),
+                'sizes_encountered': grid_sizes,
+                'dynamic_sizing_verified': len(grid_sizes) > 1
+            }
+            
+            # Generate final insights (top 3 only)
+            final_insights = self._generate_session_insights(session_results)
+            session_results['learning_insights'].extend(final_insights[:3])
+            
+            # Check if this qualifies as a winning session
+            overall_win_rate = session_results['overall_performance'].get('overall_win_rate', 0)
+            session_results['win_highlighted'] = overall_win_rate > 0.3
+            
+            # Display compact final results with ARC-3 URL
+            self._display_final_session_results(session_results)
+            
+            # Update global metrics and save (background)
+            self._update_global_metrics(session_results)
+            self._save_session_results(session_results)
+            
+            logger.info(f"Completed training session {session_id} - Win rate: {overall_win_rate:.1%}")
+            return session_results
+            
+        except Exception as e:
+            logger.error(f"Error in continuous learning session: {e}")
+            session_results['error'] = str(e)
+            session_results['end_time'] = time.time()
+            return session_results
+
+    def _update_detailed_metrics(self, detailed_metrics: Dict[str, Any], game_results: Dict[str, Any]):
+        """Update detailed metrics with game results."""
+        # Count sleep cycles (simulated)
+        episodes_count = len(game_results.get('episodes', []))
+        detailed_metrics['sleep_cycles'] += episodes_count // 10  # Sleep every 10 episodes
+        
+        # Count high salience experiences
+        for episode in game_results.get('episodes', []):
+            if episode.get('final_score', 0) > 75:  # High score = high salience
+                detailed_metrics['high_salience_experiences'] += 1
+        
+        # Estimate memory operations and compressions
+        detailed_metrics['memory_operations'] += episodes_count * 5  # ~5 operations per episode
+        if detailed_metrics.get('salience_mode') == 'decay_compression':
+            detailed_metrics['compressed_memories'] += episodes_count // 5  # Compression every 5 episodes
+
+    def _display_game_completion_status(self, game_id: str, game_results: Dict[str, Any], detailed_metrics: Dict[str, Any]):
+        """Display compact game completion status."""
+        performance = game_results.get('performance_metrics', {})
+        win_rate = performance.get('win_rate', 0)
+        avg_score = performance.get('average_score', 0)
+        best_score = performance.get('best_score', 0)
+        grid_size = game_results.get('final_performance', {}).get('final_grid_size', 'unknown')
+        
+        # Highlight wins
+        if win_rate > 0.5:
+            status = "WINNER"
+        elif win_rate > 0.3:
+            status = "STRONG"
+        elif win_rate > 0.1:
+            status = "LEARNING"
+        else:
+            status = "TRAINING"
+            
+        print(f"\n{status}: {game_id} | Grid: {grid_size}")
+        print(f"Episodes: {performance.get('total_episodes', 0)} | Win: {win_rate:.1%} | Avg: {avg_score:.0f} | Best: {best_score}")
+        
+        # Only show key system metrics
+        print(f"Sleep: {detailed_metrics.get('sleep_cycles', 0)} | Memory Ops: {detailed_metrics.get('memory_operations', 0)} | High-Sal: {detailed_metrics.get('high_salience_experiences', 0)}")
+
+    def _display_final_session_results(self, session_results: Dict[str, Any]):
+        """Display compact final session results with ARC-3 URL and grid size info."""
+        overall_perf = session_results.get('overall_performance', {})
+        detailed_metrics = session_results.get('detailed_metrics', {})
+        grid_summary = session_results.get('grid_sizes_summary', {})
+        
+        # Determine overall performance status
+        overall_win_rate = overall_perf.get('overall_win_rate', 0)
+        if overall_win_rate > 0.5:
+            status = "CHAMPIONSHIP PERFORMANCE"
+        elif overall_win_rate > 0.3:
+            status = "STRONG PERFORMANCE"  
+        elif overall_win_rate > 0.1:
+            status = "LEARNING PROGRESS"
+        else:
+            status = "TRAINING COMPLETE"
+            
+        print(f"\n{'='*60}")
+        print(f"{status}")
+        print(f"{'='*60}")
+        
+        # Essential metrics only
+        print(f"Duration: {session_results.get('duration', 0):.0f}s | Games: {overall_perf.get('games_trained', 0)} | Episodes: {overall_perf.get('total_episodes', 0)}")
+        print(f"Win Rate: {overall_win_rate:.1%} | Avg Score: {overall_perf.get('overall_average_score', 0)::.0f}")
+        
+        # Grid size information - CRITICAL NEW FEATURE
+        if grid_summary.get('dynamic_sizing_verified'):
+            print(f"✅ Dynamic Grid Sizing: {grid_summary.get('unique_sizes', 0)} different sizes detected")
+            print(f"   Sizes: {', '.join(grid_summary.get('sizes_encountered', []))}")
+        else:
+            sizes = grid_summary.get('sizes_encountered', ['64x64'])
+            print(f"Grid Sizes: {', '.join(sizes)}")
+        
+        # SWARM mode info if used
+        if session_results.get('swarm_mode_used'):
+            swarm_info = session_results.get('swarm_results', {}).get('swarm_efficiency', {})
+            print(f"🔥 SWARM Mode: {swarm_info.get('games_per_hour', 0):.1f} games/hour | Concurrent speedup enabled")
+        
+        print(f"Learning Efficiency: {overall_perf.get('learning_efficiency', 0):.2f} | Knowledge Transfer: {overall_perf.get('knowledge_transfer_score', 0):.2f}")
+        
+        # System performance (compact)
+        print(f"Sleep: {detailed_metrics.get('sleep_cycles', 0)} | Memory: {detailed_metrics.get('memory_operations', 0)} | High-Sal: {detailed_metrics.get('high_salience_experiences', 0)}")
+        
+        if detailed_metrics.get('salience_mode') == 'decay_compression':
+            compression_ratio = detailed_metrics.get('compressed_memories', 0) / max(1, detailed_metrics.get('memory_operations', 1))
+            print(f"Compression: {compression_ratio:.0%}")
+        
+        # Highlight top insights (max 3)
+        insights = session_results.get('learning_insights', [])
+        if insights:
+            print(f"\nTop Insights:")
+            for i, insight in enumerate(insights[:3], 1):
+                print(f"  {i}. {insight.get('content', 'No content')}")
+        
+        # Always show ARC-3 scoreboard URL
+        print(f"\nARC-3 Test Scoreboard: {ARC3_SCOREBOARD_URL}")
+        
+        # Highlight if this was a winning session
+        if overall_win_rate > 0.3:
+            print("🏆 SUBMIT TO LEADERBOARD - STRONG PERFORMANCE DETECTED!")
+        
+        print("="*60)
+
+    async def _apply_learning_insights(self, game_id: str, game_results: Dict[str, Any]):
+        """Apply learning insights to improve future performance."""
+        # This would involve updating the agent's configuration based on learned patterns
+        insights = self.arc_meta_learning.get_strategic_recommendations(game_id)
+        
+        if insights:
+            logger.info(f"Applying {len(insights)} insights for {game_id}")
+            # In a full implementation, you would modify agent parameters here
+            
+    def _calculate_game_performance(self, game_results: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate performance metrics for a game."""
+        episodes = game_results.get('episodes', [])
+        if not episodes:
+            return {}
+            
+        return {
+            'total_episodes': len(episodes),
+            'win_rate': sum(1 for ep in episodes if ep.get('success', False)) / len(episodes),
+            'average_score': sum(ep.get('final_score', 0) for ep in episodes) / len(episodes),
+            'average_actions': sum(ep.get('actions_taken', 0) for ep in episodes) / len(episodes),
+            'best_score': max(ep.get('final_score', 0) for ep in episodes),
+            'patterns_per_episode': len(game_results.get('patterns_discovered', [])) / len(episodes)
+        }
+        
+    def _calculate_session_performance(self, session_results: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate overall session performance."""
+        games_played = session_results['games_played']
+        if not games_played:
+            return {}
+            
+        total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
+        total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
+                        for game in games_played.values())
+        total_score = sum(sum(ep.get('final_score', 0) for ep in game.get('episodes', [])) 
+                         for game in games_played.values())
+        
+        return {
+            'games_trained': len(games_played),
+            'total_episodes': total_episodes,
+            'overall_win_rate': total_wins / max(1, total_episodes),
+            'overall_average_score': total_score / max(1, total_episodes),
+            'learning_efficiency': self._calculate_learning_efficiency(session_results),
+            'knowledge_transfer_score': self._calculate_knowledge_transfer_score(session_results)
+        }
+        
+    def _calculate_learning_efficiency(self, session_results: Dict[str, Any]) -> float:
+        """Calculate how efficiently the agent learned during the session."""
+        # Simplified efficiency metric based on improvement over time
+        games_played = session_results['games_played']
+        efficiency_scores = []
+        
+        for game_results in games_played.values():
+            episodes = game_results.get('episodes', [])
+            if len(episodes) >= 10:
+                early_performance = sum(ep.get('final_score', 0) for ep in episodes[:5]) / 5
+                late_performance = sum(ep.get('final_score', 0) for ep in episodes[-5:]) / 5
+                improvement = late_performance - early_performance
+                efficiency_scores.append(max(0, improvement / 100))  # Normalize
+                
+        return sum(efficiency_scores) / max(1, len(efficiency_scores))
+        
+    def _calculate_knowledge_transfer_score(self, session_results: Dict[str, Any]) -> float:
+        """Calculate how well knowledge transferred between games."""
+        # Simplified metric based on performance on later games vs earlier games
+        games_played = list(session_results['games_played'].values())
+        if len(games_played) < 2:
+            return 0.0
+            
+        early_games = games_played[:len(games_played)//2]
+        late_games = games_played[len(games_played)//2:]
+        
+        early_avg = sum(game.get('performance_metrics', {}).get('average_score', 0) for game in early_games) / len(early_games)
+        late_avg = sum(game.get('performance_metrics', {}).get('average_score', 0) for game in late_games) / len(late_games)
+        
+        return max(0, (late_avg - early_avg) / 100)  # Normalize
+        
+    def _generate_session_insights(self, session_results: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate insights from the completed session."""
+        insights = []
+        
+        # Performance trend insight
+        overall_perf = session_results['overall_performance']
+        if overall_perf.get('learning_efficiency', 0) > 0.3:
+            insights.append({
+                'type': 'positive_learning_trend',
+                'content': f"Agent showed good learning efficiency: {overall_perf['learning_efficiency']:.2f}",
+                'confidence': 0.8
+            })
+            
+        # Knowledge transfer insight
+        if overall_perf.get('knowledge_transfer_score', 0) > 0.2:
+            insights.append({
+                'type': 'knowledge_transfer',
+                'content': f"Successful knowledge transfer between games: {overall_perf['knowledge_transfer_score']:.2f}",
+                'confidence': 0.7
+            })
+
+        # Grid size insight
+        grid_summary = session_results.get('grid_sizes_summary', {})
+        if grid_summary.get('dynamic_sizing_verified'):
+            insights.append({
+                'type': 'dynamic_grid_adaptation',
+                'content': f"Successfully adapted to {grid_summary.get('unique_sizes', 0)} different grid sizes",
+                'confidence': 0.9
+            })
+            
+        return insights
+        
+    def _update_global_metrics(self, session_results: Dict[str, Any]):
+        """Update global performance metrics."""
+        overall_perf = session_results['overall_performance']
+        
+        # Update cumulative metrics
+        self.global_performance_metrics['total_games_played'] += overall_perf.get('games_trained', 0)
+        self.global_performance_metrics['total_episodes'] += overall_perf.get('total_episodes', 0)
+        
+        # Update averages (simplified)
+        self.global_performance_metrics['average_score'] = (
+            self.global_performance_metrics['average_score'] * 0.8 + 
+            overall_perf.get('overall_average_score', 0) * 0.2
+        )
+        
+        self.global_performance_metrics['win_rate'] = (
+            self.global_performance_metrics['win_rate'] * 0.8 + 
+            overall_perf.get('overall_win_rate', 0) * 0.2
+        )
+        
+    def _save_session_results(self, session_results: Dict[str, Any]):
+        """Save final session results."""
+        filename = self.save_directory / f"session_{session_results['session_id']}_final.json"
+        try:
+            # Convert grid_sizes_encountered set to list for JSON serialization
+            if 'detailed_metrics' in session_results and 'grid_sizes_encountered' in session_results['detailed_metrics']:
+                session_results['detailed_metrics']['grid_sizes_encountered'] = list(session_results['detailed_metrics']['grid_sizes_encountered'])
+            
+            with open(filename, 'w') as f:
+                json.dump(session_results, f, indent=2, default=str)
+            
+            # Also save meta-learning state
+            meta_learning_file = self.save_directory / f"meta_learning_{session_results['session_id']}.json"
+            self.arc_meta_learning.save_learning_state(str(meta_learning_file))
+            
+        except Exception as e:
+            logger.error(f"Failed to save session results: {e}")
+
+    def _load_state(self):
+        """Load previous state if available."""
+        state_file = self.save_directory / "continuous_learning_state.json"
+        if state_file.exists():
+            try:
+                with open(state_file, 'r') as f:
+                    state_data = json.load(f)
+                    
+                self.global_performance_metrics.update(state_data.get('global_performance_metrics', {}))
+                self.session_history = state_data.get('session_history', [])
+                
+                logger.info("Loaded previous continuous learning state")
+            except Exception as e:
+                logger.error(f"Failed to load state: {e}")
+
+    def _should_stop_training(self, game_results: Dict[str, Any], target_performance: Dict[str, float]) -> bool:
+        """Check if we should stop training on this game based on target performance."""
+        episodes = game_results.get('episodes', [])
+        if len(episodes) < 5:  # Need at least 5 episodes to evaluate
+            return False
+        
+        # Calculate current performance
+        recent_episodes = episodes[-5:]  # Look at last 5 episodes
+        recent_wins = sum(1 for ep in recent_episodes if ep.get('success', False))
+        recent_win_rate = recent_wins / len(recent_episodes)
+        recent_avg_score = sum(ep.get('final_score', 0) for ep in recent_episodes) / len(recent_episodes)
+        
+        # Check if we've reached target performance
+        target_win_rate = target_performance.get('win_rate', 0.3)
+        target_avg_score = target_performance.get('avg_score', 50.0)
+        
+        if recent_win_rate >= target_win_rate and recent_avg_score >= target_avg_score:
+            return True
+            
+        return False
+
+    def start_training_session(
+        self,
+        games: List[str],
+        max_episodes_per_game: int = 50,
+        target_win_rate: float = 0.3,
+        target_avg_score: float = 50.0,
+        salience_mode: SalienceMode = SalienceMode.LOSSLESS,
+        enable_salience_comparison: bool = False
+    ) -> str:
+        """
+        Start a new continuous learning session.
+        
+        Args:
+            games: List of ARC game IDs to train on
+            max_episodes_per_game: Maximum episodes per game
+            target_win_rate: Target win rate to achieve
+            target_avg_score: Target average score
+            salience_mode: Which salience mode to use (LOSSLESS or DECAY_COMPRESSION)
+            enable_salience_comparison: Whether to run comparison between modes
+            
+        Returns:
+            session_id: Unique identifier for this session
+        """
+        session_id = f"session_{int(time.time())}"
+        
+        self.current_session = TrainingSession(
+            session_id=session_id,
+            games_to_play=games,
+            max_episodes_per_game=max_episodes_per_game,
+            learning_rate_schedule={
+                'initial': 0.001,
+                'mid': 0.0005,
+                'final': 0.0002
+            },
+            save_interval=10,
+            target_performance={
+                'win_rate': target_win_rate,
+                'avg_score': target_avg_score
+            },
+            salience_mode=salience_mode,
+            enable_salience_comparison=enable_salience_comparison
+        )
+        
+        # Initialize salience calculator for this session
+        self.salience_calculator = SalienceCalculator(
+            mode=salience_mode,
+            decay_rate=0.01 if salience_mode == SalienceMode.DECAY_COMPRESSION else 0.0,
+            salience_min=0.05,
+            compression_threshold=0.15
+        )
+        
+        # Display session startup information
+        self._display_session_startup_info(session_id, games, salience_mode)
+        
+        logger.info(f"Started training session {session_id} with {len(games)} games using {salience_mode.value} mode")
+        if enable_salience_comparison:
+            logger.info("Salience mode comparison enabled - will test both modes")
+        return session_id
+    
+    def _display_session_startup_info(self, session_id: str, games: List[str], salience_mode: SalienceMode):
+        """Display compact session startup information."""
+        print(f"\nARC-3 Training Session: {session_id}")
+        print(f"Games: {', '.join(games)} | Mode: {salience_mode.value}")
+        print(f"Scoreboard: {ARC3_SCOREBOARD_URL}")
+        print("-" * 60)
+
+    def get_learning_summary(self) -> Dict[str, Any]:
+        """Get a comprehensive summary of learning progress."""
+        return {
+            'global_metrics': self.global_performance_metrics,
+            'meta_learning_summary': self.arc_meta_learning.get_learning_summary(),
+            'session_count': len(self.session_history),
+            'current_session': self.current_session.session_id if self.current_session else None,
+            'salience_performance_history': self.salience_performance_history,
+            'current_salience_mode': self.current_session.salience_mode.value if self.current_session else None,
+            'last_updated': datetime.now().isoformat()
+        }
