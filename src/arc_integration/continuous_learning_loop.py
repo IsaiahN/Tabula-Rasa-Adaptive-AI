@@ -14,6 +14,7 @@ import random
 import re  # Added for enhanced parsing
 import sys
 import time
+import torch  # Added for tensor operations
 from typing import Dict, List, Any, Optional, Tuple  # Added Tuple for grid dimensions
 from pathlib import Path
 from dataclasses import dataclass
@@ -1096,7 +1097,7 @@ class ContinuousLearningLoop:
             self._update_energy_level(remaining_energy)
             
             # Update game complexity history for future energy allocation
-            effectiveness_ratio = len(effective_actions) / max(1, episode_actions)  # Avoid division by zero
+            effectiveness_ratio = min(1.0, len(effective_actions) / max(1, episode_actions))  # Cap at 100%
             self._update_game_complexity_history(game_id, episode_actions, effectiveness_ratio)
             print(f"📈 Updated complexity history for {game_id}: {episode_actions} actions, {effectiveness_ratio:.2%} effective")
             
@@ -2161,8 +2162,8 @@ class ContinuousLearningLoop:
                         weight = effectiveness
                     
                     # Strengthen memory if above threshold
-                    if hasattr(self.agent, 'memory') and weight > 0.2:
-                        self.agent.memory.strengthen_memory(action, weight=weight)
+                    if hasattr(self.demo_agent, 'memory') and weight > 0.2:
+                        self.demo_agent.memory.strengthen_memory(action, weight=weight)
                 
                 # Record consolidation in training state
                 if 'mid_game_consolidations' not in self.training_state:
@@ -2429,24 +2430,44 @@ class ContinuousLearningLoop:
         
         # Process goals through the goal invention system
         try:
+            # Create proper agent state for goal system
+            from core.data_models import AgentState
+            goal_agent_state = AgentState(
+                position=torch.tensor([0.0, 0.0, 1.0]),
+                orientation=torch.tensor([0.0, 0.0, 0.0, 1.0]),
+                energy=self.current_energy,
+                hidden_state=torch.zeros(64),
+                active_goals=[],
+                memory_state=None,
+                timestamp=self.training_state.get('episode_count', 0),
+                is_alive=True,
+                step_count=self.training_state.get('episode_count', 0)
+            )
+            
             # Update current goals with learning progress
-            current_goals = self.goal_system.get_current_goals()
+            current_goals = self.goal_system.get_active_goals(goal_agent_state)
             for goal in current_goals:
                 self.goal_system.update_goal_progress(goal, learning_progress)
             
-            # Check for emergent goal discovery
-            new_goals = self.goal_system.discover_emergent_goals(agent_state)
-            if new_goals:
-                goal_results['new_goals_discovered'] = True
-                goal_results['new_goals'] = new_goals
+            # Check for emergent goal discovery by adding high-LP experience
+            if learning_progress > 0.1 and self.goal_system.current_phase == GoalPhase.EMERGENT:
+                # Add experience to emergent goals for clustering
+                state_repr = torch.randn(64)  # Placeholder state representation
+                self.goal_system.emergent_goals.add_experience(state_repr, learning_progress, goal_agent_state)
                 
-                # Store discovered goals for tracking
-                if 'discovered_goals' not in self.training_state:
-                    self.training_state['discovered_goals'] = []
-                
-                for goal in new_goals:
-                    goal_entry = {
-                        'goal_id': goal.goal_id,
+                # Check if new goals were discovered
+                new_goals = self.goal_system.emergent_goals.get_active_goals(goal_agent_state)
+                if len(new_goals) > len(current_goals):
+                    goal_results['new_goals_discovered'] = True
+                    goal_results['new_goals'] = new_goals[len(current_goals):]
+                    
+                    # Store discovered goals for tracking
+                    if 'discovered_goals' not in self.training_state:
+                        self.training_state['discovered_goals'] = []
+                    
+                    for goal in goal_results['new_goals']:
+                        goal_entry = {
+                            'goal_id': goal.goal_id,
                         'description': goal.description,
                         'priority': goal.priority,
                         'discovered_at_episode': self.training_state['episode_count'],
@@ -2961,23 +2982,33 @@ class ContinuousLearningLoop:
             # Extract effective actions by looking for score changes
             effective_actions = []
             
-            # Look for ACTION patterns with score improvements
-            action_lines = re.findall(r'ACTION\d+:.*?score\s+(\d+)', stdout_text, re.IGNORECASE)
-            for i, score_str in enumerate(action_lines):
+            # Look for ACTION patterns with score improvements (more conservative matching)
+            action_score_pattern = r'ACTION(\d+).*?score[:\s]+(\d+)'
+            action_matches = re.findall(action_score_pattern, stdout_text, re.IGNORECASE)
+            
+            seen_actions = set()  # Prevent duplicates
+            for action_num, score_str in action_matches:
                 score = int(score_str)
-                if score > 0:  # This action had a positive effect
+                action_key = f"ACTION{action_num}_{score}"
+                
+                if score > 0 and action_key not in seen_actions:  # This action had a positive effect
+                    seen_actions.add(action_key)
                     effective_actions.append({
-                        'action_number': i + 1,
-                        'action_type': f'ACTION{(i % 8) + 1}',  # ARC has 8 action types
+                        'action_number': int(action_num),
+                        'action_type': f'ACTION{action_num}',
                         'score_achieved': score,
                         'effectiveness': min(1.0, score / 100.0)  # Normalize effectiveness
                     })
             
-            # Also look for successful state changes (RESET -> ACTION sequences)
-            reset_action_sequences = re.findall(r'RESET.*?ACTION\d+.*?score\s+(\d+)', stdout_text, re.IGNORECASE | re.DOTALL)
-            for score_str in reset_action_sequences:
+            # Look for successful RESET sequences (avoid double-counting)
+            reset_score_pattern = r'RESET.*?score[:\s]+(\d+)'
+            reset_matches = re.findall(reset_score_pattern, stdout_text, re.IGNORECASE)
+            for score_str in reset_matches:
                 score = int(score_str)
-                if score > 0:
+                reset_key = f"RESET_{score}"
+                
+                if score > 0 and reset_key not in seen_actions:
+                    seen_actions.add(reset_key)
                     effective_actions.append({
                         'action_type': 'RESET_SEQUENCE',
                         'score_achieved': score,
