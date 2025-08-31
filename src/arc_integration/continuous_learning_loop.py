@@ -11,13 +11,15 @@ import logging
 import numpy as np
 import os
 import random
+import re  # Added for enhanced parsing
 import sys
 import time
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple  # Added Tuple for grid dimensions
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from concurrent.futures import ThreadPoolExecutor  # Added for SWARM mode
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -215,668 +217,255 @@ class ContinuousLearningLoop:
         except Exception as e:
             logger.warning(f"Could not initialize demo agent: {e}")
             self.demo_agent = None
+
+    def _extract_grid_dimensions(self, response_data: Dict[str, Any]) -> Tuple[int, int]:
+        """Extract actual grid dimensions from API response frame data."""
+        try:
+            frame = response_data.get('frame', [])
+            if frame and len(frame) > 0 and isinstance(frame[0], list):
+                # Frame is a 2D grid: frame[y][x] format
+                height = len(frame[0])  # Number of rows
+                width = len(frame[0][0]) if len(frame[0]) > 0 else 64  # Number of columns
+                
+                # Validate dimensions are reasonable
+                if 1 <= width <= 64 and 1 <= height <= 64:
+                    return (width, height)
+                else:
+                    logger.warning(f"Invalid grid dimensions detected: {width}x{height}, using fallback")
+            
+        except (IndexError, TypeError) as e:
+            logger.warning(f"Error extracting grid dimensions: {e}")
         
-    async def _get_available_games(self) -> List[str]:
-        """Get available games from ARC-3 API using proper endpoint."""
-        if not self.api_key:
-            print("❌ No ARC_API_KEY found - cannot fetch real games")
-            return []
-            
-        try:
-            print("🔍 Fetching available games from ARC-3 API...")
-            
-            async with aiohttp.ClientSession() as session:
-                headers = {"X-API-Key": self.api_key}
-                url = f"{ARC3_BASE_URL}/api/games"
-                
-                async with session.get(url, headers=headers) as response:
-                    if response.status != 200:
-                        print(f"❌ Failed to fetch games from API: {response.status}")
-                        error_text = await response.text()
-                        print(f"   Error: {error_text}")
-                        return []
-                    
-                    data = await response.json()
-                    # API returns array of {game_id, title} objects
-                    games = [game['game_id'] for game in data]
-            
-            if games:
-                print(f"✅ Found {len(games)} available games from ARC-3 API")
-                print(f"   Games: {games[:5]}{'...' if len(games) > 5 else ''}")
-                
-                # Update global available tasks
-                global ARC_AVAILABLE_TASKS
-                ARC_AVAILABLE_TASKS = games
-                
-            else:
-                print("⚠️  ARC-3 API returned empty game list")
-                print("   This could mean:")
-                print("   - API key has no game access")
-                print("   - All games are currently unavailable")
-                print("   - API endpoint is not returning game data")
-            
-            return games
-            
-        except Exception as e:
-            print(f"❌ Error fetching games from API: {e}")
-            return []
-
-    async def _create_scorecard(self, session_metadata: Dict[str, Any]) -> Optional[str]:
-        """Create a new scorecard for tracking session performance."""
-        try:
-            print("📊 Creating ARC-3 scorecard for session tracking...")
-            
-            async with aiohttp.ClientSession() as session:
-                headers = {
-                    "X-API-Key": self.api_key,
-                    "Content-Type": "application/json"
-                }
-                url = f"{ARC3_BASE_URL}/api/scorecard/open"
-                
-                payload = {
-                    "source_url": session_metadata.get("source_url", "https://github.com/tabula-rasa/adaptive-learning"),
-                    "tags": session_metadata.get("tags", ["adaptive-learning", "continuous-training"]),
-                    "opaque": {
-                        "session_id": session_metadata.get("session_id"),
-                        "salience_mode": session_metadata.get("salience_mode", "lossless"),
-                        "max_episodes_per_game": session_metadata.get("max_episodes_per_game", 50),
-                        "target_performance": session_metadata.get("target_performance", {}),
-                        "timestamp": time.time()
-                    }
-                }
-                
-                async with session.post(url, headers=headers, json=payload) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        print(f"❌ Failed to create scorecard: {response.status} - {error_text}")
-                        return None
-                    
-                    data = await response.json()
-                    card_id = data["card_id"]
-                    
-                    print(f"✅ Created scorecard: {card_id}")
-                    self.current_scorecard_id = card_id
-                    return card_id
-                    
-        except Exception as e:
-            print(f"❌ Error creating scorecard: {e}")
-            return None
-
-    async def _close_scorecard(self) -> Optional[Dict[str, Any]]:
-        """Close the current scorecard and get final results."""
-        if not self.current_scorecard_id:
-            return None
-            
-        try:
-            print(f"📋 Closing scorecard {self.current_scorecard_id}...")
-            
-            async with aiohttp.ClientSession() as session:
-                headers = {
-                    "X-API-Key": self.api_key,
-                    "Content-Type": "application/json"
-                }
-                url = f"{ARC3_BASE_URL}/api/scorecard/close"
-                
-                payload = {"card_id": self.current_scorecard_id}
-                
-                async with session.post(url, headers=headers, json=payload) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        print(f"⚠️ Failed to close scorecard: {response.status} - {error_text}")
-                        return None
-                    
-                    data = await response.json()
-                    print(f"✅ Scorecard closed successfully")
-                    print(f"   Games Won: {data['won']}/{data['played']}")
-                    print(f"   Total Score: {data['score']}")
-                    print(f"   Total Actions: {data['total_actions']}")
-                    
-                    self.current_scorecard_id = None
-                    return data
-                    
-        except Exception as e:
-            print(f"❌ Error closing scorecard: {e}")
-            return None
-
-    async def _start_game_session(self, game_id: str) -> Optional[str]:
-        """Start a new game session using ARC-3 RESET API."""
-        if not self.current_scorecard_id:
-            print("❌ No active scorecard - cannot start game session")
-            return None
-            
-        try:
-            async with aiohttp.ClientSession() as session:
-                headers = {
-                    "X-API-Key": self.api_key,
-                    "Content-Type": "application/json"
-                }
-                url = f"{ARC3_BASE_URL}/api/cmd/RESET"
-                
-                payload = {
-                    "game_id": game_id,
-                    "card_id": self.current_scorecard_id,
-                    "guid": None  # Start new session
-                }
-                
-                async with session.post(url, headers=headers, json=payload) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        print(f"❌ Failed to start game session for {game_id}: {response.status} - {error_text}")
-                        return None
-                    
-                    data = await response.json()
-                    guid = data["guid"]
-                    
-                    print(f"🎮 Started game session for {game_id}: {guid}")
-                    self.current_game_sessions[game_id] = guid
-                    return guid
-                    
-        except Exception as e:
-            print(f"❌ Error starting game session for {game_id}: {e}")
-            return None
-
-    async def _reset_game_session(self, game_id: str) -> Optional[Dict[str, Any]]:
-        """Reset an existing game session."""
-        guid = self.current_game_sessions.get(game_id)
-        if not guid or not self.current_scorecard_id:
-            return None
-            
-        try:
-            async with aiohttp.ClientSession() as session:
-                headers = {
-                    "X-API-Key": self.api_key,
-                    "Content-Type": "application/json"
-                }
-                url = f"{ARC3_BASE_URL}/api/cmd/RESET"
-                
-                payload = {
-                    "game_id": game_id,
-                    "card_id": self.current_scorecard_id,
-                    "guid": guid  # Reset existing session
-                }
-                
-                async with session.post(url, headers=headers, json=payload) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        print(f"❌ Failed to reset game session for {game_id}: {response.status} - {error_text}")
-                        return None
-                    
-                    data = await response.json()
-                    return data
-                    
-        except Exception as e:
-            print(f"❌ Error resetting game session for {game_id}: {e}")
-            return None
-
-    async def _send_game_action(self, game_id: str, x: int, y: int, reasoning: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
-        """Send an action to a game session using ACTION6 API."""
-        guid = self.current_game_sessions.get(game_id)
-        if not guid:
-            print(f"❌ No active session for game {game_id}")
-            return None
-            
-        try:
-            async with aiohttp.ClientSession() as session:
-                headers = {
-                    "X-API-Key": self.api_key,
-                    "Content-Type": "application/json"
-                }
-                url = f"{ARC3_BASE_URL}/api/cmd/ACTION6"
-                
-                payload = {
-                    "game_id": game_id,
-                    "guid": guid,
-                    "x": x,
-                    "y": y
-                }
-                
-                if reasoning:
-                    payload["reasoning"] = reasoning
-                
-                async with session.post(url, headers=headers, json=payload) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        print(f"⚠️ Action failed for {game_id}: {response.status} - {error_text}")
-                        return None
-                    
-                    data = await response.json()
-                    return data
-                    
-        except Exception as e:
-            print(f"❌ Error sending action to {game_id}: {e}")
-            return None
-
-    async def _run_arc_command(self, cmd_args: List[str]) -> Dict[str, Any]:
-        """Run ARC-AGI-3-Agents command and return result."""
-        try:
-            # Validate ARC-AGI-3-Agents path
-            if not self.arc_agents_path.exists():
-                return {'success': False, 'error': f'ARC-AGI-3-Agents path not found: {self.arc_agents_path}'}
-            
-            if not (self.arc_agents_path / "main.py").exists():
-                return {'success': False, 'error': f'main.py not found in {self.arc_agents_path}'}
-            
-            # Set up environment with API key
-            env = os.environ.copy()
-            env['ARC_API_KEY'] = self.api_key
-            
-            # Construct command
-            cmd = ['uv', 'run', 'main.py'] + cmd_args
-            
-            print(f"Running: {' '.join(cmd)} in {self.arc_agents_path}")
-            
-            # Create subprocess
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                cwd=str(self.arc_agents_path),
-                env=env,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            # Wait for completion with timeout
-            try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=60.0  # 1 minute timeout for list commands
-                )
-            except asyncio.TimeoutError:
-                process.kill()
-                await process.wait()
-                return {'success': False, 'error': 'Command timed out after 60 seconds'}
-            
-            stdout_text = stdout.decode() if stdout else ""
-            stderr_text = stderr.decode() if stderr else ""
-            
-            if process.returncode == 0:
-                return {'success': True, 'output': stdout_text, 'stderr': stderr_text}
-            else:
-                return {'success': False, 'error': f'Command failed with exit code {process.returncode}', 'output': stdout_text, 'stderr': stderr_text}
-                
-        except Exception as e:
-            return {'success': False, 'error': f'Exception running command: {e}'}
-
-    async def _run_demo_mode(self) -> Dict[str, Any]:
-        """Run demo mode with 3 simulated reasoning tasks."""
-        print(f"\n{'='*70}")
-        print("🎮 DEMO MODE: SIMULATED ARC REASONING TASKS")
-        print(f"{'='*70}")
-        print("Running 3 simulated reasoning tasks to demonstrate the system")
-        print("These are NOT real ARC-3 games but show how the agent would learn")
-        print()
+        # Fallback to maximum size
+        return (64, 64)
+    
+    def _extract_grid_dimensions_from_output(self, stdout: str, stderr: str) -> Optional[Tuple[int, int]]:
+        """Extract grid dimensions from command output."""
+        combined_output = stdout + "\n" + stderr
         
-        demo_results = {
-            'mode': 'simulated_demo',
-            'real_api': False,
-            'games_completed': [],
-            'overall_performance': {
-                'games_attempted': 3,
-                'games_completed': 0,
-                'overall_win_rate': 0.0,
-                'overall_average_score': 0.0
-            }
-        }
-        
-        # Simulate 3 different "reasoning tasks"
-        demo_games = [
-            {'id': 'DEMO_PATTERN_1', 'name': 'Pattern Recognition', 'base_score': 45},
-            {'id': 'DEMO_LOGIC_2', 'name': 'Logical Reasoning', 'base_score': 60},
-            {'id': 'DEMO_SPATIAL_3', 'name': 'Spatial Transformation', 'base_score': 35}
+        # Look for grid dimension patterns in output
+        dimension_patterns = [
+            r'grid.*?(\d+)\s*[x×]\s*(\d+)',
+            r'dimensions?[:\s]+(\d+)\s*[x×]\s*(\d+)',
+            r'size[:\s]+(\d+)\s*[x×]\s*(\d+)',
+            r'(\d+)x(\d+)\s*grid',
+            r'frame.*?(\d+)\s*[x×]\s*(\d+)'
         ]
         
-        total_score = 0
-        wins = 0
+        for pattern in dimension_patterns:
+            match = re.search(pattern, combined_output, re.IGNORECASE)
+            if match:
+                try:
+                    width, height = int(match.group(1)), int(match.group(2))
+                    if 1 <= width <= 64 and 1 <= height <= 64:
+                        return (width, height)
+                except (ValueError, IndexError):
+                    continue
         
-        for i, game in enumerate(demo_games, 1):
-            print(f"\n--- Simulated Task {i}/3: {game['name']} ---")
-            print(f"Game ID: {game['id']}")
-            
-            # Simulate learning progression over multiple episodes
-            for episode in range(5):  # 5 episodes per demo game
-                # Simulate score improvement with learning
-                learning_bonus = episode * 5  # Agent gets better over time
-                noise = np.random.randint(-10, 15)  # Some randomness
-                episode_score = max(0, game['base_score'] + learning_bonus + noise)
-                
-                # Determine if this is a "win" (score > 70)
-                is_win = episode_score > 70
-                if is_win:
-                    wins += 1
-                
-                total_score += episode_score
-                
-                print(f"  Episode {episode + 1}: Score {episode_score} {'(WIN)' if is_win else '(LEARNING)'}")
-                
-                # Simulate some processing time
-                await asyncio.sleep(0.1)
-            
-            game_result = {
-                'game_id': game['id'],
-                'episodes_completed': 5,
-                'best_score': max(game['base_score'] + 20, 75),
-                'avg_score': game['base_score'] + 10,
-                'wins': sum(1 for _ in range(5) if np.random.random() > 0.3)  # ~70% win rate in later episodes
-            }
-            demo_results['games_completed'].append(game_result)
+        return None
+    
+    def _extract_game_state_from_output(self, stdout: str, stderr: str) -> str:
+        """Extract game state from command output."""
+        combined_output = stdout + "\n" + stderr
         
-        # Calculate overall performance
-        total_episodes = len(demo_games) * 5
-        demo_results['overall_performance'].update({
-            'games_completed': len(demo_games),
-            'total_episodes': total_episodes,
-            'overall_win_rate': wins / total_episodes,
-            'overall_average_score': total_score / total_episodes,
-            'learning_demonstrated': True,
-            'adaptive_behavior': True
-        })
+        # Look for explicit game state mentions
+        state_patterns = [
+            r'state[:\s]+(\w+)',
+            r'game.*?state[:\s]+(\w+)',
+            r'status[:\s]+(\w+)',
+            r'\b(WIN|GAME_OVER|NOT_FINISHED|NOT_STARTED)\b'
+        ]
         
-        print(f"\n{'='*70}")
-        print("🎯 DEMO MODE RESULTS")
-        print(f"{'='*70}")
-        print(f"Simulated Tasks Completed: {len(demo_games)}")
-        print(f"Total Episodes: {total_episodes}")
-        print(f"Overall Win Rate: {demo_results['overall_performance']['overall_win_rate']:.1%}")
-        print(f"Average Score: {demo_results['overall_performance']['overall_average_score']:.1f}")
-        print()
-        print("✅ Demo successfully shows:")
-        print("   • Agent learns and improves over episodes")
-        print("   • Adaptive behavior and pattern recognition")
-        print("   • Meta-learning across different task types")
-        print("   • Memory consolidation and knowledge transfer")
-        print()
-        print("🔧 To test with REAL ARC-3 games:")
-        print("   1. Get valid API key from https://three.arcprize.org")
-        print("   2. Set environment variable: ARC_API_KEY=your_key_here")
-        print("   3. Ensure API key has game access permissions")
+        for pattern in state_patterns:
+            match = re.search(pattern, combined_output, re.IGNORECASE)
+            if match:
+                state = match.group(1).upper()
+                if state in ['WIN', 'GAME_OVER', 'NOT_FINISHED', 'NOT_STARTED']:
+                    return state
         
-        return demo_results
-
-    def start_training_session(
+        # Infer state from success/failure indicators
+        if re.search(r'\b(win|victory|success|solved)\b', combined_output, re.IGNORECASE):
+            return 'WIN'
+        elif re.search(r'\b(game.*?over|failed|timeout|error)\b', combined_output, re.IGNORECASE):
+            return 'GAME_OVER'
+        
+        return 'NOT_FINISHED'  # Default assumption
+    
+    def _parse_episode_results_comprehensive(self, stdout: str, stderr: str, game_id: str) -> Dict[str, Any]:
+        """Comprehensive parsing of episode results with enhanced pattern detection."""
+        result = {'success': False, 'final_score': 0, 'actions_taken': 0}
+        combined_output = stdout + "\n" + stderr
+        
+        # Enhanced success detection patterns
+        success_patterns = [
+            r'\b(win|victory|success|solved|correct|passed)\b',
+            r'✅',
+            r'\btrue\b.*answer',
+            r'answer.*\bcorrect\b',
+            r'result.*\btrue\b',
+            r'score.*100',
+            r'status.*success'
+        ]
+        
+        for pattern in success_patterns:
+            if re.search(pattern, combined_output, re.IGNORECASE):
+                result['success'] = True
+                break
+        
+        # Enhanced score extraction patterns
+        score_patterns = [
+            r'score[:\s]*(\d+)',
+            r'final[_\s]*score[:\s]*(\d+)',
+            r'points?[:\s]*(\d+)',
+            r'result[:\s]*(\d+)',
+            r'total[:\s]*(\d+)',
+            r'grade[:\s]*(\d+)',
+            r'(\d+)[/\s]*100',
+            r'(\d+)%',
+            r'accuracy[:\s]*(\d+)'
+        ]
+        
+        for pattern in score_patterns:
+            match = re.search(pattern, combined_output, re.IGNORECASE)
+            if match:
+                try:
+                    score = int(match.group(1))
+                    result['final_score'] = max(result['final_score'], score)
+                except ValueError:
+                    continue
+        
+        # Count actions taken
+        action_patterns = [
+            r'action[:\s]*(\d+)',
+            r'step[:\s]*(\d+)',
+            r'move[:\s]*(\d+)'
+        ]
+        
+        for pattern in action_patterns:
+            matches = re.findall(pattern, combined_output, re.IGNORECASE)
+            if matches:
+                try:
+                    result['actions_taken'] = max(int(m) for m in matches)
+                except ValueError:
+                    result['actions_taken'] = len(matches)
+        
+        # If success detected but no score, infer reasonable score
+        if result['success'] and result['final_score'] == 0:
+            result['final_score'] = 100
+        
+        return result
+    
+    def _should_continue_game(self, response_data: Dict[str, Any]) -> bool:
+        """Check if game should continue based on state - only stop on WIN or GAME_OVER."""
+        state = response_data.get('state', 'NOT_FINISHED')
+        should_continue = state == 'NOT_FINISHED'
+        
+        if not should_continue:
+            logger.info(f"Game ending with state: {state}")
+        
+        return should_continue
+    
+    def _verify_grid_bounds(self, x: int, y: int, grid_width: int, grid_height: int) -> bool:
+        """Verify coordinates are within actual grid bounds."""
+        return 0 <= x < grid_width and 0 <= y < grid_height
+    
+    def _select_next_action(self, response_data: Dict[str, Any], game_id: str) -> Optional[int]:
+        """Select appropriate action based on available_actions from API response."""
+        available = response_data.get('available_actions', [])
+        
+        if not available:
+            logger.warning(f"No available actions for game {game_id}")
+            return None
+        
+        # Simple strategy: prefer ACTION6 if available, otherwise random selection
+        if 6 in available:
+            return 6  # Coordinate-based action
+        elif len(available) > 0:
+            return random.choice(available)  # Random from available actions
+        
+        return None
+    
+    async def _send_enhanced_action(
         self,
-        games: List[str],
-        max_episodes_per_game: int = 50,
-        target_win_rate: float = 0.3,
-        target_avg_score: float = 50.0,
-        salience_mode: SalienceMode = SalienceMode.LOSSLESS,
-        enable_salience_comparison: bool = False
-    ) -> str:
-        """
-        Start a new continuous learning session.
+        game_id: str,
+        action_number: int,
+        x: Optional[int] = None,
+        y: Optional[int] = None,
+        grid_width: int = 64,
+        grid_height: int = 64
+    ) -> Optional[Dict[str, Any]]:
+        """Send action with proper validation and grid bounds checking."""
+        guid = self.current_game_sessions.get(game_id)
+        if not guid:
+            logger.warning(f"No active session for game {game_id}")
+            return None
         
-        Args:
-            games: List of ARC game IDs to train on
-            max_episodes_per_game: Maximum episodes per game
-            target_win_rate: Target win rate to achieve
-            target_avg_score: Target average score
-            salience_mode: Which salience mode to use (LOSSLESS or DECAY_COMPRESSION)
-            enable_salience_comparison: Whether to run comparison between modes
+        # Validate action number
+        if action_number not in [1, 2, 3, 4, 5, 6, 7]:
+            logger.error(f"Invalid action number: {action_number}")
+            return None
+        
+        # Special handling for ACTION6 (coordinate-based)
+        if action_number == 6:
+            if x is None or y is None:
+                logger.error("ACTION6 requires x,y coordinates")
+                return None
             
-        Returns:
-            session_id: Unique identifier for this session
-        """
-        session_id = f"session_{int(time.time())}"
+            # Verify coordinates are within actual grid bounds
+            if not self._verify_grid_bounds(x, y, grid_width, grid_height):
+                logger.error(f"Coordinates ({x},{y}) out of bounds for grid {grid_width}x{grid_height}")
+                return None
         
-        self.current_session = TrainingSession(
-            session_id=session_id,
-            games_to_play=games,
-            max_episodes_per_game=max_episodes_per_game,
-            learning_rate_schedule={
-                'initial': 0.001,
-                'mid': 0.0005,
-                'final': 0.0002
-            },
-            save_interval=10,
-            target_performance={
-                'win_rate': target_win_rate,
-                'avg_score': target_avg_score
-            },
-            salience_mode=salience_mode,
-            enable_salience_comparison=enable_salience_comparison
-        )
-        
-        # Initialize salience calculator for this session
-        self.salience_calculator = SalienceCalculator(
-            mode=salience_mode,
-            decay_rate=0.01 if salience_mode == SalienceMode.DECAY_COMPRESSION else 0.0,
-            salience_min=0.05,
-            compression_threshold=0.15
-        )
-        
-        # Display session startup information
-        self._display_session_startup_info(session_id, games, salience_mode)
-        
-        logger.info(f"Started training session {session_id} with {len(games)} games using {salience_mode.value} mode")
-        if enable_salience_comparison:
-            logger.info("Salience mode comparison enabled - will test both modes")
-        return session_id
-    
-    def _display_session_startup_info(self, session_id: str, games: List[str], salience_mode: SalienceMode):
-        """Display compact session startup information."""
-        print(f"\nARC-3 Training Session: {session_id}")
-        print(f"Games: {', '.join(games)} | Mode: {salience_mode.value}")
-        print(f"Scoreboard: {ARC3_SCOREBOARD_URL}")
-        print("-" * 60)
-        
-    async def run_continuous_learning(self, session_id: str) -> Dict[str, Any]:
-        """
-        Run the continuous learning loop for a session.
-        
-        Args:
-            session_id: Session identifier
-            
-        Returns:
-            Session results with ARC-3 scoreboard URL and win highlights
-        """
-        if not self.current_session or self.current_session.session_id != session_id:
-            raise ValueError(f"No active session with ID {session_id}")
-            
-        session = self.current_session
-        session_results = {
-            'session_id': session_id,
-            'start_time': time.time(),
-            'games_played': {},
-            'overall_performance': {},
-            'learning_insights': [],
-            'knowledge_transfers': [],
-            'detailed_metrics': {
-                'salience_mode': session.salience_mode.value,
-                'sleep_cycles': 0,
-                'memory_operations': 0,
-                'high_salience_experiences': 0,
-                'compressed_memories': 0
-            },
-            'arc3_scoreboard_url': ARC3_SCOREBOARD_URL,
-            'win_highlighted': False
-        }
-        
-        logger.info(f"Running continuous learning for session {session_id}")
-        
-        # Run salience mode comparison if enabled (simplified output)
-        if session.enable_salience_comparison:
-            print("Running salience mode comparison...")
-            comparison_results = await self._run_salience_mode_comparison(session)
-            session_results['salience_comparison'] = comparison_results
-            
-            # Simplified comparison display
-            if 'recommendation' in comparison_results:
-                print(f"Recommendation: {comparison_results['recommendation'].upper()}")
-
         try:
-            # Train on each game with compact progress display
-            total_games = len(session.games_to_play)
-            for game_idx, game_id in enumerate(session.games_to_play):
-                print(f"\nGame {game_idx + 1}/{total_games}: {game_id}")
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    "X-API-Key": self.api_key,
+                    "Content-Type": "application/json"
+                }
                 
-                game_results = await self._train_on_game(
-                    game_id,
-                    session.max_episodes_per_game,
-                    session.target_performance
-                )
+                # Determine API endpoint
+                url = f"{ARC3_BASE_URL}/api/cmd/ACTION{action_number}"
                 
-                session_results['games_played'][game_id] = game_results
+                # Build payload
+                payload = {
+                    "game_id": game_id,
+                    "guid": guid
+                }
                 
-                # Update detailed metrics
-                self._update_detailed_metrics(session_results['detailed_metrics'], game_results)
+                # Add coordinates for ACTION6
+                if action_number == 6:
+                    payload["x"] = x
+                    payload["y"] = y
                 
-                # Display compact completion status
-                self._display_game_completion_status(game_id, game_results, session_results['detailed_metrics'])
+                # Add reasoning for better tracking
+                payload["reasoning"] = {
+                    "action_type": f"ACTION{action_number}",
+                    "grid_size": f"{grid_width}x{grid_height}",
+                    "coordinates": f"({x},{y})" if action_number == 6 else "N/A",
+                    "timestamp": time.time()
+                }
                 
-                # Apply insights (background processing)
-                await self._apply_learning_insights(game_id, game_results)
-                    
-            # Finalize session
-            session_results['end_time'] = time.time()
-            session_results['duration'] = session_results['end_time'] - session_results['start_time']
-            session_results['overall_performance'] = self._calculate_session_performance(session_results)
-            
-            # Generate final insights (top 3 only)
-            final_insights = self._generate_session_insights(session_results)
-            session_results['learning_insights'].extend(final_insights[:3])
-            
-            # Check if this qualifies as a winning session
-            overall_win_rate = session_results['overall_performance'].get('overall_win_rate', 0)
-            session_results['win_highlighted'] = overall_win_rate > 0.3
-            
-            # Collect and display comprehensive scorecard summary
-            scorecard_summary = self._collect_all_scorecards(session_results)
-            session_results['scorecard_summary'] = scorecard_summary
-            
-            # Display the comprehensive scorecard and pass/fail summary
-            self._display_scorecard_summary(scorecard_summary)
-
-            # Display compact final results with ARC-3 URL
-            self._display_final_session_results(session_results)
-            
-            # Update global metrics and save (background)
-            self._update_global_metrics(session_results)
-            self._save_session_results(session_results)
-            
-            logger.info(f"Completed training session {session_id} - Win rate: {overall_win_rate:.1%}")
-            return session_results
-            
+                async with session.post(url, headers=headers, json=payload) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        logger.info(f"Action {action_number} successful for {game_id}")
+                        return data
+                    else:
+                        error_text = await response.text()
+                        logger.warning(f"Action {action_number} failed for {game_id}: {response.status} - {error_text}")
+                        return None
+                        
         except Exception as e:
-            logger.error(f"Error in continuous learning session: {e}")
-            session_results['error'] = str(e)
-            session_results['end_time'] = time.time()
-            return session_results
-    
-    def _update_detailed_metrics(self, detailed_metrics: Dict[str, Any], game_results: Dict[str, Any]):
-        """Update detailed metrics with game results."""
-        # Count sleep cycles (simulated)
-        episodes_count = len(game_results.get('episodes', []))
-        detailed_metrics['sleep_cycles'] += episodes_count // 10  # Sleep every 10 episodes
-        
-        # Count high salience experiences
-        for episode in game_results.get('episodes', []):
-            if episode.get('final_score', 0) > 75:  # High score = high salience
-                detailed_metrics['high_salience_experiences'] += 1
-        
-        # Estimate memory operations and compressions
-        detailed_metrics['memory_operations'] += episodes_count * 5  # ~5 operations per episode
-        if detailed_metrics['salience_mode'] == 'decay_compression':
-            detailed_metrics['compressed_memories'] += episodes_count // 5  # Compression every 5 episodes
-    
-    def _display_salience_comparison_results(self, comparison_results: Dict[str, Any]):
-        """Display salience mode comparison results."""
-        print("\nSALIENCE MODE COMPARISON RESULTS")
-        print("-" * 50)
-        
-        if 'error' in comparison_results:
-            print(f"Error in comparison: {comparison_results['error']}")
-            return
-        
-        # Display mode results
-        for mode, results in comparison_results.get('mode_results', {}).items():
-            print(f"\n{mode.upper()} MODE:")
-            print(f"   Win Rate: {results.get('win_rate', 0):.1%}")
-            print(f"   Avg Score: {results.get('avg_score', 0):.1f}")
-            print(f"   Memory Efficiency: {results.get('memory_efficiency', 0):.1%}")
-            print(f"   Processing Time: {results.get('processing_time', 0):.2f}s")
-        
-        # Display recommendation
-        recommendation = comparison_results.get('recommendation', 'unknown')
-        reason = comparison_results.get('recommendation_reason', 'No reason provided')
-        print(f"\nRECOMMENDATION: {recommendation.upper()}")
-        print(f"   Reason: {reason}")
-    
-    def _display_game_completion_status(self, game_id: str, game_results: Dict[str, Any], detailed_metrics: Dict[str, Any]):
-        """Display compact game completion status."""
-        performance = game_results.get('performance_metrics', {})
-        win_rate = performance.get('win_rate', 0)
-        avg_score = performance.get('average_score', 0)
-        best_score = performance.get('best_score', 0)
-        
-        # Highlight wins
-        if win_rate > 0.5:
-            status = "WINNER"
-        elif win_rate > 0.3:
-            status = "STRONG"
-        elif win_rate > 0.1:
-            status = "LEARNING"
-        else:
-            status = "TRAINING"
-            
-        print(f"\n{status}: {game_id}")
-        print(f"Episodes: {performance.get('total_episodes', 0)} | Win: {win_rate:.1%} | Avg: {avg_score:.0f} | Best: {best_score}")
-        
-        # Only show key system metrics
-        print(f"Sleep: {detailed_metrics['sleep_cycles']} | Memory Ops: {detailed_metrics['memory_operations']} | High-Sal: {detailed_metrics['high_salience_experiences']}")
-    
-    def _display_final_session_results(self, session_results: Dict[str, Any]):
-        """Display compact final session results with ARC-3 scoreboard URL."""
-        overall_perf = session_results.get('overall_performance', {})
-        detailed_metrics = session_results.get('detailed_metrics', {})
-        
-        # Determine overall performance status
-        overall_win_rate = overall_perf.get('overall_win_rate', 0)
-        if overall_win_rate > 0.5:
-            status = "CHAMPIONSHIP PERFORMANCE"
-        elif overall_win_rate > 0.3:
-            status = "STRONG PERFORMANCE"  
-        elif overall_win_rate > 0.1:
-            status = "LEARNING PROGRESS"
-        else:
-            status = "TRAINING COMPLETE"
-            
-        print(f"\n{'='*60}")
-        print(f"{status}")
-        print(f"{'='*60}")
-        
-        # Essential metrics only
-        print(f"Duration: {session_results.get('duration', 0):.0f}s | Games: {overall_perf.get('games_trained', 0)} | Episodes: {overall_perf.get('total_episodes', 0)}")
-        print(f"Win Rate: {overall_win_rate:.1%} | Avg Score: {overall_perf.get('overall_average_score', 0)::.0f}")
-        print(f"Learning Efficiency: {overall_perf.get('learning_efficiency', 0):.2f} | Knowledge Transfer: {overall_perf.get('knowledge_transfer_score', 0):.2f}")
-        
-        # System performance (compact)
-        print(f"Sleep: {detailed_metrics.get('sleep_cycles', 0)} | Memory: {detailed_metrics.get('memory_operations', 0)} | High-Sal: {detailed_metrics.get('high_salience_experiences', 0)}")
-        
-        if detailed_metrics.get('salience_mode') == 'decay_compression':
-            compression_ratio = detailed_metrics.get('compressed_memories', 0) / max(1, detailed_metrics.get('memory_operations', 1))
-            print(f"Compression: {compression_ratio:.0%}")
-        
-        # Highlight top insights (max 3)
-        insights = session_results.get('learning_insights', [])
-        if insights:
-            print(f"\nTop Insights:")
-            for i, insight in enumerate(insights[:3], 1):
-                print(f"  {i}. {insight.get('content', 'No content')}")
-        
-        # Always show ARC-3 scoreboard URL
-        print(f"\nARC-3 Test Scoreboard: {ARC3_SCOREBOARD_URL}")
-        
-        # Highlight if this was a winning session
-        if overall_win_rate > 0.3:
-            print("SUBMIT TO LEADERBOARD - STRONG PERFORMANCE DETECTED!")
-        
-        print("="*60)
-        
+            logger.error(f"Error sending action {action_number} to {game_id}: {e}")
+            return None
+
     async def _train_on_game(
         self,
         game_id: str,
         max_episodes: int,
         target_performance: Dict[str, float]
     ) -> Dict[str, Any]:
-        """Train the agent on a specific game using REAL ARC API calls only."""
+        """Train the agent on a specific game using REAL ARC API calls with enhanced game state handling."""
         game_results = {
             'game_id': game_id,
             'episodes': [],
@@ -884,7 +473,8 @@ class ContinuousLearningLoop:
             'learning_progression': [],
             'patterns_discovered': [],
             'final_performance': {},
-            'scorecard_urls': []
+            'scorecard_urls': [],
+            'grid_dimensions': (64, 64)  # Will be updated dynamically
         }
         
         # Validate ARC-AGI-3-Agents path exists
@@ -894,7 +484,7 @@ class ContinuousLearningLoop:
         if not (self.arc_agents_path / "main.py").exists():
             raise ValueError(f"main.py not found in ARC-AGI-3-Agents: {self.arc_agents_path}")
         
-        print(f"Starting REAL ARC-3 training on game: {game_id}")
+        print(f"Starting ENHANCED ARC-3 training on game: {game_id}")
         print(f"Using API Key: {self.api_key[:8]}...{self.api_key[-4:]}")
         print(f"ARC-AGI-3-Agents path: {self.arc_agents_path}")
         
@@ -906,16 +496,22 @@ class ContinuousLearningLoop:
             try:
                 print(f"Episode {episode_count + 1}/{max_episodes} for {game_id}")
                 
-                # Run REAL ARC-3 episode
-                episode_result = await self._run_real_arc_episode(game_id, episode_count)
+                # Run ENHANCED ARC-3 episode with proper state checking
+                episode_result = await self._run_real_arc_episode_enhanced(game_id, episode_count)
                 
                 if episode_result and 'error' not in episode_result:
                     game_results['episodes'].append(episode_result)
                     episode_count += 1
                     
+                    # Update grid dimensions if detected
+                    if 'grid_dimensions' in episode_result:
+                        game_results['grid_dimensions'] = episode_result['grid_dimensions']
+                        print(f"Grid size detected: {episode_result['grid_dimensions'][0]}x{episode_result['grid_dimensions'][1]}")
+                    
                     # Track performance
                     current_score = episode_result.get('final_score', 0)
                     success = episode_result.get('success', False)
+                    game_state = episode_result.get('game_state', 'NOT_FINISHED')
                     scorecard_url = episode_result.get('scorecard_url')
                     
                     if scorecard_url:
@@ -929,9 +525,14 @@ class ContinuousLearningLoop:
                     else:
                         consecutive_failures += 1
                         
-                    print(f"Episode {episode_count}: {'WIN' if success else 'LOSS'} | Score: {current_score}")
+                    print(f"Episode {episode_count}: {'WIN' if success else 'LOSS'} | Score: {current_score} | State: {game_state}")
                     
-                    # Check if we should continue
+                    # CRITICAL: Stop if game reached terminal state (WIN or GAME_OVER)
+                    if game_state in ['WIN', 'GAME_OVER']:
+                        print(f"🎯 Game {game_id} reached terminal state: {game_state}")
+                        break
+                    
+                    # Check if we should continue based on performance
                     if self._should_stop_training(game_results, target_performance):
                         print(f"Target performance reached for {game_id}")
                         break
@@ -964,7 +565,8 @@ class ContinuousLearningLoop:
             'episodes_played': len(game_results['episodes']),
             'best_score': best_score,
             'win_rate': sum(1 for ep in game_results['episodes'] if ep.get('success', False)) / max(1, len(game_results['episodes'])),
-            'scorecard_urls_generated': len(game_results['scorecard_urls'])
+            'scorecard_urls_generated': len(game_results['scorecard_urls']),
+            'final_grid_size': f"{game_results['grid_dimensions'][0]}x{game_results['grid_dimensions'][1]}"
         }
         
         # Display scorecard URLs
@@ -977,26 +579,19 @@ class ContinuousLearningLoop:
         
         return game_results
 
-    async def _run_real_arc_episode(self, game_id: str, episode_count: int) -> Dict[str, Any]:
-        """Run a real ARC-3 episode using the correct ARC-AGI-3-Agents command format."""
+    async def _run_real_arc_episode_enhanced(self, game_id: str, episode_count: int) -> Dict[str, Any]:
+        """Enhanced version that properly handles grid dimensions and game states."""
         try:
-            import subprocess
-            import sys
-            import json
-            import tempfile
-            
             # Set up environment with API key
             env = os.environ.copy()
             env['ARC_API_KEY'] = self.api_key
             
-            # Use the CORRECT ARC-AGI-3-Agents command format (no OpenAI needed!)
+            # Use correct ARC-AGI-3-Agents command format
             cmd = [
                 'uv', 'run', 'main.py',
-                '--agent=adaptivelearning',  # Use your custom agent
-                f'--game={game_id}'  # Correct format: --game instead of --task
+                '--agent=adaptivelearning',
+                f'--game={game_id}'
             ]
-            
-            print(f"Running: {' '.join(cmd)} in {self.arc_agents_path}")
             
             # Create the subprocess
             process = await asyncio.create_subprocess_exec(
@@ -1007,1693 +602,196 @@ class ContinuousLearningLoop:
                 stderr=asyncio.subprocess.PIPE
             )
             
-            # Use asyncio.wait_for to implement timeout
+            # Wait with timeout
             try:
                 stdout, stderr = await asyncio.wait_for(
                     process.communicate(), 
-                    timeout=180.0  # 3 minute timeout per episode
+                    timeout=180.0
                 )
             except asyncio.TimeoutError:
-                # Kill the process if it times out
                 process.kill()
                 await process.wait()
-                raise asyncio.TimeoutError("Episode timed out after 3 minutes")
+                return {'success': False, 'final_score': 0, 'error': 'timeout', 'game_id': game_id}
             
-            # Parse the output for scorecard URL
             stdout_text = stdout.decode() if stdout else ""
             stderr_text = stderr.decode() if stderr else ""
             
-            # DEBUG: Show raw output to understand the format
-            print(f"DEBUG - Raw stdout (first 500 chars):")
-            print(f"'{stdout_text[:500]}...'")
-            print(f"DEBUG - Raw stderr (first 500 chars):")
-            print(f"'{stderr_text[:500]}...'")
+            # Enhanced parsing with grid dimension extraction
+            result = self._parse_episode_results_comprehensive(stdout_text, stderr_text, game_id)
             
-            # Enhanced scorecard URL extraction
-            scorecard_url = self._extract_scorecard_url_enhanced(stdout_text, stderr_text)
+            # Extract grid dimensions from output if available
+            grid_dims = self._extract_grid_dimensions_from_output(stdout_text, stderr_text)
+            if grid_dims:
+                result['grid_dimensions'] = grid_dims
             
-            # Enhanced result parsing with multiple patterns
-            result = self._parse_episode_results_enhanced(stdout_text, stderr_text)
-            
-            # Add scorecard URL to result
-            if scorecard_url:
-                result['scorecard_url'] = scorecard_url
-                print(f"✅ Episode {episode_count}: Score {result.get('final_score', 0)} | SUCCESS: {result.get('success', False)} | Scorecard: {scorecard_url}")
-            else:
-                print(f"⚠️  Episode {episode_count}: Score {result.get('final_score', 0)} | SUCCESS: {result.get('success', False)} | No scorecard URL found")
+            # Extract game state information
+            game_state = self._extract_game_state_from_output(stdout_text, stderr_text)
+            result['game_state'] = game_state
             
             # Add metadata
             result.update({
                 'game_id': game_id,
                 'episode': episode_count,
                 'timestamp': time.time(),
-                'actions_taken': len(stdout_text.split('\n')) if stdout_text else 0,
-                'raw_output': stdout_text,
-                'stderr_output': stderr_text,
                 'exit_code': process.returncode
             })
             
             return result
             
-        except asyncio.TimeoutError:
-            print(f"❌ Episode {episode_count} timed out after 3 minutes")
-            return {'success': False, 'final_score': 0, 'error': 'timeout', 'game_id': game_id, 'episode': episode_count}
         except Exception as e:
-            print(f"❌ Error running episode {episode_count}: {e}")
-            return {'success': False, 'final_score': 0, 'error': str(e), 'game_id': game_id, 'episode': episode_count}
+            return {'success': False, 'final_score': 0, 'error': str(e), 'game_id': game_id}
     
-    def _extract_scorecard_url_enhanced(self, stdout: str, stderr: str) -> str:
-        """Enhanced scorecard URL extraction with multiple patterns."""
-        import re
+    async def run_swarm_mode(
+        self,
+        games: List[str],
+        max_concurrent: int = 3,
+        max_episodes_per_game: int = 20
+    ) -> Dict[str, Any]:
+        """Run multiple games concurrently for faster learning (SWARM mode)."""
+        print(f"\n🔥 SWARM MODE ACTIVATED")
+        print(f"Concurrent Games: {min(max_concurrent, len(games))}")
+        print(f"Total Games: {len(games)}")
+        print("="*60)
         
-        # Multiple URL patterns to try
-        url_patterns = [
-            r'https://three\.arcprize\.org/scorecards/[a-f0-9-]{36}',           # Original pattern
-            r'https://three\.arcprize\.org/scorecards/[a-f0-9-]+',              # Flexible length
-            r'https://arcprize\.org/scorecards/[a-f0-9-]{36}',                  # Alternative domain
-            r'https://.*arcprize.*scorecards?/[a-f0-9-]+',                       # Flexible domain/path
-            r'scorecard.*?https?://[^\s]+',                                      # Any scorecard URL
-            r'https?://[^\s]*scorecard[^\s]*'                                    # Any URL with scorecard
-        ]
-        
-        combined_output = stdout + "\n" + stderr
-        
-        for pattern in url_patterns:
-            matches = re.findall(pattern, combined_output, re.IGNORECASE)
-            if matches:
-                print(f"DEBUG - Found scorecard URL with pattern '{pattern}': {matches[0]}")
-                return matches[0]
-        
-        # Look for any URL that might be a scorecard
-        url_matches = re.findall(r'https?://[^\s]+', combined_output)
-        for url in url_matches:
-            if 'scorecard' in url.lower() or 'result' in url.lower():
-                print(f"DEBUG - Found potential scorecard URL: {url}")
-                return url
-        
-        print(f"DEBUG - No scorecard URL found in output")
-        return None
-    
-    def _parse_episode_results_enhanced(self, stdout: str, stderr: str) -> Dict[str, Any]:
-        """Enhanced parsing of episode results with multiple detection patterns."""
-        import re
-        
-        result = {'success': False, 'final_score': 0}
-        combined_output = stdout + "\n" + stderr
-        
-        # Enhanced success detection patterns
-        success_patterns = [
-            r'\bwin\b',                    # Original: win
-            r'\bsuccess\b',                # Original: success  
-            r'\bcorrect\b',                # Correct answer
-            r'\bsolved\b',                 # Solved
-            r'\bpassed\b',                 # Passed
-            r'✅',                         # Checkmark emoji
-            r'\btrue\b.*answer',           # True answer
-            r'answer.*\bcorrect\b',        # Answer correct
-            r'result.*\btrue\b',           # Result true
-            r'score.*100',                 # Perfect score
-            r'status.*success',            # Status success
-        ]
-        
-        for pattern in success_patterns:
-            if re.search(pattern, combined_output, re.IGNORECASE):
-                result['success'] = True
-                print(f"DEBUG - Success detected with pattern: '{pattern}'")
-                break
-        
-        # Enhanced score extraction patterns
-        score_patterns = [
-            r'score[:\s]*(\d+)',           # Original: score: 123
-            r'final[_\s]*score[:\s]*(\d+)', # final_score: 123
-            r'points?[:\s]*(\d+)',          # points: 123
-            r'result[:\s]*(\d+)',           # result: 123  
-            r'total[:\s]*(\d+)',            # total: 123
-            r'grade[:\s]*(\d+)',            # grade: 123
-            r'mark[:\s]*(\d+)',             # mark: 123
-            r'(\d+)[/\s]*100',              # 85/100 or 85 100
-            r'(\d+)%',                      # 85%
-            r'accuracy[:\s]*(\d+)',         # accuracy: 85
-            r'correct[:\s]*(\d+)',          # correct: 85
-        ]
-        
-        for pattern in score_patterns:
-            match = re.search(pattern, combined_output, re.IGNORECASE)
-            if match:
-                try:
-                    score = int(match.group(1))
-                    result['final_score'] = score
-                    print(f"DEBUG - Score {score} detected with pattern: '{pattern}'")
-                    break
-                except ValueError:
-                    continue
-        
-        # If we found success but no score, assume a reasonable score
-        if result['success'] and result['final_score'] == 0:
-            result['final_score'] = 100  # Assume perfect score if success detected
-            print(f"DEBUG - Success detected but no score found, assuming 100")
-        
-        # Look for failure indicators to override false positives
-        failure_patterns = [
-            r'\bfail\b',
-            r'\bwrong\b', 
-            r'\bincorrect\b',
-            r'\berror\b',
-            r'❌',
-            r'status.*fail',
-            r'result.*false'
-        ]
-        
-        failure_detected = False
-        for pattern in failure_patterns:
-            if re.search(pattern, combined_output, re.IGNORECASE):
-                failure_detected = True
-                print(f"DEBUG - Failure detected with pattern: '{pattern}'")
-                break
-        
-        if failure_detected and not result['success']:
-            result['success'] = False
-            print(f"DEBUG - Confirmed failure")
-        
-        print(f"DEBUG - Final result: success={result['success']}, score={result['final_score']}")
-        return result
-
-    async def _apply_learning_insights(self, game_id: str, game_results: Dict[str, Any]):
-        """Apply learning insights to improve future performance."""
-        # This would involve updating the agent's configuration based on learned patterns
-        insights = self.arc_meta_learning.get_strategic_recommendations(game_id)
-        
-        if insights:
-            logger.info(f"Applying {len(insights)} insights for {game_id}")
-            # In a full implementation, you would modify agent parameters here
-            
-    def _calculate_game_performance(self, game_results: Dict[str, Any]) -> Dict[str, float]:
-        """Calculate performance metrics for a game."""
-        episodes = game_results['episodes']
-        if not episodes:
-            return {}
-            
-        return {
-            'total_episodes': len(episodes),
-            'win_rate': sum(1 for ep in episodes if ep.get('success', False)) / len(episodes),
-            'average_score': sum(ep.get('final_score', 0) for ep in episodes) / len(episodes),
-            'average_actions': sum(ep.get('actions_taken', 0) for ep in episodes) / len(episodes),
-            'best_score': max(ep.get('final_score', 0) for ep in episodes),
-            'patterns_per_episode': len(game_results.get('patterns_discovered', [])) / len(episodes)
+        swarm_results = {
+            'mode': 'swarm',
+            'total_games': len(games),
+            'max_concurrent': max_concurrent,
+            'games_completed': {},
+            'overall_performance': {},
+            'swarm_efficiency': {}
         }
         
-    def _calculate_session_performance(self, session_results: Dict[str, Any]) -> Dict[str, float]:
-        """Calculate overall session performance."""
-        games_played = session_results['games_played']
-        if not games_played:
-            return {}
+        # Split games into batches for concurrent processing
+        game_batches = [games[i:i+max_concurrent] for i in range(0, len(games), max_concurrent)]
+        
+        total_start_time = time.time()
+        
+        for batch_idx, batch in enumerate(game_batches, 1):
+            print(f"\n🎯 SWARM BATCH {batch_idx}/{len(game_batches)}")
+            print(f"Games: {', '.join(batch)}")
             
-        total_episodes = sum(len(game['episodes']) for game in games_played.values())
-        total_wins = sum(sum(1 for ep in game['episodes'] if ep.get('success', False)) 
-                        for game in games_played.values())
-        total_score = sum(sum(ep.get('final_score', 0) for ep in game['episodes']) 
-                         for game in games_played.values())
-        
-        return {
-            'games_trained': len(games_played),
-            'total_episodes': total_episodes,
-            'overall_win_rate': total_wins / max(1, total_episodes),
-            'overall_average_score': total_score / max(1, total_episodes),
-            'learning_efficiency': self._calculate_learning_efficiency(session_results),
-            'knowledge_transfer_score': self._calculate_knowledge_transfer_score(session_results)
-        }
-        
-    def _calculate_learning_efficiency(self, session_results: Dict[str, Any]) -> float:
-        """Calculate how efficiently the agent learned during the session."""
-        # Simplified efficiency metric based on improvement over time
-        games_played = session_results['games_played']
-        efficiency_scores = []
-        
-        for game_results in games_played.values():
-            episodes = game_results['episodes']
-            if len(episodes) >= 10:
-                early_performance = sum(ep.get('final_score', 0) for ep in episodes[:5]) / 5
-                late_performance = sum(ep.get('final_score', 0) for ep in episodes[-5:]) / 5
-                improvement = late_performance - early_performance
-                efficiency_scores.append(max(0, improvement / 100))  # Normalize
-                
-        return sum(efficiency_scores) / max(1, len(efficiency_scores))
-        
-    def _calculate_knowledge_transfer_score(self, session_results: Dict[str, Any]) -> float:
-        """Calculate how well knowledge transferred between games."""
-        # Simplified metric based on performance on later games vs earlier games
-        games_played = list(session_results['games_played'].values())
-        if len(games_played) < 2:
-            return 0.0
-            
-        early_games = games_played[:len(games_played)//2]
-        late_games = games_played[len(games_played)//2:]
-        
-        early_avg = sum(game['performance_metrics'].get('average_score', 0) for game in early_games) / len(early_games)
-        late_avg = sum(game['performance_metrics'].get('average_score', 0) for game in late_games) / len(late_games)
-        
-        return max(0, (late_avg - early_avg) / 100)  # Normalize
-        
-    def _generate_session_insights(self, session_results: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate insights from the completed session."""
-        insights = []
-        
-        # Performance trend insight
-        overall_perf = session_results['overall_performance']
-        if overall_perf.get('learning_efficiency', 0) > 0.3:
-            insights.append({
-                'type': 'positive_learning_trend',
-                'content': f"Agent showed good learning efficiency: {overall_perf['learning_efficiency']:.2f}",
-                'confidence': 0.8
-            })
-            
-        # Knowledge transfer insight
-        if overall_perf.get('knowledge_transfer_score', 0) > 0.2:
-            insights.append({
-                'type': 'knowledge_transfer',
-                'content': f"Successful knowledge transfer between games: {overall_perf['knowledge_transfer_score']:.2f}",
-                'confidence': 0.7
-            })
-            
-        return insights
-        
-    def _update_global_metrics(self, session_results: Dict[str, Any]):
-        """Update global performance metrics."""
-        overall_perf = session_results['overall_performance']
-        
-        # Update cumulative metrics
-        self.global_performance_metrics['total_games_played'] += overall_perf.get('games_trained', 0)
-        self.global_performance_metrics['total_episodes'] += overall_perf.get('total_episodes', 0)
-        
-        # Update averages (simplified)
-        self.global_performance_metrics['average_score'] = (
-            self.global_performance_metrics['average_score'] * 0.8 + 
-            overall_perf.get('overall_average_score', 0) * 0.2
-        )
-        
-        self.global_performance_metrics['win_rate'] = (
-            self.global_performance_metrics['win_rate'] * 0.8 + 
-            overall_perf.get('overall_win_rate', 0) * 0.2
-        )
-        
-    def _save_session_progress(self, session_results: Dict[str, Any]):
-        """Save intermediate session progress."""
-        filename = self.save_directory / f"session_{session_results['session_id']}_progress.json"
-        try:
-            with open(filename, 'w') as f:
-                json.dump(session_results, f, indent=2, default=str)
-        except Exception as e:
-            logger.error(f"Failed to save session progress: {e}")
-            
-    def _save_session_results(self, session_results: Dict[str, Any]):
-        """Save final session results."""
-        filename = self.save_directory / f"session_{session_results['session_id']}_final.json"
-        try:
-            with open(filename, 'w') as f:
-                json.dump(session_results, f, indent=2, default=str)
-            
-            # Also save meta-learning state
-            meta_learning_file = self.save_directory / f"meta_learning_{session_results['session_id']}.json"
-            self.arc_meta_learning.save_learning_state(str(meta_learning_file))
-            
-        except Exception as e:
-            logger.error(f"Failed to save session results: {e}")
-            
-    def _save_state(self):
-        """Save the current state of the continuous learning system."""
-        state_file = self.save_directory / "continuous_learning_state.json"
-        state_data = {
-            'global_performance_metrics': self.global_performance_metrics,
-            'session_history': self.session_history,
-            'timestamp': time.time()
-        }
-        
-        try:
-            with open(state_file, 'w') as f:
-                json.dump(state_data, f, indent=2, default=str)
-        except Exception as e:
-            logger.error(f"Failed to save state: {e}")
-            
-    def _load_state(self):
-        """Load previous state if available."""
-        state_file = self.save_directory / "continuous_learning_state.json"
-        if (state_file.exists()):
-            try:
-                with open(state_file, 'r') as f:
-                    state_data = json.load(f)
-                    
-                self.global_performance_metrics.update(state_data.get('global_performance_metrics', {}))
-                self.session_history = state_data.get('session_history', [])
-                
-                logger.info("Loaded previous continuous learning state")
-            except Exception as e:
-                logger.error(f"Failed to load state: {e}")
-                
-    def get_learning_summary(self) -> Dict[str, Any]:
-        """Get a comprehensive summary of learning progress."""
-        return {
-            'global_metrics': self.global_performance_metrics,
-            'meta_learning_summary': self.arc_meta_learning.get_learning_summary(),
-            'session_count': len(self.session_history),
-            'current_session': self.current_session.session_id if self.current_session else None,
-            'salience_performance_history': self.salience_performance_history,
-            'current_salience_mode': self.current_session.salience_mode.value if self.current_session else None,
-            'last_updated': datetime.now().isoformat()
-        }
-    
-    async def _run_salience_mode_comparison(self, session: TrainingSession) -> Dict[str, Any]:
-        """Run comparison between salience modes during training."""
-        try:
-            logger.info("Starting salience mode comparison...")
-            
-            if not SALIENCE_COMPARATOR_AVAILABLE:
-                # Return mock results when comparator is not available
-                return {
-                    'lossless_performance': {
-                        'avg_salience': 0.380,
-                        'memory_usage': 1.0,
-                        'experiences_retained': session.max_episodes_per_game * len(session.games_to_play) * 10
-                    },
-                    'decay_compression_performance': {
-                        'avg_salience': 0.452,
-                        'memory_usage': 0.25,
-                        'experiences_retained': int(session.max_episodes_per_game * len(session.games_to_play) * 10 * 0.25)
-                    },
-                }
-            
-            # Initialize comparison results
-            comparison_results = {
-                'mode_results': {},
-                'recommendation': 'lossless',
-                'recommendation_reason': 'Default recommendation'
-            }
-            
-            # Test both modes
-            comparison_games = session.games_to_play[:min(2, len(session.games_to_play))]  # Test on first 2 games
-            comparison_episodes = 5  # Fewer episodes for comparison
-            
-            for mode in [SalienceMode.LOSSLESS, SalienceMode.DECAY_COMPRESSION]:
-                logger.info(f"Testing {mode.value} mode...")
-                
-                # Create temporary calculator for this mode
-                temp_calculator = SalienceCalculator(
-                    mode=mode,
-                    decay_rate=0.01 if mode == SalienceMode.DECAY_COMPRESSION else 0.0,
-                    salience_min=0.05,
-                    compression_threshold=0.15
+            # Run games in this batch concurrently
+            batch_tasks = []
+            for game_id in batch:
+                task = asyncio.create_task(
+                    self._train_on_game_swarm(game_id, max_episodes_per_game)
                 )
-                
-                mode_performance = {
-                    'total_episodes': 0,
-                    'total_wins': 0,
-                    'total_score': 0,
-                    'memory_efficiency': 0.0,
-                    'processing_time': 0.0
-                }
-                
-                start_time = time.time()
-                
-                # Test on comparison games
-                for game_id in comparison_games:
-                    for episode in range(comparison_episodes):
-                        try:
-                            # Simulate episode result (in real implementation, would run actual agent)
-                            episode_result = await self._run_single_episode(game_id)
-                            
-                            if episode_result:
-                                mode_performance['total_episodes'] += 1
-                                if episode_result.get('success', False):
-                                    mode_performance['total_wins'] += 1
-                                mode_performance['total_score'] += episode_result.get('final_score', 0)
-                                
-                                # Calculate salience for this episode
-                                learning_progress = episode_result.get('final_score', 0) / 100.0
-                                energy_change = 5.0 if episode_result.get('success', False) else -2.0
-                                
-                                salience = temp_calculator.calculate_salience(
-                                    learning_progress=learning_progress,
-                                    energy_change=energy_change,
-                                    current_energy=50.0,
-                                    context=f"comparison_{game_id}"
-                                )
-                                
-                        except Exception as e:
-                            logger.warning(f"Error in comparison episode: {e}")
-                            continue
-                
-                mode_performance['processing_time'] = time.time() - start_time
-                
-                # Get compression stats
-                compression_stats = temp_calculator.get_compression_stats()
-                mode_performance['memory_efficiency'] = compression_stats.get('compression_ratio', 0.0)
-                
-                # Calculate performance metrics
-                if mode_performance['total_episodes'] > 0:
-                    mode_performance['win_rate'] = mode_performance['total_wins'] / mode_performance['total_episodes']
-                    mode_performance['avg_score'] = mode_performance['total_score'] / mode_performance['total_episodes']
+                batch_tasks.append(task)
+            
+            # Wait for all games in batch to complete
+            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+            
+            # Process batch results
+            for game_id, result in zip(batch, batch_results):
+                if isinstance(result, Exception):
+                    logger.error(f"Error in swarm game {game_id}: {result}")
+                    swarm_results['games_completed'][game_id] = {
+                        'error': str(result),
+                        'success': False
+                    }
                 else:
-                    mode_performance['win_rate'] = 0.0
-                    mode_performance['avg_score'] = 0.0
-                
-                comparison_results['mode_results'][mode.value] = mode_performance
-                
-                # Store in performance history
-                self.salience_performance_history[mode].append({
-                    'session_id': session.session_id,
-                    'timestamp': time.time(),
-                    'performance': mode_performance
-                })
-            
-            # Determine recommendation
-            lossless_perf = comparison_results['mode_results']['lossless']
-            decay_perf = comparison_results['mode_results']['decay_compression']
-            
-            # Calculate performance difference
-            comparison_results['performance_difference'] = {
-                'win_rate_diff': decay_perf['win_rate'] - lossless_perf['win_rate'],
-                'score_diff': decay_perf['avg_score'] - lossless_perf['avg_score'],
-                'memory_efficiency_gain': decay_perf['memory_efficiency'],
-                'processing_time_diff': decay_perf['processing_time'] - lossless_perf['processing_time']
-            }
-            
-            # Simple recommendation logic
-            if (decay_perf['win_rate'] >= lossless_perf['win_rate'] * 0.95 and 
-                decay_perf['memory_efficiency'] > 0.1):
-                comparison_results['recommendation'] = 'decay_compression'
-                recommendation_reason = "Decay/compression mode provides memory efficiency with minimal performance loss"
-            elif lossless_perf['win_rate'] > decay_perf['win_rate'] * 1.1:
-                comparison_results['recommendation'] = 'lossless'
-                recommendation_reason = "Lossless mode provides significantly better performance"
-            else:
-                comparison_results['recommendation'] = 'lossless'
-                recommendation_reason = "Performance difference unclear, defaulting to lossless for safety"
-            
-            comparison_results['recommendation_reason'] = recommendation_reason
-            
-            logger.info(f"Salience mode comparison complete. Recommendation: {comparison_results['recommendation']}")
-            logger.info(f"Reason: {recommendation_reason}")
-            
-            return comparison_results
-            
-        except Exception as e:
-            logger.error(f"Error in salience mode comparison: {e}")
-            return {
-                'error': str(e),
-                'recommendation': 'lossless',
-                'recommendation_reason': 'Error occurred during comparison'
-            }
-
-    async def run_demo_mode(self) -> Dict[str, Any]:
-        """Run a quick demonstration of the learning system."""
-        print("🧪 DEMO MODE - Quick ARC-3 Integration Demonstration")
-        print("="*60)
+                    swarm_results['games_completed'][game_id] = result
+                    win_rate = result.get('final_performance', {}).get('win_rate', 0)
+                    grid_size = result.get('final_performance', {}).get('grid_size', 'unknown')
+                    print(f"✅ {game_id}: {win_rate:.1%} win rate | Grid: {grid_size}")
         
-        # Get actually available games instead of using hardcoded ones
-        available_games = await self._get_available_games()
+        total_duration = time.time() - total_start_time
         
-        if not available_games:
-            print("⚠️ No games available from ARC-3 API")
-            print("🔧 Running offline demo with synthetic data...")
-            return await self._run_offline_demo()
+        # Calculate swarm performance metrics
+        successful_games = [r for r in swarm_results['games_completed'].values() if not r.get('error')]
         
-        # Use first 2 available games for demo
-        demo_games = available_games[:2] if len(available_games) >= 2 else available_games
-        print(f"🎮 Demo will use games: {demo_games}")
-        
-        # Start demo session
-        session_id = self.start_training_session(
-            games=demo_games,
-            max_episodes_per_game=3,  # Reduced for demo
-            target_win_rate=0.1,      # Lower target for demo
-            target_avg_score=20.0,    # Fixed syntax error
-            salience_mode=SalienceMode.LOSSLESS
-        )
-        
-        # Run the session
-        results = await self.run_continuous_learning(session_id)
-        
-        # Add demo-specific metadata
-        results['mode'] = 'demo'
-        results['demo_summary'] = {
-            'games_attempted': len(demo_games),
-            'episodes_per_game': 3,
-            'integration_verified': True,
-            'available_games_total': len(available_games)
-        }
-        
-        return results
-        
-    async def run_full_training_mode(self) -> Dict[str, Any]:
-        """Run full training until all tasks are mastered."""
-        print("FULL TRAINING MODE - Training Until All Tasks Are Mastered")
-        print("="*60)
-        
-        # Full set of ARC tasks
-        all_tasks = get_full_training_tasks()
-        
-        # Start full training session
-        session_id = self.start_training_session(
-            games=all_tasks,
-            max_episodes_per_game=50,
-            target_win_rate=0.9,  # High target for mastery
-            target_avg_score=85.0,
-            salience_mode=SalienceMode.LOSSLESS
-        )
-        
-        # Run the session
-        results = await self.run_continuous_learning(session_id)
-        
-        # Add full training-specific metadata
-        results['mode'] = 'full_training'
-        results['mastery_status'] = {
-            'total_tasks': len(all_tasks),
-            'target_mastery': 0.9,
-            'full_training': True
-        }
-        
-        return results
-        
-    async def run_comparison_mode(self) -> Dict[str, Any]:
-        """Compare different salience modes."""
-        print("COMPARISON MODE - Salience Mode Analysis")
-        print("="*60)
-        
-        # Test games for comparison
-        comparison_games = get_comparison_tasks()
-        results = {}
-        
-        # Test both salience modes
-        for mode_name, salience_mode in [
-            ("LOSSLESS", SalienceMode.LOSSLESS), 
-            ("DECAY_COMPRESSION", SalienceMode.DECAY_COMPRESSION)
-        ]:
-            print(f"\nTESTING {mode_name} Mode")
-            
-            session_id = self.start_training_session(
-                games=comparison_games,
-                max_episodes_per_game=15,
-                target_win_rate=0.4,
-                target_avg_score=60.0,
-                salience_mode=salience_mode,
-                enable_salience_comparison=True
+        if successful_games:
+            total_episodes = sum(len(game.get('episodes', [])) for game in successful_games)
+            total_wins = sum(
+                sum(1 for ep in game.get('episodes', []) if ep.get('success', False))
+                for game in successful_games
             )
             
-            session_results = await self.run_continuous_learning(session_id)
-            results[mode_name] = session_results
-        
-        # Compare results and make recommendation
-        lossless_perf = results["LOSSLESS"]["overall_performance"]["overall_win_rate"]
-        decay_perf = results["DECAY_COMPRESSION"]["overall_performance"]["overall_win_rate"]
-        
-        if decay_perf >= lossless_perf * 0.95:  # Within 5%
-            recommendation = "DECAY_COMPRESSION"
-            reason = "Similar performance with better memory efficiency"
-        else:
-            recommendation = "LOSSLESS"
-            reason = "Better performance retention"
-        
-        print(f"\nRECOMMENDATION: {recommendation}")
-        print(f"   Reason: {reason}")
-        
-        return {
-            'mode': 'comparison',
-            'results': results,
-            'recommendation': recommendation,
-            'recommendation_reason': reason
-        }
-
-    def _should_stop_training(self, game_results: Dict[str, Any], target_performance: Dict[str, float]) -> bool:
-        """Check if we should stop training on this game based on target performance."""
-        episodes = game_results.get('episodes', [])
-        if len(episodes) < 5:  # Need at least 5 episodes to evaluate
-            return False
-        
-        # Calculate current performance
-        recent_episodes = episodes[-5:]  # Look at last 5 episodes
-        recent_wins = sum(1 for ep in recent_episodes if ep.get('success', False))
-        recent_win_rate = recent_wins / len(recent_episodes)
-        recent_avg_score = sum(ep.get('final_score', 0) for ep in recent_episodes) / len(recent_episodes)
-        
-        # Check if we've reached target performance
-        target_win_rate = target_performance.get('win_rate', 0.3)
-        target_avg_score = target_performance.get('avg_score', 50.0)
-        
-        if recent_win_rate >= target_win_rate and recent_avg_score >= target_avg_score:
-            return True
-            
-        return False
-
-    def _collect_all_scorecards(self, session_results: Dict[str, Any]) -> Dict[str, Any]:
-        """Collect all scorecard URLs and pass/fail status from session results."""
-        scorecard_summary = {
-            'total_scorecards': 0,
-            'scorecards_by_game': {},
-            'all_scorecard_urls': [],
-            'pass_fail_summary': {
-                'total_episodes': 0,
-                'total_wins': 0,
-                'total_losses': 0,
-                'overall_pass_rate': 0.0
-            }
-        }
-        
-        # Extract scorecard URLs and pass/fail from each game
-        for game_id, game_data in session_results.get('games_played', {}).items():
-            game_scorecards = game_data.get('scorecard_urls', [])
-            episodes = game_data.get('episodes', [])
-            
-            # Count wins/losses for this game
-            game_wins = sum(1 for ep in episodes if ep.get('success', False))
-            game_losses = len(episodes) - game_wins
-            
-            scorecard_summary['scorecards_by_game'][game_id] = {
-                'scorecard_urls': game_scorecards,
-                'scorecard_count': len(game_scorecards),
-                'episodes_played': len(episodes),
-                'wins': game_wins,
-                'losses': game_losses,
-                'win_rate': game_wins / max(1, len(episodes))
+            swarm_results['overall_performance'] = {
+                'games_completed': len(successful_games),
+                'total_episodes': total_episodes,
+                'overall_win_rate': total_wins / max(1, total_episodes),
+                'games_per_hour': len(successful_games) / (total_duration / 3600),
+                'episodes_per_hour': total_episodes / (total_duration / 3600)
             }
             
-            # Add to totals
-            scorecard_summary['total_scorecards'] += len(game_scorecards)
-            scorecard_summary['all_scorecard_urls'].extend(game_scorecards)
-            scorecard_summary['pass_fail_summary']['total_episodes'] += len(episodes)
-            scorecard_summary['pass_fail_summary']['total_wins'] += game_wins
-            scorecard_summary['pass_fail_summary']['total_losses'] += game_losses
-        
-        # Calculate overall pass rate
-        total_episodes = scorecard_summary['pass_fail_summary']['total_episodes']
-        if total_episodes > 0:
-            scorecard_summary['pass_fail_summary']['overall_pass_rate'] = (
-                scorecard_summary['pass_fail_summary']['total_wins'] / total_episodes
-            )
-        
-        return scorecard_summary
-
-    def _display_scorecard_summary(self, scorecard_summary: Dict[str, Any]):
-        """Display a comprehensive summary of all scorecards and pass/fail status."""
-        print(f"\nARC-3 SCORECARD & RESULTS SUMMARY")
-        print(f"{'='*60}")
-        
-        # Overall statistics
-        pass_fail = scorecard_summary['pass_fail_summary']
-        print(f"Total Episodes: {pass_fail['total_episodes']}")
-        print(f"Wins: {pass_fail['total_wins']} ({pass_fail['overall_pass_rate']:.1%})")
-        print(f"Losses: {pass_fail['total_losses']} ({(1-pass_fail['overall_pass_rate']):.1%})")
-        print(f"Scorecards Generated: {scorecard_summary['total_scorecards']}")
-        
-        # Per-game breakdown
-        print(f"\nBY GAME BREAKDOWN:")
-        for game_id, game_data in scorecard_summary['scorecards_by_game'].items():
-            print(f"\n{game_id}:")
-            print(f"   Episodes: {game_data['episodes_played']} | Win Rate: {game_data['win_rate']:.1%}")
-            print(f"   Scorecards: {game_data['scorecard_count']}")
-            
-            if game_data['scorecard_urls']:
-                print(f"   Scorecard URLs:")
-                for i, url in enumerate(game_data['scorecard_urls'], 1):
-                    print(f"      {i}. {url}")
-            else:
-                print(f"   No scorecards generated")
-        
-        # All scorecard URLs (for easy copy-paste)
-        if scorecard_summary['all_scorecard_urls']:
-            print(f"\nALL SCORECARD URLs:")
-            for i, url in enumerate(scorecard_summary['all_scorecard_urls'], 1):
-                print(f"{i:2d}. {url}")
-        
-        print(f"\nView all results at: {ARC3_SCOREBOARD_URL}")
-        print(f"{'='*60}")
-
-    async def _run_single_episode(self, game_id: str) -> Dict[str, Any]:
-        """Run a single episode for comparison testing - simplified version of _run_real_arc_episode."""
-        try:
-            # For comparison mode, run a shorter version
-            result = await asyncio.wait_for(
-                self._run_real_arc_episode(game_id, 0),
-                timeout=120.0  # 2 minute timeout for comparison episodes
-            )
-            return result
-            
-        except asyncio.TimeoutError:
-            return {'success': False, 'final_score': 0, 'error': 'timeout'}
-        except Exception as e:
-            return {'success': False, 'final_score': 0, 'error': str(e)}
-
-    async def _run_offline_demo(self) -> Dict[str, Any]:
-        """Run offline demo when API is not available."""
-        print("🔧 Running offline demonstration mode...")
-        print("This simulates ARC-3 integration without requiring API access")
-        
-        demo_results = {
-            'mode': 'offline_demo',
-            'real_api': False,
-            'games_completed': [],
-            'overall_performance': {
-                'games_attempted': 3,
-                'games_completed': 3,
-                'overall_win_rate': 0.33,
-                'overall_average_score': 45.0
-            },
-            'api_integration_ready': True,
-            'features_demonstrated': [
-                'Meta-learning across tasks',
-                'Salience-based memory management', 
-                'Sleep cycle memory consolidation',
-                'Knowledge transfer between games',
-                'Performance tracking and analytics'
-            ]
-        }
-        
-        # Simulate training on 3 demo tasks
-        demo_games = [
-            {'id': 'DEMO_PATTERN_1', 'name': 'Pattern Recognition', 'complexity': 'medium'},
-            {'id': 'DEMO_LOGIC_2', 'name': 'Logical Reasoning', 'complexity': 'hard'},
-            {'id': 'DEMO_SPATIAL_3', 'name': 'Spatial Transform', 'complexity': 'easy'}
-        ]
-        
-        print(f"\nSimulating training on {len(demo_games)} reasoning tasks:")
-        
-        total_score = 0
-        total_episodes = 0
-        total_wins = 0
-        
-        for i, game in enumerate(demo_games, 1):
-            print(f"\n--- Task {i}: {game['name']} ({game['complexity']}) ---")
-            
-            # Simulate learning progression
-            episodes = 8
-            game_wins = 0
-            game_score = 0
-            
-            for episode in range(episodes):
-                # Simulate learning: performance improves over episodes
-                base_performance = {'easy': 70, 'medium': 50, 'hard': 30}[game['complexity']]
-                learning_bonus = episode * 4  # Improvement over time
-                noise = np.random.randint(-8, 12)
-                
-                episode_score = max(0, min(100, base_performance + learning_bonus + noise))
-                is_win = episode_score > 60
-                
-                if is_win:
-                    game_wins += 1
-                    total_wins += 1
-                
-                game_score += episode_score
-                total_score += episode_score
-                total_episodes += 1
-                
-                status = "WIN" if is_win else "LEARNING"
-                print(f"  Episode {episode + 1}: Score {episode_score:2d} ({status})")
-                
-                # Brief delay for realism
-                await asyncio.sleep(0.05)
-            
-            game_avg = game_score / episodes
-            win_rate = game_wins / episodes
-            
-            game_result = {
-                'game_id': game['id'],
-                'episodes_completed': episodes,
-                'wins': game_wins,
-                'win_rate': win_rate,
-                'avg_score': game_avg,
-                'complexity': game['complexity'],
-                'learning_demonstrated': True
+            swarm_results['swarm_efficiency'] = {
+                'total_duration_hours': total_duration / 3600,
+                'concurrent_speedup': len(games) / (total_duration / 3600) if total_duration > 0 else 0,
+                'batch_count': len(game_batches),
+                'average_batch_size': len(games) / len(game_batches)
             }
-            
-            demo_results['games_completed'].append(game_result)
-            print(f"  Game Summary: {game_wins}/{episodes} wins ({win_rate:.1%}), Avg: {game_avg:.1f}")
         
-        # Update final performance
-        demo_results['overall_performance'].update({
-            'total_episodes': total_episodes,
-            'overall_win_rate': total_wins / total_episodes,
-            'overall_average_score': total_score / total_episodes,
-            'learning_efficiency': 0.65,  # Good learning efficiency
-            'knowledge_transfer_score': 0.45  # Good knowledge transfer
-        })
+        print(f"\n🏆 SWARM MODE COMPLETE")
+        print(f"Duration: {total_duration/60:.1f} minutes")
+        print(f"Games/Hour: {swarm_results['overall_performance'].get('games_per_hour', 0):.1f}")
+        print(f"Overall Win Rate: {swarm_results['overall_performance'].get('overall_win_rate', 0):.1%}")
         
-        print(f"\n{'='*60}")
-        print("OFFLINE DEMO RESULTS")
-        print(f"{'='*60}")
-        print(f"Tasks Completed: {len(demo_games)}")
-        print(f"Total Episodes: {total_episodes}")
-        print(f"Overall Win Rate: {demo_results['overall_performance']['overall_win_rate']:.1%}")
-        print(f"Average Score: {demo_results['overall_performance']['overall_average_score']:.1f}")
-        print(f"Learning Efficiency: {demo_results['overall_performance']['learning_efficiency']:.2f}")
-        
-        print(f"\n✅ Demonstration Complete - Features Verified:")
-        for feature in demo_results['features_demonstrated']:
-            print(f"   • {feature}")
-        
-        print(f"\n🔗 Ready for ARC-3 API Integration:")
-        print(f"   • Set ARC_API_KEY environment variable")
-        print(f"   • Clone ARC-AGI-3-Agents repository")
-        print(f"   • Run with real API for official results")
-        print(f"   • Submit to leaderboard: {ARC3_SCOREBOARD_URL}")
-        
-        return demo_results
-
-class GameActionType(Enum):
-    """ARC-3 Action Types"""
-    RESET = "RESET"
-    ACTION1 = "ACTION1"  # Simple action (up/select A)
-    ACTION2 = "ACTION2"  # Simple action (down/select B)
-    ACTION3 = "ACTION3"  # Simple action (left/select C)
-    ACTION4 = "ACTION4"  # Simple action (right/select D)
-    ACTION5 = "ACTION5"  # Simple action (interact/rotate/fire)
-    ACTION6 = "ACTION6"  # Complex action (x,y coordinates)
-    ACTION7 = "ACTION7"  # Undo action
-
-@dataclass
-class GameAction:
-    """Represents a game action with optional coordinates and reasoning"""
-    action_type: GameActionType
-    x: Optional[int] = None
-    y: Optional[int] = None
-    reasoning: Optional[Dict[str, Any]] = None
+        return swarm_results
     
-    def __post_init__(self):
-        """Validate action parameters"""
-        if self.action_type == GameActionType.ACTION6:
-            if self.x is None or self.y is None:
-                raise ValueError("ACTION6 requires x,y coordinates")
-            if not (0 <= self.x <= 63) or not (0 <= self.y <= 63):
-                raise ValueError("ACTION6 coordinates must be in range 0-63")
-        elif self.action_type != GameActionType.RESET:
-            if self.x is not None or self.y is not None:
-                raise ValueError(f"{self.action_type.value} does not accept coordinates")
-
-class ARC3ActionHandler:
-    """Handles all ARC-3 action types through the official API"""
-    
-    def __init__(self, api_key: str, base_url: str = ARC3_BASE_URL):
-        self.api_key = api_key
-        self.base_url = base_url
-        self.session = None
-        
-    async def __aenter__(self):
-        """Async context manager entry"""
-        self.session = aiohttp.ClientSession()
-        return self
-        
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit"""
-        if self.session:
-            await self.session.close()
-            
-    def _get_headers(self) -> Dict[str, str]:
-        """Get standard headers for API requests"""
-        return {
-            "X-API-Key": self.api_key,
-            "Content-Type": "application/json"
-        }
-        
-    async def send_action(
+    async def _train_on_game_swarm(
         self,
         game_id: str,
-        guid: str,
-        action: GameAction
-    ) -> Optional[Dict[str, Any]]:
-        """Send any action type to the ARC-3 API"""
-        
-        if not self.session:
-            raise RuntimeError("ActionHandler not initialized - use async with")
-            
-        # Construct URL and payload based on action type
-        url = f"{self.base_url}/api/cmd/{action.action_type.value}"
-        payload = {
-            "game_id": game_id,
-            "guid": guid
+        max_episodes: int
+    ) -> Dict[str, Any]:
+        """Train on a single game for SWARM mode - optimized for concurrent execution."""
+        game_results = {
+            'game_id': game_id,
+            'episodes': [],
+            'performance_metrics': {},
+            'final_performance': {},
+            'grid_dimensions': (64, 64)  # Will be updated dynamically
         }
         
-        # Add coordinates for ACTION6
-        if action.action_type == GameActionType.ACTION6:
-            payload["x"] = action.x
-            payload["y"] = action.y
-            
-        # Add card_id for RESET actions
-        elif action.action_type == GameActionType.RESET:
-            # RESET needs card_id instead of guid for new sessions
-            if guid:
-                payload["guid"] = guid  # Reset existing session
-            else:
-                # New session needs card_id - this should be handled by caller
-                pass
-                
-        # Add reasoning if provided
-        if action.reasoning:
-            payload["reasoning"] = action.reasoning
-            
         try:
-            async with self.session.post(url, headers=self._get_headers(), json=payload) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data
-                else:
-                    error_text = await response.text()
-                    logger.warning(f"Action {action.action_type.value} failed: {response.status} - {error_text}")
-                    return None
+            episode_count = 0
+            consecutive_failures = 0
+            
+            while episode_count < max_episodes:
+                # Run episode with proper game state checking
+                episode_result = await self._run_real_arc_episode_enhanced(game_id, episode_count)
+                
+                if episode_result and 'error' not in episode_result:
+                    game_results['episodes'].append(episode_result)
+                    episode_count += 1
                     
-        except Exception as e:
-            logger.error(f"Error sending action {action.action_type.value}: {e}")
-            return None
-            
-    async def reset_game(
-        self,
-        game_id: str,
-        card_id: str,
-        guid: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
-        """Reset or start a game session"""
-        reset_action = GameAction(GameActionType.RESET)
-        
-        # Special handling for RESET - needs card_id
-        url = f"{self.base_url}/api/cmd/RESET"
-        payload = {
-            "game_id": game_id,
-            "card_id": card_id
-        }
-        
-        if guid:
-            payload["guid"] = guid  # Reset existing session
-            
-        try:
-            async with self.session.post(url, headers=self._get_headers(), json=payload) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data
-                else:
-                    error_text = await response.text()
-                    logger.warning(f"RESET failed: {response.status} - {error_text}")
-                    return None
+                    # Update grid dimensions if available
+                    if 'grid_dimensions' in episode_result:
+                        game_results['grid_dimensions'] = episode_result['grid_dimensions']
                     
-        except Exception as e:
-            logger.error(f"Error in RESET: {e}")
-            return None
-            
-    async def send_simple_action(
-        self,
-        game_id: str,
-        guid: str,
-        action_number: int,
-        reasoning: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
-        """Send a simple action (ACTION1-5, ACTION7)"""
-        
-        if action_number not in [1, 2, 3, 4, 5, 7]:
-            raise ValueError(f"Invalid simple action number: {action_number}")
-            
-        action_type = {
-            1: GameActionType.ACTION1,
-            2: GameActionType.ACTION2,
-            3: GameActionType.ACTION3,
-            4: GameActionType.ACTION4,
-            5: GameActionType.ACTION5,
-            7: GameActionType.ACTION7
-        }[action_number]
-        
-        action = GameAction(action_type, reasoning=reasoning)
-        return await self.send_action(game_id, guid, action)
-        
-    async def send_coordinate_action(
-        self,
-        game_id: str,
-        guid: str,
-        x: int,
-        y: int,
-        reasoning: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
-        """Send a coordinate-based action (ACTION6)"""
-        
-        action = GameAction(GameActionType.ACTION6, x=x, y=y, reasoning=reasoning)
-        return await self.send_action(game_id, guid, action)
-        
-    async def get_available_actions(
-        self,
-        response_data: Dict[str, Any]
-    ) -> List[int]:
-        """Extract available actions from a response"""
-        return response_data.get('available_actions', [])
-        
-    async def is_action_available(
-        self,
-        response_data: Dict[str, Any],
-        action_number: int
-    ) -> bool:
-        """Check if a specific action is available"""
-        available = await self.get_available_actions(response_data)
-        return action_number in available
-
-class GameSessionManager:
-    """Manages game sessions and action sequences"""
-    
-    def __init__(self, action_handler: ARC3ActionHandler):
-        self.action_handler = action_handler
-        self.active_sessions: Dict[str, str] = {}  # game_id -> guid
-        self.session_history: Dict[str, List[Dict]] = {}  # game_id -> action history
-        
-    async def start_game(self, game_id: str, card_id: str) -> Optional[str]:
-        """Start a new game session"""
-        result = await self.action_handler.reset_game(game_id, card_id)
-        
-        if result:
-            guid = result.get('guid')
-            if guid:
-                self.active_sessions[game_id] = guid
-                self.session_history[game_id] = []
-                logger.info(f"Started game session {game_id}: {guid}")
-                return guid
-                
-        logger.error(f"Failed to start game session for {game_id}")
-        return None
-        
-    async def reset_game(self, game_id: str, card_id: str) -> Optional[Dict[str, Any]]:
-        """Reset an existing game session"""
-        guid = self.active_sessions.get(game_id)
-        if not guid:
-            logger.warning(f"No active session for game {game_id}")
-            return await self.start_game(game_id, card_id)
-            
-        result = await self.action_handler.reset_game(game_id, card_id, guid)
-        
-        if result:
-            # Clear action history for this game
-            self.session_history[game_id] = []
-            logger.info(f"Reset game session {game_id}")
-            return result
-            
-        logger.error(f"Failed to reset game session for {game_id}")
-        return None
-        
-    async def send_action_sequence(
-        self,
-        game_id: str,
-        actions: List[GameAction],
-        delay_between_actions: float = 1.0
-    ) -> List[Dict[str, Any]]:
-        """Send a sequence of actions with delays"""
-        
-        guid = self.active_sessions.get(game_id)
-        if not guid:
-            logger.error(f"No active session for game {game_id}")
-            return []
-            
-        results = []
-        
-        for i, action in enumerate(actions):
-            logger.info(f"Sending action {i+1}/{len(actions)} to {game_id}: {action.action_type.value}")
-            
-            result = await self.action_handler.send_action(game_id, guid, action)
-            
-            if result:
-                results.append(result)
-                
-                # Record in history
-                self.session_history[game_id].append({
-                    'action': action,
-                    'result': result,
-                    'timestamp': time.time()
-                })
-                
-                # Check game state
-                state = result.get('state', 'UNKNOWN')
-                if state in ['WIN', 'GAME_OVER']:
-                    logger.info(f"Game {game_id} ended with state: {state}")
-                    break
+                    success = episode_result.get('success', False)
+                    game_state = episode_result.get('game_state', 'NOT_FINISHED')
                     
-            else:
-                logger.warning(f"Action {i+1} failed for game {game_id}")
-                results.append({'error': f'Action {i+1} failed'})
-                
-            # Delay between actions to avoid rate limiting
-            if i < len(actions) - 1:
-                await asyncio.sleep(delay_between_actions)
-                
-        return results
-        
-    def get_session_history(self, game_id: str) -> List[Dict]:
-        """Get action history for a game session"""
-        return self.session_history.get(game_id, [])
-        
-    def get_active_sessions(self) -> Dict[str, str]:
-        """Get all active game sessions"""
-        return self.active_sessions.copy()
-        
-    async def cleanup_session(self, game_id: str):
-        """Clean up a game session"""
-        if game_id in self.active_sessions:
-            del self.active_sessions[game_id]
-        if game_id in self.session_history:
-            # Keep history but mark as cleaned up
-            self.session_history[game_id].append({
-                'action': 'SESSION_CLEANUP',
-                'timestamp': time.time()
-            })
-
-# Example usage and agent enablement function
-async def run_arc_training_demo():
-    """Run ARC-3 training demo with real API integration"""
-    logger.info("Starting ARC-3 training demo with real API integration")
-    
-    # Get real API key from environment
-    arc_api_key = os.getenv('ARC_API_KEY')
-    
-    if not arc_api_key:
-        logger.error("ARC_API_KEY environment variable not set!")
-        print("ARC_API_KEY not found. Please:")
-        print("   1. Register at https://three.arcprize.org")
-        print("   2. Get your API key")
-        print("   3. Set environment variable: set ARC_API_KEY=your_key_here")
-        return None
-    
-    # Find ARC-AGI-3-Agents directory
-    possible_paths = [
-        Path.cwd().parent / "ARC-AGI-3-Agents",
-        Path.cwd() / "ARC-AGI-3-Agents",
-        Path.home() / "ARC-AGI-3-Agents",
-        Path("C:/ARC-AGI-3-Agents")
-    ]
-    
-    arc_agents_path = None
-    for path in possible_paths:
-        if path.exists() and (path / "main.py").exists():
-            arc_agents_path = str(path)
-            break
-    
-    if not arc_agents_path:
-        logger.error("ARC-AGI-3-Agents repository not found!")
-        print("ARC-AGI-3-Agents not found. Please:")
-        print("   git clone https://github.com/arc-prize/ARC-AGI-3-Agents")
-        return None
-    
-    # Initialize the continuous learning loop with real API key
-    loop = ContinuousLearningLoop(
-        arc_agents_path=arc_agents_path,
-        tabula_rasa_path=str(Path.cwd()),
-        api_key=arc_api_key  # Use real API key from environment
-    )
-    
-    # Start a training session with real ARC-3 task IDs
-    real_arc_games = get_demo_tasks()
-    session_id = loop.start_training_session(
-        games=real_arc_games,
-        max_episodes_per_game=20,
-        target_win_rate=0.4,
-        target_avg_score=60.0,
-        salience_mode=SalienceMode.LOSSLESS,
-        enable_salience_comparison=True
-    )
-    
-    logger.info(f"Started continuous learning session with real ARC-3 API: {session_id}")
-    
-    # Run the continuous learning loop
-    results = await loop.run_continuous_learning(session_id)
-    
-    logger.info(f"Training session completed with ARC-3 API results: {results}")
-    return results
-
-
-# Demo function to run continuous learning with comprehensive monitoring
-async def run_continuous_learning_demo():
-    """Run a demonstration of the continuous learning loop with REAL ARC-3 API integration."""
-    print("Starting Adaptive Learning Agent Continuous Learning Demo")
-    print("CONNECTING TO ARC-3 API FOR REAL TESTING")
-    print(f"Official ARC-3 Showcase: {ARC3_SCOREBOARD_URL}")
-    
-    # Check if we have real ARC integration available
-    arc_api_key = os.getenv('ARC_API_KEY')
-    
-    if not arc_api_key:
-        print("WARNING: ARC_API_KEY environment variable not set!")
-        print("   For real API testing:")
-        print("   1. Register at https://three.arcprize.org")
-        print("   2. Get API key from your profile")
-        print("   3. Set environment variable: set ARC_API_KEY=your_key_here")
-        print("   4. Ensure ARC-AGI-3-Agents repository is available")
-        print("   5. Run: python setup_arc_training.py")
-        print("\nRunning in simulation mode for demonstration...")
-        use_real_api = False
-    else:
-        print(f"ARC-3 API Key detected: {arc_api_key[:8]}...{arc_api_key[-4:] if len(arc_api_key) > 12 else '****'}")
-        print("Attempting real API connection...")
-        use_real_api = True
-
-    # Find ARC-AGI-3-Agents directory
-    possible_paths = [
-        Path.cwd().parent / "ARC-AGI-3-Agents",
-        Path.cwd() / "ARC-AGI-3-Agents", 
-        Path.home() / "ARC-AGI-3-Agents",
-        Path("C:/ARC-AGI-3-Agents")
-    ]
-    
-    arc_agents_path = None
-    for path in possible_paths:
-        if path.exists() and (path / "main.py").exists():
-            arc_agents_path = str(path)
-            break
-    
-    if not arc_agents_path:
-        print("ARC-AGI-3-Agents not found. Please:")
-        print("   git clone https://github.com/arc-prize/ARC-AGI-3-Agents")
-        return None
-
-    # Initialize the continuous learning loop
-    try:
-        loop = ContinuousLearningLoop(
-            arc_agents_path=arc_agents_path,
-            tabula_rasa_path=str(Path.cwd()),
-            api_key=arc_api_key
-        )
-    except ValueError as e:
-        if not use_real_api:
-            print("Running offline demo mode...")
-            # Create a mock loop for demo
-            loop = type('MockLoop', (), {
-                'run_demo_mode': lambda self: run_offline_demo_mock()
-            })()
-            return await loop.run_demo_mode()
-        else:
-            print(f"Error: {e}")
-            return None
-    
-    # Get test games 
-    test_games = get_demo_tasks() if use_real_api else get_demo_tasks()[:2]
-    
-    print(f"\n{'='*80}")
-    print("CONTINUOUS LEARNING SYSTEM ACTIVATED")
-    print(f"Target: Learn and improve on ARC-3 reasoning tasks")
-    print(f"Results will be tracked against: {ARC3_SCOREBOARD_URL}")
-    print(f"{'='*80}")
-    
-    # Start training sessions with both salience modes
-    session_results = {}
-    
-    for mode_name, salience_mode in [("LOSSLESS", SalienceMode.LOSSLESS), ("DECAY_COMPRESSION", SalienceMode.DECAY_COMPRESSION)]:
-        print(f"\nTESTING {mode_name} SALIENCE MODE")
-        print(f"Mode: {salience_mode.value}")
-        
-        session_id = loop.start_training_session(
-            games=test_games,
-            max_episodes_per_game=20 if use_real_api else 15,  # Fewer episodes for real API to avoid rate limits
-            target_win_rate=0.4 if use_real_api else 0.6,
-            target_avg_score=60.0 if use_real_api else 70.0,
-            salience_mode=salience_mode,
-            enable_salience_comparison=True
-        )
-        
-        # Show real-time connection status
-        if use_real_api:
-            print("Establishing connection to ARC-3 API...")
-            print("Sending requests to official ARC evaluation servers...")
-        else:
-            print("Running high-fidelity simulation of ARC-3 testing...")
-        
-        # Run the continuous learning session
-        results = await loop.run_continuous_learning(session_id)
-        session_results[mode_name] = results
-        
-        # Show API usage stats if real
-        if use_real_api:
-            print(f"\nARC-3 API USAGE SUMMARY:")
-            print(f"   API Calls Made: {results.get('api_calls_made', 'Unknown')}")
-            print(f"   Tasks Attempted: {len(test_games)}")
-            print(f"   Official Scores Recorded: {results.get('official_scores', 'Yes')}")
-        
-    # Comparative Analysis with ARC-3 Focus
-    print(f"\n{'='*80}")
-    print("ARC-3 PERFORMANCE ANALYSIS")
-    print(f"Official Scoreboard: {ARC3_SCOREBOARD_URL}")
-    print(f"{'='*80}")
-    
-    for mode_name, results in session_results.items():
-        overall_perf = results.get('overall_performance', {})
-        win_rate = overall_perf.get('overall_win_rate', 0)
-        avg_score = overall_perf.get('overall_average_score', 0)
-        
-        print(f"\n{mode_name} MODE RESULTS:")
-        print(f"   Win Rate: {win_rate:.1%}")
-        print(f"   Average Score: {avg_score:.1f}")
-        
-        if use_real_api:
-            print(f"   API Status: Connected to official ARC-3 servers")
-            print(f"   Real evaluation data recorded")
-        else:
-            print(f"   Simulation Status: High-fidelity ARC-3 task simulation")
-            print(f"   Ready for real API integration")
-        
-        # Check for strong performance
-        if win_rate > 0.3:
-            print(f"   STRONG PERFORMANCE - Ready for leaderboard submission!")
-            if use_real_api:
-                print(f"   Submit results at: {ARC3_SCOREBOARD_URL}")
-    
-    # Show integration verification
-    print(f"\nARC-3 INTEGRATION VERIFICATION:")
-    verification_checks = [
-        ("ARC-3 scoreboard URL displayed", True),
-        ("Official task format processing", True),
-        ("Meta-learning pattern extraction", True),
-        ("Cross-task knowledge transfer", True),
-        ("Performance tracking and metrics", True),
-        ("Salience-based memory management", True),
-        ("Sleep-cycle memory consolidation", True)
-    ]
-    
-    if use_real_api:
-        verification_checks.extend([
-            ("Real ARC-3 API connection established", True),
-            ("Official evaluation server communication", True),
-            ("Authentic task data processing", True)
-        ])
-    else:
-        verification_checks.extend([
-            ("Real API integration ready (needs API key)", True),
-            ("ARC-AGI-3-Agents repository integration ready", True),
-            ("Official evaluation mode available", True)
-        ])
-    
-    for check, status in verification_checks:
-        print(f"   ✅ {check}")
-    
-    # Final showcase URL reminder
-    print(f"\nSHOWCASE INFORMATION:")
-    print(f"   Official ARC-3 Leaderboard: {ARC3_SCOREBOARD_URL}")
-    print(f"   Submit strong performance results (>30% win rate)")
-    print(f"   Track your agent's progress against top performers")
-    
-    if use_real_api:
-        print(f"   Your results are now recorded in official ARC-3 systems")
-        print(f"   Continue training to improve leaderboard position")
-    else:
-        print(f"   Set up real API to submit official results")
-        print(f"   Demo shows system is ready for live competition")
-    
-    print(f"\nARC-3 Continuous Learning Demo Complete!")
-    print(f"Visit {ARC3_SCOREBOARD_URL} to see all results")
-    
-    return session_results
-
-
-async def run_offline_demo_mock():
-    """Mock offline demo for when API is not available."""
-    return {
-        'mode': 'offline_demo',
-        'games_trained': 3,
-        'overall_win_rate': 0.33,
-        'overall_average_score': 45.0,
-        'arc3_scoreboard_url': ARC3_SCOREBOARD_URL,
-        'integration_verified': True
-    }
-
-async def run_full_training():
-    """Run full training until all ARC tasks are mastered."""
-    print("🏆 FULL TRAINING MODE - Training Until All ARC Tasks Are Mastered")
-    print("="*80)
-    
-    # Check API availability
-    arc_api_key = os.getenv('ARC_API_KEY')
-    if not arc_api_key:
-        print("❌ ARC_API_KEY required for full training mode")
-        print("Please set up your API key to access all ARC-3 tasks")
-        return None
-    
-    # Find ARC-AGI-3-Agents directory
-    possible_paths = [
-        Path.cwd().parent / "ARC-AGI-3-Agents",
-        Path.cwd() / "ARC-AGI-3-Agents",
-        Path.home() / "ARC-AGI-3-Agents",
-        Path("C:/ARC-AGI-3-Agents")
-    ]
-    
-    arc_agents_path = None
-    for path in possible_paths:
-        if path.exists() and (path / "main.py").exists():
-            arc_agents_path = str(path)
-            break
-    
-    if not arc_agents_path:
-        print("❌ ARC-AGI-3-Agents repository not found")
-        print("Please clone: git clone https://github.com/arc-prize/ARC-AGI-3-Agents")
-        return None
-    
-    # Initialize the continuous learning loop
-    try:
-        loop = ContinuousLearningLoop(
-            arc_agents_path=arc_agents_path,
-            tabula_rasa_path=str(Path.cwd()),
-            api_key=arc_api_key
-        )
-    except ValueError as e:
-        print(f"❌ Error initializing training system: {e}")
-        return None
-    
-    print(f"✅ Training system initialized")
-    print(f"API Key: {arc_api_key[:8]}...{arc_api_key[-4:]}")
-    print(f"ARC-AGI-3-Agents: {arc_agents_path}")
-    print(f"Results tracked at: {ARC3_SCOREBOARD_URL}")
-    
-    # Get all available tasks for full training
-    print("\n🔍 Fetching all available ARC-3 tasks...")
-    available_games = await loop._get_available_games()
-    
-    if not available_games:
-        print("⚠️ No games available from API - using predefined task set")
-        all_tasks = get_full_training_tasks(randomize=True)
-    else:
-        print(f"✅ Found {len(available_games)} tasks from ARC-3 API")
-        all_tasks = available_games
-        
-    print(f"📋 Total tasks for mastery training: {len(all_tasks)}")
-    print(f"🎯 Target: 90% win rate and 85+ average score on ALL tasks")
-    
-    # Start full training session with high mastery targets
-    session_id = loop.start_training_session(
-        games=all_tasks,
-        max_episodes_per_game=100,  # More episodes for mastery
-        target_win_rate=0.9,        # Very high target
-        target_avg_score=85.0,      # High score target
-        salience_mode=SalienceMode.LOSSLESS,  # Use lossless for maximum retention
-        enable_salience_comparison=False      # Focus on training, not comparison
-    )
-    
-    print(f"\n🚀 STARTING FULL MASTERY TRAINING")
-    print(f"Session ID: {session_id}")
-    print(f"Tasks: {len(all_tasks)} total")
-    print(f"Episodes per task: Up to 100 (stop early if mastery achieved)")
-    print(f"Mastery criteria: 90% win rate + 85+ average score")
-    
-    # Run the comprehensive training session
-    start_time = time.time()
-    results = await loop.run_continuous_learning(session_id)
-    training_duration = time.time() - start_time
-    
-    # Analyze mastery results
-    overall_perf = results.get('overall_performance', {})
-    overall_win_rate = overall_perf.get('overall_win_rate', 0)
-    overall_avg_score = overall_perf.get('overall_average_score', 0)
-    games_trained = overall_perf.get('games_trained', 0)
-    total_episodes = overall_perf.get('total_episodes', 0)
-    
-    print(f"\n{'='*80}")
-    print("🏆 FULL TRAINING MASTERY RESULTS")
-    print(f"{'='*80}")
-    print(f"Training Duration: {training_duration/3600:.1f} hours")
-    print(f"Tasks Attempted: {games_trained}/{len(all_tasks)}")
-    print(f"Total Episodes: {total_episodes}")
-    print(f"Overall Win Rate: {overall_win_rate:.1%}")
-    print(f"Overall Average Score: {overall_avg_score:.1f}")
-    
-    # Determine mastery status
-    mastery_achieved = overall_win_rate >= 0.9 and overall_avg_score >= 85.0
-    strong_performance = overall_win_rate >= 0.7 and overall_avg_score >= 70.0
-    
-    if mastery_achieved:
-        print("🎉 MASTERY ACHIEVED!")
-        print("✅ Agent has mastered ARC reasoning tasks")
-        print(f"✅ Win rate: {overall_win_rate:.1%} (target: 90%)")
-        print(f"✅ Average score: {overall_avg_score:.1f} (target: 85+)")
-        print(f"🏆 READY FOR ARC-3 LEADERBOARD SUBMISSION!")
-        
-    elif strong_performance:
-        print("💪 STRONG PERFORMANCE ACHIEVED!")
-        print("✅ Agent shows excellent learning capability")
-        print(f"✅ Win rate: {overall_win_rate:.1%} (strong level)")
-        print(f"✅ Average score: {overall_avg_score:.1f} (strong level)")
-        print("🎯 Continue training to reach full mastery")
-        
-    else:
-        print("📈 TRAINING IN PROGRESS")
-        print("ℹ️  Agent is learning but hasn't reached mastery yet")
-        print(f"📊 Current win rate: {overall_win_rate:.1%}")
-        print(f"📊 Current average score: {overall_avg_score:.1f}")
-        print("🔄 Consider extending training or adjusting parameters")
-    
-    # Show per-task mastery breakdown
-    print(f"\n📊 TASK-BY-TASK MASTERY STATUS:")
-    mastered_tasks = 0
-    strong_tasks = 0
-    learning_tasks = 0
-    
-    for game_id, game_data in results.get('games_played', {}).items():
-        performance = game_data.get('performance_metrics', {})
-        win_rate = performance.get('win_rate', 0)
-        avg_score = performance.get('average_score', 0)
-        
-        if win_rate >= 0.9 and avg_score >= 85:
-            status = "MASTERED"
-            mastered_tasks += 1
-        elif win_rate >= 0.7 and avg_score >= 70:
-            status = "STRONG"
-            strong_tasks += 1
-        else:
-            status = "LEARNING"
-            learning_tasks += 1
-            
-        print(f"   {game_id}: {status} (Win: {win_rate:.1%}, Score: {avg_score:.1f})")
-    
-    print(f"\n📈 MASTERY SUMMARY:")
-    print(f"   Mastered Tasks: {mastered_tasks}/{games_trained}")
-    print(f"   Strong Performance: {strong_tasks}/{games_trained}")
-    print(f"   Still Learning: {learning_tasks}/{games_trained}")
-    
-    mastery_rate = mastered_tasks / max(1, games_trained)
-    print(f"   Overall Mastery Rate: {mastery_rate:.1%}")
-    
-    # Training efficiency metrics
-    learning_efficiency = overall_perf.get('learning_efficiency', 0)
-    knowledge_transfer = overall_perf.get('knowledge_transfer_score', 0)
-    
-    print(f"\n🧠 LEARNING SYSTEM PERFORMANCE:")
-    print(f"   Learning Efficiency: {learning_efficiency:.3f}")
-    print(f"   Knowledge Transfer: {knowledge_transfer:.3f}")
-    print(f"   Episodes per Task: {total_episodes/max(1, games_trained):.1f}")
-    print(f"   Training Speed: {games_trained/(training_duration/3600):.1f} tasks/hour")
-    
-    # Show scoreboard and submission info
-    print(f"\n🌐 ARC-3 COMPETITION INTEGRATION:")
-    print(f"   Official Scoreboard: {ARC3_SCOREBOARD_URL}")
-    
-    if mastery_achieved or strong_performance:
-        print(f"   🎯 SUBMIT YOUR RESULTS TO THE LEADERBOARD!")
-        print(f"   Your agent shows {'mastery' if mastery_achieved else 'strong performance'}")
-        print(f"   Visit {ARC3_SCOREBOARD_URL} to compete officially")
-    else:
-        print(f"   🔄 Continue training to improve leaderboard position")
-        print(f"   Current performance: {overall_win_rate:.1%} win rate")
-    
-    # Save comprehensive results
-    results['mastery_analysis'] = {
-        'mastery_achieved': mastery_achieved,
-        'strong_performance': strong_performance,
-        'mastered_tasks': mastered_tasks,
-        'strong_tasks': strong_tasks,
-        'learning_tasks': learning_tasks,
-        'mastery_rate': mastery_rate,
-        'training_duration_hours': training_duration / 3600,
-        'tasks_per_hour': games_trained / (training_duration / 3600),
-        'ready_for_submission': mastery_achieved or strong_performance
-    }
-    
-    print(f"\n💾 Training results saved to: {loop.save_directory}")
-    print(f"Session data: session_{session_id}_final.json")
-    print("="*80)
-    
-    return results
-
-
-if __name__ == "__main__":
-    import sys
-    import argparse
-    
-    # Create argument parser for different training modes
-    parser = argparse.ArgumentParser(description='ARC-AGI-3 Adaptive Learning Agent Training')
-    parser.add_argument('--mode', choices=['demo', 'full', 'comparison'], default='demo',
-                       help='Training mode: demo (quick test), full (complete mastery), comparison (salience modes)')
-    parser.add_argument('--api-key', type=str, help='ARC-3 API key (overrides environment variable)')
-    parser.add_argument('--arc-agents-path', type=str, help='Path to ARC-AGI-3-Agents repository')
-    parser.add_argument('--episodes', type=int, default=20, help='Max episodes per game (demo/comparison mode)')
-    parser.add_argument('--win-rate', type=float, default=0.4, help='Target win rate')
-    parser.add_argument('--avg-score', type=float, default=60.0, help='Target average score')
-    
-    args = parser.parse_args()
-    
-    # Set up logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler('arc_training.log'),
-            logging.StreamHandler()
-        ]
-    )
-    
-    print("🤖 ARC-AGI-3 ADAPTIVE LEARNING AGENT")
-    print("=" * 60)
-    print("Tabula Rasa: Learning from Scratch")
-    print("Advanced Memory • Meta-Learning • Salience Tracking")
-    print("=" * 60)
-    
-    # Run the appropriate training mode
-    if args.mode == "full":
-        print("🏆 LAUNCHING FULL MASTERY TRAINING MODE")
-        print("Target: Master ALL ARC-3 reasoning tasks")
-        print("This will run until 90% win rate + 85+ avg score achieved")
-        print("=" * 60)
-        asyncio.run(run_full_training())
-        
-    elif args.mode == "comparison":
-        print("📊 LAUNCHING SALIENCE MODE COMPARISON")
-        print("Target: Compare LOSSLESS vs DECAY_COMPRESSION modes")
-        print("This will test both memory management approaches")
-        print("=" * 60)
-        
-        # Run comparison mode
-        async def run_comparison():
-            # Check prerequisites
-            arc_api_key = args.api_key or os.getenv('ARC_API_KEY')
-            if not arc_api_key:
-                print("❌ ARC_API_KEY required for comparison mode")
-                return None
-                
-            arc_agents_path = args.arc_agents_path
-            if not arc_agents_path:
-                # Try to find it automatically
-                possible_paths = [
-                    Path.cwd().parent / "ARC-AGI-3-Agents",
-                    Path.cwd() / "ARC-AGI-3-Agents",
-                    Path.home() / "ARC-AGI-3-Agents"
-                ]
-                for path in possible_paths:
-                    if path.exists() and (path / "main.py").exists():
-                        arc_agents_path = str(path)
+                    # CRITICAL: Stop if game reached WIN or GAME_OVER state
+                    if game_state in ['WIN', 'GAME_OVER']:
+                        logger.info(f"Game {game_id} ended with state {game_state} after {episode_count} episodes")
                         break
-                        
-            if not arc_agents_path:
-                print("❌ ARC-AGI-3-Agents repository path required")
-                return None
+                    
+                    consecutive_failures = 0
+                else:
+                    consecutive_failures += 1
+                    if consecutive_failures >= 3:  # Reduced for swarm mode
+                        break
                 
-            # Initialize loop
-            loop = ContinuousLearningLoop(
-                arc_agents_path=arc_agents_path,
-                tabula_rasa_path=str(Path.cwd()),
-                api_key=arc_api_key
-            )
+                # Shorter delay for swarm mode
+                await asyncio.sleep(1.0)
             
-            # Run comparison
-            return await loop.run_comparison_mode()
+            # Calculate final performance
+            game_results['performance_metrics'] = self._calculate_game_performance(game_results)
+            game_results['final_performance'] = {
+                'episodes_played': len(game_results['episodes']),
+                'win_rate': sum(1 for ep in game_results['episodes'] if ep.get('success', False)) / max(1, len(game_results['episodes'])),
+                'grid_size': f"{game_results['grid_dimensions'][0]}x{game_results['grid_dimensions'][1]}"
+            }
             
-        asyncio.run(run_comparison())
-        
-    else:  # demo mode
-        print("🎮 LAUNCHING DEMO MODE")
-        print("Target: Quick demonstration of learning capabilities")
-        print("This will show the agent learning on sample tasks")
-        print("=" * 60)
-        asyncio.run(run_continuous_learning_demo())
-    
-    print("\n🎯 Training Complete!")
-    print(f"📊 Check results at: {ARC3_SCOREBOARD_URL}")
-    print("🏆 Submit strong performance to the ARC-3 leaderboard!")
+            return game_results
+            
+        except Exception as e:
+            logger.error(f"Error in swarm training for {game_id}: {e}")
+            return {
+                'game_id': game_id,
+                'error': str(e),
+                'episodes': [],
+                'success': False
+            }
