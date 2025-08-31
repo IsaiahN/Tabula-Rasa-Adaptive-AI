@@ -232,6 +232,20 @@ class ContinuousLearningLoop:
         # GLOBAL PERSISTENT COUNTERS - Load from previous sessions
         self.global_counters = self._load_global_counters()
         
+        # ENERGY SYSTEM - Initialize with persistent level from previous sessions
+        persistent_energy = self.global_counters.get('persistent_energy_level', 1.0)
+        
+        # Adaptive energy initialization based on performance
+        total_sleep_cycles = self.global_counters.get('total_sleep_cycles', 0)
+        if total_sleep_cycles > 0:
+            # After sleep cycles, maintain the persistent energy level
+            self.current_energy = persistent_energy
+            print(f"⚡ Resuming with persistent energy: {self.current_energy:.2f} (after {total_sleep_cycles} sleep cycles)")
+        else:
+            # Fresh start gets full energy
+            self.current_energy = 1.0
+            print(f"⚡ Fresh session starting with full energy: {self.current_energy:.2f}")
+        
         logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
 
     async def get_available_games(self) -> List[Dict[str, str]]:
@@ -817,14 +831,14 @@ class ContinuousLearningLoop:
             # SHOW GLOBAL CUMULATIVE COUNTERS - THE FIX!
             print(f"   Memory Operations: {self.global_counters.get('total_memory_operations', 0)}")
             print(f"   Sleep Cycles: {self.global_counters.get('total_sleep_cycles', 0)}")
-            print(f"   Energy Level: {pre_sleep_status.get('current_energy_level', 1.0):.2f}")
+            print(f"   Energy Level: {pre_sleep_status.get('current_energy_level', self.current_energy):.2f}")
             
             # VERBOSE: Check existing memory files
             memory_files_before = self._count_memory_files()
             print(f"   Memory Files: {memory_files_before}")
             
             # Adaptive energy allocation based on game history
-            current_energy = pre_sleep_status.get('current_energy_level', 1.0)
+            current_energy = pre_sleep_status.get('current_energy_level', self.current_energy)
             estimated_complexity = self._estimate_game_complexity(game_id)
             
             # Boost energy if we predict a complex game
@@ -943,7 +957,7 @@ class ContinuousLearningLoop:
             
             # Calculate final energy cost
             energy_cost = base_energy_cost * energy_multiplier
-            current_energy = pre_sleep_status.get('current_energy_level', 1.0)
+            current_energy = pre_sleep_status.get('current_energy_level', self.current_energy)
             remaining_energy = max(0.0, current_energy - energy_cost)
             
             print(f"⚡ Energy: {current_energy:.2f} -> {remaining_energy:.2f}")
@@ -2113,6 +2127,7 @@ class ContinuousLearningLoop:
             'sleep_cycles_completed': self.sleep_state_tracker['sleep_cycles_this_session'],
             'total_sleep_time': self.sleep_state_tracker['total_sleep_time'],
             'last_sleep_trigger': self.sleep_state_tracker['last_sleep_trigger'],
+            'current_energy_level': getattr(self, 'current_energy', 1.0),  # Include actual energy level
             'average_sleep_quality': (
                 sum(self.sleep_state_tracker['sleep_quality_scores']) / 
                 max(1, len(self.sleep_state_tracker['sleep_quality_scores']))
@@ -2450,6 +2465,10 @@ class ContinuousLearningLoop:
         """Update the system's energy level."""
         self.current_energy = max(0.0, min(1.0, new_energy))
         
+        # Persist energy level to global counters
+        self.global_counters['persistent_energy_level'] = self.current_energy
+        self._save_global_counters()
+        
         # Update in sleep state info if available
         if hasattr(self, 'sleep_system') and self.sleep_system:
             try:
@@ -2784,7 +2803,8 @@ class ContinuousLearningLoop:
             'cumulative_energy_spent': 0.0,
             'total_memories_deleted': 0,
             'total_memories_combined': 0,
-            'total_memories_strengthened': 0
+            'total_memories_strengthened': 0,
+            'persistent_energy_level': 1.0  # Track energy across sessions
         }
     
     def _save_global_counters(self):
