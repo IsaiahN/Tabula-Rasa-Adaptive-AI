@@ -229,6 +229,163 @@ class ContinuousLearningLoop:
         self._load_state()
         
         logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
+
+    async def get_available_games(self) -> List[Dict[str, str]]:
+        """
+        Get list of available games from ARC-AGI-3 API.
+        
+        Returns:
+            List of game metadata with game_id and title
+        """
+        url = "https://three.arcprize.org/api/games"
+        headers = {"X-API-Key": self.api_key}
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        games = await response.json()
+                        logger.info(f"Retrieved {len(games)} available games from ARC-AGI-3 API")
+                        return games
+                    elif response.status == 401:
+                        raise ValueError("Invalid API key - check ARC_API_KEY in .env file")
+                    else:
+                        raise ValueError(f"API request failed with status {response.status}")
+                        
+        except Exception as e:
+            logger.error(f"Failed to get available games: {e}")
+            # Return empty list on failure
+            return []
+    
+    async def select_training_games(
+        self, 
+        count: int = 8, 
+        difficulty_preference: str = "mixed",
+        include_pattern: Optional[str] = None
+    ) -> List[str]:
+        """
+        Select games for training from available ARC-AGI-3 games.
+        
+        Args:
+            count: Number of games to select
+            difficulty_preference: "easy", "hard", "mixed" 
+            include_pattern: Optional pattern to filter game titles
+            
+        Returns:
+            List of selected game_ids
+        """
+        available_games = await self.get_available_games()
+        
+        if not available_games:
+            logger.warning("No games available from API, using fallback games")
+            # Fallback to some known game IDs if API fails
+            return ["00d62c1b", "007bbfb7", "017c7c7b", "025d127b", "045e512c"][:count]
+        
+        # Filter by pattern if provided
+        if include_pattern:
+            filtered_games = [
+                game for game in available_games 
+                if include_pattern.lower() in game['title'].lower()
+            ]
+            if filtered_games:
+                available_games = filtered_games
+        
+        # For now, select randomly since we don't have difficulty ratings
+        # In a real implementation, you'd analyze game metadata for difficulty
+        import random
+        selected_games = random.sample(available_games, min(count, len(available_games)))
+        
+        game_ids = [game['game_id'] for game in selected_games]
+        game_titles = [f"{game['title']} ({game['game_id']})" for game in selected_games]
+        
+        logger.info(f"Selected {len(game_ids)} games for training:")
+        for title in game_titles:
+            logger.info(f"  - {title}")
+        
+        return game_ids
+
+    async def verify_api_connection(self) -> Dict[str, Any]:
+        """
+        Verify that we can connect to the ARC-AGI-3 API and get real data.
+        
+        Returns:
+            Connection status and sample data
+        """
+        print("🔍 VERIFYING ARC-AGI-3 API CONNECTION...")
+        
+        # Test 1: Get available games
+        games = await self.get_available_games()
+        
+        verification_results = {
+            'api_accessible': len(games) > 0,
+            'total_games_available': len(games),
+            'sample_games': games[:3] if games else [],
+            'api_key_valid': len(games) > 0,
+            'connection_timestamp': time.time()
+        }
+        
+        if verification_results['api_accessible']:
+            print(f"✅ API Connection SUCCESS")
+            print(f"   Available Games: {verification_results['total_games_available']}")
+            print(f"   Sample Games:")
+            for game in verification_results['sample_games']:
+                print(f"     - {game['title']} ({game['game_id']})")
+        else:
+            print(f"❌ API Connection FAILED")
+            print(f"   Check API key and internet connection")
+        
+        # Test 2: Verify ARC-AGI-3-Agents integration
+        agents_path_exists = self.arc_agents_path.exists()
+        verification_results['arc_agents_available'] = agents_path_exists
+        
+        if agents_path_exists:
+            print(f"✅ ARC-AGI-3-Agents found at: {self.arc_agents_path}")
+        else:
+            print(f"❌ ARC-AGI-3-Agents NOT found at: {self.arc_agents_path}")
+            print(f"   Clone from: https://github.com/neoneye/ARC-AGI-3-Agents")
+        
+        return verification_results
+
+    async def create_real_scorecard(self, games_list: List[str]) -> Optional[str]:
+        """
+        Create a real scorecard using the ARC-AGI-3 API.
+        
+        Args:
+            games_list: List of game_ids to include in scorecard
+            
+        Returns:
+            scorecard_id if successful, None if failed
+        """
+        url = "https://three.arcprize.org/api/scorecards"
+        headers = {
+            "X-API-Key": self.api_key,
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "title": f"Tabula-Rasa Continuous Training {int(time.time())}",
+            "games": games_list
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload) as response:
+                    if response.status == 201:
+                        result = await response.json()
+                        scorecard_id = result.get('scorecard_id')
+                        scorecard_url = f"https://three.arcprize.org/scorecard/{scorecard_id}"
+                        
+                        logger.info(f"Created real scorecard: {scorecard_url}")
+                        self.current_scorecard_id = scorecard_id
+                        return scorecard_id
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Failed to create scorecard: {response.status} - {error_text}")
+                        return None
+                        
+        except Exception as e:
+            logger.error(f"Error creating scorecard: {e}")
+            return None
         
     def _init_demo_agent(self):
         """Initialize a demonstration agent for monitoring purposes."""
@@ -830,15 +987,22 @@ class ContinuousLearningLoop:
                     success = episode_result.get('success', False)
                     game_state = episode_result.get('game_state', 'NOT_FINISHED')
                     
-                    # CRITICAL: Stop if game reached WIN or GAME_OVER state
-                    if game_state in ['WIN', 'GAME_OVER']:
-                        logger.info(f"Game {game_id} ended with state {game_state} after {episode_count} episodes")
+                    # Only stop if EXPLICITLY told the game is over
+                    # Don't assume game over from low scores or timeouts
+                    if game_state == 'WIN':
+                        logger.info(f"Game {game_id} WON after {episode_count} episodes!")
+                        # Continue training even after wins to improve consistency
+                    elif game_state == 'GAME_OVER' and episode_count > 10:
+                        # Only stop on explicit game over after reasonable attempts
+                        logger.info(f"Game {game_id} ended with GAME_OVER after {episode_count} episodes")
                         break
                     
                     consecutive_failures = 0
                 else:
                     consecutive_failures += 1
-                    if consecutive_failures >= 3:  # Reduced for swarm mode
+                    # Be more patient with failures - ARC games are hard
+                    if consecutive_failures >= 5:  # Increased from 3 to 5
+                        logger.warning(f"Game {game_id} had {consecutive_failures} consecutive failures at episode {episode_count}")
                         break
                 
                 # Shorter delay for swarm mode
