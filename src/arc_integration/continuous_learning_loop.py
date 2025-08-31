@@ -109,6 +109,7 @@ class TrainingSession:
     target_performance: Dict[str, float]
     salience_mode: SalienceMode = SalienceMode.LOSSLESS
     enable_salience_comparison: bool = False
+    swarm_enabled: bool = True
 
 
 class ContinuousLearningLoop:
@@ -778,7 +779,7 @@ class ContinuousLearningLoop:
         return game_results
 
     async def _run_real_arc_episode_enhanced(self, game_id: str, episode_count: int) -> Dict[str, Any]:
-        """Enhanced version that properly handles grid dimensions, game states, sleep cycles, and reset decisions."""
+        """Enhanced version that runs COMPLETE episodes with multiple actions until WIN/GAME_OVER."""
         try:
             # Check if agent should sleep before episode
             agent_state = self._get_current_agent_state()
@@ -795,71 +796,119 @@ class ContinuousLearningLoop:
             env = os.environ.copy()
             env['ARC_API_KEY'] = self.api_key
             
-            # Use correct ARC-AGI-3-Agents command format
-            cmd = [
-                'uv', 'run', 'main.py',
-                '--agent=adaptivelearning',
-                f'--game={game_id}'
-            ]
+            # COMPLETE EPISODE: Run actions in loop until terminal state
+            episode_actions = 0
+            total_score = 0
+            best_score = 0
+            final_state = 'NOT_FINISHED'
+            episode_start_time = time.time()
+            max_actions_per_episode = 1000  # Allow for complex puzzles
             
-            # Add reset flag if decision was made to reset
+            print(f"🎮 Starting complete episode {episode_count} for {game_id}")
+            
+            # Reset game at start of episode if needed
             if reset_decision['should_reset']:
-                cmd.append('--reset')
+                print(f"🔄 Resetting game {game_id}")
                 self._record_reset_decision(reset_decision)
             
-            # Create the subprocess
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                cwd=str(self.arc_agents_path),
-                env=env,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            # Wait with timeout
-            try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), 
-                    timeout=180.0
+            while episode_actions < max_actions_per_episode and final_state == 'NOT_FINISHED':
+                episode_actions += 1
+                
+                # Use correct ARC-AGI-3-Agents command format
+                cmd = [
+                    'uv', 'run', 'main.py',
+                    '--agent=adaptivelearning',
+                    f'--game={game_id}'
+                ]
+                
+                # Add reset flag only on first action if decision was made to reset
+                if episode_actions == 1 and reset_decision['should_reset']:
+                    cmd.append('--reset')
+                
+                # Create the subprocess for this action
+                process = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    cwd=str(self.arc_agents_path),
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
                 )
-            except asyncio.TimeoutError:
-                process.kill()
-                await process.wait()
-                return {'success': False, 'final_score': 0, 'error': 'timeout', 'game_id': game_id}
+                
+                # Wait for action completion with timeout
+                try:
+                    stdout, stderr = await asyncio.wait_for(
+                        process.communicate(), 
+                        timeout=60.0  # Timeout per action
+                    )
+                except asyncio.TimeoutError:
+                    process.kill()
+                    await process.wait()
+                    print(f"⏰ Action {episode_actions} timed out")
+                    final_state = 'TIMEOUT'
+                    break
+                
+                stdout_text = stdout.decode() if stdout else ""
+                stderr_text = stderr.decode() if stderr else ""
+                
+                # Parse action result
+                action_result = self._parse_episode_results_comprehensive(stdout_text, stderr_text, game_id)
+                action_score = action_result.get('final_score', 0)
+                action_state = self._extract_game_state_from_output(stdout_text, stderr_text)
+                
+                # Update episode totals
+                if action_score > best_score:
+                    best_score = action_score
+                    total_score = action_score
+                final_state = action_state if action_state in ['WIN', 'GAME_OVER'] else 'NOT_FINISHED'
+                
+                # Print progress every 50 actions or on terminal states
+                if episode_actions % 50 == 0 or final_state in ['WIN', 'GAME_OVER']:
+                    print(f"  Action {episode_actions}: Score {action_score}, State: {action_state}")
+                
+                # Check for terminal states
+                if final_state in ['WIN', 'GAME_OVER']:
+                    print(f"🏁 Episode {episode_count} completed after {episode_actions} actions: {final_state}")
+                    break
+                
+                # Small delay between actions to avoid rate limiting
+                await asyncio.sleep(0.2)
             
-            stdout_text = stdout.decode() if stdout else ""
-            stderr_text = stderr.decode() if stderr else ""
+            # Handle case where max actions reached
+            if episode_actions >= max_actions_per_episode and final_state == 'NOT_FINISHED':
+                print(f"⏰ Episode {episode_count} reached max actions ({max_actions_per_episode})")
+                final_state = 'MAX_ACTIONS_REACHED'
             
-            # Enhanced parsing with grid dimension extraction
-            result = self._parse_episode_results_comprehensive(stdout_text, stderr_text, game_id)
+            # Build comprehensive episode result
+            episode_duration = time.time() - episode_start_time
             
-            # Extract grid dimensions from output if available
+            # Extract grid dimensions from final output
             grid_dims = self._extract_grid_dimensions_from_output(stdout_text, stderr_text)
-            if grid_dims:
-                result['grid_dimensions'] = grid_dims
             
-            # Extract game state information
-            game_state = self._extract_game_state_from_output(stdout_text, stderr_text)
-            result['game_state'] = game_state
-            
-            # Add enhanced tracking information
-            result.update({
+            result = {
+                'success': final_state == 'WIN',
+                'final_score': total_score,
+                'best_score': best_score,
+                'game_state': final_state,
                 'game_id': game_id,
                 'episode': episode_count,
+                'actions_taken': episode_actions,
+                'episode_duration': episode_duration,
                 'timestamp': time.time(),
-                'exit_code': process.returncode,
                 'sleep_cycle_executed': bool(sleep_cycle_results),
                 'sleep_cycle_results': sleep_cycle_results,
                 'reset_decision': reset_decision,
                 'memory_consolidation_status': self._get_memory_consolidation_status(),
                 'sleep_state_info': self._get_current_sleep_state_info()
-            })
+            }
+            
+            if grid_dims:
+                result['grid_dimensions'] = grid_dims
             
             # Evaluate reset effectiveness if reset was used
             if reset_decision['should_reset']:
-                reset_effectiveness = self._evaluate_reset_effectiveness(result, reset_decision)
-                self.game_reset_tracker['reset_effectiveness_scores'].append(reset_effectiveness)
-            
+                reset_effectiveness = self._evaluate_reset_effectiveness(reset_decision, result)
+                result['reset_effectiveness'] = reset_effectiveness
+                
             return result
             
         except Exception as e:
@@ -1063,8 +1112,8 @@ class ContinuousLearningLoop:
         logger.info(f"Running continuous learning for session {session_id}")
         
         try:
-            # Check if SWARM mode should be used (more than 2 games = use SWARM)
-            if len(session.games_to_play) > 2:
+            # Check if SWARM mode should be used based on configuration
+            if session.swarm_enabled and len(session.games_to_play) > 2:
                 print(f"\n🔥 SWARM MODE ENABLED for {len(session.games_to_play)} games")
                 swarm_results = await self.run_swarm_mode(
                     session.games_to_play,
@@ -1488,7 +1537,8 @@ class ContinuousLearningLoop:
         target_win_rate: float = 0.3,
         target_avg_score: float = 50.0,
         salience_mode: SalienceMode = SalienceMode.LOSSLESS,
-        enable_salience_comparison: bool = False
+        enable_salience_comparison: bool = False,
+        swarm_enabled: bool = True
     ) -> str:
         """
         Start a new continuous learning session.
@@ -1521,7 +1571,8 @@ class ContinuousLearningLoop:
                 'avg_score': target_avg_score
             },
             salience_mode=salience_mode,
-            enable_salience_comparison=enable_salience_comparison
+            enable_salience_comparison=enable_salience_comparison,
+            swarm_enabled=swarm_enabled
         )
         
         # Initialize salience calculator for this session
