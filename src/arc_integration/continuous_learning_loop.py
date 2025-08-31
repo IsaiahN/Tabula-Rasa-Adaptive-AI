@@ -806,6 +806,18 @@ class ContinuousLearningLoop:
             
             print(f"🎮 Starting complete episode {episode_count} for {game_id}")
             
+            # VERBOSE: Show memory state before episode
+            print(f"📊 PRE-EPISODE MEMORY STATUS:")
+            pre_memory_status = self._get_memory_consolidation_status()
+            pre_sleep_status = self._get_current_sleep_state_info()
+            print(f"   Memory Operations: {pre_memory_status.get('consolidation_operations_completed', 0)}")
+            print(f"   Sleep Cycles: {pre_sleep_status.get('sleep_cycles_completed', 0)}")
+            print(f"   Energy Level: {pre_sleep_status.get('current_energy_level', 1.0):.2f}")
+            
+            # VERBOSE: Check existing memory files
+            memory_files_before = self._count_memory_files()
+            print(f"   Memory Files: {memory_files_before}")
+            
             # Reset game at start of episode if needed
             if reset_decision['should_reset']:
                 print(f"🔄 Resetting game {game_id}")
@@ -855,13 +867,32 @@ class ContinuousLearningLoop:
                 action_score = action_result.get('final_score', 0)
                 action_state = self._extract_game_state_from_output(stdout_text, stderr_text)
                 
+                # VERBOSE: Show what's happening
+                print(f"    🎯 Action {episode_actions}: Score={action_score}, State={action_state}")
+                if stdout_text.strip():
+                    print(f"    📝 Output: {stdout_text.strip()[:100]}...")
+                if stderr_text.strip():
+                    print(f"    ⚠️  Error: {stderr_text.strip()[:100]}...")
+                
                 # Update episode totals
                 if action_score > best_score:
                     best_score = action_score
                     total_score = action_score
+                    print(f"    🏆 NEW BEST SCORE: {best_score}")
+                
                 final_state = action_state if action_state in ['WIN', 'GAME_OVER'] else 'NOT_FINISHED'
                 
-                # Print progress every 50 actions or on terminal states
+                # VERBOSE: Check memory operations every 10 actions
+                if episode_actions % 10 == 0:
+                    print(f"    💾 MEMORY CHECK after {episode_actions} actions:")
+                    memory_status = self._get_memory_consolidation_status()
+                    sleep_status = self._get_current_sleep_state_info()
+                    
+                    print(f"       Memory Ops: {memory_status.get('consolidation_operations_completed', 0)}")
+                    print(f"       Sleep Cycles: {sleep_status.get('sleep_cycles_completed', 0)}")
+                    print(f"       Energy Level: {sleep_status.get('current_energy_level', 1.0):.2f}")
+                
+                # Print action progress every 50 actions or on terminal states
                 if episode_actions % 50 == 0 or final_state in ['WIN', 'GAME_OVER']:
                     print(f"  Action {episode_actions}: Score {action_score}, State: {action_state}")
                 
@@ -913,6 +944,25 @@ class ContinuousLearningLoop:
             
         except Exception as e:
             return {'success': False, 'final_score': 0, 'error': str(e), 'game_id': game_id}
+    
+    def _count_memory_files(self) -> int:
+        """Count memory and checkpoint files for verbose monitoring."""
+        try:
+            memory_paths = [
+                Path("checkpoints"),
+                Path("meta_learning_data"),
+                Path("continuous_learning_data"),
+                Path("test_meta_learning_data")
+            ]
+            
+            total_files = 0
+            for path in memory_paths:
+                if path.exists():
+                    total_files += len(list(path.rglob("*")))
+            
+            return total_files
+        except Exception:
+            return 0
     
     async def run_swarm_mode(
         self,
