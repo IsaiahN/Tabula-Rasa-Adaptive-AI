@@ -456,10 +456,10 @@ class ContinuousLearningLoop:
             if existing_guid:
                 # Level Reset - reset within existing game session
                 payload["guid"] = existing_guid
-                print(f"🔄 Attempting LEVEL RESET for {game_id} with GUID {existing_guid}")
+                print(f"🔄 LEVEL RESET for {game_id}")
             else:
                 # New Game - start fresh game session
-                print(f"🔄 Attempting NEW GAME RESET for {game_id} with scorecard {self.current_scorecard_id}")
+                print(f"🔄 NEW GAME RESET for {game_id}")
             
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, headers=headers, json=payload) as response:
@@ -471,7 +471,7 @@ class ContinuousLearningLoop:
                             # Store the GUID for this game
                             self.current_game_sessions[game_id] = guid
                             reset_type = "LEVEL RESET" if existing_guid else "NEW GAME"
-                            print(f"✅ {reset_type} successful: {game_id} → GUID: {guid}")
+                            print(f"✅ {reset_type} successful: {game_id}")
                             
                             return {
                                 'guid': guid,
@@ -511,7 +511,7 @@ class ContinuousLearningLoop:
             
             payload = {}  # Empty payload as shown in the API example
             
-            print(f"🔄 Opening new scorecard...")
+            print(f"🔄 Opening scorecard...")
             
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, headers=headers, json=payload) as response:
@@ -521,7 +521,7 @@ class ContinuousLearningLoop:
                         
                         if scorecard_id:
                             self.current_scorecard_id = scorecard_id
-                            print(f"✅ Opened scorecard: {scorecard_id}")
+                            print(f"✅ Scorecard opened: {scorecard_id}")
                             return scorecard_id
                         else:
                             print(f"❌ No card_id returned")
@@ -801,14 +801,18 @@ class ContinuousLearningLoop:
         # Update available actions tracking
         self._update_available_actions(response_data, game_id)
         
-        # Enhanced logging: Show API available actions and selection process
-        print(f"🎮 API AVAILABLE ACTIONS for {game_id}: {available}")
+        # Track available actions from RESET response
+        current_available = available
+        if not hasattr(self, '_last_available_actions'):
+            self._last_available_actions = {}
+        
+        last_available = self._last_available_actions.get(game_id, [])
+        if current_available != last_available:
+            print(f"🎮 Available Actions for {game_id}: {current_available}")
+            self._last_available_actions[game_id] = current_available
         
         # Use intelligent action selection
         selected_action = self._select_intelligent_action(available, {'game_id': game_id})
-        
-        # Enhanced logging: Show selected action with reasoning
-        print(f"🎯 SELECTED ACTION: {selected_action} (from available: {available})")
         
         # Add to action history
         self.available_actions_memory['action_history'].append(selected_action)
@@ -882,13 +886,17 @@ class ContinuousLearningLoop:
                     if response.status == 200:
                         data = await response.json()
                         
-                        # Enhanced logging: Show action execution result
-                        state = data.get('state', 'UNKNOWN')
-                        score = data.get('score', 0)
-                        available_actions = data.get('actions', [])
+                        # Track available actions changes
+                        current_available = data.get('actions', [])
+                        last_available = getattr(self, '_last_available_actions', {}).get(game_id, [])
                         
-                        print(f"✅ ACTION {action_number} EXECUTED → State: {state}, Score: {score}")
-                        print(f"   New Available Actions: {available_actions}")
+                        # Only show available_actions if they changed
+                        if current_available != last_available:
+                            print(f"🎮 Available Actions Changed for {game_id}: {current_available}")
+                            # Store the new available actions
+                            if not hasattr(self, '_last_available_actions'):
+                                self._last_available_actions = {}
+                            self._last_available_actions[game_id] = current_available
                         
                         logger.info(f"Action {action_number} successful for {game_id}")
                         
@@ -903,7 +911,7 @@ class ContinuousLearningLoop:
                         return data
                     else:
                         error_text = await response.text()
-                        print(f"❌ ACTION {action_number} FAILED → Status: {response.status}, Error: {error_text}")
+                        print(f"❌ ACTION {action_number} FAILED: {response.status}")
                         logger.warning(f"Action {action_number} failed for {game_id}: {response.status} - {error_text}")
                         
                         # Record failure if coordinates were used

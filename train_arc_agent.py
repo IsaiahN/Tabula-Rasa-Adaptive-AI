@@ -37,7 +37,8 @@ class RunScriptManager:
     def __init__(self):
         self.available_modes = [
             'demo', 'full_training', 'comparison', 'enhanced_demo', 
-            'enhanced_training', 'performance_comparison', 'continuous_training'
+            'enhanced_training', 'performance_comparison', 'continuous_training',
+            'direct_control_swarm'  # NEW: Your requested mode
         ]
     
     async def run_continuous_learning_mode(self, mode: str, continuous_loop):
@@ -58,6 +59,8 @@ class RunScriptManager:
             return await self._run_performance_comparison_mode(continuous_loop)
         elif mode == 'continuous_training':
             return await self._run_continuous_training_mode(continuous_loop)
+        elif mode == 'direct_control_swarm':
+            return await self._run_direct_control_swarm_mode(continuous_loop)
         else:
             raise ValueError(f"Unknown continuous learning mode: {mode}")
     
@@ -143,13 +146,13 @@ class RunScriptManager:
     
     async def _run_enhanced_training_mode(self, continuous_loop):
         """Enhanced full training with all optimizations."""
-        print("🏆 Enhanced Training - Full performance optimization")
+        print("🏆 Enhanced Training - Full performance optimization with Direct API Control")
         games = await continuous_loop.select_training_games(count=10)
         
         session_id = continuous_loop.start_training_session(
             games=games,
             max_mastery_sessions_per_game=30,
-            max_actions_per_session=100000,  # Enhanced: unlimited actions
+            max_actions_per_session=500000,  # Enhanced: 500K actions with direct control
             enable_contrarian_mode=True,
             target_win_rate=0.85,
             target_avg_score=80.0,
@@ -191,20 +194,51 @@ class RunScriptManager:
         return results
     
     async def _run_continuous_training_mode(self, continuous_loop):
-        """Continuous training mode for long-term learning."""
-        print("🔄 Continuous Training - Long-term adaptive learning")
+        """Continuous training mode for long-term learning with Direct API Control."""
+        print("🔄 Continuous Training - Long-term adaptive learning with Direct Control")
         games = await continuous_loop.select_training_games(count=12)
         
         session_id = continuous_loop.start_training_session(
             games=games,
             max_mastery_sessions_per_game=50,
-            max_actions_per_session=100000,
+            max_actions_per_session=500000,  # Enhanced: 500K actions
             enable_contrarian_mode=True,
             target_win_rate=0.9,
             target_avg_score=85.0,
             salience_mode=SalienceMode.DECAY_COMPRESSION,
             swarm_enabled=True
         )
+        
+        return await continuous_loop.run_continuous_learning(session_id)
+
+    async def _run_direct_control_swarm_mode(self, continuous_loop):
+        """NEW: Direct Control Swarm Mode - Your requested configuration."""
+        print("🔥 Direct Control Swarm Mode - Decay Salience, Long Cycles, 6 Games")
+        print("✅ Decay Salience mode for memory compression")
+        print("✅ Long learning cycles for deep exploration")
+        print("✅ Swarm mode with 6 games for concurrent learning")
+        print("✅ Direct API control with enhanced action selection")
+        
+        # Get exactly 6 games as requested
+        games = await continuous_loop.select_training_games(count=6)
+        
+        session_id = continuous_loop.start_training_session(
+            games=games,
+            max_mastery_sessions_per_game=100,  # Long learning cycles
+            max_actions_per_session=500000,    # Deep exploration with 500K actions
+            enable_contrarian_mode=True,       # Enhanced strategies
+            target_win_rate=0.8,              # High target
+            target_avg_score=70.0,
+            salience_mode=SalienceMode.DECAY_COMPRESSION,  # Decay salience for compression
+            swarm_enabled=True                 # Swarm mode for concurrent learning
+        )
+        
+        print(f"🎯 Session ID: {session_id}")
+        print(f"📊 Target: 80% win rate, 70+ average score")
+        print(f"⚡ Max Actions: 500,000 per session")
+        print(f"🧠 Memory: Decay compression with consolidation")
+        print(f"🎮 Control: Direct API control (automatic in enhanced sessions)")
+        print(f"🚀 Starting training...")
         
         return await continuous_loop.run_continuous_learning(session_id)
 
@@ -314,7 +348,7 @@ class TestRunner:
         print("=" * 50)
         
         try:
-            from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+            from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop
             
             # Find ARC-AGI-3-Agents path
             arc_agents_path = os.getenv('ARC_AGENTS_PATH')
@@ -426,12 +460,14 @@ class DemoRunner:
         print()
         
         print("🔧 SPECIFIC FIXES IMPLEMENTED:")
-        print("  1. ⚡ Action Limit: MAX_ACTIONS = 100000 (arc_agent_adapter.py)")
+        print("  1. ⚡ Action Limit: MAX_ACTIONS = 500,000+ (enhanced from 200)")
         print("  2. 🧠 Available Actions Memory: Game-specific action intelligence")
         print("  3. 🔄 Enhanced Boredom: Strategy switching + experimentation")
         print("  4. 🏆 Success Weighting: 10x memory priority for wins")
         print("  5. 🌙 Mid-Game Sleep: Pattern consolidation during gameplay")
         print("  6. 📊 Action Sequences: Continuous learning episode structure")
+        print("  7. 🎯 Direct API Control: Enhanced action selection without external main.py")
+        print("  8. 🎮 Real-time Action Visibility: See API available actions and selections")
         print()
 
     async def demo_enhanced_performance(self):
@@ -820,27 +856,30 @@ def create_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Training modes:
+  # Training modes with Direct API Control:
   python train_arc_agent.py --mode sequential --salience decay --verbose
   python train_arc_agent.py --mode swarm --salience lossless --mastery-sessions 100
   python train_arc_agent.py --mode continuous --enable-contrarian-mode
   
-  # Continuous learning modes:
-  python train_arc_agent.py --run-mode demo --continuous-mode enhanced_demo
-  python train_arc_agent.py --run-mode continuous --continuous-mode full_training
-  python train_arc_agent.py --run-mode continuous --continuous-mode comparison
+  # NEW: Direct Control Swarm Mode (your requested configuration):
+  python train_arc_agent.py --run-mode continuous --continuous-mode direct_control_swarm
   
-  # Testing:
+  # Continuous learning modes with enhanced control:
+  python train_arc_agent.py --run-mode continuous --continuous-mode demo
+  python train_arc_agent.py --run-mode continuous --continuous-mode enhanced_training
+  python train_arc_agent.py --run-mode continuous --continuous-mode performance_comparison
+  
+  # Testing with real ARC-3 API:
   python train_arc_agent.py --run-mode test --test-type unit
   python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode demo
   python train_arc_agent.py --run-mode test --test-type all
   
-  # Demos:
+  # Performance demos:
   python train_arc_agent.py --run-mode demo --demo-type enhanced
   python train_arc_agent.py --run-mode demo --demo-type performance
   
-  # Quick test with minimal settings:
-  python train_arc_agent.py --mode sequential --mastery-sessions 5 --games 1
+  # Quick test with enhanced settings:
+  python train_arc_agent.py --mode sequential --mastery-sessions 5 --games 1 --max-actions-per-session 50000
         """
     )
     
@@ -908,7 +947,8 @@ Examples:
     # Continuous learning mode arguments
     parser.add_argument('--continuous-mode',
                        choices=['demo', 'full_training', 'comparison', 'enhanced_demo', 
-                              'enhanced_training', 'performance_comparison', 'continuous_training'],
+                              'enhanced_training', 'performance_comparison', 'continuous_training',
+                              'direct_control_swarm'],
                        default='demo',
                        help='Continuous learning mode')
     
