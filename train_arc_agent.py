@@ -153,7 +153,7 @@ class RunScriptManager:
             enable_contrarian_mode=True,
             target_win_rate=0.85,
             target_avg_score=80.0,
-            salience_mode=SalienceMode.ADAPTIVE_COMPRESSION,
+            salience_mode=SalienceMode.DECAY_COMPRESSION,
             swarm_enabled=True  # Enhanced: swarm mode
         )
         
@@ -202,7 +202,7 @@ class RunScriptManager:
             enable_contrarian_mode=True,
             target_win_rate=0.9,
             target_avg_score=85.0,
-            salience_mode=SalienceMode.ADAPTIVE_COMPRESSION,
+            salience_mode=SalienceMode.DECAY_COMPRESSION,
             swarm_enabled=True
         )
         
@@ -534,7 +534,7 @@ class UnifiedTrainer:
         elif self.salience == 'decay':
             return SalienceMode.DECAY_COMPRESSION  
         elif self.salience == 'adaptive':
-            return SalienceMode.ADAPTIVE_COMPRESSION
+            return SalienceMode.DECAY_COMPRESSION  # Use decay instead of non-existent adaptive
         else:
             print(f"❌ ERROR: Unknown salience mode: {self.salience}")
             print(f"   Valid options: lossless, decay, adaptive")

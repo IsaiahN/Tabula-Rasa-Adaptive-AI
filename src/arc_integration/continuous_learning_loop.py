@@ -1373,7 +1373,7 @@ class ContinuousLearningLoop:
             
             while episode_count <= max_episodes:
                 # Run episode with proper game state checking
-                episode_result = await self._run_real_arc_episode_enhanced(game_id, episode_count)
+                episode_result = await self._run_real_arc_mastery_session_enhanced(game_id, episode_count)
                 
                 if episode_result and 'error' not in episode_result:
                     game_results['episodes'].append(episode_result)
@@ -1468,7 +1468,7 @@ class ContinuousLearningLoop:
                 swarm_results = await self.run_swarm_mode(
                     session.games_to_play,
                     max_concurrent=3,
-                    max_mastery_sessions_per_game=session.max_mastery_sessions_per_game  # Updated attribute name
+                    max_episodes_per_game=session.max_mastery_sessions_per_game  # Fixed parameter name
                 )
                 
                 # Convert SWARM results to session format
