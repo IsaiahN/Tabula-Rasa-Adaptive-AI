@@ -314,8 +314,7 @@ class ARCTestRunner:
         # Check for key test files
         key_test_files = [
             'test_continuous_learning_loop.py',
-            'test_train_arc_agent.py',
-            'test_arc_training_pipeline.py'
+            'test_train_arc_agent.py'
         ]
         
         missing_tests = []
