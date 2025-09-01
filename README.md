@@ -1,10 +1,10 @@
 # Tabula Rasa: Self-Learning Adaptive Learning Agent
 
-A sophisticated AI system that develops intelligence through intrinsic motivation, curiosity, and survival pressure rather than external programming. Features advanced meta-learning capabilities, automatic object encoding during sleep phases, and **enhanced ARC-AGI-3 integration** with performance optimizations that match top leaderboard agents.
+A sophisticated AI system that develops intelligence through intrinsic motivation, curiosity, and survival pressure rather than external programming. Features advanced meta-learning capabilities, automatic object encoding during sleep phases, **enhanced ARC-AGI-3 integration** with performance optimizations, and **progressive memory hierarchy system** that intelligently preserves breakthrough discoveries.
 
 ## 🚀 Performance Breakthrough
 
-**CRITICAL ENHANCEMENT**: Resolved performance gap with top ARC-3 leaderboard agents!
+**CRITICAL ENHANCEMENT**: Resolved performance gap with top ARC-3 leaderboard agents + Intelligent Memory Evolution!
 
 ### Before vs. After
 | Metric | Before (Limited) | After (Enhanced) | Top Performers |
@@ -12,10 +12,11 @@ A sophisticated AI system that develops intelligence through intrinsic motivatio
 | **Max Actions** | ⚠️ 200 | ✅ 100,000+ | 255,964 (StochasticGoose) |
 | **Learning** | Post-game only | ✅ Continuous | Mid-game consolidation |
 | **Memory Priority** | Equal weights | ✅ 10x for wins | Success-focused |
+| **Memory Evolution** | Static preservation | ✅ **Progressive Hierarchy** | Intelligent breakthrough tracking |
 | **Boredom Handling** | Basic detection | ✅ Strategy switching | Adaptive exploration |
 | **Action Intelligence** | Limited | ✅ Game-specific memory | Pattern recognition |
 
-**🎯 RESULT**: Agent can now achieve 1000+ action episodes with continuous learning like top performers!
+**🎯 RESULT**: Agent can now achieve 1000+ action episodes with continuous learning AND intelligently evolve its memory priorities based on breakthrough achievements!
 
 ## Overview
 
@@ -28,6 +29,7 @@ This project implements a "digital childhood" paradigm where an agent learns thr
 - **Energy & Death**: Survival pressure through limited resources
 - **Goal Invention**: Self-generated objectives from high-learning-progress experiences
 - **Performance-Optimized ARC-3 Integration**: Real competition evaluation with unlimited action capability
+- **🏛️ Progressive Memory Hierarchy**: Intelligent memory preservation system that evolves with agent capabilities
 
 ## Project Structure
 
@@ -125,6 +127,12 @@ python examples/salience_mode_comparison.py
 ### Advanced Features 
 - **Meta-Learning System**: Learns from learning experiences, extracts insights, and applies knowledge across contexts
 - **Enhanced Sleep System**: Automatic object encoding and memory consolidation during offline periods
+- **🏛️ Progressive Memory Hierarchy**: Revolutionary memory preservation system that only preserves TRUE breakthroughs
+  - **Hierarchical Tiers**: Level 1-5+ with escalating protection (0.75→0.95 strength, 0.4→0.8 floors)
+  - **Breakthrough Detection**: Only preserves memories when surpassing previous best level for each game
+  - **Memory Demotion**: Previous level memories get reduced priority but remain protected
+  - **Anti-Flooding**: Prevents memory saturation from repetitive level completions
+  - **Intelligent Evolution**: Memory importance scales with agent's growing capabilities
 - **Dual Salience Mode System**: Choose between lossless memory preservation or intelligent decay/compression
 - **Salience-Driven Memory Management**: Experience importance determined by agent's own drives (Learning Progress + Energy/Survival)
 - **Adaptive Memory Compression**: Low-salience memories compressed into abstract concepts with merging capabilities
@@ -136,12 +144,21 @@ python examples/salience_mode_comparison.py
 ### ARC-3 Competition Features ✨
 - **Real API Integration**: Direct connection to official ARC-AGI-3 servers
 - **Global Task Configuration**: Smart task selection with randomization to prevent overtraining
+- **Progressive Memory Hierarchy**: Revolutionary memory preservation system for breakthrough discoveries
+  - **Breakthrough-Only Preservation**: Only saves memories when achieving NEW level records
+  - **5-Tier Protection System**: Escalating protection strength (Tier 1: 0.75 → Tier 5: 0.95)
+  - **Memory Demotion**: Previous achievements get reduced priority but remain protected
+  - **Intelligent Evolution**: Memory importance automatically scales with agent capabilities
 - **Three Training Modes**:
   - **Demo Mode**: Quick integration test (3 random tasks)
   - **Full Training Mode**: Comprehensive mastery training (all 24 tasks)
   - **Comparison Mode**: Scientific analysis of memory strategies (4 random tasks)
+- **Enhanced Training Modes**: 
+  - **Enhanced Demo**: Showcases progressive memory hierarchy in action
+  - **Enhanced Training**: Maximum performance with all optimizations
+  - **Performance Comparison**: Before vs. after memory system analysis
 - **Scorecard Generation**: Real competition scorecards from https://three.arcprize.org
-- **Performance Tracking**: Win rates, learning efficiency, knowledge transfer metrics
+- **Performance Tracking**: Win rates, learning efficiency, knowledge transfer metrics, memory hierarchy status
 - **Clean Architecture**: Unified system without code duplication
 
 ### Testing & Organization 
@@ -150,6 +167,19 @@ python examples/salience_mode_comparison.py
 - **Centralized Documentation**: All docs organized in `/docs` folder
 
 ## Recent Achievements
+
+### 🏛️ Progressive Memory Hierarchy System (NEW)
+- **Breakthrough-Only Preservation**: Only preserves memories when achieving NEW personal bests
+- **5-Tier Hierarchical Protection**: 
+  - Tier 1 (Level 1): 0.75 strength, 0.4 floor, 400s protection
+  - Tier 2 (Level 2): 0.80 strength, 0.5 floor, 600s protection
+  - Tier 3 (Level 3): 0.85 strength, 0.6 floor, 800s protection
+  - Tier 4 (Level 4): 0.90 strength, 0.7 floor, 1000s protection
+  - Tier 5 (Level 5+): 0.95 strength, 0.8 floor, 1200s protection
+- **Memory Demotion System**: Previous level memories get reduced priority but remain protected
+- **Anti-Flooding Protection**: Prevents memory saturation from repeated level completions
+- **Intelligent Evolution**: Memory hierarchy grows with agent's expanding capabilities
+- **Real-Time Monitoring**: Live display of memory hierarchy status during training
 
 ### ARC-3 Competition Integration 🏆
 - **Official API Integration**: Real-time connection to ARC-AGI-3 servers
@@ -183,7 +213,53 @@ python examples/salience_mode_comparison.py
 - **Tool Use**: Problem-solving with environmental objects
 - **Deferred Gratification**: Long-term planning and impulse control
 
-## 🎯 Research Goals & Achievements
+## �️ Progressive Memory Hierarchy System
+
+### **Breakthrough-Only Preservation**
+The system intelligently tracks each game's level progression and only preserves memories when achieving **NEW personal bests**:
+
+```
+Game: puzzle-abc123
+Level 1 achieved → Tier 1 memories preserved (0.75 strength, 0.4 floor)
+Level 1 repeated 20x → NO additional preservation (prevents flooding)
+Level 2 achieved → Tier 2 memories preserved (0.80 strength, 0.5 floor) + Level 1 demoted
+Level 2 repeated 50x → NO additional preservation
+Level 3 achieved → Tier 3 memories preserved (0.85 strength, 0.6 floor) + Level 2 demoted
+```
+
+### **5-Tier Protection System**
+| Tier | Level | Strength | Salience Floor | Duration | Protection |
+|------|-------|----------|----------------|----------|------------|
+| 1 | Level 1 | 0.75 | 0.4 | 400s | Standard |
+| 2 | Level 2 | 0.80 | 0.5 | 600s | Enhanced |
+| 3 | Level 3 | 0.85 | 0.6 | 800s | Strong |
+| 4 | Level 4 | 0.90 | 0.7 | 1000s | Very Strong |
+| 5 | Level 5+ | 0.95 | 0.8 | 1200s | Nearly Permanent |
+
+### **Memory Evolution Features**
+- **🎯 Per-Game Tracking**: Each game maintains its own level progression history
+- **📉 Memory Demotion**: Previous level memories get reduced priority but remain protected
+- **🚫 Anti-Flooding**: Repeated level completions don't trigger additional preservation
+- **⬆️ Escalating Protection**: Higher tiers get exponentially stronger protection
+- **📊 Real-Time Monitoring**: Live display of memory hierarchy status during training
+
+### **Example Training Output**
+```
+🎉 TRUE LEVEL BREAKTHROUGH! puzzle-abc123 advanced from level 1 to 2
+🏆 LEVEL 2 BREAKTHROUGH! Tier 2 Protection (strength: 0.80, floor: 0.5)
+📉 Demoted 15 Level 1 memories (still protected but lower priority)
+🎯 Preserved 12 Tier 2 breakthrough memories (Level 2)
+
+🏛️ MEMORY HIERARCHY STATUS (45 protected memories):
+   Tier 3: 8 memories | Strength: 0.85 | Floor: 0.6
+            Games: puzzle-xyz789 | Levels: 3
+   Tier 2: 12 memories | Strength: 0.80 | Floor: 0.5
+            Games: puzzle-abc123 | Levels: 2
+   Tier 1: 25 memories | Strength: 0.60 | Floor: 0.25
+            Games: puzzle-def456, puzzle-ghi789 | Levels: 1
+```
+
+## �🎯 Research Goals & Achievements
 
 This system validates the hypothesis that intelligence emerges from the right environmental conditions and internal drives, not from explicit programming. The meta-learning capabilities demonstrate how agents can develop increasingly sophisticated cognitive strategies through self-reflection and experience consolidation.
 
@@ -196,6 +272,10 @@ This system validates the hypothesis that intelligence emerges from the right en
 4. **Success-Focused Memory**: 10x priority weighting for winning strategies
 5. **Adaptive Boredom**: Smart strategy switching when exploration stagnates
 6. **Pattern Intelligence**: Game-specific action pattern recognition and reuse
+7. **🏛️ Progressive Memory Hierarchy**: Revolutionary breakthrough-only memory preservation system
+8. **Intelligent Memory Evolution**: Memory importance automatically scales with agent capabilities
+9. **Anti-Memory Flooding**: Prevents saturation from repetitive achievements
+10. **Hierarchical Protection**: 5-tier system with escalating preservation strength
 
 ## 📊 Performance Validation Results
 
@@ -279,6 +359,9 @@ tail -f continuous_learning_data/*.json          # Performance tracking data
 - **Action Sequence Analysis**: Pattern recognition in move sequences  
 - **Boredom Strategy Switching**: Monitor adaptive exploration behavior
 - **Success Rate Trends**: Real-time win rate improvements
+- **🏛️ Memory Hierarchy Monitoring**: Live tracking of breakthrough memories across 5 tiers
+- **Protection Status Analysis**: Monitor memory preservation and demotion events
+- **Level Progression Tracking**: Per-game breakthrough timeline and achievement records
 
 ## 🏆 ARC-3 Training Modes
 
@@ -385,23 +468,34 @@ WDM_LOG=0
   - Phase 2: Enhanced boredom detection with strategy switching  
   - Phase 3: Success-weighted memory (10x boost for wins)
   - Phase 4: Mid-game consolidation and available actions memory
+- **🏛️ Progressive Memory Hierarchy**: Revolutionary breakthrough-only preservation system
+  - 5-tier hierarchical protection with escalating strength
+  - Memory demotion system for balanced priority management
+  - Anti-flooding protection prevents memory saturation
+  - Real-time hierarchy monitoring and status display
 - **Comprehensive Testing Suite**: Full validation of all performance improvements
 - **Architecture Parity**: Now matches capabilities of top ARC-3 leaderboard performers
 
 ### 🔄 Current Focus
-- **Documentation Modernization**: Updated README with all new capabilities
-- **Performance Monitoring**: Real-time tracking of enhanced features
-- **Advanced Analytics**: Deep analysis of action patterns and learning efficiency
+- **Progressive Memory System Validation**: Monitoring breakthrough detection and hierarchical protection in live training
+- **Memory Evolution Analytics**: Tracking how memory importance scales with agent capabilities
+- **Performance Monitoring**: Real-time tracking of enhanced features and memory hierarchy status
+- **Advanced Analytics**: Deep analysis of action patterns, learning efficiency, and breakthrough preservation
 
 ### 🔮 Future Roadmap
+- **Cross-Game Memory Transfer**: Apply breakthrough patterns from one game to similar puzzles
+- **Dynamic Tier Adjustment**: Automatically optimize tier thresholds based on performance data
+- **Memory Archaeology**: Analyze historical breakthrough patterns for strategic insights
 - **Multi-Agent Coordination**: Enhanced collaboration between specialized agents
-- **Advanced Meta-Learning**: Cross-task knowledge transfer optimization
-- **Scalability Testing**: Performance validation on larger task sets
+- **Advanced Meta-Learning**: Cross-task knowledge transfer optimization with hierarchy integration
+- **Scalability Testing**: Performance validation on larger task sets with memory hierarchy
 - **Community Integration**: Open-source performance benchmarking tools
 
 ## 🤝 Contributing
 
-This project represents cutting-edge research in emergent intelligence and performance optimization. Contributions welcome in:
+This project represents cutting-edge research in emergent intelligence, performance optimization, and **intelligent memory evolution**. Contributions welcome in:
+- **Progressive memory hierarchy** analysis and optimization
+- **Breakthrough detection** algorithm improvements
 - Performance analysis and optimization
 - Meta-learning algorithm improvements
 - ARC-3 integration enhancements
