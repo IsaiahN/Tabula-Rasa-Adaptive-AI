@@ -276,6 +276,29 @@ class ContinuousLearningLoop:
                 'movements_tracked': 0,
                 'effects_catalogued': 0,
                 'game_contexts_learned': 0
+            },
+            
+            # NEW: ADAPTIVE ACTION RELEVANCE SYSTEM
+            'action_relevance_scores': {         # Dynamic relevance scoring for actions
+                1: {'base_relevance': 1.0, 'current_modifier': 1.0, 'recent_success_rate': 0.5, 'last_used': 0, 'consecutive_failures': 0},
+                2: {'base_relevance': 1.0, 'current_modifier': 1.0, 'recent_success_rate': 0.5, 'last_used': 0, 'consecutive_failures': 0},
+                3: {'base_relevance': 1.0, 'current_modifier': 1.0, 'recent_success_rate': 0.5, 'last_used': 0, 'consecutive_failures': 0},
+                4: {'base_relevance': 1.0, 'current_modifier': 1.0, 'recent_success_rate': 0.5, 'last_used': 0, 'consecutive_failures': 0},
+                5: {'base_relevance': 1.0, 'current_modifier': 1.0, 'recent_success_rate': 0.5, 'last_used': 0, 'consecutive_failures': 0},
+                6: {'base_relevance': 0.3, 'current_modifier': 0.3, 'recent_success_rate': 0.2, 'last_used': 0, 'consecutive_failures': 0},  # Start with low relevance
+                7: {'base_relevance': 0.8, 'current_modifier': 0.8, 'recent_success_rate': 0.4, 'last_used': 0, 'consecutive_failures': 0}
+            },
+            
+            # ACTION 6 STRATEGIC CONTROL SYSTEM
+            'action6_strategy': {
+                'use_sparingly': True,           # Only use when stuck/no progress
+                'min_actions_before_use': 15,   # Must try other actions first
+                'progress_stagnation_threshold': 8,  # No progress for N actions before considering ACTION6
+                'last_progress_action': 0,      # Track when last progress was made
+                'action6_cooldown': 5,          # Actions between ACTION6 uses
+                'last_action6_used': 0,         # Track last ACTION6 usage
+                'predictive_mode': True,        # Try to predict good coordinates
+                'emergency_reset_only': True    # Only use as mini-reset when truly stuck
             }
         }
         
@@ -872,8 +895,8 @@ class ContinuousLearningLoop:
             print(f"🎮 Available Actions for {game_id}: {current_available}")
             self._last_available_actions[game_id] = current_available
         
-        # Use intelligent action selection
-        selected_action = self._select_intelligent_action(available, {'game_id': game_id})
+        # Use intelligent action selection with strategic ACTION 6 control
+        selected_action = self._select_intelligent_action_with_relevance(available, {'game_id': game_id})
         
         # Add to action history
         self.available_actions_memory['action_history'].append(selected_action)
@@ -1198,6 +1221,197 @@ class ContinuousLearningLoop:
             print(f"\nNo scorecard URLs generated for {game_id}")
         
         return game_results
+
+    def _select_intelligent_action_with_relevance(self, available_actions: List[int], context: Dict[str, Any]) -> int:
+        """
+        Enhanced action selection with relevance scoring and strategic ACTION 6 control.
+        
+        Key improvements:
+        - ACTION 6 used sparingly as strategic mini-reset only when stuck
+        - Dynamic relevance scoring that adapts over time
+        - Progress tracking to prevent disruption of good sequences
+        - Predictive coordinate selection for ACTION 6
+        """
+        game_id = context.get('game_id', 'unknown')
+        action_count = len(self.available_actions_memory['action_history'])
+        
+        # Update action relevance scores based on recent performance
+        self._update_action_relevance_scores()
+        
+        # Check for progress stagnation (key insight from your observation)
+        progress_stagnant = self._is_progress_stagnant(action_count)
+        
+        # Calculate weighted action scores with relevance modifiers
+        action_scores = {}
+        
+        for action in available_actions:
+            if action in self.available_actions_memory['action_relevance_scores']:
+                relevance_data = self.available_actions_memory['action_relevance_scores'][action]
+                base_score = relevance_data['base_relevance']
+                modifier = relevance_data['current_modifier']
+                success_rate = relevance_data['recent_success_rate']
+                
+                # Special handling for ACTION 6 - your key insight
+                if action == 6:
+                    action6_score = self._calculate_action6_strategic_score(action_count, progress_stagnant)
+                    action_scores[action] = action6_score
+                else:
+                    # Standard actions get normal scoring with relevance
+                    try:
+                        semantic_score = self._calculate_semantic_action_score(action, game_id)
+                    except:
+                        semantic_score = 1.0  # Fallback
+                    final_score = base_score * modifier * success_rate * semantic_score
+                    
+                    # Boost recently successful actions
+                    if relevance_data['consecutive_failures'] == 0 and success_rate > 0.6:
+                        final_score *= 1.2  # 20% boost for successful actions
+                    
+                    # Penalize recently failed actions
+                    elif relevance_data['consecutive_failures'] > 2:
+                        final_score *= 0.7  # 30% penalty for failing actions
+                    
+                    action_scores[action] = final_score
+            else:
+                # Fallback for actions without relevance data
+                action_scores[action] = 0.5
+        
+        # Select action based on weighted scores (with some randomness for exploration)
+        if not action_scores:
+            return random.choice(available_actions)
+        
+        # Use weighted random selection (90% best choice, 10% exploration)
+        if random.random() < 0.9:
+            selected_action = max(action_scores.keys(), key=lambda k: action_scores[k])
+        else:
+            # Exploration: weighted random selection
+            weights = list(action_scores.values())
+            selected_action = random.choices(list(action_scores.keys()), weights=weights)[0]
+        
+        # Log strategic decisions for ACTION 6
+        if selected_action == 6:
+            print(f"🎯 ACTION 6 STRATEGIC USE: Progress stagnant={progress_stagnant}, Actions since progress={action_count - self.available_actions_memory['action6_strategy']['last_progress_action']}")
+        
+        # Update usage tracking
+        self._update_action_usage_tracking(selected_action, action_count)
+        
+        return selected_action
+
+    def _calculate_action6_strategic_score(self, current_action_count: int, progress_stagnant: bool) -> float:
+        """
+        Calculate strategic score for ACTION 6 based on your insights.
+        
+        ACTION 6 should only be used when:
+        1. Progress has stagnated (no improvement for several actions)
+        2. Other actions have been tried sufficiently
+        3. Sufficient cooldown has passed since last ACTION 6
+        4. As a strategic mini-reset tool
+        """
+        strategy = self.available_actions_memory['action6_strategy']
+        
+        # Base score is very low - ACTION 6 is not preferred
+        base_score = 0.1
+        
+        # Check if we're in emergency mode (truly stuck)
+        if not progress_stagnant:
+            return 0.05  # Nearly never use if progress is being made
+        
+        # Check minimum actions before considering ACTION 6
+        actions_since_start = current_action_count
+        if actions_since_start < strategy['min_actions_before_use']:
+            return 0.02  # Too early to use ACTION 6
+        
+        # Check cooldown period
+        actions_since_last_action6 = current_action_count - strategy['last_action6_used']
+        if actions_since_last_action6 < strategy['action6_cooldown']:
+            return 0.02  # Still in cooldown
+        
+        # Check stagnation duration
+        actions_since_progress = current_action_count - strategy['last_progress_action']
+        if actions_since_progress < strategy['progress_stagnation_threshold']:
+            return 0.03  # Not stuck long enough
+        
+        # If we reach here, we're truly stuck - ACTION 6 becomes viable
+        strategic_score = base_score
+        
+        # Increase score based on how long we've been stuck
+        stagnation_multiplier = min(2.0, actions_since_progress / strategy['progress_stagnation_threshold'])
+        strategic_score *= stagnation_multiplier
+        
+        # Emergency boost if we've been stuck for a very long time
+        if actions_since_progress > strategy['progress_stagnation_threshold'] * 2:
+            strategic_score *= 1.5  # Emergency mini-reset mode
+            print(f"🚨 ACTION 6 EMERGENCY MODE: Stuck for {actions_since_progress} actions")
+        
+        return min(strategic_score, 0.4)  # Cap at 0.4 to prevent over-use
+
+    def _is_progress_stagnant(self, current_action_count: int) -> bool:
+        """
+        Determine if progress has stagnated based on recent action effectiveness.
+        """
+        strategy = self.available_actions_memory['action6_strategy']
+        actions_since_progress = current_action_count - strategy['last_progress_action']
+        
+        return actions_since_progress >= strategy['progress_stagnation_threshold']
+
+    def _update_action_relevance_scores(self):
+        """
+        Update action relevance scores based on recent performance.
+        This implements your idea of actions having relevance that changes over time.
+        """
+        relevance_scores = self.available_actions_memory['action_relevance_scores']
+        
+        for action_num, data in relevance_scores.items():
+            # Calculate recent success rate from action history
+            recent_attempts = self._get_recent_action_attempts(action_num, window=10)
+            
+            if recent_attempts['total'] > 0:
+                success_rate = recent_attempts['successes'] / recent_attempts['total']
+                data['recent_success_rate'] = success_rate
+                
+                # Update current modifier based on success rate
+                if success_rate > 0.7:
+                    data['current_modifier'] = min(1.5, data['current_modifier'] * 1.1)  # Increase relevance
+                elif success_rate < 0.3:
+                    data['current_modifier'] = max(0.2, data['current_modifier'] * 0.9)  # Decrease relevance
+                
+                # Special handling for ACTION 6 - keep it low unless truly needed
+                if action_num == 6:
+                    data['current_modifier'] = min(0.5, data['current_modifier'])  # Cap ACTION 6 relevance
+                    
+            # Decay relevance for unused actions over time
+            actions_since_use = len(self.available_actions_memory['action_history']) - data['last_used']
+            if actions_since_use > 20:  # If not used for 20 actions
+                data['current_modifier'] *= 0.95  # Slow decay
+
+    def _get_recent_action_attempts(self, action_num: int, window: int = 10) -> Dict[str, int]:
+        """Get recent attempt statistics for an action."""
+        action_history = self.available_actions_memory['action_history']
+        recent_history = action_history[-window:] if len(action_history) >= window else action_history
+        
+        attempts = recent_history.count(action_num)
+        # For now, assume 50% success rate - this would be updated with actual game feedback
+        successes = attempts // 2  # Placeholder - would track actual success/failure
+        
+        return {'total': attempts, 'successes': successes}
+
+    def _update_action_usage_tracking(self, selected_action: int, current_action_count: int):
+        """Update usage tracking for selected action."""
+        if selected_action in self.available_actions_memory['action_relevance_scores']:
+            self.available_actions_memory['action_relevance_scores'][selected_action]['last_used'] = current_action_count
+            
+            # Special tracking for ACTION 6
+            if selected_action == 6:
+                self.available_actions_memory['action6_strategy']['last_action6_used'] = current_action_count
+
+    def _update_progress_tracking(self, action_result: Dict[str, Any], current_action_count: int):
+        """
+        Update progress tracking based on action results.
+        Call this when you detect that an action led to positive progress.
+        """
+        if action_result.get('progress_made', False):  # Would be set based on score increase, state improvement, etc.
+            self.available_actions_memory['action6_strategy']['last_progress_action'] = current_action_count
+            print(f"📈 Progress detected at action {current_action_count}")
 
     async def _run_real_arc_mastery_session_enhanced(self, game_id: str, session_count: int) -> Dict[str, Any]:  # Renamed method and parameter
         """Enhanced version that runs COMPLETE mastery sessions with up to 100K actions until WIN/GAME_OVER."""
@@ -2847,8 +3061,12 @@ class ContinuousLearningLoop:
             print(f"   ⚠️ Error analyzing action details: {e}")
 
     def _optimize_coordinates_for_action(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
-        """Generate optimal X/Y coordinates based on learned patterns."""
+        """Generate optimal X/Y coordinates based on learned patterns and strategic analysis."""
         grid_width, grid_height = grid_dims
+        
+        # Special strategic coordinate selection for ACTION 6
+        if action == 6:
+            return self._get_strategic_action6_coordinates(grid_dims)
         
         # Check if we have learned patterns for this action
         if action in self.available_actions_memory['coordinate_patterns']:
@@ -2867,6 +3085,99 @@ class ContinuousLearningLoop:
         
         # No learned pattern or no successful patterns - use strategic defaults
         return self._get_strategic_coordinates(action, grid_dims)
+
+    def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+        """
+        Strategic coordinate selection for ACTION 6 when used as mini-reset.
+        
+        Instead of random coordinates, try to predict where might be beneficial:
+        1. Look for unexplored regions
+        2. Try coordinates that might "undo" recent moves
+        3. Target strategic positions like corners, center, or edges
+        """
+        grid_width, grid_height = grid_dims
+        
+        # Get recent action history to avoid recently tried coordinates
+        recent_actions = self.available_actions_memory['action_history'][-10:]  # Last 10 actions
+        
+        # Get coordinate success zones if available
+        action6_mapping = self.available_actions_memory['action_semantic_mapping'].get(6, {})
+        success_zones = action6_mapping.get('coordinate_success_zones', {})
+        
+        # Strategy 1: Use learned success zones if available
+        if success_zones:
+            # Find the best success zone
+            best_zone = max(success_zones.items(), key=lambda x: x[1])
+            zone_coords, success_rate = best_zone
+            
+            if success_rate > 0.3:  # Only use if reasonably successful
+                # Add some variation around the successful zone
+                base_x, base_y = zone_coords if isinstance(zone_coords, tuple) else (grid_width // 2, grid_height // 2)
+                variation_x = random.randint(-2, 2)
+                variation_y = random.randint(-2, 2)
+                
+                x = max(0, min(grid_width - 1, base_x + variation_x))
+                y = max(0, min(grid_height - 1, base_y + variation_y))
+                
+                print(f"🎯 ACTION 6 PREDICTIVE: Using success zone {zone_coords} with variation -> ({x},{y})")
+                return (x, y)
+        
+        # Strategy 2: Try "reset" positions - opposite side of recent movements
+        recent_movements = [a for a in recent_actions if a in [1, 2, 3, 4]]
+        if recent_movements:
+            # Analyze recent movement direction and try opposite area
+            up_moves = recent_movements.count(1)
+            down_moves = recent_movements.count(2)
+            left_moves = recent_movements.count(3)
+            right_moves = recent_movements.count(4)
+            
+            # Try opposite quadrant
+            if up_moves > down_moves and left_moves > right_moves:
+                # Recent moves were up-left, try bottom-right
+                x = int(grid_width * 0.75) + random.randint(-2, 2)
+                y = int(grid_height * 0.75) + random.randint(-2, 2)
+            elif up_moves > down_moves and right_moves > left_moves:
+                # Recent moves were up-right, try bottom-left
+                x = int(grid_width * 0.25) + random.randint(-2, 2)
+                y = int(grid_height * 0.75) + random.randint(-2, 2)
+            elif down_moves > up_moves and left_moves > right_moves:
+                # Recent moves were down-left, try top-right
+                x = int(grid_width * 0.75) + random.randint(-2, 2)
+                y = int(grid_height * 0.25) + random.randint(-2, 2)
+            elif down_moves > up_moves and right_moves > left_moves:
+                # Recent moves were down-right, try top-left
+                x = int(grid_width * 0.25) + random.randint(-2, 2)
+                y = int(grid_height * 0.25) + random.randint(-2, 2)
+            else:
+                # No clear pattern, try center with variation
+                x = grid_width // 2 + random.randint(-3, 3)
+                y = grid_height // 2 + random.randint(-3, 3)
+            
+            # Ensure coordinates are within bounds
+            x = max(0, min(grid_width - 1, x))
+            y = max(0, min(grid_height - 1, y))
+            
+            print(f"🎯 ACTION 6 COUNTER-MOVEMENT: Trying opposite to recent moves -> ({x},{y})")
+            return (x, y)
+        
+        # Strategy 3: Fallback to strategic positions (corners, edges, center)
+        strategic_positions = [
+            (0, 0),  # Top-left corner
+            (grid_width - 1, 0),  # Top-right corner
+            (0, grid_height - 1),  # Bottom-left corner
+            (grid_width - 1, grid_height - 1),  # Bottom-right corner
+            (grid_width // 2, grid_height // 2),  # Center
+            (grid_width // 4, grid_height // 4),  # Quarter positions
+            (3 * grid_width // 4, 3 * grid_height // 4),
+        ]
+        
+        # Select a strategic position with some randomization
+        base_pos = random.choice(strategic_positions)
+        x = max(0, min(grid_width - 1, base_pos[0] + random.randint(-1, 1)))
+        y = max(0, min(grid_height - 1, base_pos[1] + random.randint(-1, 1)))
+        
+        print(f"🎯 ACTION 6 STRATEGIC: Using strategic position -> ({x},{y})")
+        return (x, y)
     
     def _get_strategic_coordinates(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
         """Generate strategic default coordinates for actions with exploration."""
