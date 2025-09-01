@@ -201,13 +201,21 @@ class ContinuousLearningLoop:
         # Initialize goal invention system
         self.goal_system = GoalInventionSystem()
         
-        # Specialized Available Actions Memory - persists per game until new game starts
+        # Specialized Available Actions Memory - Enhanced with persistence and intelligence
         self.available_actions_memory = {
             'current_game_id': None,
-            'available_actions': [],
-            'action_effectiveness_history': {},  # Track which actions work for this game
-            'winning_action_sequences': [],      # Store successful action patterns
-            'failed_action_patterns': []         # Store failed patterns to avoid
+            'initial_actions': [],              # Actions available at game start
+            'current_actions': [],              # Actions available right now
+            'action_history': [],               # All actions attempted this game
+            'action_effectiveness': {},         # action_number -> {'attempts': int, 'successes': int, 'success_rate': float}
+            'action_transitions': {},           # (from_state, action, to_state) -> frequency
+            'action_sequences': [],             # List of successful action sequences
+            'coordinate_patterns': {},          # action_number -> {(x, y): {'attempts': int, 'successes': int, 'success_rate': float}}
+            'winning_action_sequences': [],     # Sequences that led to wins
+            'failed_action_patterns': [],       # Patterns that consistently fail
+            'game_intelligence_cache': {},      # Loaded intelligence per game
+            'last_action_result': None,         # Track effectiveness of last action
+            'sequence_in_progress': []          # Current action sequence being built
         }
         
         # Salience system components
@@ -644,20 +652,24 @@ class ContinuousLearningLoop:
         return 0 <= x < grid_width and 0 <= y < grid_height
     
     def _select_next_action(self, response_data: Dict[str, Any], game_id: str) -> Optional[int]:
-        """Select appropriate action based on available_actions from API response."""
+        """Select appropriate action based on learned intelligence and available_actions from API response."""
         available = response_data.get('available_actions', [])
         
         if not available:
             logger.warning(f"No available actions for game {game_id}")
             return None
         
-        # Simple strategy: prefer ACTION6 if available, otherwise random selection
-        if 6 in available:
-            return 6  # Coordinate-based action
-        elif len(available) > 0:
-            return random.choice(available)  # Random from available actions
+        # Update available actions tracking
+        self._update_available_actions(response_data, game_id)
         
-        return None
+        # Use intelligent action selection
+        selected_action = self._select_intelligent_action(available, {'game_id': game_id})
+        
+        # Add to action history
+        self.available_actions_memory['action_history'].append(selected_action)
+        
+        logger.debug(f"🎯 Selected action {selected_action} from available {available} for {game_id}")
+        return selected_action
     
     async def _send_enhanced_action(
         self,
@@ -668,7 +680,7 @@ class ContinuousLearningLoop:
         grid_width: int = 64,
         grid_height: int = 64
     ) -> Optional[Dict[str, Any]]:
-        """Send action with proper validation and grid bounds checking."""
+        """Send action with proper validation, coordinate optimization, and effectiveness tracking."""
         guid = self.current_game_sessions.get(game_id)
         if not guid:
             logger.warning(f"No active session for game {game_id}")
@@ -679,11 +691,12 @@ class ContinuousLearningLoop:
             logger.error(f"Invalid action number: {action_number}")
             return None
         
-        # Special handling for ACTION6 (coordinate-based)
+        # Optimize coordinates for coordinate-based actions
         if action_number == 6:
             if x is None or y is None:
-                logger.error("ACTION6 requires x,y coordinates")
-                return None
+                # Use learned coordinate optimization
+                x, y = self._optimize_coordinates_for_action(action_number, (grid_width, grid_height))
+                logger.info(f"🎯 Optimized coordinates for action {action_number}: ({x},{y})")
             
             # Verify coordinates are within actual grid bounds
             if not self._verify_grid_bounds(x, y, grid_width, grid_height):
@@ -716,6 +729,7 @@ class ContinuousLearningLoop:
                     "action_type": f"ACTION{action_number}",
                     "grid_size": f"{grid_width}x{grid_height}",
                     "coordinates": f"({x},{y})" if action_number == 6 else "N/A",
+                    "intelligence_used": self.available_actions_memory['current_game_id'] == game_id,
                     "timestamp": time.time()
                 }
                 
@@ -723,10 +737,24 @@ class ContinuousLearningLoop:
                     if response.status == 200:
                         data = await response.json()
                         logger.info(f"Action {action_number} successful for {game_id}")
+                        
+                        # Update action intelligence with response
+                        self._update_available_actions(data, game_id, action_number)
+                        
+                        # Record coordinate effectiveness if applicable
+                        if action_number == 6 and x is not None and y is not None:
+                            success = data.get('state') not in ['GAME_OVER'] and 'error' not in data
+                            self._record_coordinate_effectiveness(action_number, x, y, success)
+                        
                         return data
                     else:
                         error_text = await response.text()
                         logger.warning(f"Action {action_number} failed for {game_id}: {response.status} - {error_text}")
+                        
+                        # Record failure if coordinates were used
+                        if action_number == 6 and x is not None and y is not None:
+                            self._record_coordinate_effectiveness(action_number, x, y, False)
+                        
                         return None
                         
         except Exception as e:
@@ -1239,6 +1267,21 @@ class ContinuousLearningLoop:
             if reset_decision['should_reset']:
                 reset_effectiveness = self._evaluate_reset_effectiveness(reset_decision, result)
                 result['reset_effectiveness'] = reset_effectiveness
+            
+            # Record action sequence outcome and save intelligence
+            if self.available_actions_memory['current_game_id'] == game_id:
+                sequence = self.available_actions_memory['sequence_in_progress']
+                success = result.get('success', False)
+                self._record_sequence_outcome(sequence, success)
+                
+                # Save action intelligence for this game
+                self._save_game_action_intelligence(game_id)
+                
+                # Log intelligence summary
+                intel_summary = self._get_action_intelligence_summary(game_id)
+                logger.info(f"🧠 Action Intelligence for {game_id}: "
+                           f"{intel_summary.get('effective_actions', 0)}/{intel_summary.get('total_actions_learned', 0)} effective actions, "
+                           f"{intel_summary.get('coordinate_patterns_learned', 0)} coordinate patterns learned")
                 
             return result
             
@@ -1875,7 +1918,335 @@ class ContinuousLearningLoop:
         except Exception as e:
             logger.error(f"Failed to save session results: {e}")
 
-    def _load_state(self):
+    def _load_game_action_intelligence(self, game_id: str) -> Dict[str, Any]:
+        """Load learned action patterns for this specific game."""
+        intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+        
+        if intelligence_file.exists():
+            try:
+                with open(intelligence_file, 'r') as f:
+                    intelligence = json.load(f)
+                logger.info(f"🧠 Loaded action intelligence for {game_id}: {len(intelligence.get('effective_actions', {}))} effective actions")
+                return intelligence
+            except Exception as e:
+                logger.warning(f"Failed to load action intelligence for {game_id}: {e}")
+                
+        return {
+            'game_id': game_id,
+            'initial_actions': [],
+            'effective_actions': {},
+            'winning_sequences': [],
+            'coordinate_patterns': {},
+            'action_transitions': {},
+            'last_updated': 0
+        }
+    
+    def _save_game_action_intelligence(self, game_id: str):
+        """Save learned action patterns for this specific game."""
+        intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+        
+        # Calculate effectiveness rates
+        effective_actions = {}
+        for action, data in self.available_actions_memory['action_effectiveness'].items():
+            if data['attempts'] > 0:
+                success_rate = data['successes'] / data['attempts']
+                if success_rate > 0.1:  # Only save actions with some success
+                    effective_actions[action] = {
+                        'success_rate': success_rate,
+                        'attempts': data['attempts'],
+                        'successes': data['successes']
+                    }
+        
+        # Process coordinate patterns
+        coordinate_patterns = {}
+        for action, coords in self.available_actions_memory['coordinate_patterns'].items():
+            coordinate_patterns[action] = {}
+            for (x, y), data in coords.items():
+                if data['attempts'] > 0:
+                    success_rate = data['successes'] / data['attempts']
+                    coordinate_patterns[action][f"{x},{y}"] = {
+                        'success_rate': success_rate,
+                        'attempts': data['attempts'],
+                        'successes': data['successes']
+                    }
+        
+        game_intelligence = {
+            'game_id': game_id,
+            'initial_actions': self.available_actions_memory['initial_actions'],
+            'effective_actions': effective_actions,
+            'winning_sequences': self.available_actions_memory['winning_action_sequences'][-20:],  # Keep best 20
+            'coordinate_patterns': coordinate_patterns,
+            'action_transitions': dict(self.available_actions_memory['action_transitions']),
+            'total_sessions_learned': len(self.available_actions_memory.get('action_history', [])),
+            'last_updated': time.time()
+        }
+        
+        try:
+            with open(intelligence_file, 'w') as f:
+                json.dump(game_intelligence, f, indent=2)
+            logger.info(f"💾 Saved action intelligence for {game_id}: {len(effective_actions)} effective actions")
+        except Exception as e:
+            logger.error(f"Failed to save action intelligence for {game_id}: {e}")
+
+    def _update_available_actions(self, response_data: Dict[str, Any], game_id: str, action_taken: Optional[int] = None):
+        """Update available actions based on API response metadata."""
+        available_actions = response_data.get('available_actions', [])
+        
+        # Initialize for new game
+        if self.available_actions_memory['current_game_id'] != game_id:
+            self._initialize_game_actions(game_id, available_actions)
+        
+        # Track action transitions if we took an action
+        if action_taken is not None and self.available_actions_memory['current_actions']:
+            self._record_action_transition(action_taken, available_actions)
+        
+        # Update current available actions
+        prev_actions = set(self.available_actions_memory['current_actions'])
+        self.available_actions_memory['current_actions'] = available_actions
+        
+        # Track action sequence in progress
+        if action_taken is not None:
+            self.available_actions_memory['sequence_in_progress'].append(action_taken)
+        
+        # Learn from action effectiveness
+        if action_taken is not None:
+            self._analyze_action_effectiveness(action_taken, response_data)
+        
+        logger.debug(f"🎯 Available actions updated for {game_id}: {available_actions}")
+    
+    def _initialize_game_actions(self, game_id: str, initial_actions: List[int]):
+        """Initialize action memory for a new game."""
+        # Load cached intelligence if available
+        if game_id not in self.available_actions_memory['game_intelligence_cache']:
+            self.available_actions_memory['game_intelligence_cache'][game_id] = self._load_game_action_intelligence(game_id)
+        
+        # Reset current session data but preserve learned intelligence
+        cached_intel = self.available_actions_memory['game_intelligence_cache'][game_id]
+        
+        self.available_actions_memory.update({
+            'current_game_id': game_id,
+            'initial_actions': initial_actions,
+            'current_actions': initial_actions,
+            'action_history': [],
+            'sequence_in_progress': [],
+            'last_action_result': None
+        })
+        
+        # Initialize effectiveness tracking with cached data
+        self.available_actions_memory['action_effectiveness'] = {}
+        for action in initial_actions:
+            if str(action) in cached_intel.get('effective_actions', {}):
+                cached_data = cached_intel['effective_actions'][str(action)]
+                self.available_actions_memory['action_effectiveness'][action] = {
+                    'attempts': cached_data.get('attempts', 0),
+                    'successes': cached_data.get('successes', 0),
+                    'success_rate': cached_data.get('success_rate', 0.0)
+                }
+            else:
+                self.available_actions_memory['action_effectiveness'][action] = {
+                    'attempts': 0,
+                    'successes': 0,
+                    'success_rate': 0.0
+                }
+        
+        # Load coordinate patterns
+        self.available_actions_memory['coordinate_patterns'] = {}
+        for action in initial_actions:
+            self.available_actions_memory['coordinate_patterns'][action] = {}
+            if str(action) in cached_intel.get('coordinate_patterns', {}):
+                cached_coords = cached_intel['coordinate_patterns'][str(action)]
+                for coord_str, data in cached_coords.items():
+                    x, y = map(int, coord_str.split(','))
+                    self.available_actions_memory['coordinate_patterns'][action][(x, y)] = {
+                        'attempts': data.get('attempts', 0),
+                        'successes': data.get('successes', 0),
+                        'success_rate': data.get('success_rate', 0.0)
+                    }
+        
+        # Load winning sequences and transitions
+        self.available_actions_memory['winning_action_sequences'] = cached_intel.get('winning_sequences', [])
+        self.available_actions_memory['action_transitions'] = cached_intel.get('action_transitions', {})
+        
+        logger.info(f"🎮 Initialized actions for {game_id}: {initial_actions} (loaded {len(cached_intel.get('effective_actions', {}))} cached patterns)")
+
+    def _record_action_transition(self, action_taken: int, new_available_actions: List[int]):
+        """Record transition from one action to available next actions."""
+        prev_state = tuple(sorted(self.available_actions_memory['current_actions']))
+        new_state = tuple(sorted(new_available_actions))
+        transition_key = (prev_state, action_taken, new_state)
+        
+        self.available_actions_memory['action_transitions'][str(transition_key)] = \
+            self.available_actions_memory['action_transitions'].get(str(transition_key), 0) + 1
+
+    def _analyze_action_effectiveness(self, action_taken: int, response_data: Dict[str, Any]):
+        """Analyze if the action was effective based on response."""
+        if action_taken not in self.available_actions_memory['action_effectiveness']:
+            self.available_actions_memory['action_effectiveness'][action_taken] = {
+                'attempts': 0, 'successes': 0, 'success_rate': 0.0
+            }
+        
+        # Increment attempts
+        self.available_actions_memory['action_effectiveness'][action_taken]['attempts'] += 1
+        
+        # Determine if action was successful based on multiple indicators
+        success_indicators = [
+            response_data.get('state') == 'WIN',
+            response_data.get('score', 0) > 0,
+            len(response_data.get('available_actions', [])) > 0,  # Game didn't end
+            'error' not in response_data
+        ]
+        
+        # Action is successful if it meets multiple criteria
+        is_successful = sum(success_indicators) >= 2
+        
+        if is_successful:
+            self.available_actions_memory['action_effectiveness'][action_taken]['successes'] += 1
+        
+        # Recalculate success rate
+        attempts = self.available_actions_memory['action_effectiveness'][action_taken]['attempts']
+        successes = self.available_actions_memory['action_effectiveness'][action_taken]['successes']
+        self.available_actions_memory['action_effectiveness'][action_taken]['success_rate'] = successes / attempts if attempts > 0 else 0.0
+        
+        # Store result for sequence analysis
+        self.available_actions_memory['last_action_result'] = {
+            'action': action_taken,
+            'success': is_successful,
+            'response': response_data
+        }
+
+    def _select_intelligent_action(self, available_actions: List[int], game_context: Dict[str, Any] = None) -> int:
+        """Select action based on learned effectiveness and patterns."""
+        if not available_actions:
+            return 6  # Fallback to action 6
+        
+        # Filter out invalid actions (never select unavailable actions)
+        valid_actions = [a for a in available_actions if a in available_actions]
+        if not valid_actions:
+            return available_actions[0]
+        
+        # Get effectiveness data
+        action_scores = {}
+        for action in valid_actions:
+            effectiveness = self.available_actions_memory['action_effectiveness'].get(action, {'success_rate': 0.0})
+            base_score = effectiveness['success_rate']
+            
+            # Bonus for actions that appear in winning sequences
+            sequence_bonus = 0.0
+            for seq in self.available_actions_memory['winning_action_sequences'][-5:]:  # Recent wins
+                if action in seq:
+                    sequence_bonus += 0.2
+            
+            # Penalty for actions in failed patterns  
+            pattern_penalty = 0.0
+            current_sequence = self.available_actions_memory['sequence_in_progress'][-3:]  # Last 3 actions
+            for failed_pattern in self.available_actions_memory['failed_action_patterns'][-5:]:
+                if current_sequence + [action] == failed_pattern:
+                    pattern_penalty = 0.5
+                    break
+            
+            action_scores[action] = max(0.1, base_score + sequence_bonus - pattern_penalty)
+        
+        # Selection strategy: Weighted random with exploration
+        if random.random() < 0.1:  # 10% pure exploration
+            return random.choice(valid_actions)
+        
+        # 90% intelligent selection
+        # Try high-effectiveness actions more often, but still give low-effectiveness actions a chance
+        weights = [max(0.1, action_scores[action]) for action in valid_actions]
+        return random.choices(valid_actions, weights=weights)[0]
+
+    def _optimize_coordinates_for_action(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+        """Generate optimal X/Y coordinates based on learned patterns."""
+        grid_width, grid_height = grid_dims
+        
+        # Check if we have learned patterns for this action
+        if action in self.available_actions_memory['coordinate_patterns']:
+            patterns = self.available_actions_memory['coordinate_patterns'][action]
+            
+            # Filter patterns that are within grid bounds and have some success
+            valid_patterns = [(coords, data) for coords, data in patterns.items() 
+                            if (coords[0] < grid_width and coords[1] < grid_height 
+                                and data['success_rate'] > 0.2 and data['attempts'] > 1)]
+            
+            if valid_patterns:
+                # Select coordinate with highest success rate
+                best_coords, _ = max(valid_patterns, key=lambda x: x[1]['success_rate'])
+                logger.debug(f"🎯 Using learned coordinates for action {action}: {best_coords}")
+                return best_coords
+        
+        # No learned pattern or no successful patterns - use strategic defaults
+        return self._get_strategic_coordinates(action, grid_dims)
+    
+    def _get_strategic_coordinates(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+        """Generate strategic default coordinates for actions."""
+        grid_width, grid_height = grid_dims
+        
+        # Strategic coordinate selection based on action type and grid analysis
+        if action == 1:  # Often drawing/placing
+            return (grid_width // 4, grid_height // 4)  # Upper left quadrant
+        elif action == 2:  # Often modifying  
+            return (grid_width // 2, grid_height // 2)  # Center
+        elif action == 3:  # Often erasing/removing
+            return (3 * grid_width // 4, 3 * grid_height // 4)  # Lower right
+        elif action == 4:  # Often pattern-related
+            return (grid_width // 4, 3 * grid_height // 4)  # Lower left
+        elif action == 5:  # Often transformation
+            return (3 * grid_width // 4, grid_height // 4)  # Upper right
+        else:
+            # Default to slightly off-center to avoid edge effects
+            return (grid_width // 2 + 1, grid_height // 2 + 1)
+
+    def _record_coordinate_effectiveness(self, action: int, x: int, y: int, success: bool):
+        """Record effectiveness of coordinate choice for an action."""
+        if action not in self.available_actions_memory['coordinate_patterns']:
+            self.available_actions_memory['coordinate_patterns'][action] = {}
+            
+        coord_key = (x, y)
+        if coord_key not in self.available_actions_memory['coordinate_patterns'][action]:
+            self.available_actions_memory['coordinate_patterns'][action][coord_key] = {
+                'attempts': 0, 'successes': 0, 'success_rate': 0.0
+            }
+        
+        coord_data = self.available_actions_memory['coordinate_patterns'][action][coord_key]
+        coord_data['attempts'] += 1
+        if success:
+            coord_data['successes'] += 1
+        coord_data['success_rate'] = coord_data['successes'] / coord_data['attempts']
+
+    def _record_sequence_outcome(self, sequence: List[int], success: bool):
+        """Record whether an action sequence was successful."""
+        if success and len(sequence) >= 2:
+            # Add to winning sequences
+            self.available_actions_memory['winning_action_sequences'].append(sequence.copy())
+            # Keep only recent successful sequences
+            if len(self.available_actions_memory['winning_action_sequences']) > 50:
+                self.available_actions_memory['winning_action_sequences'] = \
+                    self.available_actions_memory['winning_action_sequences'][-50:]
+        elif not success and len(sequence) >= 2:
+            # Add to failed patterns (shorter sequences to avoid overfitting)
+            failed_pattern = sequence[-3:] if len(sequence) >= 3 else sequence
+            self.available_actions_memory['failed_action_patterns'].append(failed_pattern)
+            # Keep only recent failed patterns
+            if len(self.available_actions_memory['failed_action_patterns']) > 30:
+                self.available_actions_memory['failed_action_patterns'] = \
+                    self.available_actions_memory['failed_action_patterns'][-30:]
+
+    def _get_action_intelligence_summary(self, game_id: str) -> Dict[str, Any]:
+        """Get summary of learned action intelligence for a game."""
+        if self.available_actions_memory['current_game_id'] != game_id:
+            return {}
+            
+        effectiveness = self.available_actions_memory['action_effectiveness']
+        effective_actions = {k: v for k, v in effectiveness.items() if v['success_rate'] > 0.5}
+        
+        return {
+            'total_actions_learned': len(effectiveness),
+            'effective_actions': len(effective_actions),
+            'best_action': max(effectiveness.keys(), key=lambda x: effectiveness[x]['success_rate']) if effectiveness else None,
+            'winning_sequences_count': len(self.available_actions_memory['winning_action_sequences']),
+            'coordinate_patterns_learned': sum(len(coords) for coords in self.available_actions_memory['coordinate_patterns'].values()),
+            'intelligence_available': game_id in self.available_actions_memory['game_intelligence_cache']
+        }
         """Load previous state if available."""
         state_file = self.save_directory / "continuous_learning_state.json"
         if state_file.exists():
@@ -1889,6 +2260,34 @@ class ContinuousLearningLoop:
                 logger.info("Loaded previous continuous learning state")
             except Exception as e:
                 logger.error(f"Failed to load state: {e}")
+
+    def _load_state(self):
+        """Load previous training state if available."""
+        state_file = self.save_directory / "continuous_learning_state.json"
+        if state_file.exists():
+            try:
+                with open(state_file, 'r') as f:
+                    state = json.load(f)
+                    self.session_history = state.get('session_history', [])
+                    self.global_performance_metrics = state.get('global_performance_metrics', self.global_performance_metrics)
+                    logger.info(f"📂 Loaded previous state: {len(self.session_history)} sessions")
+            except Exception as e:
+                logger.warning(f"Failed to load previous state: {e}")
+
+    def _save_state(self):
+        """Save current training state."""
+        state = {
+            'session_history': self.session_history[-50:],  # Keep last 50 sessions
+            'global_performance_metrics': self.global_performance_metrics,
+            'last_updated': time.time()
+        }
+        
+        state_file = self.save_directory / "continuous_learning_state.json"
+        try:
+            with open(state_file, 'w') as f:
+                json.dump(state, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to save state: {e}")
 
     def _should_stop_training(self, game_results: Dict[str, Any], target_performance: Dict[str, float]) -> bool:
         """Check if we should stop training on this game based on target performance."""
