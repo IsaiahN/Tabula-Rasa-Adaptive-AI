@@ -733,6 +733,27 @@ class ContinuousLearningLoop:
             logger.error(f"Error sending action {action_number} to {game_id}: {e}")
             return None
 
+    async def _validate_api_connection(self) -> bool:
+        """Validate ARC-AGI-3 API connection and game availability."""
+        try:
+            import requests
+            response = requests.get("https://three.arcprize.org/api/games", 
+                                  headers={"X-API-Key": self.api_key}, timeout=30)
+            if response.status_code == 200:
+                games = response.json()
+                if isinstance(games, list) and len(games) > 0:
+                    print(f"✅ API Connection OK: {len(games)} games available")
+                    return True
+                else:
+                    print(f"⚠️ API returned empty game list: {games}")
+                    return False
+            else:
+                print(f"❌ API Error: {response.status_code}")
+                return False
+        except Exception as e:
+            print(f"❌ API Connection Failed: {e}")
+            return False
+
     async def _train_on_game(
         self,
         game_id: str,
@@ -1071,12 +1092,23 @@ class ContinuousLearningLoop:
                     
             except Exception as e:
                 print(f"❌ Error during complete game session: {e}")
+                # Comprehensive error state with null safety
                 total_score = 0
                 episode_actions = 0
                 final_state = 'ERROR'
                 effective_actions = []
                 stdout_text = ""
                 stderr_text = ""
+                
+                # Log the error for debugging
+                print(f"❌ Game session error details: Game={game_id}, Error={str(e)}")
+                
+                # Check if this is an API connectivity issue
+                if "connection" in str(e).lower() or "timeout" in str(e).lower():
+                    print("⚠️ Possible API connectivity issue - validating connection...")
+                    api_valid = await self._validate_api_connection()
+                    if not api_valid:
+                        print("💡 Consider checking ARC_API_KEY and network connectivity")
             
             # Now process the complete game session results
             # Dynamic energy system based on game complexity and learning opportunities
@@ -1703,8 +1735,15 @@ class ContinuousLearningLoop:
         total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
         total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
                         for game in games_played.values())
-        total_score = sum(sum((ep.get('final_score') or 0) for ep in game.get('episodes', [])) 
-                         for game in games_played.values())
+        # Enhanced null safety for score calculations
+        total_score = 0
+        for game in games_played.values():
+            episodes = game.get('episodes', []) if game else []
+            for ep in episodes:
+                if ep:
+                    score = ep.get('final_score')
+                    if score is not None and isinstance(score, (int, float)):
+                        total_score += score
         
         learning_efficiency = self._calculate_learning_efficiency(session_results)
         knowledge_transfer = self._calculate_knowledge_transfer_score(session_results)
@@ -1727,8 +1766,24 @@ class ContinuousLearningLoop:
         for game_results in games_played.values():
             episodes = game_results.get('episodes', [])
             if len(episodes) >= 10:
-                early_performance = sum((ep.get('final_score') or 0) for ep in episodes[:5]) / 5
-                late_performance = sum((ep.get('final_score') or 0) for ep in episodes[-5:]) / 5
+                # Enhanced null safety for performance calculations
+                early_scores = []
+                late_scores = []
+                
+                for ep in episodes[:5]:
+                    if ep:
+                        score = ep.get('final_score')
+                        if score is not None and isinstance(score, (int, float)):
+                            early_scores.append(score)
+                
+                for ep in episodes[-5:]:
+                    if ep:
+                        score = ep.get('final_score')
+                        if score is not None and isinstance(score, (int, float)):
+                            late_scores.append(score)
+                
+                early_performance = sum(early_scores) / max(len(early_scores), 1)
+                late_performance = sum(late_scores) / max(len(late_scores), 1)
                 improvement = late_performance - early_performance
                 efficiency_scores.append(max(0, improvement / 100))  # Normalize
                 
@@ -2398,8 +2453,15 @@ class ContinuousLearningLoop:
         total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
         total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
                         for game in games_played.values())
-        total_score = sum(sum((ep.get('final_score') or 0) for ep in game.get('episodes', [])) 
-                         for game in games_played.values())
+        # Enhanced null safety for score calculations
+        total_score = 0
+        for game in games_played.values():
+            episodes = game.get('episodes', []) if game else []
+            for ep in episodes:
+                if ep:
+                    score = ep.get('final_score')
+                    if score is not None and isinstance(score, (int, float)):
+                        total_score += score
         
         # Standard performance metrics
         standard_metrics = {
@@ -3101,12 +3163,17 @@ class ContinuousLearningLoop:
         """Parse complete game session output to extract results and effective actions."""
         import re
         
+        # Enhanced null safety - ensure we never return None values
         result = {
             'final_score': 0,
             'total_actions': 0,
             'final_state': 'UNKNOWN',
             'effective_actions': []
         }
+        
+        # Null safety for input parameters
+        stdout_text = stdout_text if stdout_text is not None else ""
+        stderr_text = stderr_text if stderr_text is not None else ""
         
         try:
             # Look for final scorecard in output
@@ -3390,14 +3457,22 @@ class ContinuousLearningLoop:
                 'effectiveness_history': []
             }
         
-        # Fix NoneType errors by providing defaults
+        # Comprehensive null safety - ensure no None values in calculations
         actions_taken = actions_taken if actions_taken is not None else 0
         effectiveness_ratio = effectiveness_ratio if effectiveness_ratio is not None else 0.0
         
+        # Additional safety checks
+        if not isinstance(actions_taken, (int, float)):
+            actions_taken = 0
+        if not isinstance(effectiveness_ratio, (int, float)):
+            effectiveness_ratio = 0.0
+        
         history = self.game_complexity_history[game_id]
-        history['total_plays'] += 1
-        history['total_actions'] += actions_taken
-        history['avg_actions'] = history['total_actions'] / history['total_plays']
+        
+        # Ensure history values are never None
+        history['total_plays'] = (history.get('total_plays') or 0) + 1
+        history['total_actions'] = (history.get('total_actions') or 0) + actions_taken
+        history['avg_actions'] = history['total_actions'] / max(history['total_plays'], 1)
         history['effectiveness_history'].append(effectiveness_ratio)
         
         # Keep only last 10 effectiveness scores
