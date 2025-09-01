@@ -385,6 +385,52 @@ class ContinuousLearningLoop:
                 'last_action6_used': 0,         # Track last ACTION6 usage
                 'predictive_mode': True,        # Try to predict good coordinates
                 'emergency_reset_only': True    # Only use as mini-reset when truly stuck
+            },
+            
+            # UNIVERSAL BOUNDARY DETECTION SYSTEM - Extended to all coordinate-based actions
+            'universal_boundary_detection': {
+                'boundary_data': {},            # game_id -> {(x,y): {'boundary_type': str, 'detection_count': int, 'timestamp': float, 'detected_by_actions': [int]}}
+                'coordinate_attempts': {},      # game_id -> {(x,y): {'attempts': int, 'consecutive_stuck': int, 'success_rate': float, 'last_successful_action': int}}
+                'action_coordinate_history': {},# game_id -> {action_num: [(x,y), timestamp]} - track coordinate usage by action
+                'stuck_patterns': {},           # game_id -> {action_num: {'last_coordinates': (x,y), 'stuck_count': int}}
+                'directional_systems': {        # Per-action directional movement systems
+                    6: {  # ACTION 6 gets sophisticated directional movement
+                        'current_direction': {},        # game_id -> str
+                        'direction_progression': {      # Systematic direction exploration order
+                            'right': {'next': 'down', 'coordinate_delta': (1, 0)},
+                            'down': {'next': 'left', 'coordinate_delta': (0, 1)}, 
+                            'left': {'next': 'up', 'coordinate_delta': (-1, 0)},
+                            'up': {'next': 'right', 'coordinate_delta': (0, -1)}
+                        }
+                    },
+                    # Other coordinate-based actions get simpler boundary avoidance
+                    1: {'boundary_avoidance_radius': 2},  # Actions 1-5 avoid known boundaries
+                    2: {'boundary_avoidance_radius': 2},
+                    3: {'boundary_avoidance_radius': 2}, 
+                    4: {'boundary_avoidance_radius': 2},
+                    5: {'boundary_avoidance_radius': 3},  # ACTION 5 gets more avoidance
+                    7: {'boundary_avoidance_radius': 2}
+                },
+                'boundary_stuck_threshold': 3,          # Same coordinates N times = boundary detected
+                'success_zone_mapping': {},             # game_id -> {(x,y): {'success_count': int, 'total_attempts': int, 'successful_actions': [int]}}
+                'global_coordinate_intelligence': {}    # Cross-game coordinate learning
+            },
+            
+            # ACTION 6 LEGACY SYSTEM (kept for backward compatibility)
+            'action6_boundary_detection': {
+                'boundary_data': {},            # DEPRECATED: Use universal_boundary_detection instead
+                'coordinate_attempts': {},      # DEPRECATED: Use universal_boundary_detection instead
+                'last_coordinates': {},         # DEPRECATED: Use universal_boundary_detection instead  
+                'stuck_count': {},              # DEPRECATED: Use universal_boundary_detection instead
+                'current_direction': {},        # DEPRECATED: Use universal_boundary_detection instead
+                'direction_progression': {      # DEPRECATED: Use universal_boundary_detection instead
+                    'right': {'next': 'down', 'coordinate_delta': (1, 0)},
+                    'down': {'next': 'left', 'coordinate_delta': (0, 1)}, 
+                    'left': {'next': 'up', 'coordinate_delta': (-1, 0)},
+                    'up': {'next': 'right', 'coordinate_delta': (0, -1)}
+                },
+                'boundary_stuck_threshold': 3,  # DEPRECATED: Use universal_boundary_detection instead
+                'max_direction_distance': 8     # DEPRECATED: Use universal_boundary_detection instead
             }
         }
         
@@ -694,6 +740,50 @@ class ContinuousLearningLoop:
                             self.current_game_sessions[game_id] = guid
                             reset_type = "LEVEL RESET" if existing_guid else "NEW GAME"
                             print(f"✅ {reset_type} successful: {game_id}")
+                            
+                            # Initialize position tracking for ACTION 6 directional movement
+                            if not existing_guid:  # Only for new games, not level resets
+                                # Get grid dimensions from frame if available
+                                frame = result.get('frame', [])
+                                if frame and len(frame) > 0 and isinstance(frame[0], list):
+                                    grid_height, grid_width = len(frame), len(frame[0])
+                                else:
+                                    grid_width, grid_height = 64, 64  # Default
+                                
+                                # Start ACTION 6 position at center of grid for directional movement
+                                self._current_game_x = grid_width // 2
+                                self._current_game_y = grid_height // 2
+                                print(f"🎯 Initialized ACTION 6 position at center: ({self._current_game_x},{self._current_game_y}) for {grid_width}x{grid_height} grid")
+                                
+                                # Clear boundary data for new games - boundaries are game-specific
+                                universal_boundary = self.available_actions_memory['universal_boundary_detection']
+                                legacy_boundary = self.available_actions_memory['action6_boundary_detection']
+                                
+                                # Clear universal boundary data
+                                if game_id in universal_boundary['boundary_data']:
+                                    old_boundaries = len(universal_boundary['boundary_data'][game_id])
+                                    print(f"🧹 Cleared {old_boundaries} previous universal boundary mappings for new game {game_id}")
+                                
+                                # Initialize fresh universal boundary detection for this game
+                                universal_boundary['boundary_data'][game_id] = {}
+                                universal_boundary['coordinate_attempts'][game_id] = {}
+                                universal_boundary['action_coordinate_history'][game_id] = {}
+                                universal_boundary['stuck_patterns'][game_id] = {}
+                                universal_boundary['success_zone_mapping'][game_id] = {}
+                                
+                                # Initialize ACTION 6 directional system
+                                if 6 in universal_boundary['directional_systems']:
+                                    universal_boundary['directional_systems'][6]['current_direction'][game_id] = 'right'
+                                
+                                # Initialize legacy system for backward compatibility
+                                legacy_boundary['boundary_data'][game_id] = {}
+                                legacy_boundary['coordinate_attempts'][game_id] = {}
+                                legacy_boundary['last_coordinates'][game_id] = None
+                                legacy_boundary['stuck_count'][game_id] = 0
+                                legacy_boundary['current_direction'][game_id] = 'right'
+                                
+                                print(f"🌐 Initialized universal boundary detection system for {game_id}")
+                                print(f"🔄 All actions will now benefit from boundary awareness and coordinate intelligence")
                             
                             return {
                                 'guid': guid,
@@ -1159,6 +1249,10 @@ class ContinuousLearningLoop:
                         if action_number == 6 and x is not None and y is not None:
                             success = data.get('state') not in ['GAME_OVER'] and 'error' not in data
                             self._record_coordinate_effectiveness(action_number, x, y, success)
+                            
+                            # Update current position tracking for future directional movement
+                            self._current_game_x = x
+                            self._current_game_y = y
                         
                         return data
                     elif response.status == 429:
@@ -3332,150 +3426,270 @@ class ContinuousLearningLoop:
             print(f"   ⚠️ Error analyzing action details: {e}")
 
     def _optimize_coordinates_for_action(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
-        """Generate optimal X/Y coordinates based on learned patterns and strategic analysis."""
+        """Universal coordinate optimization with boundary awareness for all coordinate-based actions."""
         grid_width, grid_height = grid_dims
         
-        # Special strategic coordinate selection for ACTION 6
+        # Special strategic coordinate selection for ACTION 6 with full directional system
         if action == 6:
             return self._get_strategic_action6_coordinates(grid_dims)
         
-        # Check if we have learned patterns for this action
-        if action in self.available_actions_memory['coordinate_patterns']:
-            patterns = self.available_actions_memory['coordinate_patterns'][action]
-            
-            # Filter patterns that are within grid bounds and have some success
-            valid_patterns = [(coords, data) for coords, data in patterns.items() 
-                            if (coords[0] < grid_width and coords[1] < grid_height 
-                                and data['success_rate'] > 0.2 and data['attempts'] > 1)]
-            
-            if valid_patterns:
-                # Select coordinate with highest success rate
-                best_coords, _ = max(valid_patterns, key=lambda x: x[1]['success_rate'])
-                logger.debug(f"🎯 Using learned coordinates for action {action}: {best_coords}")
-                return best_coords
+        # Universal boundary-aware coordinate selection for other actions
+        return self._get_universal_boundary_aware_coordinates(action, grid_dims)
+    
+    def _get_universal_boundary_aware_coordinates(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+        """
+        Universal boundary-aware coordinate selection for all coordinate-based actions.
         
-        # No learned pattern or no successful patterns - use strategic defaults
-        return self._get_strategic_coordinates(action, grid_dims)
+        Features:
+        1. Avoids known boundaries discovered by any action
+        2. Prefers success zones discovered by any action
+        3. Uses intelligent exploration patterns
+        4. Tracks coordinate effectiveness per action
+        """
+        grid_width, grid_height = grid_dims
+        game_id = self.available_actions_memory.get('current_game_id', 'unknown')
+        
+        # Get universal boundary system
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        
+        # Initialize data for this game/action if needed
+        if game_id not in boundary_system['boundary_data']:
+            boundary_system['boundary_data'][game_id] = {}
+            boundary_system['coordinate_attempts'][game_id] = {}
+            boundary_system['action_coordinate_history'][game_id] = {}
+            boundary_system['stuck_patterns'][game_id] = {}
+            boundary_system['success_zone_mapping'][game_id] = {}
+        
+        # Get action-specific settings
+        action_settings = boundary_system['directional_systems'].get(action, {'boundary_avoidance_radius': 2})
+        avoidance_radius = action_settings.get('boundary_avoidance_radius', 2)
+        
+        # Get known boundaries for this game
+        known_boundaries = set(boundary_system['boundary_data'][game_id].keys())
+        
+        # Get success zones for this game
+        success_zones = boundary_system['success_zone_mapping'][game_id]
+        
+        # Find best success zone if available
+        if success_zones:
+            best_zone = None
+            best_success_rate = 0
+            
+            for coords, zone_data in success_zones.items():
+                success_rate = zone_data['success_count'] / max(1, zone_data['total_attempts'])
+                if success_rate > best_success_rate and success_rate > 0.3:
+                    # Check if this zone is not too close to boundaries
+                    zone_x, zone_y = coords
+                    too_close_to_boundary = False
+                    
+                    for boundary_coord in known_boundaries:
+                        boundary_x, boundary_y = boundary_coord
+                        distance = abs(zone_x - boundary_x) + abs(zone_y - boundary_y)  # Manhattan distance
+                        if distance < avoidance_radius:
+                            too_close_to_boundary = True
+                            break
+                    
+                    if not too_close_to_boundary:
+                        best_zone = coords
+                        best_success_rate = success_rate
+            
+            if best_zone:
+                print(f"🎯 ACTION {action} SUCCESS ZONE: Using proven coordinates {best_zone} (success rate: {best_success_rate:.1%})")
+                return best_zone
+        
+        # Generate exploration coordinates avoiding boundaries
+        max_attempts = 50  # Prevent infinite loops
+        attempts = 0
+        
+        while attempts < max_attempts:
+            # Intelligent coordinate generation based on action type
+            if action in [1, 2, 3, 4]:  # Directional actions
+                # Use directional bias for movement actions
+                center_x, center_y = grid_width // 2, grid_height // 2
+                
+                if action == 1:  # Up
+                    x = center_x + random.randint(-5, 5)
+                    y = random.randint(0, center_y)
+                elif action == 2:  # Down  
+                    x = center_x + random.randint(-5, 5)
+                    y = random.randint(center_y, grid_height - 1)
+                elif action == 3:  # Left
+                    x = random.randint(0, center_x)
+                    y = center_y + random.randint(-5, 5)
+                elif action == 4:  # Right
+                    x = random.randint(center_x, grid_width - 1)
+                    y = center_y + random.randint(-5, 5)
+            elif action == 5:  # Interaction action
+                # Focus on central regions for interactions
+                x = random.randint(grid_width // 4, 3 * grid_width // 4)
+                y = random.randint(grid_height // 4, 3 * grid_height // 4)
+            elif action == 7:  # Undo action
+                # Use recent coordinate history for undo
+                action_history = boundary_system['action_coordinate_history'][game_id]
+                if action_history and len(action_history) > 0:
+                    # Get recent coordinates from any action
+                    recent_coords = []
+                    for action_num, coord_history in action_history.items():
+                        recent_coords.extend([coord[0] for coord in coord_history[-3:]])  # Last 3 coordinates
+                    
+                    if recent_coords:
+                        x, y = random.choice(recent_coords)
+                    else:
+                        x, y = random.randint(0, grid_width-1), random.randint(0, grid_height-1)
+                else:
+                    x, y = random.randint(0, grid_width-1), random.randint(0, grid_height-1)
+            else:
+                # Default exploration
+                x, y = random.randint(0, grid_width-1), random.randint(0, grid_height-1)
+            
+            # Ensure coordinates are in bounds
+            x = max(0, min(x, grid_width - 1))
+            y = max(0, min(y, grid_height - 1))
+            
+            # Check if too close to known boundaries
+            coordinates = (x, y)
+            too_close = False
+            
+            for boundary_coord in known_boundaries:
+                boundary_x, boundary_y = boundary_coord
+                distance = abs(x - boundary_x) + abs(y - boundary_y)
+                if distance < avoidance_radius:
+                    too_close = True
+                    break
+            
+            if not too_close:
+                print(f"🎯 ACTION {action} BOUNDARY-AWARE: Selected ({x},{y}) avoiding {len(known_boundaries)} boundaries")
+                return coordinates
+            
+            attempts += 1
+        
+        # Fallback - use center if all else fails
+        fallback_x, fallback_y = grid_width // 2, grid_height // 2
+        print(f"🎯 ACTION {action} FALLBACK: Using center ({fallback_x},{fallback_y}) after boundary avoidance")
+        return (fallback_x, fallback_y)
 
     def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
         """
-        DIRECTIONAL MOVEMENT for ACTION 6 - mirrors actions 1-4 behavior.
+        BOUNDARY-AWARE DIRECTIONAL MOVEMENT for ACTION 6 with intelligent pivoting.
         
-        ACTION 6 should primarily move directionally like actions 1-4:
-        - (0,1), (0,2), (0,3) = moving down step by step
-        - (1,0), (2,0), (3,0) = moving right step by step
-        - (0,-1) equivalent to (0,0) = moving up step by step  
-        - (-1,0) equivalent to (0,0) = moving left step by step
-        
-        Only use random coordinates as last resort when truly stuck.
+        Key Features:
+        1. Detects boundaries when same coordinates attempted repeatedly
+        2. Saves boundary data as non-deletable until new game starts
+        3. Pivots to new semantic directions when boundaries hit
+        4. Explores systematically: right -> down -> left -> up -> repeat
         """
         grid_width, grid_height = grid_dims
+        game_id = self.available_actions_memory.get('current_game_id', 'unknown')
         
-        # Track current position (start from origin if no history)
-        current_x = getattr(self, '_last_action6_x', 0)
-        current_y = getattr(self, '_last_action6_y', 0)
+        # Initialize boundary detection data for this game if needed
+        boundary_system = self.available_actions_memory['action6_boundary_detection']
+        if game_id not in boundary_system['boundary_data']:
+            boundary_system['boundary_data'][game_id] = {}
+            boundary_system['coordinate_attempts'][game_id] = {}
+            boundary_system['last_coordinates'][game_id] = None
+            boundary_system['stuck_count'][game_id] = 0
+            boundary_system['current_direction'][game_id] = 'right'  # Start moving right
         
-        # Get recent action history to determine directional pattern
-        action_history = self.available_actions_memory.get('action_history', [])
-        recent_actions = action_history[-8:] if len(action_history) >= 8 else action_history
+        # Get current position from game state (stored by previous ACTION 6 or start at center)
+        current_x = getattr(self, '_current_game_x', grid_width // 2)
+        current_y = getattr(self, '_current_game_y', grid_height // 2)
         
-        # Count recent directional actions (1=up, 2=down, 3=left, 4=right)
-        direction_counts = {1: 0, 2: 0, 3: 0, 4: 0}
-        for action in recent_actions:
-            if action in direction_counts:
-                direction_counts[action] += 1
+        # Get current direction for this game
+        current_direction = boundary_system['current_direction'][game_id]
+        direction_info = boundary_system['direction_progression'][current_direction]
+        dx, dy = direction_info['coordinate_delta']
         
-        # Find dominant direction from recent actions
-        if any(count > 0 for count in direction_counts.values()):
-            dominant_direction = max(direction_counts.items(), key=lambda x: x[1])[0]
+        # Calculate next coordinate in current direction
+        new_x = current_x + dx
+        new_y = current_y + dy
+        
+        # Check grid bounds and adjust if we hit the edge
+        hit_boundary = False
+        if new_x < 0 or new_x >= grid_width or new_y < 0 or new_y >= grid_height:
+            hit_boundary = True
+            boundary_type = f"grid_edge_{current_direction}"
             
-            # Map action numbers to directional movement
-            direction_mappings = {
-                1: (0, -1),  # Up: decrease Y
-                2: (0, 1),   # Down: increase Y 
-                3: (-1, 0),  # Left: decrease X
-                4: (1, 0)    # Right: increase X
-            }
-            
-            dx, dy = direction_mappings[dominant_direction]
-            
-            # Calculate step size (1-3 based on how many recent uses)
-            step_count = direction_counts[dominant_direction]
-            step_size = min(3, step_count)  # Progressive movement
-            
-            # Apply directional movement
-            new_x = current_x + (dx * step_size)
-            new_y = current_y + (dy * step_size)
-            
-            # Ensure coordinates stay within bounds
+            # Clamp to grid bounds
             new_x = max(0, min(new_x, grid_width - 1))
             new_y = max(0, min(new_y, grid_height - 1))
             
-            # Store for next iteration
-            self._last_action6_x = new_x
-            self._last_action6_y = new_y
+            # Mark this as a boundary
+            boundary_coord = (new_x, new_y)
+            boundary_system['boundary_data'][game_id][boundary_coord] = {
+                'boundary_type': boundary_type,
+                'detection_count': boundary_system['boundary_data'][game_id].get(boundary_coord, {}).get('detection_count', 0) + 1,
+                'timestamp': time.time()
+            }
             
-            print(f"🎯 ACTION 6 DIRECTIONAL: Following action {dominant_direction} pattern, step {step_size} -> ({new_x},{new_y})")
-            return (new_x, new_y)
+            print(f"🚧 ACTION 6 BOUNDARY: Hit {boundary_type} at ({new_x},{new_y}) - pivoting direction")
         
-        # No clear directional pattern - use SYSTEMATIC exploration (not random!)
-        # Progressive grid scanning instead of random jumps
-        action_count = len(action_history)
+        # Check if we're repeating the same coordinates (stuck/boundary detection)
+        new_coordinates = (new_x, new_y)
+        last_coordinates = boundary_system['last_coordinates'][game_id]
         
-        # Check for learned success coordinates first
-        action6_mapping = self.available_actions_memory['action_semantic_mapping'].get(6, {})
-        success_zones = action6_mapping.get('coordinate_success_zones', {})
-        
-        if success_zones:
-            # Use best success zone with minor directional variation
-            best_zone = max(success_zones.items(), key=lambda x: x[1])
-            zone_coords, success_rate = best_zone
+        if new_coordinates == last_coordinates:
+            # Same coordinates attempted again - boundary detected!
+            boundary_system['stuck_count'][game_id] += 1
+            stuck_count = boundary_system['stuck_count'][game_id]
             
-            if success_rate > 0.3:  # Only if reasonably successful
-                base_x, base_y = zone_coords if isinstance(zone_coords, tuple) else (grid_width // 2, grid_height // 2)
+            if stuck_count >= boundary_system['boundary_stuck_threshold']:
+                # BOUNDARY DETECTED - Save as non-deletable boundary data
+                boundary_coord = new_coordinates
+                boundary_system['boundary_data'][game_id][boundary_coord] = {
+                    'boundary_type': f"coordinate_stuck_{current_direction}",
+                    'detection_count': boundary_system['boundary_data'][game_id].get(boundary_coord, {}).get('detection_count', 0) + 1,
+                    'timestamp': time.time()
+                }
                 
-                # Small directional steps around success zone
-                direction_cycle = [(0,1), (1,0), (0,-1), (-1,0)]  # Down, Right, Up, Left
-                dx, dy = direction_cycle[action_count % 4]
-                
-                x = max(0, min(grid_width - 1, base_x + dx))
-                y = max(0, min(grid_height - 1, base_y + dy))
-                
-                self._last_action6_x = x
-                self._last_action6_y = y
-                print(f"🎯 ACTION 6 SUCCESS ZONE: Near {zone_coords} with direction -> ({x},{y})")
-                return (x, y)
+                print(f"🚧 ACTION 6 BOUNDARY: Detected stuck coordinates ({new_x},{new_y}) after {stuck_count} attempts - saving as boundary")
+                hit_boundary = True
+                boundary_system['stuck_count'][game_id] = 0  # Reset stuck count
+        else:
+            # Different coordinates - reset stuck count
+            boundary_system['stuck_count'][game_id] = 0
         
-        # Systematic edge/corner exploration (not random!)
-        exploration_pattern = [
-            (0, 0), (1, 0), (2, 0), (3, 0),        # Top edge progression
-            (0, 1), (0, 2), (0, 3),                # Left edge progression  
-            (grid_width-1, 0), (grid_width-1, 1),  # Right edge
-            (0, grid_height-1), (1, grid_height-1), # Bottom edge
-            (grid_width//2, grid_height//2),       # Center
-        ]
-        
-        # Filter valid positions within bounds
-        valid_positions = [(x, y) for x, y in exploration_pattern 
-                         if 0 <= x < grid_width and 0 <= y < grid_height]
-        
-        if valid_positions:
-            # Cycle through systematic exploration (predictable, not random)
-            selected_pos = valid_positions[action_count % len(valid_positions)]
-            self._last_action6_x = selected_pos[0]
-            self._last_action6_y = selected_pos[1]
+        # PIVOT TO NEW DIRECTION if boundary hit or max distance reached
+        if hit_boundary:
+            # Pivot to next semantic direction
+            next_direction = direction_info['next']
+            boundary_system['current_direction'][game_id] = next_direction
             
-            print(f"🎯 ACTION 6 SYSTEMATIC: Exploration pattern -> {selected_pos}")
-            return selected_pos
+            # Calculate coordinates in new direction from current position
+            next_direction_info = boundary_system['direction_progression'][next_direction]
+            dx, dy = next_direction_info['coordinate_delta']
+            
+            pivot_x = current_x + dx
+            pivot_y = current_y + dy
+            
+            # Ensure pivot coordinates are within bounds
+            pivot_x = max(0, min(pivot_x, grid_width - 1))
+            pivot_y = max(0, min(pivot_y, grid_height - 1))
+            
+            new_x, new_y = pivot_x, pivot_y
+            print(f"🔄 ACTION 6 PIVOT: Direction {current_direction} → {next_direction}, coordinates ({current_x},{current_y}) → ({new_x},{new_y})")
         
-        # Ultimate fallback - progressive scan
-        x = action_count % grid_width
-        y = (action_count // grid_width) % grid_height
-        self._last_action6_x = x
-        self._last_action6_y = y
+        # Update tracking data
+        boundary_system['last_coordinates'][game_id] = (new_x, new_y)
         
-        print(f"🎯 ACTION 6 PROGRESSIVE: Scan pattern -> ({x},{y})")
-        return (x, y)
+        # Track coordinate attempt history
+        coord_key = (new_x, new_y)
+        if coord_key not in boundary_system['coordinate_attempts'][game_id]:
+            boundary_system['coordinate_attempts'][game_id][coord_key] = {'attempts': 0, 'consecutive_stuck': 0}
+        boundary_system['coordinate_attempts'][game_id][coord_key]['attempts'] += 1
+        
+        # Update current position tracking
+        self._current_game_x = new_x
+        self._current_game_y = new_y
+        
+        # Display boundary intelligence
+        num_boundaries = len(boundary_system['boundary_data'][game_id])
+        direction_display = current_direction.upper()
+        if hit_boundary:
+            direction_display = f"{current_direction.upper()}→{boundary_system['current_direction'][game_id].upper()}"
+        
+        print(f"🎯 ACTION 6 BOUNDARY-AWARE: {direction_display} from ({current_x},{current_y}) → ({new_x},{new_y}) | Boundaries mapped: {num_boundaries}")
+        
+        return (new_x, new_y)
     
     def _get_strategic_coordinates(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
         """Generate strategic default coordinates for actions with exploration."""
@@ -3537,7 +3751,21 @@ class ContinuousLearningLoop:
             return (x, y)
 
     def _record_coordinate_effectiveness(self, action: int, x: int, y: int, success: bool):
-        """Record effectiveness of coordinate choice for an action."""
+        """Universal coordinate effectiveness recording with boundary detection system."""
+        coordinates = (x, y)
+        
+        # Get current score improvement (will be 0 if we don't have it)
+        score_improvement = 0.0
+        if hasattr(self, '_last_score_improvement'):
+            score_improvement = self._last_score_improvement
+        
+        # Get current game ID
+        game_id = self.available_actions_memory.get('current_game_id', 'unknown')
+        
+        # Record using universal coordinate intelligence system
+        self.record_action_result(action, coordinates, success, score_improvement, game_id)
+        
+        # Legacy coordinate_patterns for backward compatibility
         if action not in self.available_actions_memory['coordinate_patterns']:
             self.available_actions_memory['coordinate_patterns'][action] = {}
             
@@ -3552,6 +3780,150 @@ class ContinuousLearningLoop:
         if success:
             coord_data['successes'] += 1
         coord_data['success_rate'] = coord_data['successes'] / coord_data['attempts']
+    
+    def record_action_result(self, action_num: int, coordinates: tuple, success: bool, score_improvement: float, game_id: str = None):
+        """Record action results with universal boundary detection and success zone mapping."""
+        if not game_id:
+            game_id = self.available_actions_memory.get('current_game_id', 'unknown')
+        
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        
+        # Initialize game data if needed
+        if game_id not in boundary_system['boundary_data']:
+            boundary_system['boundary_data'][game_id] = {}
+            boundary_system['coordinate_attempts'][game_id] = {}
+            boundary_system['action_coordinate_history'][game_id] = {}
+            boundary_system['stuck_patterns'][game_id] = {}
+            boundary_system['success_zone_mapping'][game_id] = {}
+        
+        # Record coordinate attempt
+        coord_str = str(coordinates)
+        if coord_str not in boundary_system['coordinate_attempts'][game_id]:
+            boundary_system['coordinate_attempts'][game_id][coord_str] = {
+                'attempts': 0,
+                'successes': 0,
+                'success_rate': 0.0,
+                'actions_used': set(),
+                'last_successful_action': None,
+                'score_improvements': []
+            }
+        
+        coord_data = boundary_system['coordinate_attempts'][game_id][coord_str]
+        coord_data['attempts'] += 1
+        coord_data['actions_used'].add(action_num)
+        coord_data['score_improvements'].append(score_improvement)
+        
+        if success:
+            coord_data['successes'] += 1
+            coord_data['last_successful_action'] = action_num
+            
+            # Update success zone mapping
+            if coordinates not in boundary_system['success_zone_mapping'][game_id]:
+                boundary_system['success_zone_mapping'][game_id][coordinates] = {
+                    'success_count': 0,
+                    'total_attempts': 0,
+                    'last_success_score': score_improvement,
+                    'best_action': action_num
+                }
+            
+            zone_data = boundary_system['success_zone_mapping'][game_id][coordinates]
+            zone_data['success_count'] += 1
+            zone_data['total_attempts'] = coord_data['attempts']
+            zone_data['last_success_score'] = score_improvement
+            if score_improvement > 0:
+                zone_data['best_action'] = action_num
+        
+        coord_data['success_rate'] = coord_data['successes'] / coord_data['attempts']
+        
+        # Record action coordinate history
+        if action_num not in boundary_system['action_coordinate_history'][game_id]:
+            boundary_system['action_coordinate_history'][game_id][action_num] = []
+        
+        boundary_system['action_coordinate_history'][game_id][action_num].append((coordinates, success, score_improvement))
+        
+        # Keep only last 10 coordinates per action to prevent memory bloat
+        if len(boundary_system['action_coordinate_history'][game_id][action_num]) > 10:
+            boundary_system['action_coordinate_history'][game_id][action_num] = \
+                boundary_system['action_coordinate_history'][game_id][action_num][-10:]
+        
+        # Universal boundary detection - check if any action is getting stuck
+        self._detect_stuck_coordinates_universal(action_num, coordinates, game_id)
+        
+        # Print universal coordinate intelligence update
+        total_boundaries = len(boundary_system['boundary_data'][game_id])
+        total_success_zones = len(boundary_system['success_zone_mapping'][game_id])
+        print(f"📊 COORDINATE INTELLIGENCE: Action {action_num} at {coordinates} ({'✅' if success else '❌'}) | "
+              f"Boundaries: {total_boundaries} | Success Zones: {total_success_zones}")
+    
+    def _detect_stuck_coordinates_universal(self, action_num: int, coordinates: tuple, game_id: str):
+        """Universal stuck coordinate detection for all actions."""
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        coord_str = str(coordinates)
+        
+        # Count recent attempts at this coordinate by this action
+        action_history = boundary_system['action_coordinate_history'][game_id].get(action_num, [])
+        recent_attempts = [coord for coord, success, score in action_history[-5:] if coord == coordinates]
+        
+        # If this action has attempted this coordinate 3+ times recently without major success
+        if len(recent_attempts) >= 3:
+            recent_successes = [success for coord, success, score in action_history[-5:] 
+                              if coord == coordinates and success]
+            recent_score_improvements = [score for coord, success, score in action_history[-5:] 
+                                       if coord == coordinates and score > 0.1]
+            
+            # Detect boundary if multiple attempts with low success
+            if len(recent_successes) == 0 and len(recent_score_improvements) == 0:
+                if coord_str not in boundary_system['boundary_data'][game_id]:
+                    boundary_system['boundary_data'][game_id][coord_str] = {
+                        'detected_by_actions': [],
+                        'attempts_when_detected': 0,
+                        'discovery_game': game_id,
+                        'confidence': 0.0
+                    }
+                
+                boundary_data = boundary_system['boundary_data'][game_id][coord_str]
+                if action_num not in boundary_data['detected_by_actions']:
+                    boundary_data['detected_by_actions'].append(action_num)
+                    boundary_data['attempts_when_detected'] += len(recent_attempts)
+                    boundary_data['confidence'] = min(1.0, len(recent_attempts) / 5.0)
+                    
+                    print(f"🚧 UNIVERSAL BOUNDARY: Action {action_num} detected boundary at {coordinates} "
+                          f"(confidence: {boundary_data['confidence']:.1%})")
+                    
+                    # Update global coordinate intelligence
+                    self._update_global_coordinate_intelligence(coordinates, action_num, 'boundary')
+    
+    def _update_global_coordinate_intelligence(self, coordinates: tuple, action_num: int, event_type: str):
+        """Update global coordinate intelligence across all games and actions."""
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        
+        # Initialize global intelligence if needed
+        if 'global_coordinate_intelligence' not in boundary_system:
+            boundary_system['global_coordinate_intelligence'] = {
+                'universal_boundaries': {},  # Coordinates that are problematic across games
+                'universal_success_zones': {},  # Coordinates that work well across games
+                'action_coordinate_preferences': {}  # Which actions work best at which coordinate types
+            }
+        
+        global_intel = boundary_system['global_coordinate_intelligence']
+        coord_str = str(coordinates)
+        
+        if event_type == 'boundary':
+            if coord_str not in global_intel['universal_boundaries']:
+                global_intel['universal_boundaries'][coord_str] = {
+                    'games_detected_in': [],
+                    'actions_that_detected': set(),
+                    'total_detections': 0
+                }
+            
+            current_game = self.available_actions_memory.get('current_game_id', 'unknown')
+            boundary_data = global_intel['universal_boundaries'][coord_str]
+            if current_game not in boundary_data['games_detected_in']:
+                boundary_data['games_detected_in'].append(current_game)
+            boundary_data['actions_that_detected'].add(action_num)
+            boundary_data['total_detections'] += 1
+            
+            print(f"🌍 GLOBAL BOUNDARY: {coordinates} detected across {len(boundary_data['games_detected_in'])} games by {len(boundary_data['actions_that_detected'])} actions")
 
     def _record_sequence_outcome(self, sequence: List[int], success: bool):
         """Record whether an action sequence was successful."""
