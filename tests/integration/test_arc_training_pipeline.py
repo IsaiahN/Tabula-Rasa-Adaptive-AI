@@ -61,7 +61,7 @@ class TestTrainingPipelineIntegration:
         loop = ContinuousLearningLoop(
             data_dir=self.data_dir,
             meta_learning_dir=self.meta_learning_dir,
-            salience_mode=SalienceMode.DECAY,
+            salience_mode=SalienceMode.LOSSLESS,
             verbose=True,
             max_episodes=10,
             target_games=["integration_test_001", "integration_test_002"]
@@ -70,7 +70,7 @@ class TestTrainingPipelineIntegration:
         # Verify initialization
         assert loop.data_dir == self.data_dir
         assert loop.meta_learning_dir == self.meta_learning_dir
-        assert loop.salience_mode == SalienceMode.DECAY
+        assert loop.salience_mode == SalienceMode.LOSSLESS
         assert loop.max_episodes == 10
         assert len(loop.target_games) == 2
         assert loop.current_energy == 100.0
@@ -142,7 +142,7 @@ class TestTrainingPipelineIntegration:
         loop = ContinuousLearningLoop(
             data_dir=self.data_dir,
             meta_learning_dir=self.meta_learning_dir,
-            salience_mode=SalienceMode.DECAY,
+            salience_mode=SalienceMode.LOSSLESS,
             verbose=False,
             max_episodes=20
         )
@@ -170,7 +170,7 @@ class TestTrainingPipelineIntegration:
     def test_salience_mode_integration(self):
         """Test salience mode integration across the pipeline."""
         # Test each salience mode
-        modes_to_test = [SalienceMode.DECAY, SalienceMode.LOSSLESS, SalienceMode.MINIMAL]
+        modes_to_test = [SalienceMode.LOSSLESS, SalienceMode.LOSSLESS_COMPRESSION]
         
         for mode in modes_to_test:
             loop = ContinuousLearningLoop(
@@ -193,7 +193,7 @@ class TestTrainingPipelineIntegration:
         loop = ContinuousLearningLoop(
             data_dir=self.data_dir,
             meta_learning_dir=self.meta_learning_dir,
-            salience_mode=SalienceMode.DECAY,
+            salience_mode=SalienceMode.LOSSLESS,
             verbose=True,
             max_episodes=3,
             target_games=["lifecycle_test_game"]
@@ -279,7 +279,7 @@ class TestTrainingPipelineIntegration:
         loop = ContinuousLearningLoop(
             data_dir=self.data_dir,
             meta_learning_dir=self.meta_learning_dir,
-            salience_mode=SalienceMode.DECAY,
+            salience_mode=SalienceMode.LOSSLESS,
             verbose=False,
             max_episodes=15
         )
@@ -305,7 +305,7 @@ class TestTrainingPipelineIntegration:
         loop = ContinuousLearningLoop(
             data_dir=self.data_dir,
             meta_learning_dir=self.meta_learning_dir,
-            salience_mode=SalienceMode.MINIMAL,
+            salience_mode=SalienceMode.DECAY_COMPRESSION,
             verbose=True,
             max_episodes=25
         )
@@ -347,7 +347,7 @@ class TestTrainingPipelineIntegration:
         loop = ContinuousLearningLoop(
             data_dir=self.data_dir,
             meta_learning_dir=self.meta_learning_dir,
-            salience_mode=SalienceMode.DECAY,
+            salience_mode=SalienceMode.LOSSLESS,
             verbose=False,
             max_episodes=5
         )
@@ -405,7 +405,7 @@ class TestTrainingPipelineIntegration:
     
     def test_multi_mode_training_integration(self):
         """Test multi-mode training integration."""
-        modes = [SalienceMode.DECAY, SalienceMode.LOSSLESS, SalienceMode.MINIMAL]
+        modes = [SalienceMode.LOSSLESS, SalienceMode.DECAY_COMPRESSION]
         results = {}
         
         for mode in modes:
@@ -510,7 +510,7 @@ class TestAdvancedIntegration:
         loop = ContinuousLearningLoop(
             data_dir=self.advanced_data_dir,
             meta_learning_dir=self.advanced_meta_dir,
-            salience_mode=SalienceMode.DECAY,
+            salience_mode=SalienceMode.LOSSLESS,
             verbose=False,
             max_episodes=50
         )
@@ -562,7 +562,7 @@ class TestAdvancedIntegration:
             loop = ContinuousLearningLoop(
                 data_dir=agent_data_dir,
                 meta_learning_dir=self.advanced_meta_dir,
-                salience_mode=SalienceMode.MINIMAL,
+                salience_mode=SalienceMode.DECAY_COMPRESSION,
                 verbose=False,
                 max_episodes=25
             )
@@ -612,8 +612,8 @@ class TestAdvancedIntegration:
         # Test memory efficiency with different salience modes
         salience_efficiency = {
             SalienceMode.LOSSLESS: 1.0,  # Keeps all memories
-            SalienceMode.DECAY: 0.7,    # Gradual memory decay
-            SalienceMode.MINIMAL: 0.4   # Aggressive memory pruning
+            SalienceMode.LOSSLESS: 0.7,    # Gradual memory decay
+            SalienceMode.DECAY_COMPRESSION: 0.4   # Aggressive memory pruning
         }
         
         current_efficiency = salience_efficiency[loop.salience_mode]
@@ -627,7 +627,7 @@ class TestAdvancedIntegration:
         loop = ContinuousLearningLoop(
             data_dir=self.advanced_data_dir,
             meta_learning_dir=self.advanced_meta_dir,
-            salience_mode=SalienceMode.DECAY,
+            salience_mode=SalienceMode.LOSSLESS,
             verbose=False,
             max_episodes=100
         )
