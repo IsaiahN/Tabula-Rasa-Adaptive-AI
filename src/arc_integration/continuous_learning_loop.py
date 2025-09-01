@@ -1114,7 +1114,7 @@ class ContinuousLearningLoop:
             # Dynamic energy system based on game complexity and learning opportunities
             
             # Calculate adaptive energy cost based on actions and effectiveness
-            base_energy_cost = episode_actions * 0.5  # Base rate: 0.5 per action (100x scale)
+            base_energy_cost = episode_actions * 0.15  # Optimized rate: 0.15 per action (better balance)
             
             # Adjust energy cost based on game complexity
             if episode_actions > 500:  # Very complex game
