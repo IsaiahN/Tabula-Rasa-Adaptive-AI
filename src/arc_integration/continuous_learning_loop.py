@@ -1435,7 +1435,31 @@ class ContinuousLearningLoop:
         # Calculate weighted action scores with relevance modifiers
         action_scores = {}
         
+        # CRITICAL FIX: Hard filter ACTION 6 before scoring to prevent spam
+        filtered_available_actions = []
+        action6_blocked = False
+        
         for action in available_actions:
+            if action == 6:
+                # Apply strict ACTION 6 availability check
+                action6_score = self._calculate_action6_strategic_score(action_count, progress_stagnant)
+                if action6_score > 0.01:  # Only allow ACTION 6 if strategic score is meaningful (reduced threshold)
+                    filtered_available_actions.append(action)
+                    print(f"🎯 ACTION 6 STRATEGIC USE: Progress stagnant={progress_stagnant}, Score={action6_score:.3f}")
+                else:
+                    action6_blocked = True
+                    if action_count % 50 == 0:  # Less frequent logging to reduce spam
+                        print(f"🎯 ACTION 6 blocked: Score={action6_score:.3f}, Need progress stagnation")
+            else:
+                filtered_available_actions.append(action)
+        
+        # If ACTION 6 was the only option but blocked, allow minimal emergency access
+        if not filtered_available_actions and action6_blocked:
+            print("🚨 EMERGENCY: ACTION 6 only option available - allowing minimal access")
+            filtered_available_actions = [6]
+        
+        # Score only the filtered available actions
+        for action in filtered_available_actions:
             if action in self.available_actions_memory['action_relevance_scores']:
                 relevance_data = self.available_actions_memory['action_relevance_scores'][action]
                 base_score = relevance_data['base_relevance']
@@ -1469,7 +1493,8 @@ class ContinuousLearningLoop:
         
         # Select action based on weighted scores (with some randomness for exploration)
         if not action_scores:
-            return random.choice(available_actions)
+            # Emergency fallback - this should rarely happen
+            return random.choice(available_actions) if available_actions else 1
         
         # Use weighted random selection (90% best choice, 10% exploration)
         if random.random() < 0.9:
@@ -1500,27 +1525,27 @@ class ContinuousLearningLoop:
         """
         strategy = self.available_actions_memory['action6_strategy']
         
-        # Base score is very low - ACTION 6 is not preferred
-        base_score = 0.1
+        # Base score is extremely low - ACTION 6 is strongly discouraged
+        base_score = 0.01  # Reduced from 0.1
         
         # Check if we're in emergency mode (truly stuck)
         if not progress_stagnant:
-            return 0.05  # Nearly never use if progress is being made
+            return 0.001  # Almost never use if progress is being made
         
         # Check minimum actions before considering ACTION 6
         actions_since_start = current_action_count
         if actions_since_start < strategy['min_actions_before_use']:
-            return 0.02  # Too early to use ACTION 6
+            return 0.001  # Too early to use ACTION 6
         
         # Check cooldown period
         actions_since_last_action6 = current_action_count - strategy['last_action6_used']
         if actions_since_last_action6 < strategy['action6_cooldown']:
-            return 0.02  # Still in cooldown
+            return 0.001  # Still in cooldown
         
         # Check stagnation duration
         actions_since_progress = current_action_count - strategy['last_progress_action']
         if actions_since_progress < strategy['progress_stagnation_threshold']:
-            return 0.03  # Not stuck long enough
+            return 0.001  # Not stuck long enough
         
         # If we reach here, we're truly stuck - ACTION 6 becomes viable
         strategic_score = base_score
@@ -1534,7 +1559,7 @@ class ContinuousLearningLoop:
             strategic_score *= 1.5  # Emergency mini-reset mode
             print(f"🚨 ACTION 6 EMERGENCY MODE: Stuck for {actions_since_progress} actions")
         
-        return min(strategic_score, 0.4)  # Cap at 0.4 to prevent over-use
+        return min(strategic_score, 0.2)  # Cap at 0.2 to prevent over-use
 
     def _is_progress_stagnant(self, current_action_count: int) -> bool:
         """
@@ -3334,95 +3359,122 @@ class ContinuousLearningLoop:
 
     def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
         """
-        Strategic coordinate selection for ACTION 6 when used as mini-reset.
+        DIRECTIONAL MOVEMENT for ACTION 6 - mirrors actions 1-4 behavior.
         
-        Instead of random coordinates, try to predict where might be beneficial:
-        1. Look for unexplored regions
-        2. Try coordinates that might "undo" recent moves
-        3. Target strategic positions like corners, center, or edges
+        ACTION 6 should primarily move directionally like actions 1-4:
+        - (0,1), (0,2), (0,3) = moving down step by step
+        - (1,0), (2,0), (3,0) = moving right step by step
+        - (0,-1) equivalent to (0,0) = moving up step by step  
+        - (-1,0) equivalent to (0,0) = moving left step by step
+        
+        Only use random coordinates as last resort when truly stuck.
         """
         grid_width, grid_height = grid_dims
         
-        # Get recent action history to avoid recently tried coordinates
-        recent_actions = self.available_actions_memory['action_history'][-10:]  # Last 10 actions
+        # Track current position (start from origin if no history)
+        current_x = getattr(self, '_last_action6_x', 0)
+        current_y = getattr(self, '_last_action6_y', 0)
         
-        # Get coordinate success zones if available
+        # Get recent action history to determine directional pattern
+        action_history = self.available_actions_memory.get('action_history', [])
+        recent_actions = action_history[-8:] if len(action_history) >= 8 else action_history
+        
+        # Count recent directional actions (1=up, 2=down, 3=left, 4=right)
+        direction_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+        for action in recent_actions:
+            if action in direction_counts:
+                direction_counts[action] += 1
+        
+        # Find dominant direction from recent actions
+        if any(count > 0 for count in direction_counts.values()):
+            dominant_direction = max(direction_counts.items(), key=lambda x: x[1])[0]
+            
+            # Map action numbers to directional movement
+            direction_mappings = {
+                1: (0, -1),  # Up: decrease Y
+                2: (0, 1),   # Down: increase Y 
+                3: (-1, 0),  # Left: decrease X
+                4: (1, 0)    # Right: increase X
+            }
+            
+            dx, dy = direction_mappings[dominant_direction]
+            
+            # Calculate step size (1-3 based on how many recent uses)
+            step_count = direction_counts[dominant_direction]
+            step_size = min(3, step_count)  # Progressive movement
+            
+            # Apply directional movement
+            new_x = current_x + (dx * step_size)
+            new_y = current_y + (dy * step_size)
+            
+            # Ensure coordinates stay within bounds
+            new_x = max(0, min(new_x, grid_width - 1))
+            new_y = max(0, min(new_y, grid_height - 1))
+            
+            # Store for next iteration
+            self._last_action6_x = new_x
+            self._last_action6_y = new_y
+            
+            print(f"🎯 ACTION 6 DIRECTIONAL: Following action {dominant_direction} pattern, step {step_size} -> ({new_x},{new_y})")
+            return (new_x, new_y)
+        
+        # No clear directional pattern - use SYSTEMATIC exploration (not random!)
+        # Progressive grid scanning instead of random jumps
+        action_count = len(action_history)
+        
+        # Check for learned success coordinates first
         action6_mapping = self.available_actions_memory['action_semantic_mapping'].get(6, {})
         success_zones = action6_mapping.get('coordinate_success_zones', {})
         
-        # Strategy 1: Use learned success zones if available
         if success_zones:
-            # Find the best success zone
+            # Use best success zone with minor directional variation
             best_zone = max(success_zones.items(), key=lambda x: x[1])
             zone_coords, success_rate = best_zone
             
-            if success_rate > 0.3:  # Only use if reasonably successful
-                # Add some variation around the successful zone
+            if success_rate > 0.3:  # Only if reasonably successful
                 base_x, base_y = zone_coords if isinstance(zone_coords, tuple) else (grid_width // 2, grid_height // 2)
-                variation_x = random.randint(-2, 2)
-                variation_y = random.randint(-2, 2)
                 
-                x = max(0, min(grid_width - 1, base_x + variation_x))
-                y = max(0, min(grid_height - 1, base_y + variation_y))
+                # Small directional steps around success zone
+                direction_cycle = [(0,1), (1,0), (0,-1), (-1,0)]  # Down, Right, Up, Left
+                dx, dy = direction_cycle[action_count % 4]
                 
-                print(f"🎯 ACTION 6 PREDICTIVE: Using success zone {zone_coords} with variation -> ({x},{y})")
+                x = max(0, min(grid_width - 1, base_x + dx))
+                y = max(0, min(grid_height - 1, base_y + dy))
+                
+                self._last_action6_x = x
+                self._last_action6_y = y
+                print(f"🎯 ACTION 6 SUCCESS ZONE: Near {zone_coords} with direction -> ({x},{y})")
                 return (x, y)
         
-        # Strategy 2: Try "reset" positions - opposite side of recent movements
-        recent_movements = [a for a in recent_actions if a in [1, 2, 3, 4]]
-        if recent_movements:
-            # Analyze recent movement direction and try opposite area
-            up_moves = recent_movements.count(1)
-            down_moves = recent_movements.count(2)
-            left_moves = recent_movements.count(3)
-            right_moves = recent_movements.count(4)
-            
-            # Try opposite quadrant
-            if up_moves > down_moves and left_moves > right_moves:
-                # Recent moves were up-left, try bottom-right
-                x = int(grid_width * 0.75) + random.randint(-2, 2)
-                y = int(grid_height * 0.75) + random.randint(-2, 2)
-            elif up_moves > down_moves and right_moves > left_moves:
-                # Recent moves were up-right, try bottom-left
-                x = int(grid_width * 0.25) + random.randint(-2, 2)
-                y = int(grid_height * 0.75) + random.randint(-2, 2)
-            elif down_moves > up_moves and left_moves > right_moves:
-                # Recent moves were down-left, try top-right
-                x = int(grid_width * 0.75) + random.randint(-2, 2)
-                y = int(grid_height * 0.25) + random.randint(-2, 2)
-            elif down_moves > up_moves and right_moves > left_moves:
-                # Recent moves were down-right, try top-left
-                x = int(grid_width * 0.25) + random.randint(-2, 2)
-                y = int(grid_height * 0.25) + random.randint(-2, 2)
-            else:
-                # No clear pattern, try center with variation
-                x = grid_width // 2 + random.randint(-3, 3)
-                y = grid_height // 2 + random.randint(-3, 3)
-            
-            # Ensure coordinates are within bounds
-            x = max(0, min(grid_width - 1, x))
-            y = max(0, min(grid_height - 1, y))
-            
-            print(f"🎯 ACTION 6 COUNTER-MOVEMENT: Trying opposite to recent moves -> ({x},{y})")
-            return (x, y)
-        
-        # Strategy 3: Fallback to strategic positions (corners, edges, center)
-        strategic_positions = [
-            (0, 0),  # Top-left corner
-            (grid_width - 1, 0),  # Top-right corner
-            (0, grid_height - 1),  # Bottom-left corner
-            (grid_width - 1, grid_height - 1),  # Bottom-right corner
-            (grid_width // 2, grid_height // 2),  # Center
-            (grid_width // 4, grid_height // 4),  # Quarter positions
-            (3 * grid_width // 4, 3 * grid_height // 4),
+        # Systematic edge/corner exploration (not random!)
+        exploration_pattern = [
+            (0, 0), (1, 0), (2, 0), (3, 0),        # Top edge progression
+            (0, 1), (0, 2), (0, 3),                # Left edge progression  
+            (grid_width-1, 0), (grid_width-1, 1),  # Right edge
+            (0, grid_height-1), (1, grid_height-1), # Bottom edge
+            (grid_width//2, grid_height//2),       # Center
         ]
         
-        # Select a strategic position with some randomization
-        base_pos = random.choice(strategic_positions)
-        x = max(0, min(grid_width - 1, base_pos[0] + random.randint(-1, 1)))
-        y = max(0, min(grid_height - 1, base_pos[1] + random.randint(-1, 1)))
+        # Filter valid positions within bounds
+        valid_positions = [(x, y) for x, y in exploration_pattern 
+                         if 0 <= x < grid_width and 0 <= y < grid_height]
         
-        print(f"🎯 ACTION 6 STRATEGIC: Using strategic position -> ({x},{y})")
+        if valid_positions:
+            # Cycle through systematic exploration (predictable, not random)
+            selected_pos = valid_positions[action_count % len(valid_positions)]
+            self._last_action6_x = selected_pos[0]
+            self._last_action6_y = selected_pos[1]
+            
+            print(f"🎯 ACTION 6 SYSTEMATIC: Exploration pattern -> {selected_pos}")
+            return selected_pos
+        
+        # Ultimate fallback - progressive scan
+        x = action_count % grid_width
+        y = (action_count // grid_width) % grid_height
+        self._last_action6_x = x
+        self._last_action6_y = y
+        
+        print(f"🎯 ACTION 6 PROGRESSIVE: Scan pattern -> ({x},{y})")
         return (x, y)
     
     def _get_strategic_coordinates(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
