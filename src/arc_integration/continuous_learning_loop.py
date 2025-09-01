@@ -371,7 +371,7 @@ class ContinuousLearningLoop:
                 3: {'base_relevance': 1.0, 'current_modifier': 1.0, 'recent_success_rate': 0.5, 'last_used': 0, 'consecutive_failures': 0},
                 4: {'base_relevance': 1.0, 'current_modifier': 1.0, 'recent_success_rate': 0.5, 'last_used': 0, 'consecutive_failures': 0},
                 5: {'base_relevance': 1.0, 'current_modifier': 1.0, 'recent_success_rate': 0.5, 'last_used': 0, 'consecutive_failures': 0},
-                6: {'base_relevance': 0.3, 'current_modifier': 0.3, 'recent_success_rate': 0.2, 'last_used': 0, 'consecutive_failures': 0},  # Start with low relevance
+                6: {'base_relevance': 0.1, 'current_modifier': 0.1, 'recent_success_rate': 0.1, 'last_used': 0, 'consecutive_failures': 0},  # START VERY LOW - coordinate placement ≠ progress
                 7: {'base_relevance': 0.8, 'current_modifier': 0.8, 'recent_success_rate': 0.4, 'last_used': 0, 'consecutive_failures': 0}
             },
             
@@ -1549,6 +1549,9 @@ class ContinuousLearningLoop:
         """
         Update action relevance scores based on recent performance.
         This implements your idea of actions having relevance that changes over time.
+        
+        CRITICAL FIX: ACTION 6 should NOT gain relevance from coordinate placement success,
+        only from actual meaningful game progress.
         """
         relevance_scores = self.available_actions_memory['action_relevance_scores']
         
@@ -1560,20 +1563,34 @@ class ContinuousLearningLoop:
                 success_rate = recent_attempts['successes'] / recent_attempts['total']
                 data['recent_success_rate'] = success_rate
                 
-                # Update current modifier based on success rate
-                if success_rate > 0.7:
-                    data['current_modifier'] = min(1.5, data['current_modifier'] * 1.1)  # Increase relevance
-                elif success_rate < 0.3:
-                    data['current_modifier'] = max(0.2, data['current_modifier'] * 0.9)  # Decrease relevance
-                
-                # Special handling for ACTION 6 - keep it low unless truly needed
+                # SPECIAL HANDLING FOR ACTION 6 - Only tiny relevance increases
                 if action_num == 6:
-                    data['current_modifier'] = min(0.5, data['current_modifier'])  # Cap ACTION 6 relevance
+                    # ACTION 6 should almost never increase relevance
+                    # Only allow microscopic increases and only if there's actual game progress
+                    if success_rate > 0.8 and self._has_recent_meaningful_progress():
+                        old_modifier = data['current_modifier']
+                        data['current_modifier'] = min(0.4, data['current_modifier'] + 0.005)
+                        print(f"🎯 ACTION 6 minimal relevance increase: {old_modifier:.3f} → {data['current_modifier']:.3f} (rare meaningful progress detected)")
+                    else:
+                        # Continuous slow decay to prevent ACTION 6 spam
+                        old_modifier = data['current_modifier']
+                        data['current_modifier'] = max(0.05, data['current_modifier'] * 0.98)  # Lowered floor to 0.05
+                        if old_modifier != data['current_modifier']:
+                            print(f"🎯 ACTION 6 relevance decay: {old_modifier:.3f} → {data['current_modifier']:.3f} (preventing coordinate spam)")
+                        
+                else:
+                    # Normal actions can gain relevance from success
+                    if success_rate > 0.7:
+                        data['current_modifier'] = min(1.5, data['current_modifier'] * 1.1)  # Increase relevance
+                    elif success_rate < 0.3:
+                        data['current_modifier'] = max(0.2, data['current_modifier'] * 0.9)  # Decrease relevance
                     
             # Decay relevance for unused actions over time
             actions_since_use = len(self.available_actions_memory['action_history']) - data['last_used']
             if actions_since_use > 20:  # If not used for 20 actions
-                data['current_modifier'] *= 0.95  # Slow decay
+                # Extra decay for ACTION 6 to prevent it from becoming dominant
+                decay_rate = 0.90 if action_num == 6 else 0.95
+                data['current_modifier'] = max(0.1, data['current_modifier'] * decay_rate)
 
     def _get_recent_action_attempts(self, action_num: int, window: int = 10) -> Dict[str, int]:
         """Get recent attempt statistics for an action."""
@@ -1585,6 +1602,39 @@ class ContinuousLearningLoop:
         successes = attempts // 2  # Placeholder - would track actual success/failure
         
         return {'total': attempts, 'successes': successes}
+
+    def _has_recent_meaningful_progress(self) -> bool:
+        """
+        Check if there has been recent meaningful game progress.
+        This prevents ACTION 6 from gaining relevance just from coordinate placement success.
+        """
+        # Check recent LP history for actual progress indicators
+        if hasattr(self.training_state, 'lp_history') and self.training_state['lp_history']:
+            recent_episodes = self.training_state['lp_history'][-3:]  # Last 3 episodes
+            
+            # Look for increasing scores, wins, or level progression
+            has_score_improvement = False
+            has_win = False
+            has_level_progress = False
+            
+            for episode in recent_episodes:
+                if episode.get('success', False):
+                    has_win = True
+                if episode.get('score', 0) > 50:  # Meaningful score threshold
+                    has_score_improvement = True
+                if episode.get('level_progressed', False):
+                    has_level_progress = True
+            
+            # Only consider it meaningful progress if we have concrete achievements
+            meaningful_progress = has_win or has_score_improvement or has_level_progress
+            
+            if meaningful_progress:
+                print(f"🎯 Meaningful progress detected: win={has_win}, score={has_score_improvement}, level={has_level_progress}")
+            
+            return meaningful_progress
+        
+        # Default to False - no meaningful progress detected
+        return False
 
     def _update_action_usage_tracking(self, selected_action: int, current_action_count: int):
         """Update usage tracking for selected action."""
