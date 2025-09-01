@@ -215,7 +215,68 @@ class ContinuousLearningLoop:
             'failed_action_patterns': [],       # Patterns that consistently fail
             'game_intelligence_cache': {},      # Loaded intelligence per game
             'last_action_result': None,         # Track effectiveness of last action
-            'sequence_in_progress': []          # Current action sequence being built
+            'sequence_in_progress': [],          # Current action sequence being built
+            
+            # NEW: INTELLIGENT ACTION MAPPING SYSTEM
+            'action_semantic_mapping': {        # Learned semantic understanding of actions
+                1: {
+                    'default_description': 'Simple action (semantically mapped to up)',
+                    'learned_behaviors': [],     # List of observed behaviors: {'behavior': str, 'confidence': float, 'context': str}
+                    'grid_movement_patterns': {'up': 0, 'down': 0, 'left': 0, 'right': 0, 'none': 0},  # Movement direction tracking
+                    'common_effects': {},        # effect_type -> frequency
+                    'game_specific_roles': {}    # game_id -> {'role': str, 'confidence': float}
+                },
+                2: {
+                    'default_description': 'Simple action (semantically mapped to down)',
+                    'learned_behaviors': [],
+                    'grid_movement_patterns': {'up': 0, 'down': 0, 'left': 0, 'right': 0, 'none': 0},
+                    'common_effects': {},
+                    'game_specific_roles': {}
+                },
+                3: {
+                    'default_description': 'Simple action (semantically mapped to left)',
+                    'learned_behaviors': [],
+                    'grid_movement_patterns': {'up': 0, 'down': 0, 'left': 0, 'right': 0, 'none': 0},
+                    'common_effects': {},
+                    'game_specific_roles': {}
+                },
+                4: {
+                    'default_description': 'Simple action (semantically mapped to right)',
+                    'learned_behaviors': [],
+                    'grid_movement_patterns': {'up': 0, 'down': 0, 'left': 0, 'right': 0, 'none': 0},
+                    'common_effects': {},
+                    'game_specific_roles': {}
+                },
+                5: {
+                    'default_description': 'Simple action (interact, select, rotate, attach/detach, execute)',
+                    'learned_behaviors': [],
+                    'grid_movement_patterns': {'up': 0, 'down': 0, 'left': 0, 'right': 0, 'none': 0},
+                    'common_effects': {},
+                    'game_specific_roles': {}
+                },
+                6: {
+                    'default_description': 'Complex action requiring x,y coordinates (0-63 range)',
+                    'learned_behaviors': [],
+                    'grid_movement_patterns': {'coordinate_based': 0},
+                    'common_effects': {},
+                    'game_specific_roles': {},
+                    'coordinate_success_zones': {}  # (x_range, y_range) -> success_rate
+                },
+                7: {
+                    'default_description': 'Simple action - Undo (interact, select)',
+                    'learned_behaviors': [],
+                    'grid_movement_patterns': {'undo': 0, 'reverse': 0, 'none': 0},
+                    'common_effects': {},
+                    'game_specific_roles': {}
+                }
+            },
+            'action_learning_stats': {           # Global learning statistics
+                'total_observations': 0,
+                'pattern_confidence_threshold': 0.7,  # Confidence needed to trust a learned pattern
+                'movements_tracked': 0,
+                'effects_catalogued': 0,
+                'game_contexts_learned': 0
+            }
         }
         
         # Salience system components
@@ -1390,11 +1451,11 @@ class ContinuousLearningLoop:
                 sleep_triggered = True
                 
                 # Adaptive energy replenishment based on learning quality
-                base_replenishment = 0.6  # Base 60% restoration
+                base_replenishment = 60.0  # Base 60 energy points restoration (0-100 scale)
                 
                 # Bonus energy for effective learning
                 if len(effective_actions) > 0:
-                    learning_bonus = min(0.3, len(effective_actions) * 0.05)  # Up to 30% bonus
+                    learning_bonus = min(30.0, len(effective_actions) * 5.0)  # Up to 30 energy points bonus
                     print(f"⚡ Learning bonus: +{learning_bonus:.2f} energy for {len(effective_actions)} effective actions")
                 else:
                     learning_bonus = 0.0
@@ -2188,6 +2249,56 @@ class ContinuousLearningLoop:
         except Exception as e:
             logger.error(f"Failed to save action intelligence for {game_id}: {e}")
 
+    def display_action_intelligence_summary(self, game_id: Optional[str] = None):
+        """Display a summary of learned action intelligence."""
+        print(f"\n🧠 ACTION INTELLIGENCE SUMMARY")
+        print("="*50)
+        
+        learning_stats = self.available_actions_memory['action_learning_stats']
+        print(f"📊 Global Learning Stats:")
+        print(f"   Total Observations: {learning_stats['total_observations']}")
+        print(f"   Movements Tracked: {learning_stats['movements_tracked']}")
+        print(f"   Effects Catalogued: {learning_stats['effects_catalogued']}")
+        print(f"   Game Contexts Learned: {learning_stats['game_contexts_learned']}")
+        
+        print(f"\n🎯 ACTION MAPPINGS:")
+        for action, mapping in self.available_actions_memory['action_semantic_mapping'].items():
+            print(f"\n  ACTION{action}:")
+            print(f"    Description: {self.get_action_description(action, game_id)}")
+            
+            # Show movement patterns
+            movements = mapping['grid_movement_patterns']
+            if any(movements.values()):
+                dominant_move = max(movements.items(), key=lambda x: x[1])
+                if dominant_move[1] > 0:
+                    print(f"    Dominant Movement: {dominant_move[0]} ({dominant_move[1]} observations)")
+            
+            # Show common effects
+            effects = mapping['common_effects']
+            if effects:
+                top_effects = sorted(effects.items(), key=lambda x: x[1], reverse=True)[:3]
+                effects_str = ", ".join([f"{effect} ({count})" for effect, count in top_effects])
+                print(f"    Common Effects: {effects_str}")
+            
+            # Show game-specific roles
+            if game_id and game_id in mapping['game_specific_roles']:
+                role_info = mapping['game_specific_roles'][game_id]
+                print(f"    Role in {game_id}: {role_info['role']} (confidence: {role_info['confidence']:.2f})")
+            
+            # Show coordinate success zones for ACTION6
+            if action == 6 and 'coordinate_success_zones' in mapping and mapping['coordinate_success_zones']:
+                best_zones = []
+                for zone_key, zone_data in mapping['coordinate_success_zones'].items():
+                    if zone_data['attempts'] > 1:
+                        success_rate = zone_data['successes'] / zone_data['attempts']
+                        if success_rate > 0.5:
+                            best_zones.append(f"Zone{zone_key}: {success_rate:.1%}")
+                
+                if best_zones:
+                    print(f"    Best Coordinate Zones: {', '.join(best_zones[:3])}")
+        
+        print("="*50)
+
     def _update_available_actions(self, response_data: Dict[str, Any], game_id: str, action_taken: Optional[int] = None):
         """Update available actions based on API response metadata."""
         available_actions = response_data.get('available_actions', [])
@@ -2313,6 +2424,192 @@ class ContinuousLearningLoop:
             'success': is_successful,
             'response': response_data
         }
+        
+        # NEW: Learn action semantics from grid behavior
+        self._learn_action_semantics(action_taken, response_data, is_successful)
+
+    def _learn_action_semantics(self, action: int, response_data: Dict[str, Any], success: bool):
+        """Learn what each action actually does based on grid behavior and effects."""
+        # Ensure action mapping exists
+        if action not in self.available_actions_memory['action_semantic_mapping']:
+            return
+        
+        mapping = self.available_actions_memory['action_semantic_mapping'][action]
+        game_id = self.available_actions_memory.get('current_game_id')
+        
+        # Update learning statistics
+        self.available_actions_memory['action_learning_stats']['total_observations'] += 1
+        
+        # Analyze grid movement patterns (for actions 1-5, 7)
+        if action != 6:  # Non-coordinate actions
+            movement = self._detect_grid_movement(response_data)
+            if movement:
+                if movement in mapping['grid_movement_patterns']:
+                    mapping['grid_movement_patterns'][movement] += 1
+                    self.available_actions_memory['action_learning_stats']['movements_tracked'] += 1
+                    print(f"🧠 ACTION{action} learned movement: {movement} (total: {mapping['grid_movement_patterns'][movement]})")
+        else:
+            # For ACTION6, track coordinate-based behavior
+            if 'coordinate_based' in mapping['grid_movement_patterns']:
+                mapping['grid_movement_patterns']['coordinate_based'] += 1
+        
+        # Analyze action effects
+        effects = self._detect_action_effects(action, response_data, success)
+        for effect in effects:
+            if effect in mapping['common_effects']:
+                mapping['common_effects'][effect] += 1
+            else:
+                mapping['common_effects'][effect] = 1
+                self.available_actions_memory['action_learning_stats']['effects_catalogued'] += 1
+                print(f"🧠 ACTION{action} learned new effect: {effect}")
+        
+        # Learn game-specific roles
+        if game_id and success:
+            role = self._infer_action_role(action, response_data, effects)
+            if role:
+                if game_id not in mapping['game_specific_roles']:
+                    mapping['game_specific_roles'][game_id] = {'role': role, 'confidence': 0.1}
+                    self.available_actions_memory['action_learning_stats']['game_contexts_learned'] += 1
+                    print(f"🧠 ACTION{action} role in {game_id}: {role}")
+                else:
+                    # Increase confidence if consistent
+                    current_role = mapping['game_specific_roles'][game_id]
+                    if current_role['role'] == role:
+                        current_role['confidence'] = min(1.0, current_role['confidence'] + 0.1)
+                    else:
+                        # Conflicting role - reduce confidence and potentially update
+                        current_role['confidence'] = max(0.0, current_role['confidence'] - 0.05)
+                        if current_role['confidence'] < 0.3:
+                            current_role['role'] = role
+                            current_role['confidence'] = 0.1
+        
+        # For ACTION6, learn coordinate success zones
+        if action == 6 and 'coordinates' in response_data:
+            x, y = response_data['coordinates']
+            zone_key = (x // 16, y // 16)  # Divide grid into 4x4 zones
+            
+            if 'coordinate_success_zones' not in mapping:
+                mapping['coordinate_success_zones'] = {}
+            
+            if zone_key not in mapping['coordinate_success_zones']:
+                mapping['coordinate_success_zones'][zone_key] = {'attempts': 0, 'successes': 0}
+            
+            zone_data = mapping['coordinate_success_zones'][zone_key]
+            zone_data['attempts'] += 1
+            if success:
+                zone_data['successes'] += 1
+
+    def _detect_grid_movement(self, response_data: Dict[str, Any]) -> Optional[str]:
+        """Detect if an action caused movement on the grid."""
+        # Analyze frame data changes to detect movement
+        frame = response_data.get('frame', [])
+        
+        # Simple heuristics for movement detection
+        # In real implementation, would compare before/after frames
+        
+        # For now, use state changes and score improvements as proxy
+        if response_data.get('score', 0) > 0:
+            # Score improved - likely positive action
+            state = response_data.get('state', 'NOT_FINISHED')
+            if state == 'WIN':
+                return 'success_move'
+            else:
+                return 'progress_move'
+        elif len(response_data.get('available_actions', [])) < 4:
+            # Fewer actions available - might have reached boundary
+            return 'boundary_hit'
+        else:
+            return 'none'
+
+    def _detect_action_effects(self, action: int, response_data: Dict[str, Any], success: bool) -> List[str]:
+        """Detect what effects an action had."""
+        effects = []
+        
+        # Basic effect detection based on response
+        if success:
+            effects.append('successful_action')
+            
+        if response_data.get('state') == 'WIN':
+            effects.append('game_winning')
+            effects.append('terminal_action')
+        elif response_data.get('state') == 'GAME_OVER':
+            effects.append('game_ending')
+            effects.append('terminal_action')
+        
+        if response_data.get('score', 0) > 0:
+            effects.append('score_increase')
+        
+        available_actions = response_data.get('available_actions', [])
+        if len(available_actions) == 0:
+            effects.append('no_actions_remaining')
+        elif len(available_actions) < 4:
+            effects.append('limited_actions')
+        
+        # Action-specific effect detection
+        if action == 7:  # Undo action
+            effects.append('undo_attempted')
+            if success:
+                effects.append('undo_successful')
+        elif action == 5:  # Interaction action
+            effects.append('interaction_attempted')
+            if success:
+                effects.append('interaction_successful')
+        
+        return effects
+
+    def _infer_action_role(self, action: int, response_data: Dict[str, Any], effects: List[str]) -> Optional[str]:
+        """Infer the role/purpose of an action in the current game context."""
+        if 'game_winning' in effects:
+            return 'victory_action'
+        elif 'game_ending' in effects and 'successful_action' not in effects:
+            return 'failure_action'
+        elif 'score_increase' in effects:
+            return 'progress_action'
+        elif 'interaction_successful' in effects:
+            return 'interaction_action'
+        elif 'undo_successful' in effects:
+            return 'undo_action'
+        elif action in [1, 2, 3, 4] and 'progress_move' in effects:
+            return 'movement_action'
+        elif action == 6 and 'successful_action' in effects:
+            return 'coordinate_action'
+        else:
+            return 'exploration_action'
+
+    def get_action_description(self, action: int, game_id: Optional[str] = None) -> str:
+        """Get intelligent description of what an action does based on learned behavior."""
+        if action not in self.available_actions_memory['action_semantic_mapping']:
+            return f"ACTION{action} - Unknown"
+        
+        mapping = self.available_actions_memory['action_semantic_mapping'][action]
+        
+        # Start with default description
+        description = mapping['default_description']
+        
+        # Add learned behaviors if confident enough
+        confidence_threshold = self.available_actions_memory['action_learning_stats']['pattern_confidence_threshold']
+        
+        # Add movement pattern info
+        movements = mapping['grid_movement_patterns']
+        if movements:
+            dominant_movement = max(movements.items(), key=lambda x: x[1])
+            if dominant_movement[1] > 5:  # At least 5 observations
+                description += f" | Learned: {dominant_movement[0]} movement"
+        
+        # Add game-specific role if available
+        if game_id and game_id in mapping['game_specific_roles']:
+            role_info = mapping['game_specific_roles'][game_id]
+            if role_info['confidence'] > confidence_threshold:
+                description += f" | Role in {game_id}: {role_info['role']}"
+        
+        # Add common effects
+        effects = mapping['common_effects']
+        if effects:
+            top_effect = max(effects.items(), key=lambda x: x[1])
+            if top_effect[1] > 3:  # At least 3 observations
+                description += f" | Common effect: {top_effect[0]}"
+        
+        return description
 
     def _select_intelligent_action(self, available_actions: List[int], game_context: Dict[str, Any] = None) -> int:
         """Select action based on learned effectiveness and patterns with enhanced strategy refinement."""
@@ -2371,7 +2668,10 @@ class ContinuousLearningLoop:
                 if action not in recent_actions:
                     stagnation_bonus = 0.25
             
-            final_score = max(0.05, base_score + sequence_bonus + diversity_bonus + context_bonus + stagnation_bonus - pattern_penalty)
+            # 6. NEW: Semantic intelligence bonus - use learned action behavior
+            semantic_bonus = self._calculate_semantic_action_score(action, game_context)
+            
+            final_score = max(0.05, base_score + sequence_bonus + diversity_bonus + context_bonus + stagnation_bonus + semantic_bonus - pattern_penalty)
             action_scores[action] = final_score
         
         # Enhanced selection strategy with adaptive exploration
@@ -2404,6 +2704,95 @@ class ContinuousLearningLoop:
             self.available_actions_memory['sequence_in_progress'] = self.available_actions_memory['sequence_in_progress'][-20:]
         
         return selected
+
+    def _calculate_semantic_action_score(self, action: int, game_context: Dict[str, Any] = None) -> float:
+        """Calculate semantic intelligence bonus based on learned action behavior."""
+        if action not in self.available_actions_memory['action_semantic_mapping']:
+            return 0.0
+        
+        mapping = self.available_actions_memory['action_semantic_mapping'][action]
+        game_id = game_context.get('game_id') if game_context else None
+        semantic_score = 0.0
+        
+        # 1. Game-specific role bonus
+        if game_id and game_id in mapping['game_specific_roles']:
+            role_info = mapping['game_specific_roles'][game_id]
+            confidence_threshold = self.available_actions_memory['action_learning_stats']['pattern_confidence_threshold']
+            
+            if role_info['confidence'] > confidence_threshold:
+                role_bonuses = {
+                    'victory_action': 0.4,      # High bonus for actions that win games
+                    'progress_action': 0.25,    # Good bonus for actions that make progress
+                    'movement_action': 0.15,    # Moderate bonus for movement
+                    'interaction_action': 0.2,  # Good bonus for interactions
+                    'coordinate_action': 0.15,  # Moderate bonus for coordinate actions
+                    'undo_action': 0.05,        # Small bonus for undo (can be useful)
+                    'exploration_action': 0.1,  # Small exploration bonus
+                    'failure_action': -0.3      # Penalty for actions that cause failure
+                }
+                role_bonus = role_bonuses.get(role_info['role'], 0.0)
+                semantic_score += role_bonus * role_info['confidence']
+        
+        # 2. Movement pattern confidence bonus
+        movements = mapping['grid_movement_patterns']
+        if movements:
+            total_movements = sum(movements.values())
+            if total_movements > 5:  # Need sufficient observations
+                # Bonus for consistent movement patterns
+                dominant_pattern = max(movements.items(), key=lambda x: x[1])
+                consistency = dominant_pattern[1] / total_movements
+                
+                if consistency > 0.6:  # 60%+ consistency
+                    pattern_bonuses = {
+                        'success_move': 0.2,
+                        'progress_move': 0.15,
+                        'up': 0.1, 'down': 0.1, 'left': 0.1, 'right': 0.1,
+                        'coordinate_based': 0.1,
+                        'undo': 0.05,
+                        'none': -0.05,  # Small penalty for no movement
+                        'boundary_hit': -0.1  # Penalty for hitting boundaries
+                    }
+                    pattern_bonus = pattern_bonuses.get(dominant_pattern[0], 0.0)
+                    semantic_score += pattern_bonus * consistency
+        
+        # 3. Effect pattern bonus
+        effects = mapping['common_effects']
+        if effects:
+            total_effects = sum(effects.values())
+            if total_effects > 3:  # Need sufficient observations
+                effect_bonuses = {
+                    'successful_action': 0.2,
+                    'score_increase': 0.25,
+                    'game_winning': 0.4,
+                    'interaction_successful': 0.2,
+                    'undo_successful': 0.1,
+                    'progress_action': 0.15,
+                    'game_ending': -0.2,     # Penalty for ending games unsuccessfully
+                    'no_actions_remaining': -0.15
+                }
+                
+                for effect, frequency in effects.items():
+                    if frequency / total_effects > 0.3:  # At least 30% frequency
+                        effect_bonus = effect_bonuses.get(effect, 0.0)
+                        semantic_score += effect_bonus * (frequency / total_effects)
+        
+        # 4. Coordinate success zone bonus (for ACTION6)
+        if action == 6 and 'coordinate_success_zones' in mapping:
+            zones = mapping['coordinate_success_zones']
+            if zones:
+                # Find the most successful zones
+                zone_success_rates = []
+                for zone_data in zones.values():
+                    if zone_data['attempts'] > 2:  # Need sufficient attempts
+                        success_rate = zone_data['successes'] / zone_data['attempts']
+                        zone_success_rates.append(success_rate)
+                
+                if zone_success_rates:
+                    avg_success_rate = sum(zone_success_rates) / len(zone_success_rates)
+                    semantic_score += avg_success_rate * 0.15  # Moderate bonus for coordinate success
+        
+        # Cap the semantic score to prevent over-weighting
+        return max(-0.5, min(0.5, semantic_score))
 
     def _log_action_details_from_output(self, stdout_text: str, game_id: str):
         """Extract and log action details from game session output."""
@@ -2480,23 +2869,63 @@ class ContinuousLearningLoop:
         return self._get_strategic_coordinates(action, grid_dims)
     
     def _get_strategic_coordinates(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
-        """Generate strategic default coordinates for actions."""
+        """Generate strategic default coordinates for actions with exploration."""
         grid_width, grid_height = grid_dims
+        
+        # Add some randomization and exploration to coordinate selection
+        import random
         
         # Strategic coordinate selection based on action type and grid analysis
         if action == 1:  # Often drawing/placing
-            return (grid_width // 4, grid_height // 4)  # Upper left quadrant
+            # Explore upper left quadrant with some variation
+            base_x, base_y = grid_width // 4, grid_height // 4
+            x = max(1, min(grid_width - 1, base_x + random.randint(-3, 3)))
+            y = max(1, min(grid_height - 1, base_y + random.randint(-3, 3)))
+            return (x, y)
         elif action == 2:  # Often modifying  
-            return (grid_width // 2, grid_height // 2)  # Center
+            # Explore center area with variation
+            base_x, base_y = grid_width // 2, grid_height // 2
+            x = max(1, min(grid_width - 1, base_x + random.randint(-5, 5)))
+            y = max(1, min(grid_height - 1, base_y + random.randint(-5, 5)))
+            return (x, y)
         elif action == 3:  # Often erasing/removing
-            return (3 * grid_width // 4, 3 * grid_height // 4)  # Lower right
+            # Explore lower right quadrant
+            base_x, base_y = 3 * grid_width // 4, 3 * grid_height // 4
+            x = max(1, min(grid_width - 1, base_x + random.randint(-3, 3)))
+            y = max(1, min(grid_height - 1, base_y + random.randint(-3, 3)))
+            return (x, y)
         elif action == 4:  # Often pattern-related
-            return (grid_width // 4, 3 * grid_height // 4)  # Lower left
+            # Explore lower left quadrant
+            base_x, base_y = grid_width // 4, 3 * grid_height // 4
+            x = max(1, min(grid_width - 1, base_x + random.randint(-3, 3)))
+            y = max(1, min(grid_height - 1, base_y + random.randint(-3, 3)))
+            return (x, y)
         elif action == 5:  # Often transformation
-            return (3 * grid_width // 4, grid_height // 4)  # Upper right
+            # Explore upper right quadrant
+            base_x, base_y = 3 * grid_width // 4, grid_height // 4
+            x = max(1, min(grid_width - 1, base_x + random.randint(-3, 3)))
+            y = max(1, min(grid_height - 1, base_y + random.randint(-3, 3)))
+            return (x, y)
+        elif action == 6:  # Special coordinate-based action - explore more broadly
+            # For action 6, explore different grid regions more systematically
+            regions = [
+                (grid_width // 4, grid_height // 4),      # Upper left
+                (3 * grid_width // 4, grid_height // 4),  # Upper right  
+                (grid_width // 4, 3 * grid_height // 4),  # Lower left
+                (3 * grid_width // 4, 3 * grid_height // 4), # Lower right
+                (grid_width // 2, grid_height // 2),      # Center
+                (grid_width // 8, grid_height // 8),      # Far upper left
+                (7 * grid_width // 8, 7 * grid_height // 8), # Far lower right
+            ]
+            base_x, base_y = random.choice(regions)
+            x = max(1, min(grid_width - 1, base_x + random.randint(-4, 4)))
+            y = max(1, min(grid_height - 1, base_y + random.randint(-4, 4)))
+            return (x, y)
         else:
-            # Default to slightly off-center to avoid edge effects
-            return (grid_width // 2 + 1, grid_height // 2 + 1)
+            # For any other actions, explore the entire grid more broadly
+            x = random.randint(2, grid_width - 2)
+            y = random.randint(2, grid_height - 2)
+            return (x, y)
 
     def _record_coordinate_effectiveness(self, action: int, x: int, y: int, success: bool):
         """Record effectiveness of coordinate choice for an action."""
@@ -2901,7 +3330,7 @@ class ContinuousLearningLoop:
                 return True
         
         # Energy-based trigger with learning opportunity
-        current_energy = getattr(self.agent.energy_system, 'current_energy', 1.0)
+        current_energy = getattr(self.agent.energy_system, 'current_energy', 100.0)
         if current_energy < 60.0 and len(recent_actions) >= 20:
             # Check if we have patterns worth consolidating
             effectiveness_values = [action.get('effectiveness', 0) for action in recent_actions[-20:]]
@@ -2954,7 +3383,7 @@ class ContinuousLearningLoop:
         
         # Partial energy restoration (not full like post-episode)
         if hasattr(self.agent, 'energy_system'):
-            current_energy = getattr(self.agent.energy_system, 'current_energy', 1.0)
+            current_energy = getattr(self.agent.energy_system, 'current_energy', 100.0)
             restored_energy = min(100.0, current_energy + 20.0)  # Small restoration
             self.agent.energy_system.current_energy = restored_energy
             logger.info(f"⚡ Energy restored: {current_energy:.2f} → {restored_energy:.2f}")
@@ -4960,6 +5389,18 @@ class ContinuousLearningLoop:
                     x, y = self._optimize_coordinates_for_action(selected_action, (64, 64))
                 
                 print(f"🎯 SELECTED ACTION: {selected_action}" + (f" at ({x},{y})" if x is not None else ""))
+                
+                # Show intelligent action description
+                action_desc = self.get_action_description(selected_action, game_id)
+                if "Learned:" in action_desc or "Role in" in action_desc or "effect:" in action_desc:
+                    print(f"   💡 {action_desc}")
+                elif self.available_actions_memory['action_learning_stats']['total_observations'] > 0:
+                    # Show basic learned info even if not confident
+                    mapping = self.available_actions_memory['action_semantic_mapping'].get(selected_action, {})
+                    total_attempts = self.available_actions_memory['action_effectiveness'].get(selected_action, {}).get('attempts', 0)
+                    if total_attempts > 0:
+                        success_rate = self.available_actions_memory['action_effectiveness'][selected_action]['success_rate']
+                        print(f"   📊 Success rate: {success_rate:.1%} ({total_attempts} attempts)")
                 
                 # Execute the action
                 action_result = await self._send_enhanced_action(
