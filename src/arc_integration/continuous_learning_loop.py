@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from concurrent.futures import ThreadPoolExecutor  # Added for SWARM mode
+from collections import deque  # Added for rate limiting
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -65,6 +66,91 @@ logger = logging.getLogger(__name__)
 # ARC-3 API Configuration
 ARC3_BASE_URL = "https://three.arcprize.org"
 ARC3_SCOREBOARD_URL = "https://arcprize.org/leaderboard"
+
+# Rate Limiting Configuration for ARC-AGI-3 API
+# Official limit: 600 requests per minute (RPM)
+ARC3_RATE_LIMIT = {
+    'requests_per_minute': 600,
+    'requests_per_second': 10,  # 600/60 = 10 RPS max
+    'safe_requests_per_second': 8,  # Conservative limit with 20% buffer
+    'backoff_base_delay': 1.0,  # Base delay for exponential backoff
+    'backoff_max_delay': 60.0,  # Maximum backoff delay
+    'request_timeout': 30.0     # Timeout per request
+}
+
+class RateLimiter:
+    """
+    Rate limiter for ARC-AGI-3 API that respects the 600 RPM limit
+    with exponential backoff for 429 responses.
+    """
+    def __init__(self):
+        self.request_times = deque()  # Track request timestamps
+        self.requests_per_second = ARC3_RATE_LIMIT['safe_requests_per_second']
+        self.backoff_delay = 0.0  # Current backoff delay
+        self.consecutive_429s = 0  # Count of consecutive 429 errors
+        self.total_requests = 0
+        self.total_429s = 0
+        
+    async def acquire(self):
+        """Acquire permission to make a request, with rate limiting."""
+        current_time = time.time()
+        
+        # Remove requests older than 1 minute
+        while self.request_times and current_time - self.request_times[0] > 60:
+            self.request_times.popleft()
+        
+        # Check if we're at the per-minute limit
+        if len(self.request_times) >= ARC3_RATE_LIMIT['requests_per_minute']:
+            wait_time = 60 - (current_time - self.request_times[0])
+            if wait_time > 0:
+                print(f"⏸️ Rate limit: Waiting {wait_time:.1f}s (at {len(self.request_times)}/600 RPM)")
+                await asyncio.sleep(wait_time)
+        
+        # Check requests per second limit  
+        recent_requests = sum(1 for t in self.request_times if current_time - t <= 1)
+        if recent_requests >= self.requests_per_second:
+            wait_time = 1.0 / self.requests_per_second
+            await asyncio.sleep(wait_time)
+        
+        # Apply backoff delay if we've been getting 429s
+        if self.backoff_delay > 0:
+            print(f"⏳ Backoff delay: {self.backoff_delay:.1f}s (after {self.consecutive_429s} 429s)")
+            await asyncio.sleep(self.backoff_delay)
+        
+        # Record this request
+        self.request_times.append(current_time)
+        self.total_requests += 1
+        
+    def handle_429_response(self):
+        """Handle a 429 rate limit response with exponential backoff."""
+        self.consecutive_429s += 1
+        self.total_429s += 1
+        
+        # Exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s, 60s (max)
+        self.backoff_delay = min(
+            ARC3_RATE_LIMIT['backoff_base_delay'] * (2 ** (self.consecutive_429s - 1)),
+            ARC3_RATE_LIMIT['backoff_max_delay']
+        )
+        
+        print(f"🚫 Rate limit exceeded (429) - backing off {self.backoff_delay:.1f}s")
+        
+    def handle_success_response(self):
+        """Handle a successful response - reset backoff."""
+        if self.consecutive_429s > 0:
+            print(f"✅ Request succeeded - resetting backoff (was {self.backoff_delay:.1f}s)")
+        self.consecutive_429s = 0
+        self.backoff_delay = 0.0
+        
+    def get_stats(self) -> Dict[str, Any]:
+        """Get rate limiter statistics."""
+        return {
+            'total_requests': self.total_requests,
+            'total_429s': self.total_429s,
+            'current_backoff': self.backoff_delay,
+            'consecutive_429s': self.consecutive_429s,
+            'requests_in_last_minute': len(self.request_times),
+            'rate_limit_hit_rate': self.total_429s / max(1, self.total_requests)
+        }
 
 # ===== GLOBAL ARC TASK CONFIGURATION =====
 
@@ -314,6 +400,10 @@ class ContinuousLearningLoop:
         self.current_scorecard_id: Optional[str] = None
         self.current_game_sessions: Dict[str, str] = {}  # game_id -> guid mapping
         
+        # Rate limiting for ARC-AGI-3 API compliance
+        self.rate_limiter = RateLimiter()
+        print(f"🛡️ Rate limiter initialized: {ARC3_RATE_LIMIT['safe_requests_per_second']} RPS max, 600 RPM limit")
+        
         # Enhanced tracking for sleep states and memory operations
         self.sleep_state_tracker = {
             'is_currently_sleeping': False,
@@ -375,6 +465,34 @@ class ContinuousLearningLoop:
             print(f"⚡ Fresh session starting with full energy: {self.current_energy:.2f}")
         
         logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
+        
+    def get_rate_limit_stats(self) -> Dict[str, Any]:
+        """Get comprehensive rate limiting statistics."""
+        stats = self.rate_limiter.get_stats()
+        stats.update({
+            'rate_limit_config': ARC3_RATE_LIMIT,
+            'current_requests_per_minute': len(self.rate_limiter.request_times),
+            'rate_limit_efficiency': (stats['total_requests'] - stats['total_429s']) / max(1, stats['total_requests']),
+            'recommended_action': (
+                'All good' if stats['rate_limit_hit_rate'] < 0.05 else
+                'Consider reducing request rate' if stats['rate_limit_hit_rate'] < 0.15 else
+                'Significant rate limiting - increase delays'
+            )
+        })
+        return stats
+        
+    def print_rate_limit_status(self):
+        """Print current rate limiting status."""
+        stats = self.get_rate_limit_stats()
+        print(f"\n📊 RATE LIMIT STATUS:")
+        print(f"   Total Requests: {stats['total_requests']}")
+        print(f"   Rate Limited (429s): {stats['total_429s']}")
+        print(f"   Success Rate: {stats['rate_limit_efficiency']:.1%}")
+        print(f"   Current RPM: {stats['current_requests_per_minute']}/600")
+        if stats['current_backoff'] > 0:
+            print(f"   ⏳ Active Backoff: {stats['current_backoff']:.1f}s")
+        print(f"   Status: {stats['recommended_action']}")
+        print()
 
     async def get_available_games(self) -> List[Dict[str, str]]:
         """
@@ -387,17 +505,33 @@ class ContinuousLearningLoop:
         headers = {"X-API-Key": self.api_key}
         
         try:
-            async with aiohttp.ClientSession() as session:
+            # Apply rate limiting
+            await self.rate_limiter.acquire()
+            
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=ARC3_RATE_LIMIT['request_timeout'])) as session:
                 async with session.get(url, headers=headers) as response:
                     if response.status == 200:
                         games = await response.json()
+                        self.rate_limiter.handle_success_response()
                         logger.info(f"Retrieved {len(games)} available games from ARC-AGI-3 API")
                         return games
                     elif response.status == 401:
+                        self.rate_limiter.handle_success_response()  # Not a rate limit issue
                         raise ValueError("Invalid API key - check ARC_API_KEY in .env file")
+                    elif response.status == 429:
+                        # Handle rate limit exceeded
+                        self.rate_limiter.handle_429_response()
+                        print(f"🚫 Rate limit exceeded getting games - will retry with backoff")
+                        # Retry after backoff
+                        await asyncio.sleep(self.rate_limiter.backoff_delay)
+                        return await self.get_available_games()  # Recursive retry
                     else:
+                        self.rate_limiter.handle_success_response()  # Not a rate limit issue
                         raise ValueError(f"API request failed with status {response.status}")
                         
+        except asyncio.TimeoutError:
+            print(f"⏰ API request timeout getting games")
+            return []
         except Exception as e:
             logger.error(f"Failed to get available games: {e}")
             # Return empty list on failure
@@ -545,10 +679,14 @@ class ContinuousLearningLoop:
                 # New Game - start fresh game session
                 print(f"🔄 NEW GAME RESET for {game_id}")
             
-            async with aiohttp.ClientSession() as session:
+            # Apply rate limiting
+            await self.rate_limiter.acquire()
+            
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=ARC3_RATE_LIMIT['request_timeout'])) as session:
                 async with session.post(url, headers=headers, json=payload) as response:
                     if response.status == 200:
                         result = await response.json()
+                        self.rate_limiter.handle_success_response()
                         guid = result.get('guid')
                         
                         if guid:
@@ -570,11 +708,22 @@ class ContinuousLearningLoop:
                         else:
                             print(f"❌ No GUID returned for game {game_id}")
                             return None
+                    elif response.status == 429:
+                        # Handle rate limit exceeded
+                        self.rate_limiter.handle_429_response()
+                        print(f"🚫 Rate limit exceeded on RESET {game_id} - will retry with backoff")
+                        # Retry after backoff
+                        await asyncio.sleep(self.rate_limiter.backoff_delay)
+                        return await self._start_game_session(game_id, existing_guid)  # Recursive retry
                     else:
+                        self.rate_limiter.handle_success_response()  # Not a rate limit issue
                         error_text = await response.text()
                         print(f"❌ RESET failed: {response.status} - {error_text}")
                         return None
                         
+        except asyncio.TimeoutError:
+            print(f"⏰ API request timeout on RESET {game_id}")
+            return None
         except Exception as e:
             print(f"❌ Error starting game session for {game_id}: {e}")
             return None
@@ -597,10 +746,14 @@ class ContinuousLearningLoop:
             
             print(f"🔄 Opening scorecard...")
             
-            async with aiohttp.ClientSession() as session:
+            # Apply rate limiting
+            await self.rate_limiter.acquire()
+            
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=ARC3_RATE_LIMIT['request_timeout'])) as session:
                 async with session.post(url, headers=headers, json=payload) as response:
                     if response.status == 200:
                         result = await response.json()
+                        self.rate_limiter.handle_success_response()
                         scorecard_id = result.get('card_id')
                         
                         if scorecard_id:
@@ -610,11 +763,22 @@ class ContinuousLearningLoop:
                         else:
                             print(f"❌ No card_id returned")
                             return None
+                    elif response.status == 429:
+                        # Handle rate limit exceeded
+                        self.rate_limiter.handle_429_response()
+                        print(f"🚫 Rate limit exceeded opening scorecard - will retry with backoff")
+                        # Retry after backoff
+                        await asyncio.sleep(self.rate_limiter.backoff_delay)
+                        return await self._open_scorecard()  # Recursive retry
                     else:
+                        self.rate_limiter.handle_success_response()  # Not a rate limit issue
                         error_text = await response.text()
                         print(f"❌ Failed to open scorecard: {response.status} - {error_text}")
                         return None
                         
+        except asyncio.TimeoutError:
+            print(f"⏰ API request timeout opening scorecard")
+            return None
         except Exception as e:
             print(f"❌ Error opening scorecard: {e}")
             return None
@@ -913,7 +1077,7 @@ class ContinuousLearningLoop:
         grid_width: int = 64,
         grid_height: int = 64
     ) -> Optional[Dict[str, Any]]:
-        """Send action with proper validation, coordinate optimization, and effectiveness tracking."""
+        """Send action with proper validation, coordinate optimization, effectiveness tracking, and rate limiting."""
         guid = self.current_game_sessions.get(game_id)
         if not guid:
             logger.warning(f"No active session for game {game_id}")
@@ -937,7 +1101,10 @@ class ContinuousLearningLoop:
                 return None
         
         try:
-            async with aiohttp.ClientSession() as session:
+            # Apply rate limiting BEFORE making the request
+            await self.rate_limiter.acquire()
+            
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=ARC3_RATE_LIMIT['request_timeout'])) as session:
                 headers = {
                     "X-API-Key": self.api_key,
                     "Content-Type": "application/json"
@@ -969,6 +1136,7 @@ class ContinuousLearningLoop:
                 async with session.post(url, headers=headers, json=payload) as response:
                     if response.status == 200:
                         data = await response.json()
+                        self.rate_limiter.handle_success_response()
                         
                         # Track available actions changes
                         current_available = data.get('actions', [])
@@ -993,7 +1161,18 @@ class ContinuousLearningLoop:
                             self._record_coordinate_effectiveness(action_number, x, y, success)
                         
                         return data
+                    elif response.status == 429:
+                        # Handle rate limit exceeded - this is the critical case for actions!
+                        self.rate_limiter.handle_429_response()
+                        error_text = await response.text()
+                        print(f"🚫 ACTION {action_number} rate limited (429) - backing off {self.rate_limiter.backoff_delay:.1f}s")
+                        logger.warning(f"Rate limit hit on ACTION{action_number} for {game_id}: {error_text}")
+                        
+                        # Wait for backoff then retry
+                        await asyncio.sleep(self.rate_limiter.backoff_delay)
+                        return await self._send_enhanced_action(game_id, action_number, x, y, grid_width, grid_height)
                     else:
+                        self.rate_limiter.handle_success_response()  # Not a rate limit issue
                         error_text = await response.text()
                         print(f"❌ ACTION {action_number} FAILED: {response.status}")
                         logger.warning(f"Action {action_number} failed for {game_id}: {response.status} - {error_text}")
@@ -1004,6 +1183,9 @@ class ContinuousLearningLoop:
                         
                         return None
                         
+        except asyncio.TimeoutError:
+            print(f"⏰ ACTION {action_number} timeout for {game_id}")
+            return None
         except Exception as e:
             logger.error(f"Error sending action {action_number} to {game_id}: {e}")
             return None
@@ -1180,8 +1362,11 @@ class ContinuousLearningLoop:
                         print(f"Target performance reached for {game_id}")
                         break
                         
-                    # Brief delay between episodes to avoid rate limiting
-                    await asyncio.sleep(2.0)
+                    # Enhanced delay between episodes for rate limit compliance
+                    # ARC-3 games involve many API calls, so be conservative
+                    episode_delay = 3.0  # Increased from 2.0 to 3.0 seconds
+                    print(f"⏸️ Rate limit compliance: waiting {episode_delay}s between episodes")
+                    await asyncio.sleep(episode_delay)
                         
                 else:
                     print(f"Session {session_count + 1} failed: {session_result.get('error', 'Unknown error')}")
@@ -1192,7 +1377,10 @@ class ContinuousLearningLoop:
                         print(f"Stopping training for {game_id} after 5 consecutive API failures")
                         break
                     
-                    await asyncio.sleep(5.0)  # Longer delay after failures
+                    # Enhanced backoff for failures to respect rate limits
+                    failure_delay = min(10.0, 5.0 + (consecutive_failures * 2.0))  # Progressive backoff
+                    print(f"⏸️ Failure backoff: waiting {failure_delay}s after {consecutive_failures} failures")
+                    await asyncio.sleep(failure_delay)
                     
             except Exception as e:
                 logger.error(f"Error in session {session_count + 1} for {game_id}: {e}")
@@ -1200,7 +1388,10 @@ class ContinuousLearningLoop:
                 if consecutive_failures >= 5:
                     print(f"Stopping training for {game_id} due to repeated errors")
                     break
-                await asyncio.sleep(5.0)
+                # Enhanced error backoff to prevent rapid retry cycles that could hit rate limits
+                error_delay = min(15.0, 5.0 + (consecutive_failures * 3.0))  # Even longer backoff for errors
+                print(f"⏸️ Error backoff: waiting {error_delay}s after error #{consecutive_failures}")
+                await asyncio.sleep(error_delay)
                 
         # Calculate final performance metrics
         game_results['performance_metrics'] = self._calculate_game_performance(game_results)
@@ -1869,6 +2060,9 @@ class ContinuousLearningLoop:
         print(f"Games/Hour: {swarm_results['overall_performance'].get('games_per_hour', 0):.1f}")
         print(f"Overall Win Rate: {swarm_results['overall_performance'].get('overall_win_rate', 0):.1%}")
         
+        # Show rate limiting statistics
+        self.print_rate_limit_status()
+        
         return swarm_results
     
     async def _train_on_game_swarm(
@@ -1922,8 +2116,10 @@ class ContinuousLearningLoop:
                         logger.warning(f"Game {game_id} had {consecutive_failures} consecutive failures at episode {episode_count}")
                         break
                 
-                # Shorter delay for swarm mode
-                await asyncio.sleep(1.0)
+                # Rate-limit compliant delay for swarm mode
+                # Swarm mode runs multiple games concurrently, so be more conservative
+                swarm_delay = 2.0  # Increased from 1.0 to 2.0 seconds
+                await asyncio.sleep(swarm_delay)
             
             # Calculate final performance
             game_results['performance_metrics'] = self._calculate_game_performance(game_results)
@@ -5767,8 +5963,10 @@ class ContinuousLearningLoop:
                 
                 actions_taken += 1
                 
-                # Brief delay to avoid rate limiting
-                await asyncio.sleep(0.1)
+                # Rate-limit compliant delay between actions
+                # With 8 RPS limit, we need at least 0.125s between requests
+                # Use 0.15s for safety margin (6.67 RPS actual rate)
+                await asyncio.sleep(0.15)
             
             # Session complete
             final_result = {
