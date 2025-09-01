@@ -2383,36 +2383,19 @@ class ContinuousLearningLoop:
         elif total_actions_taken < 50:  # Early in training
             exploration_rate = 0.2   # 20% exploration early on
         
-        # Enhanced logging: Show action scoring details
-        print(f"📊 ACTION SCORES for {len(valid_actions)} actions:")
-        for action in valid_actions:
-            score = action_scores[action]
-            effectiveness = self.available_actions_memory['action_effectiveness'].get(action, {'success_rate': 0.0, 'attempts': 0})
-            print(f"   Action {action}: Score={score:.3f} (Success Rate: {effectiveness['success_rate']:.2f}, Attempts: {effectiveness['attempts']})")
-        
         is_exploration = random.random() < exploration_rate
         
         if is_exploration:  # Adaptive exploration
-            print(f"🔍 EXPLORATION MODE ({exploration_rate*100:.0f}% chance) - Recent failures: {recent_failures}")
             # Smart exploration: prefer less-tried actions
             unexplored = [a for a in valid_actions if self.available_actions_memory['action_effectiveness'].get(a, {'attempts': 0})['attempts'] < 2]
             if unexplored:
                 selected = random.choice(unexplored)
-                print(f"   → Exploring untried action: {selected}")
             else:
                 selected = random.choice(valid_actions)
-                print(f"   → Random exploration: {selected}")
         else:
-            print(f"🧠 INTELLIGENT SELECTION MODE (exploitation)")
             # Intelligent selection with enhanced weighting
             weights = [max(0.05, action_scores[action]) for action in valid_actions]
             selected = random.choices(valid_actions, weights=weights)[0]
-            best_score = max(action_scores.values())
-            print(f"   → Selected {selected} (score: {action_scores[selected]:.3f}, best available: {best_score:.3f})")
-        
-        # Enhanced logging for debugging action selection
-        if len(action_scores) > 1:
-            print(f"🎯 Action Selection: {selected} (scores: {[(a, f'{action_scores[a]:.2f}') for a in valid_actions]})")
         
         # Update selection tracking
         self.available_actions_memory['sequence_in_progress'].append(selected)
@@ -4969,11 +4952,6 @@ class ContinuousLearningLoop:
                    current_score < 100):  # Reasonable win condition
                 
                 # Use our intelligent action selection
-                print(f"\n📋 Action {actions_taken + 1}/{max_actions}")
-                print(f"   Current: State={current_state}, Score={current_score}")
-                print(f"   🎮 API Available Actions: {available_actions}")
-                
-                # Select next action using our enhanced intelligence
                 selected_action = self._select_intelligent_action(available_actions, {'game_id': game_id})
                 
                 # Optimize coordinates if needed (for ACTION6)
@@ -4981,7 +4959,7 @@ class ContinuousLearningLoop:
                 if selected_action == 6:
                     x, y = self._optimize_coordinates_for_action(selected_action, (64, 64))
                 
-                print(f"   🎯 SELECTED ACTION: {selected_action}" + (f" at ({x},{y})" if x is not None else ""))
+                print(f"🎯 SELECTED ACTION: {selected_action}" + (f" at ({x},{y})" if x is not None else ""))
                 
                 # Execute the action
                 action_result = await self._send_enhanced_action(
@@ -5023,12 +5001,7 @@ class ContinuousLearningLoop:
                     current_score = new_score
                     available_actions = new_available
                     
-                    print(f"   ✅ Result: Score {current_score} (+{score_improvement}), State: {current_state}")
-                    if new_available != available_actions:
-                        print(f"   🔄 Available Actions Updated: {new_available}")
-                    
                 else:
-                    print(f"   ❌ Action {selected_action} failed")
                     # Record failed action
                     action_history.append({
                         'action': selected_action,
