@@ -1,3 +1,4 @@
+### HOW ARC 3 AGI API WORKS - PLEASE READ
 Agents
 
 # Agents Quickstart
@@ -529,3 +530,237 @@ For each action taken, the metadata of the returned frame will indicate which ac
 
 Note: Action 6 does not provide explicit X/Y coordinates for active areas. If Action 6 is available, only its availability will be indicated, without specifying which coordinates are active.
 
+## open scorecard
+
+import requests
+
+url = "https://three.arcprize.org/api/scorecard/open"
+
+payload = {}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+
+## close score card
+import requests
+
+url = "https://three.arcprize.org/api/scorecard/close"
+
+payload = { "card_id": "8bb3b1b8-4b46-4a29-a13b-ad7850a0f916" }
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+
+## New Game:
+
+import requests
+
+url = "https://three.arcprize.org/api/cmd/RESET"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "card_id": "8bb3b1b8-4b46-4a29-a13b-ad7850a0f916"
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+
+
+## level Reset
+import requests
+
+url = "https://three.arcprize.org/api/cmd/RESET"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "card_id": "8bb3b1b8-4b46-4a29-a13b-ad7850a0f916",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470"
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+
+## ACTION 1
+
+import requests
+
+url = "https://three.arcprize.org/api/cmd/ACTION1"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470",
+    "reasoning": { "policy": "π_left" }
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+
+## ACTION 2
+import requests
+
+url = "https://three.arcprize.org/api/cmd/ACTION2"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470",
+    "reasoning": { "policy": "π_left" }
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+## ACTION 3
+import requests
+
+url = "https://three.arcprize.org/api/cmd/ACTION3"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470",
+    "reasoning": { "policy": "π_left" }
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+## ACTION 4
+import requests
+
+url = "https://three.arcprize.org/api/cmd/ACTION4"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470",
+    "reasoning": { "policy": "π_left" }
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+## ACTION 5
+import requests
+
+url = "https://three.arcprize.org/api/cmd/ACTION5"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470",
+    "reasoning": { "policy": "π_left" }
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+## ACTION 6
+import requests
+
+url = "https://three.arcprize.org/api/cmd/ACTION6"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470",
+    "x": 12,
+    "y": 34
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+## ACTION 7
+import requests
+
+url = "https://three.arcprize.org/api/cmd/ACTION7"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470",
+    "reasoning": { "policy": "π_left" }
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+
+
+
+##ACTION RETURN TYPE:
+##NOTICE THAT "available_actions" corresponds to the actions which are available. 1 = action1, 2 = action2 etc.
+{
+  "game_id": "ls20-016295f7601e",
+  "guid": "2fa5332c-2e55-4825-b5c5-df960d504470",
+  "frame": [
+    [
+      [
+        0,
+        0,
+        1,
+        "…"
+      ],
+      [
+        "…"
+      ]
+    ]
+  ],
+  "state": "NOT_FINISHED",
+  "score": 3,
+  "win_score": 254,
+  "action_input": {
+    "id": 7
+  },
+  "available_actions": [
+    1,
+    2,
+    3,
+    4,
+    7
+  ]
+}

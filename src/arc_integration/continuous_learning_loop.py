@@ -410,45 +410,184 @@ class ContinuousLearningLoop:
 
     async def create_real_scorecard(self, games_list: List[str]) -> Optional[str]:
         """
-        Create a real scorecard using the ARC-AGI-3 API.
+        Open a scorecard using the correct ARC-3 API endpoint.
+        This method is kept for compatibility but now uses the proper open scorecard API.
         
         Args:
-            games_list: List of game_ids to include in scorecard
+            games_list: List of game_ids (ignored for open scorecard - games are added via RESET)
             
         Returns:
             scorecard_id if successful, None if failed
         """
-        url = "https://three.arcprize.org/api/scorecards"
-        headers = {
-            "X-API-Key": self.api_key,
-            "Content-Type": "application/json"
-        }
+        return await self._open_scorecard()
+
+    async def _start_game_session(self, game_id: str, existing_guid: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Start a new game session or reset an existing one using the ARC-AGI-3 API RESET command.
         
-        payload = {
-            "title": f"Tabula-Rasa Continuous Training {int(time.time())}",
-            "games": games_list
-        }
-        
+        Args:
+            game_id: The game ID to start
+            existing_guid: If provided, performs a level reset within existing session
+            
+        Returns:
+            Session data with GUID if successful, None if failed
+        """
         try:
+            # Step 1: Open a scorecard if we don't have one
+            if not self.current_scorecard_id:
+                scorecard_result = await self._open_scorecard()
+                if not scorecard_result:
+                    print(f"❌ Failed to open scorecard")
+                    return None
+            
+            # Step 2: Prepare RESET call
+            url = f"{ARC3_BASE_URL}/api/cmd/RESET"
+            headers = {
+                "X-API-Key": self.api_key,
+                "Content-Type": "application/json"
+            }
+            
+            # Build payload based on reset type
+            payload = {
+                "game_id": game_id,
+                "card_id": self.current_scorecard_id
+            }
+            
+            if existing_guid:
+                # Level Reset - reset within existing game session
+                payload["guid"] = existing_guid
+                print(f"🔄 Attempting LEVEL RESET for {game_id} with GUID {existing_guid}")
+            else:
+                # New Game - start fresh game session
+                print(f"🔄 Attempting NEW GAME RESET for {game_id} with scorecard {self.current_scorecard_id}")
+            
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, headers=headers, json=payload) as response:
-                    if response.status == 201:
+                    if response.status == 200:
                         result = await response.json()
-                        scorecard_id = result.get('scorecard_id')
-                        scorecard_url = f"https://three.arcprize.org/scorecard/{scorecard_id}"
+                        guid = result.get('guid')
                         
-                        logger.info(f"Created real scorecard: {scorecard_url}")
-                        self.current_scorecard_id = scorecard_id
-                        return scorecard_id
+                        if guid:
+                            # Store the GUID for this game
+                            self.current_game_sessions[game_id] = guid
+                            reset_type = "LEVEL RESET" if existing_guid else "NEW GAME"
+                            print(f"✅ {reset_type} successful: {game_id} → GUID: {guid}")
+                            
+                            return {
+                                'guid': guid,
+                                'game_id': game_id,
+                                'scorecard_id': self.current_scorecard_id,
+                                'state': result.get('state', 'NOT_STARTED'),
+                                'frame': result.get('frame', []),
+                                'available_actions': result.get('available_actions', [1,2,3,4,5,6,7]),
+                                'score': result.get('score', 0),
+                                'reset_type': reset_type.lower().replace(' ', '_')
+                            }
+                        else:
+                            print(f"❌ No GUID returned for game {game_id}")
+                            return None
                     else:
                         error_text = await response.text()
-                        logger.error(f"Failed to create scorecard: {response.status} - {error_text}")
+                        print(f"❌ RESET failed: {response.status} - {error_text}")
                         return None
                         
         except Exception as e:
-            logger.error(f"Error creating scorecard: {e}")
+            print(f"❌ Error starting game session for {game_id}: {e}")
+            return None
+
+    async def _open_scorecard(self) -> Optional[str]:
+        """
+        Open a new scorecard using the correct ARC-3 API endpoint.
+        
+        Returns:
+            scorecard_id if successful, None if failed
+        """
+        try:
+            url = "https://three.arcprize.org/api/scorecard/open"
+            headers = {
+                "X-API-Key": self.api_key,
+                "Content-Type": "application/json"
+            }
+            
+            payload = {}  # Empty payload as shown in the API example
+            
+            print(f"🔄 Opening new scorecard...")
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        scorecard_id = result.get('card_id')
+                        
+                        if scorecard_id:
+                            self.current_scorecard_id = scorecard_id
+                            print(f"✅ Opened scorecard: {scorecard_id}")
+                            return scorecard_id
+                        else:
+                            print(f"❌ No card_id returned")
+                            return None
+                    else:
+                        error_text = await response.text()
+                        print(f"❌ Failed to open scorecard: {response.status} - {error_text}")
+                        return None
+                        
+        except Exception as e:
+            print(f"❌ Error opening scorecard: {e}")
+            return None
+
+    async def _close_scorecard(self, scorecard_id: str) -> bool:
+        """
+        Close a scorecard using the correct ARC-3 API endpoint.
+        
+        Args:
+            scorecard_id: The scorecard ID to close
+            
+        Returns:
+            True if successful, False if failed
+        """
+        try:
+            url = "https://three.arcprize.org/api/scorecard/close"
+            headers = {
+                "X-API-Key": self.api_key,
+                "Content-Type": "application/json"
+            }
+            
+            payload = {"card_id": scorecard_id}
+            
+            print(f"🔄 Closing scorecard: {scorecard_id}")
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        print(f"✅ Closed scorecard: {scorecard_id}")
+                        return True
+                    else:
+                        error_text = await response.text()
+                        print(f"❌ Failed to close scorecard: {response.status} - {error_text}")
+                        return False
+                        
+        except Exception as e:
+            print(f"❌ Error closing scorecard: {e}")
+            return False
+
+    async def _reset_level(self, game_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Reset the current level within an existing game session (Level Reset).
+        
+        Args:
+            game_id: The game ID to reset
+            
+        Returns:
+            Updated session data if successful, None if failed
+        """
+        existing_guid = self.current_game_sessions.get(game_id)
+        if not existing_guid:
+            print(f"❌ No existing session GUID found for {game_id}, cannot perform level reset")
             return None
         
+        return await self._start_game_session(game_id, existing_guid=existing_guid)
+
     def _init_demo_agent(self):
         """Initialize a demonstration agent for monitoring purposes."""
         try:
@@ -662,8 +801,14 @@ class ContinuousLearningLoop:
         # Update available actions tracking
         self._update_available_actions(response_data, game_id)
         
+        # Enhanced logging: Show API available actions and selection process
+        print(f"🎮 API AVAILABLE ACTIONS for {game_id}: {available}")
+        
         # Use intelligent action selection
         selected_action = self._select_intelligent_action(available, {'game_id': game_id})
+        
+        # Enhanced logging: Show selected action with reasoning
+        print(f"🎯 SELECTED ACTION: {selected_action} (from available: {available})")
         
         # Add to action history
         self.available_actions_memory['action_history'].append(selected_action)
@@ -719,23 +864,32 @@ class ContinuousLearningLoop:
                     "guid": guid
                 }
                 
-                # Add coordinates for ACTION6
+                # ACTION6 uses coordinates, others use reasoning
                 if action_number == 6:
                     payload["x"] = x
                     payload["y"] = y
-                
-                # Add reasoning for better tracking
-                payload["reasoning"] = {
-                    "action_type": f"ACTION{action_number}",
-                    "grid_size": f"{grid_width}x{grid_height}",
-                    "coordinates": f"({x},{y})" if action_number == 6 else "N/A",
-                    "intelligence_used": self.available_actions_memory['current_game_id'] == game_id,
-                    "timestamp": time.time()
-                }
+                else:
+                    # Add reasoning for actions 1-5,7 (following ARC-3 API pattern)
+                    payload["reasoning"] = {
+                        "policy": f"intelligent_selection_action_{action_number}",
+                        "action_type": f"ACTION{action_number}",
+                        "grid_size": f"{grid_width}x{grid_height}",
+                        "intelligence_used": self.available_actions_memory['current_game_id'] == game_id,
+                        "timestamp": time.time()
+                    }
                 
                 async with session.post(url, headers=headers, json=payload) as response:
                     if response.status == 200:
                         data = await response.json()
+                        
+                        # Enhanced logging: Show action execution result
+                        state = data.get('state', 'UNKNOWN')
+                        score = data.get('score', 0)
+                        available_actions = data.get('actions', [])
+                        
+                        print(f"✅ ACTION {action_number} EXECUTED → State: {state}, Score: {score}")
+                        print(f"   New Available Actions: {available_actions}")
+                        
                         logger.info(f"Action {action_number} successful for {game_id}")
                         
                         # Update action intelligence with response
@@ -749,6 +903,7 @@ class ContinuousLearningLoop:
                         return data
                     else:
                         error_text = await response.text()
+                        print(f"❌ ACTION {action_number} FAILED → Status: {response.status}, Error: {error_text}")
                         logger.warning(f"Action {action_number} failed for {game_id}: {response.status} - {error_text}")
                         
                         # Record failure if coordinates were used
@@ -1011,6 +1166,34 @@ class ContinuousLearningLoop:
             
             print(f"🎮 Starting complete mastery session {session_count} for {game_id}")  # Updated naming
             
+            # Enhanced option: Choose between external main.py and direct control
+            use_direct_control = True  # Set to True to use our enhanced action selection
+            
+            if use_direct_control:
+                print(f"🎯 Using DIRECT API CONTROL with enhanced action selection")
+                # Use our direct API control with intelligent action selection
+                game_session_result = await self.start_training_with_direct_control(
+                    game_id, max_actions_per_session, session_count
+                )
+                
+                if "error" in game_session_result:
+                    print(f"❌ Direct control failed: {game_session_result['error']}")
+                    print(f"🔄 Falling back to external main.py")
+                    use_direct_control = False  # Fall back to external method
+                else:
+                    # Convert direct control result to expected format
+                    total_score = game_session_result.get('final_score', 0)
+                    episode_actions = game_session_result.get('total_actions', 0)
+                    final_state = game_session_result.get('final_state', 'UNKNOWN')
+                    effective_actions = game_session_result.get('effective_actions', [])
+                    
+                    print(f"🎯 Direct Control Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
+                    print(f"🎯 Effective Actions Found: {len(effective_actions)}")
+            
+            if not use_direct_control:
+                print(f"🔄 Using EXTERNAL main.py (fallback mode)")
+                # Original external main.py approach
+            
             # VERBOSE: Show memory state before mastery session
             print(f"📊 PRE-SESSION MEMORY STATUS:")  # Updated naming
             pre_memory_status = self._get_memory_consolidation_status()
@@ -1074,56 +1257,58 @@ class ContinuousLearningLoop:
             
             # Run the complete game session until WIN/GAME_OVER
             try:
-                print(f"🚀 Executing complete game session: {' '.join(cmd)}")
-                process = await asyncio.create_subprocess_exec(
-                    *cmd,
-                    cwd=str(self.arc_agents_path),
-                    env=env,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                
-                # Wait for complete game session with longer timeout (games can take thousands of actions)
-                try:
-                    stdout, stderr = await asyncio.wait_for(
-                        process.communicate(), 
-                        timeout=1800.0  # Increased from 10 to 30 minutes for deeper exploration
+                if use_direct_control:
+                    # Direct control was successful - results already processed above
+                    pass
+                else:
+                    # Execute external main.py
+                    print(f"🚀 Executing complete game session: {' '.join(cmd)}")
+                    process = await asyncio.create_subprocess_exec(
+                        *cmd,
+                        cwd=str(self.arc_agents_path),
+                        env=env,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
                     )
                     
-                    stdout_text = stdout.decode('utf-8', errors='ignore') if stdout else ""
-                    stderr_text = stderr.decode('utf-8', errors='ignore') if stderr else ""
-                    
-                    print(f"✅ Complete game session finished")
-                    
-                    # Parse complete game results
-                    game_results = self._parse_complete_game_session(stdout_text, stderr_text)
-                    total_score = game_results.get('final_score', 0)
-                    episode_actions = game_results.get('total_actions', 0) 
-                    final_state = game_results.get('final_state', 'UNKNOWN')
-                    effective_actions = game_results.get('effective_actions', [])
-                    
-                    print(f"🎯 Game Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                    print(f"🎯 Effective Actions Found: {len(effective_actions)}")
-                    
-                    # CRITICAL: Simulate mid-game consolidation for actions during gameplay
-                    if episode_actions > 100:  # Only for substantial games
-                        await self._simulate_mid_game_consolidation(effective_actions, episode_actions)
-                    
-                except asyncio.TimeoutError:
-                    print(f"⏰ Complete game session timed out after 30 minutes - killing process")
+                    # Wait for complete game session with longer timeout
                     try:
-                        process.kill()
-                        await asyncio.wait_for(process.wait(), timeout=5.0)
-                    except:
-                        pass
-                    
-                    # Set timeout defaults
-                    total_score = 0
-                    episode_actions = 1000  # Assume many actions were attempted
-                    final_state = 'TIMEOUT'
-                    effective_actions = []
-                    stdout_text = ""
-                    stderr_text = ""
+                        stdout, stderr = await asyncio.wait_for(
+                            process.communicate(), 
+                            timeout=1800.0  # 30 minutes for deeper exploration
+                        )
+                        
+                        stdout_text = stdout.decode('utf-8', errors='ignore') if stdout else ""
+                        stderr_text = stderr.decode('utf-8', errors='ignore') if stderr else ""
+                        
+                        print(f"✅ Complete game session finished")
+                        
+                        # Enhanced logging: Extract and show action details from game output
+                        self._log_action_details_from_output(stdout_text, game_id)
+                        
+                        # Parse complete game results
+                        game_results = self._parse_complete_game_session(stdout_text, stderr_text)
+                        total_score = game_results.get('final_score', 0)
+                        episode_actions = game_results.get('total_actions', 0) 
+                        final_state = game_results.get('final_state', 'UNKNOWN')
+                        effective_actions = game_results.get('effective_actions', [])
+                        
+                        print(f"🎯 Game Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
+                        print(f"🎯 Effective Actions Found: {len(effective_actions)}")
+                        
+                    except asyncio.TimeoutError:
+                        print(f"⏰ Complete game session timed out after 30 minutes - killing process")
+                        try:
+                            process.kill()
+                            await asyncio.wait_for(process.wait(), timeout=5.0)
+                        except:
+                            pass
+                        
+                        # Set timeout defaults
+                        total_score = 0
+                        episode_actions = 1000  # Assume many actions were attempted
+                        final_state = 'TIMEOUT'
+                        effective_actions = []
                     
             except Exception as e:
                 print(f"❌ Error during complete game session: {e}")
@@ -2190,17 +2375,32 @@ class ContinuousLearningLoop:
         elif total_actions_taken < 50:  # Early in training
             exploration_rate = 0.2   # 20% exploration early on
         
-        if random.random() < exploration_rate:  # Adaptive exploration
+        # Enhanced logging: Show action scoring details
+        print(f"📊 ACTION SCORES for {len(valid_actions)} actions:")
+        for action in valid_actions:
+            score = action_scores[action]
+            effectiveness = self.available_actions_memory['action_effectiveness'].get(action, {'success_rate': 0.0, 'attempts': 0})
+            print(f"   Action {action}: Score={score:.3f} (Success Rate: {effectiveness['success_rate']:.2f}, Attempts: {effectiveness['attempts']})")
+        
+        is_exploration = random.random() < exploration_rate
+        
+        if is_exploration:  # Adaptive exploration
+            print(f"🔍 EXPLORATION MODE ({exploration_rate*100:.0f}% chance) - Recent failures: {recent_failures}")
             # Smart exploration: prefer less-tried actions
             unexplored = [a for a in valid_actions if self.available_actions_memory['action_effectiveness'].get(a, {'attempts': 0})['attempts'] < 2]
             if unexplored:
-                return random.choice(unexplored)
+                selected = random.choice(unexplored)
+                print(f"   → Exploring untried action: {selected}")
             else:
-                return random.choice(valid_actions)
-        
-        # Intelligent selection with enhanced weighting
-        weights = [max(0.05, action_scores[action]) for action in valid_actions]
-        selected = random.choices(valid_actions, weights=weights)[0]
+                selected = random.choice(valid_actions)
+                print(f"   → Random exploration: {selected}")
+        else:
+            print(f"🧠 INTELLIGENT SELECTION MODE (exploitation)")
+            # Intelligent selection with enhanced weighting
+            weights = [max(0.05, action_scores[action]) for action in valid_actions]
+            selected = random.choices(valid_actions, weights=weights)[0]
+            best_score = max(action_scores.values())
+            print(f"   → Selected {selected} (score: {action_scores[selected]:.3f}, best available: {best_score:.3f})")
         
         # Enhanced logging for debugging action selection
         if len(action_scores) > 1:
@@ -2213,6 +2413,58 @@ class ContinuousLearningLoop:
             self.available_actions_memory['sequence_in_progress'] = self.available_actions_memory['sequence_in_progress'][-20:]
         
         return selected
+
+    def _log_action_details_from_output(self, stdout_text: str, game_id: str):
+        """Extract and log action details from game session output."""
+        try:
+            print(f"\n🔍 ACTION ANALYSIS for {game_id}:")
+            
+            # Look for API action calls in the output
+            api_action_pattern = r'(ACTION[1-7].*?(?:success|failed|error))'
+            api_actions = re.findall(api_action_pattern, stdout_text, re.IGNORECASE | re.DOTALL)
+            
+            if api_actions:
+                print(f"   📡 API Actions Found: {len(api_actions)}")
+                for i, action in enumerate(api_actions[:10]):  # Show first 10 actions
+                    action_clean = re.sub(r'\s+', ' ', action.strip())
+                    if len(action_clean) > 100:
+                        action_clean = action_clean[:97] + "..."
+                    print(f"      {i+1}. {action_clean}")
+                if len(api_actions) > 10:
+                    print(f"      ... and {len(api_actions)-10} more actions")
+            
+            # Look for available actions in the output  
+            available_pattern = r'available.*?actions?[:\s]*\[([^\]]+)\]'
+            available_matches = re.findall(available_pattern, stdout_text, re.IGNORECASE)
+            
+            if available_matches:
+                print(f"   🎮 Available Actions Seen:")
+                unique_available = list(set(available_matches))
+                for i, actions in enumerate(unique_available[:5]):  # Show first 5 unique sets
+                    print(f"      {i+1}. [{actions}]")
+                if len(unique_available) > 5:
+                    print(f"      ... and {len(unique_available)-5} more sets")
+            
+            # Look for game state changes
+            state_pattern = r'(?:state|status)[:\s]*(\w+)'
+            states = re.findall(state_pattern, stdout_text, re.IGNORECASE)
+            
+            if states:
+                unique_states = list(set(states))
+                print(f"   🎯 Game States: {', '.join(unique_states)}")
+            
+            # Look for scores
+            score_pattern = r'score[:\s]*(\d+)'
+            scores = re.findall(score_pattern, stdout_text, re.IGNORECASE)
+            
+            if scores:
+                score_progression = [int(s) for s in scores[-10:]]  # Last 10 scores
+                print(f"   📊 Score Progression: {' → '.join(map(str, score_progression))}")
+            
+            print()  # Add spacing
+            
+        except Exception as e:
+            print(f"   ⚠️ Error analyzing action details: {e}")
 
     def _optimize_coordinates_for_action(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
         """Generate optimal X/Y coordinates based on learned patterns."""
@@ -4624,3 +4876,193 @@ class ContinuousLearningLoop:
         except Exception as e:
             logger.warning(f"Error getting protection floor: {e}")
             return 0.1
+
+    async def investigate_api_available_actions(self, game_id: str) -> Dict[str, Any]:
+        """Investigate what available actions the API actually provides."""
+        try:
+            # Start a game session to get initial state
+            session_data = await self._start_game_session(game_id)
+            if not session_data:
+                return {"error": "Failed to start game session"}
+            
+            guid = session_data.get('guid')
+            if not guid:
+                return {"error": "No GUID received"}
+            
+            # Extract information from the session data (no additional API call needed)
+            print(f"\n🔍 API INVESTIGATION for {game_id}:")
+            print(f"   📡 Session Data Keys: {list(session_data.keys())}")
+            print(f"   🎮 Game State: {session_data.get('state', 'UNKNOWN')}")
+            print(f"   🎯 Available Actions: {session_data.get('available_actions', [])}")
+            print(f"   🏁 Score: {session_data.get('score', 0)}")
+            print(f"   � GUID: {guid}")
+            
+            # Return the investigation results
+            investigation_result = {
+                "game_id": game_id,
+                "guid": guid,
+                "state": session_data.get('state', 'NOT_FINISHED'),
+                "available_actions": session_data.get('available_actions', [1,2,3,4,5,6,7]),
+                "score": session_data.get('score', 0),
+                "frame": session_data.get('frame', []),
+                "scorecard_id": session_data.get('scorecard_id'),
+                "reset_type": session_data.get('reset_type', 'new_game'),
+                "investigation_successful": True,
+                "api_endpoint_used": "RESET command (no additional call needed)"
+            }
+            
+            print(f"   ✅ Investigation successful - ready for direct control")
+            return investigation_result
+                        
+        except Exception as e:
+            error_msg = f"API investigation failed: {str(e)}"
+            print(f"   ❌ {error_msg}")
+            return {"error": error_msg}
+
+    async def start_training_with_direct_control(
+        self, 
+        game_id: str,
+        max_actions: int = 500,
+        session_count: int = 0
+    ) -> Dict[str, Any]:
+        """Run training session with direct API action control instead of external main.py."""
+        print(f"\n🎯 STARTING DIRECT CONTROL TRAINING for {game_id}")
+        print(f"   Max Actions: {max_actions}, Session: {session_count}")
+        
+        try:
+            # First investigate API to understand available actions
+            investigation = await self.investigate_api_available_actions(game_id)
+            if "error" in investigation:
+                return {"error": f"API investigation failed: {investigation['error']}", "actions_taken": 0}
+            
+            # Start game session
+            session_data = await self._start_game_session(game_id)
+            if not session_data:
+                return {"error": "Failed to start game session", "actions_taken": 0}
+            
+            guid = session_data.get('guid')
+            current_state = investigation.get('state', 'NOT_STARTED')
+            current_score = investigation.get('score', 0)
+            available_actions = investigation.get('available_actions', [1,2,3,4,5,6,7])  # Default fallback
+            
+            print(f"🚀 SESSION STARTED:")
+            print(f"   GUID: {guid}")
+            print(f"   Initial State: {current_state}")
+            print(f"   Initial Score: {current_score}")
+            print(f"   Available Actions: {available_actions}")
+            
+            # Direct action control loop
+            actions_taken = 0
+            effective_actions = []
+            action_history = []
+            
+            while (actions_taken < max_actions and 
+                   current_state not in ['WIN', 'GAME_OVER'] and
+                   current_score < 100):  # Reasonable win condition
+                
+                # Use our intelligent action selection
+                print(f"\n📋 Action {actions_taken + 1}/{max_actions}")
+                print(f"   Current: State={current_state}, Score={current_score}")
+                print(f"   🎮 API Available Actions: {available_actions}")
+                
+                # Select next action using our enhanced intelligence
+                selected_action = self._select_intelligent_action(available_actions, {'game_id': game_id})
+                
+                # Optimize coordinates if needed (for ACTION6)
+                x, y = None, None
+                if selected_action == 6:
+                    x, y = self._optimize_coordinates_for_action(selected_action, (64, 64))
+                
+                print(f"   🎯 SELECTED ACTION: {selected_action}" + (f" at ({x},{y})" if x is not None else ""))
+                
+                # Execute the action
+                action_result = await self._send_enhanced_action(
+                    game_id, selected_action, x, y, 64, 64
+                )
+                
+                if action_result:
+                    # Update state from response
+                    new_state = action_result.get('state', current_state)
+                    new_score = action_result.get('score', current_score)
+                    new_available = action_result.get('actions', available_actions)
+                    
+                    # Track effectiveness
+                    score_improvement = new_score - current_score
+                    was_effective = (score_improvement > 0 or new_state in ['WIN'])
+                    
+                    if was_effective:
+                        effective_actions.append({
+                            'action_number': selected_action,
+                            'action_type': f'ACTION{selected_action}',
+                            'score_achieved': new_score,
+                            'score_improvement': score_improvement,
+                            'effectiveness': min(1.0, score_improvement / 20.0),
+                            'coordinates': (x, y) if x is not None else None
+                        })
+                    
+                    # Update tracking
+                    action_history.append({
+                        'action': selected_action,
+                        'coordinates': (x, y) if x is not None else None,
+                        'before_score': current_score,
+                        'after_score': new_score,
+                        'effective': was_effective,
+                        'state_change': f"{current_state} → {new_state}"
+                    })
+                    
+                    # Update current state
+                    current_state = new_state
+                    current_score = new_score
+                    available_actions = new_available
+                    
+                    print(f"   ✅ Result: Score {current_score} (+{score_improvement}), State: {current_state}")
+                    if new_available != available_actions:
+                        print(f"   🔄 Available Actions Updated: {new_available}")
+                    
+                else:
+                    print(f"   ❌ Action {selected_action} failed")
+                    # Record failed action
+                    action_history.append({
+                        'action': selected_action,
+                        'coordinates': (x, y) if x is not None else None,
+                        'before_score': current_score,
+                        'after_score': current_score,
+                        'effective': False,
+                        'state_change': 'FAILED',
+                        'error': True
+                    })
+                
+                actions_taken += 1
+                
+                # Brief delay to avoid rate limiting
+                await asyncio.sleep(0.1)
+            
+            # Session complete
+            final_result = {
+                'final_score': current_score,
+                'final_state': current_state,
+                'total_actions': actions_taken,
+                'effective_actions': effective_actions,
+                'action_history': action_history,
+                'success': current_state == 'WIN' or current_score > 0,
+                'termination_reason': (
+                    'WIN' if current_state == 'WIN' else
+                    'GAME_OVER' if current_state == 'GAME_OVER' else
+                    'MAX_ACTIONS' if actions_taken >= max_actions else
+                    'HIGH_SCORE' if current_score >= 100 else
+                    'UNKNOWN'
+                )
+            }
+            
+            print(f"\n🏁 DIRECT CONTROL SESSION COMPLETE:")
+            print(f"   Final Score: {current_score}")
+            print(f"   Final State: {current_state}")
+            print(f"   Actions Taken: {actions_taken}")
+            print(f"   Effective Actions: {len(effective_actions)}")
+            print(f"   Termination: {final_result['termination_reason']}")
+            
+            return final_result
+            
+        except Exception as e:
+            print(f"   ⚠️ Error in direct control training: {e}")
+            return {"error": str(e), "actions_taken": 0}
