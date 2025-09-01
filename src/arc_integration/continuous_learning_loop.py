@@ -1159,6 +1159,9 @@ class ContinuousLearningLoop:
             self._update_energy_level(remaining_energy)
             
             # Update game complexity history for future energy allocation
+            # Ensure we have valid values to prevent NoneType errors
+            episode_actions = episode_actions if episode_actions is not None else 0
+            effective_actions = effective_actions if effective_actions is not None else []
             effectiveness_ratio = min(1.0, len(effective_actions) / max(1, episode_actions))  # Cap at 100%
             self._update_game_complexity_history(game_id, episode_actions, effectiveness_ratio)
             print(f"📈 Updated complexity history for {game_id}: {episode_actions} actions, {effectiveness_ratio:.2%} effective")
@@ -3386,6 +3389,10 @@ class ContinuousLearningLoop:
                 'avg_actions': 0,
                 'effectiveness_history': []
             }
+        
+        # Fix NoneType errors by providing defaults
+        actions_taken = actions_taken if actions_taken is not None else 0
+        effectiveness_ratio = effectiveness_ratio if effectiveness_ratio is not None else 0.0
         
         history = self.game_complexity_history[game_id]
         history['total_plays'] += 1
