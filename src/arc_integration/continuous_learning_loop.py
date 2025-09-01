@@ -3467,6 +3467,7 @@ class ContinuousLearningLoop:
             boundary_system['action_coordinate_history'][game_id] = {}
             boundary_system['stuck_patterns'][game_id] = {}
             boundary_system['success_zone_mapping'][game_id] = {}
+            boundary_system['last_coordinates'][game_id] = None
         
         # Get action-specific settings
         action_settings = boundary_system['directional_systems'].get(action, {'boundary_avoidance_radius': 2})
@@ -3481,9 +3482,18 @@ class ContinuousLearningLoop:
         # Get success zones for this game
         success_zones = boundary_system['success_zone_mapping'][game_id]
         
-        # NEW: Check for safe regions first (connected successful areas)
+        # ENHANCED: Intelligent surveying strategy - avoid slow traversal through safe zones
         safe_regions = boundary_system.get('safe_regions', {}).get(game_id, {})
         if safe_regions:
+            # Instead of continuing through safe regions, jump to explore boundaries!
+            best_survey_target = self._get_intelligent_survey_target(game_id, grid_dims, known_boundaries, safe_regions)
+            
+            if best_survey_target:
+                survey_x, survey_y, survey_reason = best_survey_target
+                print(f"🗺️ ACTION {action} INTELLIGENT SURVEY: Jumping to {(survey_x, survey_y)} - {survey_reason}")
+                return (survey_x, survey_y)
+            
+            # Only use safe regions if no interesting survey targets exist
             best_region = None
             best_region_score = 0
             
@@ -3506,11 +3516,11 @@ class ContinuousLearningLoop:
                         best_region_score = region_score
             
             if best_region:
-                # Select a random coordinate from the best safe region
-                safe_coord = random.choice(list(best_region['coordinates']))
-                print(f"🛡️ ACTION {action} SAFE REGION: Using coordinate {safe_coord} from region with "
-                      f"{len(best_region['coordinates'])} safe squares (safety score: {best_region_score:.1f})")
-                return safe_coord
+                # Use edge of safe region to push boundaries, not center
+                edge_coord = self._get_safe_region_edge_coordinate(best_region, grid_dims, known_boundaries)
+                print(f"🛡️ ACTION {action} SAFE REGION EDGE: Using boundary coordinate {edge_coord} from region with "
+                      f"{len(best_region['coordinates'])} safe squares to explore new territory")
+                return edge_coord
         
         # NEW: Check coordinate clusters
         clusters = boundary_system.get('coordinate_clusters', {}).get(game_id, {})
@@ -3658,33 +3668,70 @@ class ContinuousLearningLoop:
 
     def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
         """
-        BOUNDARY-AWARE DIRECTIONAL MOVEMENT for ACTION 6 with intelligent pivoting.
+        INTELLIGENT SURVEYING SYSTEM for ACTION 6 - Fast grid exploration instead of slow directional crawling.
         
         Key Features:
-        1. Detects boundaries when same coordinates attempted repeatedly
-        2. Saves boundary data as non-deletable until new game starts
-        3. Pivots to new semantic directions when boundaries hit
-        4. Explores systematically: right -> down -> left -> up -> repeat
+        1. Jumps intelligently across the grid to map regions quickly
+        2. Uses safe regions to launch exploration into unknown territory
+        3. Avoids slow line-by-line traversal through known safe areas
+        4. Prioritizes boundary detection and territory expansion
         """
         grid_width, grid_height = grid_dims
         game_id = self.available_actions_memory.get('current_game_id', 'unknown')
         
+        # Use universal boundary detection system
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        
         # Initialize boundary detection data for this game if needed
-        boundary_system = self.available_actions_memory['action6_boundary_detection']
         if game_id not in boundary_system['boundary_data']:
             boundary_system['boundary_data'][game_id] = {}
             boundary_system['coordinate_attempts'][game_id] = {}
+            boundary_system['action_coordinate_history'][game_id] = {}
+            boundary_system['stuck_patterns'][game_id] = {}
+            boundary_system['success_zone_mapping'][game_id] = {}
             boundary_system['last_coordinates'][game_id] = None
-            boundary_system['stuck_count'][game_id] = 0
-            boundary_system['current_direction'][game_id] = 'right'  # Start moving right
         
+        known_boundaries = set(boundary_system['boundary_data'][game_id].keys())
+        safe_regions = boundary_system.get('safe_regions', {}).get(game_id, {})
+        
+        # INTELLIGENT SURVEYING: Instead of slow directional movement, make strategic jumps
+        if safe_regions and len(list(safe_regions.values())[0]['coordinates']) > 10:
+            # We have established safe regions - time to survey efficiently!
+            survey_target = self._get_intelligent_survey_target(game_id, grid_dims, known_boundaries, safe_regions)
+            
+            if survey_target:
+                survey_x, survey_y, survey_reason = survey_target
+                print(f"🗺️ ACTION 6 INTELLIGENT SURVEY: {survey_reason}")
+                
+                # Update position tracking for future moves  
+                setattr(self, '_current_game_x', survey_x)
+                setattr(self, '_current_game_y', survey_y)
+                
+                return (survey_x, survey_y)
+        
+        # FALLBACK: If no safe regions yet, use improved initial exploration
         # Get current position from game state (stored by previous ACTION 6 or start at center)
         current_x = getattr(self, '_current_game_x', grid_width // 2)
-        current_y = getattr(self, '_current_game_y', grid_height // 2)
+        current_y = getattr(self, '_current_game_y', 0)  # Start at top for systematic mapping
         
-        # Get current direction for this game
-        current_direction = boundary_system['current_direction'][game_id]
-        direction_info = boundary_system['direction_progression'][current_direction]
+        # Use universal boundary detection directional system for ACTION 6
+        directional_system = boundary_system['directional_systems'].get(6, {})
+        current_direction_data = directional_system.get('current_direction', {}).get(game_id, 'right')
+        direction_progression = directional_system.get('direction_progression', {
+            'right': {'next': 'down', 'coordinate_delta': (1, 0)},
+            'down': {'next': 'left', 'coordinate_delta': (0, 1)}, 
+            'left': {'next': 'up', 'coordinate_delta': (-1, 0)},
+            'up': {'next': 'right', 'coordinate_delta': (0, -1)}
+        })
+        
+        # Get current direction (initialize if needed)
+        current_direction = current_direction_data if isinstance(current_direction_data, str) else 'right'
+        if game_id not in directional_system.get('current_direction', {}):
+            if 'current_direction' not in directional_system:
+                directional_system['current_direction'] = {}
+            directional_system['current_direction'][game_id] = current_direction
+        
+        direction_info = direction_progression[current_direction]
         dx, dy = direction_info['coordinate_delta']
         
         # Calculate next coordinate in current direction
@@ -3701,49 +3748,25 @@ class ContinuousLearningLoop:
             new_x = max(0, min(new_x, grid_width - 1))
             new_y = max(0, min(new_y, grid_height - 1))
             
-            # Mark this as a boundary
+            # Mark this as a boundary using universal system
             boundary_coord = (new_x, new_y)
             boundary_system['boundary_data'][game_id][boundary_coord] = {
                 'boundary_type': boundary_type,
                 'detection_count': boundary_system['boundary_data'][game_id].get(boundary_coord, {}).get('detection_count', 0) + 1,
-                'timestamp': time.time()
+                'timestamp': time.time(),
+                'action': 6
             }
             
             print(f"🚧 ACTION 6 BOUNDARY: Hit {boundary_type} at ({new_x},{new_y}) - pivoting direction")
         
-        # Check if we're repeating the same coordinates (stuck/boundary detection)
-        new_coordinates = (new_x, new_y)
-        last_coordinates = boundary_system['last_coordinates'][game_id]
-        
-        if new_coordinates == last_coordinates:
-            # Same coordinates attempted again - boundary detected!
-            boundary_system['stuck_count'][game_id] += 1
-            stuck_count = boundary_system['stuck_count'][game_id]
-            
-            if stuck_count >= boundary_system['boundary_stuck_threshold']:
-                # BOUNDARY DETECTED - Save as non-deletable boundary data
-                boundary_coord = new_coordinates
-                boundary_system['boundary_data'][game_id][boundary_coord] = {
-                    'boundary_type': f"coordinate_stuck_{current_direction}",
-                    'detection_count': boundary_system['boundary_data'][game_id].get(boundary_coord, {}).get('detection_count', 0) + 1,
-                    'timestamp': time.time()
-                }
-                
-                print(f"🚧 ACTION 6 BOUNDARY: Detected stuck coordinates ({new_x},{new_y}) after {stuck_count} attempts - saving as boundary")
-                hit_boundary = True
-                boundary_system['stuck_count'][game_id] = 0  # Reset stuck count
-        else:
-            # Different coordinates - reset stuck count
-            boundary_system['stuck_count'][game_id] = 0
-        
-        # PIVOT TO NEW DIRECTION if boundary hit or max distance reached
+        # PIVOT TO NEW DIRECTION if boundary hit
         if hit_boundary:
             # Pivot to next semantic direction
             next_direction = direction_info['next']
-            boundary_system['current_direction'][game_id] = next_direction
+            directional_system['current_direction'][game_id] = next_direction
             
             # Calculate coordinates in new direction from current position
-            next_direction_info = boundary_system['direction_progression'][next_direction]
+            next_direction_info = direction_progression[next_direction]
             dx, dy = next_direction_info['coordinate_delta']
             
             pivot_x = current_x + dx
@@ -3883,6 +3906,7 @@ class ContinuousLearningLoop:
             boundary_system['action_coordinate_history'][game_id] = {}
             boundary_system['stuck_patterns'][game_id] = {}
             boundary_system['success_zone_mapping'][game_id] = {}
+            boundary_system['last_coordinates'][game_id] = None
         
         # Record coordinate attempt
         coord_str = str(coordinates)
@@ -3992,6 +4016,157 @@ class ContinuousLearningLoop:
                     
                     # Update global coordinate intelligence
                     self._update_global_coordinate_intelligence(coordinates, action_num, 'boundary')
+
+    def _get_intelligent_survey_target(self, game_id: str, grid_dims: Tuple[int, int], 
+                                     known_boundaries: set, safe_regions: dict) -> Optional[Tuple[int, int, str]]:
+        """
+        Intelligent surveying: Instead of slow traversal through safe zones, jump to explore boundaries.
+        
+        Strategy:
+        1. Find edges of safe regions and jump outward to test new territory  
+        2. Make large coordinate jumps to quickly map the grid
+        3. Target unexplored quadrants
+        4. Push the bounds of understanding by testing boundary extensions
+        
+        Returns: (x, y, reason) or None if no good survey target
+        """
+        grid_width, grid_height = grid_dims
+        
+        # Strategy 1: Jump from safe region edges to unexplored territory
+        for region_id, region_data in safe_regions.items():
+            region_coords = region_data['coordinates']
+            
+            # Find the extremes of this safe region
+            min_x = min(coord[0] for coord in region_coords)
+            max_x = max(coord[0] for coord in region_coords)
+            min_y = min(coord[1] for coord in region_coords)
+            max_y = max(coord[1] for coord in region_coords)
+            
+            # Create jump targets that extend beyond the safe region
+            jump_targets = [
+                (min_x - 5, min_y - 3, f"Jump LEFT from safe region {region_id}"),
+                (max_x + 5, min_y - 3, f"Jump RIGHT from safe region {region_id}"),
+                (min_x - 3, min_y - 5, f"Jump UP from safe region {region_id}"),
+                (min_x - 3, max_y + 5, f"Jump DOWN from safe region {region_id}"),
+                # Diagonal jumps for comprehensive mapping
+                (min_x - 4, min_y - 4, f"Jump UP-LEFT from safe region {region_id}"),
+                (max_x + 4, min_y - 4, f"Jump UP-RIGHT from safe region {region_id}"),
+                (min_x - 4, max_y + 4, f"Jump DOWN-LEFT from safe region {region_id}"),
+                (max_x + 4, max_y + 4, f"Jump DOWN-RIGHT from safe region {region_id}")
+            ]
+            
+            # Find valid jump targets that are in bounds and not near known boundaries
+            for target_x, target_y, reason in jump_targets:
+                # Clamp to grid bounds
+                target_x = max(0, min(target_x, grid_width - 1))
+                target_y = max(0, min(target_y, grid_height - 1))
+                
+                # Check if this is far enough from known boundaries
+                if self._is_good_survey_target((target_x, target_y), known_boundaries, min_distance=3):
+                    return (target_x, target_y, reason)
+        
+        # Strategy 2: Quadrant exploration - jump to unexplored grid quadrants
+        quadrants = [
+            (grid_width // 4, grid_height // 4, "Explore TOP-LEFT quadrant"),
+            (3 * grid_width // 4, grid_height // 4, "Explore TOP-RIGHT quadrant"),  
+            (grid_width // 4, 3 * grid_height // 4, "Explore BOTTOM-LEFT quadrant"),
+            (3 * grid_width // 4, 3 * grid_height // 4, "Explore BOTTOM-RIGHT quadrant")
+        ]
+        
+        for quad_x, quad_y, reason in quadrants:
+            if self._is_good_survey_target((quad_x, quad_y), known_boundaries, min_distance=5):
+                # Check if this quadrant is underexplored
+                quadrant_explored = any(
+                    abs(coord[0] - quad_x) < 8 and abs(coord[1] - quad_y) < 8 
+                    for safe_coords in [region_data['coordinates'] for region_data in safe_regions.values()]
+                    for coord in safe_coords
+                )
+                
+                if not quadrant_explored:
+                    return (quad_x, quad_y, reason)
+        
+        # Strategy 3: Boundary extension - test just beyond known boundaries to find limits
+        boundary_extensions = []
+        for boundary_coord in known_boundaries:
+            bx, by = boundary_coord
+            
+            # Try coordinates just beyond the boundary in multiple directions
+            extensions = [
+                (bx - 2, by, f"Test boundary extension LEFT of {boundary_coord}"),
+                (bx + 2, by, f"Test boundary extension RIGHT of {boundary_coord}"),
+                (bx, by - 2, f"Test boundary extension UP of {boundary_coord}"),
+                (bx, by + 2, f"Test boundary extension DOWN of {boundary_coord}")
+            ]
+            
+            for ext_x, ext_y, reason in extensions:
+                # Clamp to grid bounds  
+                ext_x = max(0, min(ext_x, grid_width - 1))
+                ext_y = max(0, min(ext_y, grid_height - 1))
+                
+                if self._is_good_survey_target((ext_x, ext_y), known_boundaries, min_distance=2):
+                    boundary_extensions.append((ext_x, ext_y, reason))
+        
+        if boundary_extensions:
+            return random.choice(boundary_extensions)
+        
+        return None
+
+    def _is_good_survey_target(self, target_coord: Tuple[int, int], known_boundaries: set, min_distance: int = 3) -> bool:
+        """Check if a coordinate is a good survey target (not too close to known boundaries)."""
+        target_x, target_y = target_coord
+        
+        for boundary_coord in known_boundaries:
+            bx, by = boundary_coord
+            distance = abs(target_x - bx) + abs(target_y - by)
+            if distance < min_distance:
+                return False
+                
+        return True
+
+    def _get_safe_region_edge_coordinate(self, safe_region: dict, grid_dims: Tuple[int, int], 
+                                       known_boundaries: set) -> Tuple[int, int]:
+        """
+        Get a coordinate at the edge of a safe region to push outward and explore new territory.
+        Instead of using the center, find the edge that's most promising for expansion.
+        """
+        grid_width, grid_height = grid_dims
+        region_coords = safe_region['coordinates']
+        
+        # Find the bounding box of the safe region
+        min_x = min(coord[0] for coord in region_coords)
+        max_x = max(coord[0] for coord in region_coords)
+        min_y = min(coord[1] for coord in region_coords)
+        max_y = max(coord[1] for coord in region_coords)
+        
+        # Define edge candidates - coordinates just outside the safe region
+        edge_candidates = []
+        
+        # Add edges in all directions
+        for coord in region_coords:
+            x, y = coord
+            candidates = [
+                (x - 1, y, "LEFT edge"),
+                (x + 1, y, "RIGHT edge"), 
+                (x, y - 1, "UP edge"),
+                (x, y + 1, "DOWN edge")
+            ]
+            
+            for candidate_x, candidate_y, direction in candidates:
+                # Check bounds
+                if 0 <= candidate_x < grid_width and 0 <= candidate_y < grid_height:
+                    # Check if this edge coordinate is not already in the safe region
+                    if (candidate_x, candidate_y) not in region_coords:
+                        # Check if it's not too close to known boundaries
+                        if self._is_good_survey_target((candidate_x, candidate_y), known_boundaries, min_distance=2):
+                            edge_candidates.append((candidate_x, candidate_y, direction))
+        
+        # Return a random edge candidate, or fall back to region center
+        if edge_candidates:
+            selected_edge = random.choice(edge_candidates)
+            return (selected_edge[0], selected_edge[1])  # Return just x,y
+        else:
+            # Fallback to region center if no good edges found
+            return safe_region['center']
     
     def _update_global_coordinate_intelligence(self, coordinates: tuple, action_num: int, event_type: str):
         """Update global coordinate intelligence across all games and actions."""
@@ -6698,8 +6873,23 @@ class ContinuousLearningLoop:
                    current_state not in ['WIN', 'GAME_OVER'] and
                    current_score < 100):  # Reasonable win condition
                 
-                # Use our intelligent action selection
-                selected_action = self._select_intelligent_action(available_actions, {'game_id': game_id})
+                # CRITICAL: Always check current available actions from the latest response
+                if not available_actions:
+                    print("⚠️ No available actions - stopping game loop")
+                    break
+                    
+                print(f"📋 Current Available Actions: {available_actions}")
+                
+                # Use our intelligent action selection with current available actions
+                selected_action = self._select_next_action({
+                    'available_actions': available_actions,
+                    'state': current_state,
+                    'score': current_score
+                }, game_id)
+                
+                if selected_action is None:
+                    print("⚠️ Action selection failed - stopping game loop")
+                    break
                 
                 # Optimize coordinates if needed (for ACTION6)
                 x, y = None, None
@@ -6729,7 +6919,13 @@ class ContinuousLearningLoop:
                     # Update state from response
                     new_state = action_result.get('state', current_state)
                     new_score = action_result.get('score', current_score)
-                    new_available = action_result.get('actions', available_actions)
+                    # CRITICAL: Extract available actions from API response
+                    new_available = action_result.get('available_actions', available_actions)
+                    
+                    # Update available actions for next iteration
+                    if new_available != available_actions:
+                        print(f"🔄 Available Actions Changed: {available_actions} → {new_available}")
+                        available_actions = new_available
                     
                     # Track effectiveness
                     score_improvement = new_score - current_score
@@ -6755,10 +6951,10 @@ class ContinuousLearningLoop:
                         'state_change': f"{current_state} → {new_state}"
                     })
                     
-                    # Update current state
+                    # Update current state for next iteration
                     current_state = new_state
                     current_score = new_score
-                    available_actions = new_available
+                    # available_actions already updated above
                     
                 else:
                     # Record failed action
