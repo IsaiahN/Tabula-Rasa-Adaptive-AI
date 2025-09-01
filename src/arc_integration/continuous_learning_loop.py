@@ -413,7 +413,15 @@ class ContinuousLearningLoop:
                 },
                 'boundary_stuck_threshold': 3,          # Same coordinates N times = boundary detected
                 'success_zone_mapping': {},             # game_id -> {(x,y): {'success_count': int, 'total_attempts': int, 'successful_actions': [int]}}
-                'global_coordinate_intelligence': {}    # Cross-game coordinate learning
+                'global_coordinate_intelligence': {     # Cross-game coordinate learning
+                    'universal_boundaries': {},         # Coordinates that are problematic across games
+                    'universal_success_zones': {},      # Coordinates that work well across games
+                    'action_coordinate_preferences': {} # Which actions work best at which coordinate types
+                },
+                'safe_regions': {},                     # game_id -> {region_id: {'coordinates': set(), 'success_rate': float, 'center': (x,y), 'size': int}}
+                'connected_zones': {},                  # game_id -> {zone_id: {'coordinates': set(), 'connections': [zone_ids], 'safety_score': float}}
+                'coordinate_clusters': {},              # game_id -> {cluster_id: {'center': (x,y), 'radius': int, 'members': set(), 'avg_success_rate': float}}
+                'danger_zones': {}                      # game_id -> {danger_id: {'coordinates': set(), 'failure_rate': float, 'avoidance_radius': int}}
             },
             
             # ACTION 6 LEGACY SYSTEM (kept for backward compatibility)
@@ -3470,7 +3478,71 @@ class ContinuousLearningLoop:
         # Get success zones for this game
         success_zones = boundary_system['success_zone_mapping'][game_id]
         
-        # Find best success zone if available
+        # Get success zones for this game
+        success_zones = boundary_system['success_zone_mapping'][game_id]
+        
+        # NEW: Check for safe regions first (connected successful areas)
+        safe_regions = boundary_system.get('safe_regions', {}).get(game_id, {})
+        if safe_regions:
+            best_region = None
+            best_region_score = 0
+            
+            for region_id, region_data in safe_regions.items():
+                region_score = region_data['safety_score']
+                if region_score > best_region_score:
+                    # Check if region is not too close to boundaries
+                    region_center = region_data['center']
+                    too_close_to_boundary = False
+                    
+                    for boundary_coord in known_boundaries:
+                        boundary_x, boundary_y = boundary_coord
+                        distance = abs(region_center[0] - boundary_x) + abs(region_center[1] - boundary_y)
+                        if distance < avoidance_radius:
+                            too_close_to_boundary = True
+                            break
+                    
+                    if not too_close_to_boundary:
+                        best_region = region_data
+                        best_region_score = region_score
+            
+            if best_region:
+                # Select a random coordinate from the best safe region
+                safe_coord = random.choice(list(best_region['coordinates']))
+                print(f"🛡️ ACTION {action} SAFE REGION: Using coordinate {safe_coord} from region with "
+                      f"{len(best_region['coordinates'])} safe squares (safety score: {best_region_score:.1f})")
+                return safe_coord
+        
+        # NEW: Check coordinate clusters
+        clusters = boundary_system.get('coordinate_clusters', {}).get(game_id, {})
+        if clusters:
+            best_cluster = None
+            best_cluster_rate = 0
+            
+            for cluster_id, cluster_data in clusters.items():
+                if cluster_data['avg_success_rate'] > best_cluster_rate and cluster_data['avg_success_rate'] > 0.4:
+                    # Check if cluster center is not too close to boundaries
+                    cluster_center = cluster_data['center']
+                    too_close_to_boundary = False
+                    
+                    for boundary_coord in known_boundaries:
+                        boundary_x, boundary_y = boundary_coord
+                        distance = abs(cluster_center[0] - boundary_x) + abs(cluster_center[1] - boundary_y)
+                        if distance < avoidance_radius:
+                            too_close_to_boundary = True
+                            break
+                    
+                    if not too_close_to_boundary:
+                        best_cluster = cluster_data
+                        best_cluster_rate = cluster_data['avg_success_rate']
+            
+            if best_cluster:
+                # Use cluster center or nearby coordinate
+                cluster_center = best_cluster['center']
+                print(f"🎯 ACTION {action} CLUSTER: Using cluster center {cluster_center} "
+                      f"(success rate: {best_cluster_rate:.1%}, {len(best_cluster['members'])} members)")
+                return cluster_center
+        
+        # ORIGINAL: Find best individual success zone if available
         if success_zones:
             best_zone = None
             best_success_rate = 0
@@ -3546,10 +3618,11 @@ class ContinuousLearningLoop:
             x = max(0, min(x, grid_width - 1))
             y = max(0, min(y, grid_height - 1))
             
-            # Check if too close to known boundaries
+            # Check if too close to known boundaries AND danger zones
             coordinates = (x, y)
             too_close = False
             
+            # Check proximity to individual boundaries
             for boundary_coord in known_boundaries:
                 boundary_x, boundary_y = boundary_coord
                 distance = abs(x - boundary_x) + abs(y - boundary_y)
@@ -3557,8 +3630,23 @@ class ContinuousLearningLoop:
                     too_close = True
                     break
             
+            # NEW: Check proximity to danger zones
             if not too_close:
-                print(f"🎯 ACTION {action} BOUNDARY-AWARE: Selected ({x},{y}) avoiding {len(known_boundaries)} boundaries")
+                danger_zones = boundary_system.get('danger_zones', {}).get(game_id, {})
+                for danger_id, danger_data in danger_zones.items():
+                    danger_center = danger_data['center']
+                    danger_radius = danger_data['avoidance_radius']
+                    distance = abs(x - danger_center[0]) + abs(y - danger_center[1])
+                    if distance < danger_radius:
+                        too_close = True
+                        break
+            
+            if not too_close:
+                spatial_summary = self.get_spatial_intelligence_summary(game_id)
+                total_safe_areas = spatial_summary.get('safe_regions', 0) + spatial_summary.get('coordinate_clusters', 0)
+                print(f"🎯 ACTION {action} SPATIAL-AWARE: Selected ({x},{y}) avoiding {len(known_boundaries)} boundaries "
+                      f"and {len(boundary_system.get('danger_zones', {}).get(game_id, {}))} danger zones | "
+                      f"Safe areas available: {total_safe_areas}")
                 return coordinates
             
             attempts += 1
@@ -3849,11 +3937,23 @@ class ContinuousLearningLoop:
         # Universal boundary detection - check if any action is getting stuck
         self._detect_stuck_coordinates_universal(action_num, coordinates, game_id)
         
-        # Print universal coordinate intelligence update
+        # Print universal coordinate intelligence update with spatial analysis
         total_boundaries = len(boundary_system['boundary_data'][game_id])
         total_success_zones = len(boundary_system['success_zone_mapping'][game_id])
+        
+        # Get spatial intelligence summary
+        spatial_summary = self.get_spatial_intelligence_summary(game_id)
+        safe_regions = spatial_summary.get('safe_regions', 0)
+        clusters = spatial_summary.get('coordinate_clusters', 0)
+        danger_zones = spatial_summary.get('danger_zones', 0)
+        
         print(f"📊 COORDINATE INTELLIGENCE: Action {action_num} at {coordinates} ({'✅' if success else '❌'}) | "
-              f"Boundaries: {total_boundaries} | Success Zones: {total_success_zones}")
+              f"Boundaries: {total_boundaries} | Success Zones: {total_success_zones} | "
+              f"Safe Regions: {safe_regions} | Clusters: {clusters} | Danger Zones: {danger_zones}")
+              
+        # Update global intelligence for successful coordinates
+        if success:
+            self._update_global_coordinate_intelligence(coordinates, action_num, 'success')
     
     def _detect_stuck_coordinates_universal(self, action_num: int, coordinates: tuple, game_id: str):
         """Universal stuck coordinate detection for all actions."""
@@ -3924,6 +4024,243 @@ class ContinuousLearningLoop:
             boundary_data['total_detections'] += 1
             
             print(f"🌍 GLOBAL BOUNDARY: {coordinates} detected across {len(boundary_data['games_detected_in'])} games by {len(boundary_data['actions_that_detected'])} actions")
+            
+        elif event_type == 'success':
+            if coord_str not in global_intel['universal_success_zones']:
+                global_intel['universal_success_zones'][coord_str] = {
+                    'games_succeeded_in': [],
+                    'actions_that_succeeded': set(),
+                    'total_successes': 0,
+                    'cross_game_success_rate': 0.0
+                }
+            
+            current_game = self.available_actions_memory.get('current_game_id', 'unknown')
+            success_data = global_intel['universal_success_zones'][coord_str]
+            if current_game not in success_data['games_succeeded_in']:
+                success_data['games_succeeded_in'].append(current_game)
+            success_data['actions_that_succeeded'].add(action_num)
+            success_data['total_successes'] += 1
+            success_data['cross_game_success_rate'] = success_data['total_successes'] / max(1, len(success_data['games_succeeded_in']))
+            
+            # Trigger spatial analysis for connected regions
+            self._analyze_spatial_connections(coordinates, current_game)
+
+    def _analyze_spatial_connections(self, new_coordinate: tuple, game_id: str):
+        """Analyze spatial connections between success zones to find safe regions and clusters."""
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        
+        # Initialize spatial data structures for this game if needed
+        if game_id not in boundary_system['safe_regions']:
+            boundary_system['safe_regions'][game_id] = {}
+        if game_id not in boundary_system['connected_zones']:
+            boundary_system['connected_zones'][game_id] = {}
+        if game_id not in boundary_system['coordinate_clusters']:
+            boundary_system['coordinate_clusters'][game_id] = {}
+        if game_id not in boundary_system['danger_zones']:
+            boundary_system['danger_zones'][game_id] = {}
+        
+        # Get all success zones for this game
+        success_zones = boundary_system['success_zone_mapping'].get(game_id, {})
+        if not success_zones:
+            return
+        
+        # Find connected coordinates (adjacent successful zones)
+        connected_groups = self._find_connected_coordinate_groups(success_zones, game_id)
+        
+        # Analyze each connected group for safety
+        for group_id, group_data in connected_groups.items():
+            if len(group_data['coordinates']) >= 3:  # Minimum cluster size
+                # Calculate center point
+                coords_list = list(group_data['coordinates'])
+                center_x = sum(coord[0] for coord in coords_list) / len(coords_list)
+                center_y = sum(coord[1] for coord in coords_list) / len(coords_list)
+                center = (int(center_x), int(center_y))
+                
+                # Calculate average success rate for this region
+                total_success_rate = sum(
+                    success_zones[coord]['success_count'] / max(1, success_zones[coord]['total_attempts'])
+                    for coord in coords_list if coord in success_zones
+                )
+                avg_success_rate = total_success_rate / len(coords_list)
+                
+                # Create or update safe region
+                region_id = f"region_{group_id}"
+                boundary_system['safe_regions'][game_id][region_id] = {
+                    'coordinates': group_data['coordinates'],
+                    'success_rate': avg_success_rate,
+                    'center': center,
+                    'size': len(group_data['coordinates']),
+                    'safety_score': avg_success_rate * len(group_data['coordinates']),  # Size + quality
+                    'last_updated': time.time()
+                }
+                
+                print(f"🛡️ SAFE REGION DETECTED: {region_id} with {len(group_data['coordinates'])} coordinates, "
+                      f"success rate: {avg_success_rate:.1%}, center: {center}")
+        
+        # Find coordinate clusters using distance-based clustering
+        self._update_coordinate_clusters(new_coordinate, game_id)
+        
+        # Update danger zones from boundary data
+        self._update_danger_zones(game_id)
+    
+    def _find_connected_coordinate_groups(self, success_zones: dict, game_id: str) -> dict:
+        """Find groups of connected (adjacent) successful coordinates."""
+        visited = set()
+        connected_groups = {}
+        group_id = 0
+        
+        def get_neighbors(coord):
+            """Get adjacent coordinates (8-directional connectivity)."""
+            x, y = coord
+            neighbors = []
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    if dx == 0 and dy == 0:
+                        continue
+                    neighbor = (x + dx, y + dy)
+                    if neighbor in success_zones:
+                        neighbors.append(neighbor)
+            return neighbors
+        
+        def dfs_connected_component(start_coord, group_coords):
+            """Depth-first search to find all connected coordinates."""
+            if start_coord in visited:
+                return
+            
+            visited.add(start_coord)
+            group_coords.add(start_coord)
+            
+            for neighbor in get_neighbors(start_coord):
+                if neighbor not in visited:
+                    dfs_connected_component(neighbor, group_coords)
+        
+        # Find all connected components
+        for coord in success_zones:
+            if coord not in visited:
+                group_coords = set()
+                dfs_connected_component(coord, group_coords)
+                
+                if len(group_coords) >= 2:  # Only keep groups with 2+ coordinates
+                    connected_groups[group_id] = {
+                        'coordinates': group_coords,
+                        'size': len(group_coords)
+                    }
+                    group_id += 1
+        
+        return connected_groups
+    
+    def _update_coordinate_clusters(self, new_coordinate: tuple, game_id: str):
+        """Update coordinate clusters using distance-based analysis."""
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        clusters = boundary_system['coordinate_clusters'][game_id]
+        success_zones = boundary_system['success_zone_mapping'].get(game_id, {})
+        
+        # Parameters for clustering
+        cluster_radius = 5  # Maximum distance to be in same cluster
+        min_cluster_size = 3
+        
+        # Find nearest cluster for new coordinate
+        nearest_cluster = None
+        min_distance = float('inf')
+        
+        for cluster_id, cluster_data in clusters.items():
+            center = cluster_data['center']
+            distance = abs(new_coordinate[0] - center[0]) + abs(new_coordinate[1] - center[1])  # Manhattan distance
+            if distance < min_distance and distance <= cluster_radius:
+                min_distance = distance
+                nearest_cluster = cluster_id
+        
+        if nearest_cluster is not None:
+            # Add to existing cluster
+            clusters[nearest_cluster]['members'].add(new_coordinate)
+            
+            # Recalculate cluster center
+            members = list(clusters[nearest_cluster]['members'])
+            center_x = sum(coord[0] for coord in members) / len(members)
+            center_y = sum(coord[1] for coord in members) / len(members)
+            clusters[nearest_cluster]['center'] = (int(center_x), int(center_y))
+            
+            # Recalculate average success rate
+            total_success_rate = sum(
+                success_zones[coord]['success_count'] / max(1, success_zones[coord]['total_attempts'])
+                for coord in members if coord in success_zones
+            )
+            clusters[nearest_cluster]['avg_success_rate'] = total_success_rate / len(members)
+            
+            print(f"🎯 CLUSTER UPDATED: cluster_{nearest_cluster} now has {len(members)} members, "
+                  f"success rate: {clusters[nearest_cluster]['avg_success_rate']:.1%}")
+        else:
+            # Create new cluster
+            cluster_id = len(clusters)
+            clusters[f"cluster_{cluster_id}"] = {
+                'center': new_coordinate,
+                'radius': cluster_radius,
+                'members': {new_coordinate},
+                'avg_success_rate': success_zones.get(new_coordinate, {}).get('success_count', 0) / max(1, success_zones.get(new_coordinate, {}).get('total_attempts', 1)),
+                'created_time': time.time()
+            }
+            
+            print(f"🌟 NEW CLUSTER: cluster_{cluster_id} created at {new_coordinate}")
+    
+    def _update_danger_zones(self, game_id: str):
+        """Update danger zones from boundary data."""
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        boundary_data = boundary_system['boundary_data'].get(game_id, {})
+        danger_zones = boundary_system['danger_zones'][game_id]
+        
+        # Group boundaries into danger zones
+        danger_coords = set()
+        for coord_str, boundary_info in boundary_data.items():
+            if boundary_info['confidence'] > 0.7:  # High confidence boundaries
+                coord = eval(coord_str)  # Convert string back to tuple
+                danger_coords.add(coord)
+        
+        if len(danger_coords) >= 3:
+            # Find connected danger regions
+            danger_groups = self._find_connected_coordinate_groups({coord: {} for coord in danger_coords}, game_id)
+            
+            for group_id, group_data in danger_groups.items():
+                if len(group_data['coordinates']) >= 3:
+                    # Calculate center of danger zone
+                    coords_list = list(group_data['coordinates'])
+                    center_x = sum(coord[0] for coord in coords_list) / len(coords_list)
+                    center_y = sum(coord[1] for coord in coords_list) / len(coords_list)
+                    center = (int(center_x), int(center_y))
+                    
+                    danger_id = f"danger_{group_id}"
+                    danger_zones[danger_id] = {
+                        'coordinates': group_data['coordinates'],
+                        'failure_rate': 0.95,  # High failure rate for boundaries
+                        'avoidance_radius': max(3, int(len(coords_list) * 0.5)),  # Dynamic avoidance radius
+                        'center': center,
+                        'last_updated': time.time()
+                    }
+                    
+                    print(f"⚠️ DANGER ZONE: {danger_id} with {len(coords_list)} dangerous coordinates, "
+                          f"avoidance radius: {danger_zones[danger_id]['avoidance_radius']}")
+    
+    def get_spatial_intelligence_summary(self, game_id: str) -> dict:
+        """Get comprehensive spatial intelligence summary for a game."""
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        
+        summary = {
+            'safe_regions': len(boundary_system.get('safe_regions', {}).get(game_id, {})),
+            'connected_zones': len(boundary_system.get('connected_zones', {}).get(game_id, {})),
+            'coordinate_clusters': len(boundary_system.get('coordinate_clusters', {}).get(game_id, {})),
+            'danger_zones': len(boundary_system.get('danger_zones', {}).get(game_id, {})),
+            'individual_success_zones': len(boundary_system.get('success_zone_mapping', {}).get(game_id, {})),
+            'boundaries_detected': len(boundary_system.get('boundary_data', {}).get(game_id, {}))
+        }
+        
+        # Calculate safety metrics
+        safe_regions = boundary_system.get('safe_regions', {}).get(game_id, {})
+        if safe_regions:
+            total_safe_coords = sum(len(region['coordinates']) for region in safe_regions.values())
+            avg_region_safety = sum(region['success_rate'] for region in safe_regions.values()) / len(safe_regions)
+            summary['total_safe_coordinates'] = total_safe_coords
+            summary['average_region_safety'] = avg_region_safety
+        
+        return summary
 
     def _record_sequence_outcome(self, sequence: List[int], success: bool):
         """Record whether an action sequence was successful."""
