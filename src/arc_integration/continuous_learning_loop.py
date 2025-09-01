@@ -268,8 +268,8 @@ class ContinuousLearningLoop:
         # GLOBAL PERSISTENT COUNTERS - Load from previous sessions
         self.global_counters = self._load_global_counters()
         
-        # ENERGY SYSTEM - Initialize with persistent level from previous sessions
-        persistent_energy = self.global_counters.get('persistent_energy_level', 1.0)
+        # ENERGY SYSTEM - Initialize with persistent level from previous sessions (0-100.0 scale)
+        persistent_energy = self.global_counters.get('persistent_energy_level', 100.0)
         
         # Adaptive energy initialization based on performance
         total_sleep_cycles = self.global_counters.get('total_sleep_cycles', 0)
@@ -279,7 +279,7 @@ class ContinuousLearningLoop:
             print(f"⚡ Resuming with persistent energy: {self.current_energy:.2f} (after {total_sleep_cycles} sleep cycles)")
         else:
             # Fresh start gets full energy
-            self.current_energy = 1.0
+            self.current_energy = 100.0
             print(f"⚡ Fresh session starting with full energy: {self.current_energy:.2f}")
         
         logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
@@ -995,14 +995,14 @@ class ContinuousLearningLoop:
             estimated_complexity = self._estimate_game_complexity(game_id)
             
             # Boost energy if we predict a complex game
-            if estimated_complexity == 'high' and current_energy < 0.8:
-                energy_boost = 0.2
-                current_energy = min(1.0, current_energy + energy_boost)
+            if estimated_complexity == 'high' and current_energy < 80.0:
+                energy_boost = 20.0
+                current_energy = min(100.0, current_energy + energy_boost)
                 print(f"⚡ Energy boost: +{energy_boost:.2f} for predicted high-complexity game -> {current_energy:.2f}")
                 self._update_energy_level(current_energy)
-            elif estimated_complexity == 'medium' and current_energy < 0.6:
-                energy_boost = 0.1
-                current_energy = min(1.0, current_energy + energy_boost)
+            elif estimated_complexity == 'medium' and current_energy < 60.0:
+                energy_boost = 10.0
+                current_energy = min(100.0, current_energy + energy_boost)
                 print(f"⚡ Energy boost: +{energy_boost:.2f} for predicted medium-complexity game -> {current_energy:.2f}")
                 self._update_energy_level(current_energy)
             
@@ -1029,7 +1029,7 @@ class ContinuousLearningLoop:
             cmd = self._apply_contrarian_strategy_to_command(cmd, contrarian_decision)
             
             # Dynamic contextual tags for better tracking
-            energy_state = "High" if current_energy > 0.7 else "Med" if current_energy > 0.4 else "Low"
+            energy_state = "High" if current_energy > 70.0 else "Med" if current_energy > 40.0 else "Low"
             memory_ops = self.global_counters.get('total_memory_operations', 0)
             sleep_cycles = self.global_counters.get('total_sleep_cycles', 0)
             contrarian_mode = "Contrarian" if getattr(self, 'contrarian_strategy_active', False) else "Standard"
@@ -1114,7 +1114,7 @@ class ContinuousLearningLoop:
             # Dynamic energy system based on game complexity and learning opportunities
             
             # Calculate adaptive energy cost based on actions and effectiveness
-            base_energy_cost = episode_actions * 0.005  # Base rate: 0.005 per action
+            base_energy_cost = episode_actions * 0.5  # Base rate: 0.5 per action (100x scale)
             
             # Adjust energy cost based on game complexity
             if episode_actions > 500:  # Very complex game
@@ -1173,16 +1173,16 @@ class ContinuousLearningLoop:
                 
                 # Bonus energy for complex games (they teach more)
                 if episode_actions > 500:
-                    complexity_bonus = 0.2  # 20% bonus for complex games
+                    complexity_bonus = 20.0  # 20 energy bonus for complex games
                     print(f"⚡ Complexity bonus: +{complexity_bonus:.2f} energy for {episode_actions}-action game")
                 elif episode_actions > 200:
-                    complexity_bonus = 0.1  # 10% bonus for medium games
+                    complexity_bonus = 10.0  # 10 energy bonus for medium games
                     print(f"⚡ Complexity bonus: +{complexity_bonus:.2f} energy for {episode_actions}-action game")
                 else:
                     complexity_bonus = 0.0
                 
                 total_replenishment = base_replenishment + learning_bonus + complexity_bonus
-                remaining_energy = min(1.0, remaining_energy + total_replenishment)
+                remaining_energy = min(100.0, remaining_energy + total_replenishment)
                 print(f"⚡ Energy replenished: {total_replenishment:.2f} total -> {remaining_energy:.2f}")
             else:
                 print(f"⚡ Sleep not needed: Energy {remaining_energy:.2f} > threshold {sleep_threshold:.2f}")
@@ -2201,7 +2201,7 @@ class ContinuousLearningLoop:
         
         # Energy-based trigger with learning opportunity
         current_energy = getattr(self.agent.energy_system, 'current_energy', 1.0)
-        if current_energy < 0.6 and len(recent_actions) >= 20:
+        if current_energy < 60.0 and len(recent_actions) >= 20:
             # Check if we have patterns worth consolidating
             effectiveness_values = [action.get('effectiveness', 0) for action in recent_actions[-20:]]
             if len([e for e in effectiveness_values if e > 0.2]) >= 5:  # At least 5 effective actions
@@ -2254,7 +2254,7 @@ class ContinuousLearningLoop:
         # Partial energy restoration (not full like post-episode)
         if hasattr(self.agent, 'energy_system'):
             current_energy = getattr(self.agent.energy_system, 'current_energy', 1.0)
-            restored_energy = min(1.0, current_energy + 0.2)  # Small restoration
+            restored_energy = min(100.0, current_energy + 20.0)  # Small restoration
             self.agent.energy_system.current_energy = restored_energy
             logger.info(f"⚡ Energy restored: {current_energy:.2f} → {restored_energy:.2f}")
 
@@ -3278,7 +3278,7 @@ class ContinuousLearningLoop:
             'memories_strengthened': 0,
             'memories_deleted': 0,
             'memories_combined': 0,
-            'energy_restored': 0.7,
+            'energy_restored': 70.0,  # Restore 70 energy points on sleep
             'insights_generated': 0,
             'priority_memories_loaded': 0
         }
@@ -3403,8 +3403,8 @@ class ContinuousLearningLoop:
         return insights
 
     def _update_energy_level(self, new_energy: float) -> None:
-        """Update the system's energy level."""
-        self.current_energy = max(0.0, min(1.0, new_energy))
+        """Update the system's energy level (0-100.0 scale)."""
+        self.current_energy = max(0.0, min(100.0, new_energy))
         
         # Persist energy level to global counters
         self.global_counters['persistent_energy_level'] = self.current_energy
