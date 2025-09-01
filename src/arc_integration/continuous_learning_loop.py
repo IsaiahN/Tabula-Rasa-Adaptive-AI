@@ -109,7 +109,7 @@ class TrainingSession:
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
-    max_actions_per_session: int = 100000  # New configurable action limit
+    max_actions_per_session: int = 500000  # Increased default action limit for deeper exploration
     enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.LOSSLESS
     enable_salience_comparison: bool = False
@@ -916,10 +916,17 @@ class ContinuousLearningLoop:
                         for goal in goal_results['new_goals']:
                             print(f"   New goal: {goal.description} (priority: {goal.priority:.2f})")
                     
-                    # CRITICAL: Stop if game reached terminal state (WIN or GAME_OVER)
+                    # CRITICAL: Enhanced terminal state handling with retry logic
                     if game_state in ['WIN', 'GAME_OVER']:
                         print(f"🎯 Game {game_id} reached terminal state: {game_state}")
-                        break
+                        
+                        # If it's GAME_OVER and we haven't tried many sessions, try contrarian strategy
+                        if game_state == 'GAME_OVER' and session_count < 2 and current_score < 10:
+                            print(f"🔄 Early GAME_OVER detected - activating contrarian strategy for retry")
+                            self.contrarian_strategy_active = True
+                            # Don't break, let it try one more session with different strategy
+                        else:
+                            break
                     
                     # Check if we should continue based on performance
                     if self._should_stop_training(game_results, target_performance):
@@ -1000,7 +1007,7 @@ class ContinuousLearningLoop:
             best_score = 0
             final_state = 'NOT_FINISHED'
             episode_start_time = time.time()
-            max_actions_per_session = 100000  # Allow for complex ARC puzzles (was 1000)
+            max_actions_per_session = 500000  # Significantly increased from 100K to allow deeper exploration
             
             print(f"🎮 Starting complete mastery session {session_count} for {game_id}")  # Updated naming
             
@@ -1080,7 +1087,7 @@ class ContinuousLearningLoop:
                 try:
                     stdout, stderr = await asyncio.wait_for(
                         process.communicate(), 
-                        timeout=600.0  # 10 minutes for complete game session
+                        timeout=1800.0  # Increased from 10 to 30 minutes for deeper exploration
                     )
                     
                     stdout_text = stdout.decode('utf-8', errors='ignore') if stdout else ""
@@ -1103,7 +1110,7 @@ class ContinuousLearningLoop:
                         await self._simulate_mid_game_consolidation(effective_actions, episode_actions)
                     
                 except asyncio.TimeoutError:
-                    print(f"⏰ Complete game session timed out after 10 minutes - killing process")
+                    print(f"⏰ Complete game session timed out after 30 minutes - killing process")
                     try:
                         process.kill()
                         await asyncio.wait_for(process.wait(), timeout=5.0)
@@ -2115,7 +2122,7 @@ class ContinuousLearningLoop:
         }
 
     def _select_intelligent_action(self, available_actions: List[int], game_context: Dict[str, Any] = None) -> int:
-        """Select action based on learned effectiveness and patterns."""
+        """Select action based on learned effectiveness and patterns with enhanced strategy refinement."""
         if not available_actions:
             return 6  # Fallback to action 6
         
@@ -2124,36 +2131,88 @@ class ContinuousLearningLoop:
         if not valid_actions:
             return available_actions[0]
         
-        # Get effectiveness data
+        # Get effectiveness data and recent performance context
         action_scores = {}
+        total_actions_taken = self.global_counters.get('total_actions', 0)
+        recent_failures = self.global_counters.get('recent_consecutive_failures', 0)
+        
         for action in valid_actions:
-            effectiveness = self.available_actions_memory['action_effectiveness'].get(action, {'success_rate': 0.0})
+            effectiveness = self.available_actions_memory['action_effectiveness'].get(action, {'success_rate': 0.0, 'attempts': 0})
             base_score = effectiveness['success_rate']
             
-            # Bonus for actions that appear in winning sequences
+            # Enhanced scoring factors
+            
+            # 1. Bonus for actions that appear in winning sequences
             sequence_bonus = 0.0
             for seq in self.available_actions_memory['winning_action_sequences'][-5:]:  # Recent wins
                 if action in seq:
-                    sequence_bonus += 0.2
+                    sequence_bonus += 0.3  # Increased from 0.2
             
-            # Penalty for actions in failed patterns  
+            # 2. Penalty for actions in failed patterns  
             pattern_penalty = 0.0
             current_sequence = self.available_actions_memory['sequence_in_progress'][-3:]  # Last 3 actions
             for failed_pattern in self.available_actions_memory['failed_action_patterns'][-5:]:
                 if current_sequence + [action] == failed_pattern:
-                    pattern_penalty = 0.5
+                    pattern_penalty = 0.4  # Reduced from 0.5 to be less restrictive
                     break
             
-            action_scores[action] = max(0.1, base_score + sequence_bonus - pattern_penalty)
+            # 3. NEW: Diversity bonus - encourage trying underutilized but available actions
+            diversity_bonus = 0.0
+            if effectiveness['attempts'] < 3:  # Haven't tried this action much
+                diversity_bonus = 0.15
+            
+            # 4. NEW: Context-aware scoring based on game state
+            context_bonus = 0.0
+            if game_context and 'game_id' in game_context:
+                game_id = game_context['game_id']
+                # Load game-specific intelligence if available
+                game_intel = self._load_game_action_intelligence(game_id)
+                if game_intel and action in game_intel.get('effective_actions', {}):
+                    context_bonus = 0.2
+            
+            # 5. NEW: Anti-stagnation bonus - if we've had many recent failures, try different actions
+            stagnation_bonus = 0.0
+            if recent_failures > 5:
+                # Prefer actions we haven't used recently
+                recent_actions = self.available_actions_memory['sequence_in_progress'][-10:]
+                if action not in recent_actions:
+                    stagnation_bonus = 0.25
+            
+            final_score = max(0.05, base_score + sequence_bonus + diversity_bonus + context_bonus + stagnation_bonus - pattern_penalty)
+            action_scores[action] = final_score
         
-        # Selection strategy: Weighted random with exploration
-        if random.random() < 0.1:  # 10% pure exploration
-            return random.choice(valid_actions)
+        # Enhanced selection strategy with adaptive exploration
+        exploration_rate = 0.1  # Base exploration rate
         
-        # 90% intelligent selection
-        # Try high-effectiveness actions more often, but still give low-effectiveness actions a chance
-        weights = [max(0.1, action_scores[action]) for action in valid_actions]
-        return random.choices(valid_actions, weights=weights)[0]
+        # Increase exploration if we're stuck (many failures)
+        if recent_failures > 8:
+            exploration_rate = 0.25  # 25% exploration when stuck
+        elif total_actions_taken < 50:  # Early in training
+            exploration_rate = 0.2   # 20% exploration early on
+        
+        if random.random() < exploration_rate:  # Adaptive exploration
+            # Smart exploration: prefer less-tried actions
+            unexplored = [a for a in valid_actions if self.available_actions_memory['action_effectiveness'].get(a, {'attempts': 0})['attempts'] < 2]
+            if unexplored:
+                return random.choice(unexplored)
+            else:
+                return random.choice(valid_actions)
+        
+        # Intelligent selection with enhanced weighting
+        weights = [max(0.05, action_scores[action]) for action in valid_actions]
+        selected = random.choices(valid_actions, weights=weights)[0]
+        
+        # Enhanced logging for debugging action selection
+        if len(action_scores) > 1:
+            print(f"🎯 Action Selection: {selected} (scores: {[(a, f'{action_scores[a]:.2f}') for a in valid_actions]})")
+        
+        # Update selection tracking
+        self.available_actions_memory['sequence_in_progress'].append(selected)
+        # Keep only last 20 actions in sequence
+        if len(self.available_actions_memory['sequence_in_progress']) > 20:
+            self.available_actions_memory['sequence_in_progress'] = self.available_actions_memory['sequence_in_progress'][-20:]
+        
+        return selected
 
     def _optimize_coordinates_for_action(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
         """Generate optimal X/Y coordinates based on learned patterns."""
@@ -2314,7 +2373,7 @@ class ContinuousLearningLoop:
         self,
         games: List[str],
         max_mastery_sessions_per_game: int = 50,  # Updated parameter name
-        max_actions_per_session: int = 100000,  # New parameter
+        max_actions_per_session: int = 500000,  # Increased default parameter
         enable_contrarian_mode: bool = False,  # New parameter
         target_win_rate: float = 0.3,
         target_avg_score: float = 50.0,
@@ -3634,14 +3693,14 @@ class ContinuousLearningLoop:
                     # Update existing action or add new high-effectiveness action
                     existing_action = next((a for a in effective_actions if a['action_number'] == int(action_num)), None)
                     if existing_action:
-                        existing_action['effectiveness'] = min(1.0, score / 100.0)  # Boost effectiveness
+                        existing_action['effectiveness'] = min(1.0, score / 20.0)  # More lenient effectiveness scoring
                         existing_action['score_achieved'] = score
                     else:
                         effective_actions.append({
                             'action_number': int(action_num),
                             'action_type': f'ACTION{action_num}',
                             'score_achieved': score,
-                            'effectiveness': min(1.0, score / 100.0)  # Normalize effectiveness
+                            'effectiveness': min(1.0, score / 20.0)  # More lenient effectiveness scoring
                         })
             
             # Look for successful RESET sequences (avoid double-counting)
@@ -3656,7 +3715,7 @@ class ContinuousLearningLoop:
                     effective_actions.append({
                         'action_type': 'RESET_SEQUENCE',
                         'score_achieved': score,
-                        'effectiveness': min(1.0, score / 50.0)  # Reset sequences are valuable
+                        'effectiveness': min(1.0, score / 10.0)  # Reset sequences are highly valuable, even lower threshold
                     })
             
             result['effective_actions'] = effective_actions
@@ -3705,7 +3764,7 @@ class ContinuousLearningLoop:
             print(f"💪 Phase 4: Strengthening effective action memories...")
             for action in effective_actions:
                 effectiveness = action.get('effectiveness', 0)
-                if effectiveness > 0.3:  # Lower threshold to capture more learnings
+                if effectiveness > 0.1:  # Much lower threshold to capture more learnings - from 0.3 to 0.1
                     await self._strengthen_action_memory_with_context(action, relevant_memories)
                     sleep_result['memories_strengthened'] += 1
             

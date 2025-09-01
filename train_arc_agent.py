@@ -69,7 +69,7 @@ class RunScriptManager:
         session_id = continuous_loop.start_training_session(
             games=games,
             max_mastery_sessions_per_game=5,
-            max_actions_per_session=10000,
+            max_actions_per_session=500000,  # Increased for deeper exploration
             enable_contrarian_mode=True,
             target_win_rate=0.5,
             target_avg_score=50.0,
