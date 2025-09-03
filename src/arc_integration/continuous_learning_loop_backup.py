@@ -821,7 +821,7 @@ class ContinuousLearningLoop:
             
             # Run complete game session
             cmd = [
-                'python', 'main.py',
+                sys.executable, 'main.py',
                 '--agent=adaptivelearning',
                 f'--game={game_id}'
             ]

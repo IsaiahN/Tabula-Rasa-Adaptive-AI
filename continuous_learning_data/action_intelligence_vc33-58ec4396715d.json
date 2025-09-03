@@ -1,0 +1,14 @@
+{
+  "game_id": "vc33-58ec4396715d",
+  "initial_actions": [
+    6
+  ],
+  "effective_actions": {},
+  "winning_sequences": [],
+  "coordinate_patterns": {
+    "6": {}
+  },
+  "action_transitions": {},
+  "total_sessions_learned": 1,
+  "last_updated": 1756758743.3107224
+}

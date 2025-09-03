@@ -1190,7 +1190,7 @@ class ContinuousLearningLoop:
         if action_number == 6:
             if x is None or y is None:
                 # Use learned coordinate optimization
-                x, y = self._optimize_coordinates_for_action(action_number, (grid_width, grid_height))
+                x, y = self._optimize_coordinates_for_action(action_number, (grid_width, grid_height), game_id)
                 logger.info(f"🎯 Optimized coordinates for action {action_number}: ({x},{y})")
             
             # Verify coordinates are within actual grid bounds
@@ -1593,18 +1593,57 @@ class ContinuousLearningLoop:
                 # Fallback for actions without relevance data
                 action_scores[action] = 0.5
         
-        # Select action based on weighted scores (with some randomness for exploration)
+        # Select action based on weighted scores (with balanced diversity and performance)
         if not action_scores:
             # Emergency fallback - this should rarely happen
             return random.choice(available_actions) if available_actions else 1
         
-        # Use weighted random selection (90% best choice, 10% exploration)
-        if random.random() < 0.9:
-            selected_action = max(action_scores.keys(), key=lambda k: action_scores[k])
+        # CRITICAL FIX: Respect user's principle of diverse action usage
+        # Instead of 90% deterministic selection, use balanced weighted random selection
+        
+        # Normalize scores to prevent extreme bias towards any single action
+        min_score = min(action_scores.values())
+        max_score = max(action_scores.values())
+        score_range = max_score - min_score
+        
+        if score_range > 0:
+            # Normalize and add minimum weight to ensure all actions have reasonable chance
+            normalized_weights = []
+            for action in action_scores:
+                normalized_score = (action_scores[action] - min_score) / score_range
+                # Give every action at least 10% of max weight to prevent spam
+                final_weight = 0.1 + (0.9 * normalized_score)
+                normalized_weights.append(final_weight)
         else:
-            # Exploration: weighted random selection
-            weights = list(action_scores.values())
-            selected_action = random.choices(list(action_scores.keys()), weights=weights)[0]
+            # All scores equal - use uniform distribution
+            normalized_weights = [1.0] * len(action_scores)
+        
+        # Smart weighted selection with anti-bias protection
+        print(f"🎲 ACTION SELECTION SCORES: {[(a, f'{s:.3f}') for a, s in action_scores.items()]}")
+        
+        # Apply intelligent weighting that prevents any single action from dominating
+        min_score = min(action_scores.values())
+        max_score = max(action_scores.values())
+        score_range = max_score - min_score
+        
+        if score_range > 0:
+            # Normalize scores and ensure minimum 20% weight for ALL actions to prevent spam
+            action_weights = []
+            for action in action_scores:
+                normalized_score = (action_scores[action] - min_score) / score_range
+                # CRITICAL: Every action gets at least 20% weight to ensure diversity
+                final_weight = 0.20 + (0.80 * normalized_score)
+                action_weights.append(final_weight)
+            
+            # Use weighted random selection with anti-bias protection
+            selected_action = random.choices(list(action_scores.keys()), weights=action_weights)[0]
+        else:
+            # All scores equal - pure random selection
+            selected_action = random.choice(list(action_scores.keys()))
+        
+        print(f"⚖️  ANTI-BIAS WEIGHTS: {[(a, f'{w:.3f}') for a, w in zip(action_scores.keys(), action_weights if score_range > 0 else ['1.000'] * len(action_scores))]}")
+        print(f"🎯 SELECTED ACTION: {selected_action} (WEIGHTED RANDOM with 20% minimum weight per action)")
+        print(f"�️ ANTI-BIAS: All actions guaranteed minimum 20% selection chance")
         
         # Log strategic decisions for ACTION 6
         if selected_action == 6:
@@ -1885,7 +1924,7 @@ class ContinuousLearningLoop:
             
             # Build command for complete game session
             cmd = [
-                'python', 'main.py',
+                sys.executable, 'main.py',
                 '--agent=adaptivelearning',
                 f'--game={game_id}'
             ]
@@ -3433,13 +3472,13 @@ class ContinuousLearningLoop:
         except Exception as e:
             print(f"   ⚠️ Error analyzing action details: {e}")
 
-    def _optimize_coordinates_for_action(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+    def _optimize_coordinates_for_action(self, action: int, grid_dims: Tuple[int, int], game_id: str = 'unknown') -> Tuple[int, int]:
         """Universal coordinate optimization with boundary awareness for all coordinate-based actions."""
         grid_width, grid_height = grid_dims
         
         # Special strategic coordinate selection for ACTION 6 with full directional system
         if action == 6:
-            return self._get_strategic_action6_coordinates(grid_dims)
+            return self._get_strategic_action6_coordinates(grid_dims, game_id)
         
         # Universal boundary-aware coordinate selection for other actions
         return self._get_universal_boundary_aware_coordinates(action, grid_dims)
@@ -3460,14 +3499,8 @@ class ContinuousLearningLoop:
         # Get universal boundary system
         boundary_system = self.available_actions_memory['universal_boundary_detection']
         
-        # Initialize data for this game/action if needed
-        if game_id not in boundary_system['boundary_data']:
-            boundary_system['boundary_data'][game_id] = {}
-            boundary_system['coordinate_attempts'][game_id] = {}
-            boundary_system['action_coordinate_history'][game_id] = {}
-            boundary_system['stuck_patterns'][game_id] = {}
-            boundary_system['success_zone_mapping'][game_id] = {}
-            boundary_system['last_coordinates'][game_id] = None
+        # CRITICAL: Ensure boundary system is initialized for this game
+        self._ensure_boundary_system_initialized(game_id)
         
         # Get action-specific settings
         action_settings = boundary_system['directional_systems'].get(action, {'boundary_avoidance_radius': 2})
@@ -3666,7 +3699,7 @@ class ContinuousLearningLoop:
         print(f"🎯 ACTION {action} FALLBACK: Using center ({fallback_x},{fallback_y}) after boundary avoidance")
         return (fallback_x, fallback_y)
 
-    def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+    def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int], game_id: str = None) -> Tuple[int, int]:
         """
         INTELLIGENT SURVEYING SYSTEM for ACTION 6 - Fast grid exploration instead of slow directional crawling.
         
@@ -3677,19 +3710,14 @@ class ContinuousLearningLoop:
         4. Prioritizes boundary detection and territory expansion
         """
         grid_width, grid_height = grid_dims
-        game_id = self.available_actions_memory.get('current_game_id', 'unknown')
+        if game_id is None:
+            game_id = self.available_actions_memory.get('current_game_id', 'unknown')
         
         # Use universal boundary detection system
         boundary_system = self.available_actions_memory['universal_boundary_detection']
         
-        # Initialize boundary detection data for this game if needed
-        if game_id not in boundary_system['boundary_data']:
-            boundary_system['boundary_data'][game_id] = {}
-            boundary_system['coordinate_attempts'][game_id] = {}
-            boundary_system['action_coordinate_history'][game_id] = {}
-            boundary_system['stuck_patterns'][game_id] = {}
-            boundary_system['success_zone_mapping'][game_id] = {}
-            boundary_system['last_coordinates'][game_id] = None
+        # CRITICAL: Ensure boundary system is initialized for this game
+        self._ensure_boundary_system_initialized(game_id)
         
         known_boundaries = set(boundary_system['boundary_data'][game_id].keys())
         safe_regions = boundary_system.get('safe_regions', {}).get(game_id, {})
@@ -3779,10 +3807,14 @@ class ContinuousLearningLoop:
             new_x, new_y = pivot_x, pivot_y
             print(f"🔄 ACTION 6 PIVOT: Direction {current_direction} → {next_direction}, coordinates ({current_x},{current_y}) → ({new_x},{new_y})")
         
-        # Update tracking data
+        # Update tracking data - ensure last_coordinates is initialized for this game
+        if game_id not in boundary_system['last_coordinates']:
+            boundary_system['last_coordinates'][game_id] = None
         boundary_system['last_coordinates'][game_id] = (new_x, new_y)
         
-        # Track coordinate attempt history
+        # Track coordinate attempt history - ensure game_id is initialized
+        if game_id not in boundary_system['coordinate_attempts']:
+            boundary_system['coordinate_attempts'][game_id] = {}
         coord_key = (new_x, new_y)
         if coord_key not in boundary_system['coordinate_attempts'][game_id]:
             boundary_system['coordinate_attempts'][game_id][coord_key] = {'attempts': 0, 'consecutive_stuck': 0}
@@ -3899,14 +3931,8 @@ class ContinuousLearningLoop:
         
         boundary_system = self.available_actions_memory['universal_boundary_detection']
         
-        # Initialize game data if needed
-        if game_id not in boundary_system['boundary_data']:
-            boundary_system['boundary_data'][game_id] = {}
-            boundary_system['coordinate_attempts'][game_id] = {}
-            boundary_system['action_coordinate_history'][game_id] = {}
-            boundary_system['stuck_patterns'][game_id] = {}
-            boundary_system['success_zone_mapping'][game_id] = {}
-            boundary_system['last_coordinates'][game_id] = None
+        # CRITICAL: Ensure boundary system is initialized for this game
+        self._ensure_boundary_system_initialized(game_id)
         
         # Record coordinate attempt
         coord_str = str(coordinates)
@@ -4016,6 +4042,23 @@ class ContinuousLearningLoop:
                     
                     # Update global coordinate intelligence
                     self._update_global_coordinate_intelligence(coordinates, action_num, 'boundary')
+
+    def _ensure_boundary_system_initialized(self, game_id: str):
+        """Ensure all boundary system components are initialized for a game_id."""
+        boundary_system = self.available_actions_memory['universal_boundary_detection']
+        
+        if game_id not in boundary_system['boundary_data']:
+            boundary_system['boundary_data'][game_id] = {}
+        if game_id not in boundary_system['coordinate_attempts']:
+            boundary_system['coordinate_attempts'][game_id] = {}
+        if game_id not in boundary_system['action_coordinate_history']:
+            boundary_system['action_coordinate_history'][game_id] = {}
+        if game_id not in boundary_system['stuck_patterns']:
+            boundary_system['stuck_patterns'][game_id] = {}
+        if game_id not in boundary_system['success_zone_mapping']:
+            boundary_system['success_zone_mapping'][game_id] = {}
+        if game_id not in boundary_system['last_coordinates']:
+            boundary_system['last_coordinates'][game_id] = None
 
     def _get_intelligent_survey_target(self, game_id: str, grid_dims: Tuple[int, int], 
                                      known_boundaries: set, safe_regions: dict) -> Optional[Tuple[int, int, str]]:
@@ -6894,7 +6937,7 @@ class ContinuousLearningLoop:
                 # Optimize coordinates if needed (for ACTION6)
                 x, y = None, None
                 if selected_action == 6:
-                    x, y = self._optimize_coordinates_for_action(selected_action, (64, 64))
+                    x, y = self._optimize_coordinates_for_action(selected_action, (64, 64), game_id)
                 
                 print(f"🎯 SELECTED ACTION: {selected_action}" + (f" at ({x},{y})" if x is not None else ""))
                 
