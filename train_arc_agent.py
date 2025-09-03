@@ -21,11 +21,134 @@ from pathlib import Path
 
 try:
     from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+    from arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
     from core.salience_system import SalienceMode
 except ImportError as e:
     print(f"❌ IMPORT ERROR: {e}")
     print(f"❌ Make sure the package is installed with: pip install -e .")
     sys.exit(1)
+
+class EnhancedARCTrainingManager:
+    """Enhanced training manager that integrates coordinate awareness with existing system."""
+    
+    def __init__(self, api_key: str, arc_agents_path: str = None, use_coordinates: bool = True):
+        self.api_key = api_key
+        self.arc_agents_path = arc_agents_path
+        self.use_coordinates = use_coordinates
+        
+        # Initialize both systems
+        self.coordinate_manager = CoordinateAwareTrainingManager(api_key, arc_agents_path)
+        self.continuous_loop = ContinuousLearningLoop(
+            api_key=api_key,
+            tabula_rasa_path=str(Path(__file__).parent),
+            arc_agents_path=arc_agents_path
+        )
+    
+    async def run_enhanced_training(
+        self, 
+        games: list, 
+        mode: str = 'enhanced',
+        max_actions_per_game: int = 1000,
+        compare_systems: bool = False
+    ):
+        """
+        Run enhanced training with optional system comparison.
+        
+        Args:
+            games: List of game IDs to train on
+            mode: Training mode ('enhanced', 'traditional', 'comparison')
+            max_actions_per_game: Maximum actions per game session
+            compare_systems: Whether to run comparison between coordinate-aware and traditional
+        """
+        print(f"🚀 Starting Enhanced ARC Training")
+        print(f"   Mode: {mode}")
+        print(f"   Games: {games}")
+        print(f"   Coordinate-aware: {self.use_coordinates}")
+        
+        results = {
+            'games_tested': games,
+            'training_results': {},
+            'performance_comparison': {} if compare_systems else None
+        }
+        
+        for game_id in games:
+            print(f"\n🎮 Training on game: {game_id}")
+            
+            if mode == 'comparison' or compare_systems:
+                # Run both coordinate-aware and traditional training
+                coord_result = await self._run_single_game_enhanced(game_id, max_actions_per_game, True)
+                trad_result = await self._run_single_game_enhanced(game_id, max_actions_per_game, False)
+                
+                results['performance_comparison'][game_id] = self._compare_results(coord_result, trad_result)
+                results['training_results'][game_id] = coord_result
+                
+            elif mode == 'enhanced':
+                # Run only coordinate-aware training
+                result = await self._run_single_game_enhanced(game_id, max_actions_per_game, True)
+                results['training_results'][game_id] = result
+                
+            elif mode == 'traditional':
+                # Run only traditional training
+                result = await self._run_single_game_enhanced(game_id, max_actions_per_game, False)
+                results['training_results'][game_id] = result
+        
+        return results
+    
+    async def _run_single_game_enhanced(self, game_id: str, max_actions: int, use_coordinates: bool):
+        """Run training on a single game with specified system."""
+        try:
+            if use_coordinates:
+                print(f"   🎯 Using coordinate-aware system...")
+                result = await self.coordinate_manager.train_on_game(
+                    game_id, 
+                    max_actions_per_session=max_actions
+                )
+            else:
+                print(f"   📊 Using traditional system...")
+                result = await self.continuous_loop.train_on_games(
+                    [game_id],
+                    salience_mode=SalienceMode.ADAPTIVE,
+                    max_actions_per_session=max_actions,
+                    target_win_rate=0.8
+                )
+                # Normalize result format
+                if isinstance(result, list) and len(result) > 0:
+                    result = result[0]
+                    
+            return result
+            
+        except Exception as e:
+            print(f"❌ Error training on {game_id}: {e}")
+            return {'error': str(e), 'game_id': game_id}
+    
+    def _compare_results(self, coord_result, trad_result):
+        """Compare coordinate-aware vs traditional results."""
+        comparison = {}
+        
+        # Extract final scores
+        coord_score = self._extract_final_score(coord_result)
+        trad_score = self._extract_final_score(trad_result)
+        
+        comparison['coordinate_aware_final_score'] = coord_score
+        comparison['traditional_final_score'] = trad_score
+        comparison['coordinate_improvement'] = coord_score - trad_score
+        
+        # Extract coordinate-specific metrics
+        if 'coordinate_actions' in coord_result:
+            comparison['coordinate_actions_used'] = coord_result['coordinate_actions']
+            comparison['coordinate_success_rate'] = coord_result.get('coordinate_successes', 0) / max(coord_result['coordinate_actions'], 1)
+        
+        return comparison
+    
+    def _extract_final_score(self, result):
+        """Extract final score from result data."""
+        if 'error' in result:
+            return 0
+        if 'score_progression' in result and result['score_progression']:
+            return result['score_progression'][-1].get('score', 0)
+        if 'final_score' in result:
+            return result['final_score']
+        return 0
 
 class RunScriptManager:
     """Manages all run script functionality previously in separate files."""
@@ -948,6 +1071,15 @@ Examples:
                        default='demo',
                        help='Continuous learning mode')
     
+    # Enhanced coordinate-aware training options
+    parser.add_argument('--enhanced', action='store_true',
+                       help='Use enhanced coordinate-aware training system')
+    parser.add_argument('--enhanced-mode', choices=['enhanced', 'traditional', 'comparison'], 
+                       default='enhanced',
+                       help='Enhanced training mode: enhanced (coord-aware), traditional, or comparison')
+    parser.add_argument('--compare-systems', action='store_true',
+                       help='Compare coordinate-aware vs traditional systems')
+    
     # Testing arguments
     parser.add_argument('--test-type',
                        choices=['unit', 'integration', 'system', 'all', 'arc3', 'performance', 'agi-puzzles'],
@@ -1017,6 +1149,39 @@ async def main():
             else:
                 print(f"\n⚠️  CONTINUOUS LEARNING FAILED")
                 return 1
+        
+        elif args.enhanced or args.compare_systems:
+            # Enhanced coordinate-aware training mode
+            print(f"🎯 STARTING ENHANCED COORDINATE-AWARE TRAINING...")
+            
+            enhanced_trainer = EnhancedARCTrainingManager(
+                api_key=args.api_key,
+                arc_agents_path=args.arc_agents,
+                use_coordinates=True
+            )
+            
+            # Use specified games or defaults
+            games_to_train = args.games if args.games else ['8731374e', '3ac3eb23', 'a740d043']
+            
+            results = await enhanced_trainer.run_enhanced_training(
+                games=games_to_train,
+                mode=args.enhanced_mode if args.enhanced else 'comparison',
+                max_actions_per_game=args.max_actions,
+                compare_systems=args.compare_systems
+            )
+            
+            print(f"\n🎉 ENHANCED TRAINING COMPLETED!")
+            print(f"Trained on {len(results['games_tested'])} games")
+            
+            if results.get('performance_comparison'):
+                print("\n📊 PERFORMANCE COMPARISON:")
+                for game_id, comparison in results['performance_comparison'].items():
+                    coord_score = comparison['coordinate_aware_final_score']
+                    trad_score = comparison['traditional_final_score']
+                    improvement = comparison['coordinate_improvement']
+                    print(f"  {game_id}: Coordinate-aware: {coord_score:.2f}, Traditional: {trad_score:.2f}, Improvement: {improvement:+.2f}")
+            
+            return 0
                 
         elif args.run_mode == "test":
             # Testing mode using integrated test runner
