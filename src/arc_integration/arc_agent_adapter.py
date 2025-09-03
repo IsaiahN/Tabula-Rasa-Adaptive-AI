@@ -33,6 +33,9 @@ except ImportError:
 from core.agent import AdaptiveLearningAgent
 from core.data_models import SensoryInput, AgentState
 from core.meta_learning import MetaLearningSystem
+from vision.frame_analyzer import FrameAnalyzer
+from learning.pathway_system import PathwayLearningSystem
+from api.enhanced_client import ArcAgiApiClient, CoordinateManager
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +105,19 @@ class ARCVisualProcessor(nn.Module):
 
 class ARCActionMapper:
     """
-    Maps between ARC actions and Adaptive Learning Agent actions.
+    Enhanced ARC Action Mapper with coordinate-aware pathway learning integration.
+    Maps between ARC actions and Adaptive Learning Agent actions with intelligent
+    coordinate selection and pathway learning.
     """
     
-    def __init__(self):
-        # Map ARC actions to continuous action space
+    def __init__(self, game_id: str = None):
+        # Initialize coordinate-aware components
+        self.frame_analyzer = FrameAnalyzer()
+        self.pathway_system = PathwayLearningSystem()
+        self.coordinate_manager = CoordinateManager()
+        self.game_id = game_id or "default"
+        
+        # Traditional action mapping for non-coordinate actions
         self.action_mapping = {
             GameAction.RESET: torch.tensor([0.0, 0.0, 0.0]),
             GameAction.ACTION1: torch.tensor([1.0, 0.0, 0.0]),
@@ -114,45 +125,132 @@ class ARCActionMapper:
             GameAction.ACTION3: torch.tensor([0.0, 0.0, 1.0]),
             GameAction.ACTION4: torch.tensor([-1.0, 0.0, 0.0]),
             GameAction.ACTION5: torch.tensor([0.0, -1.0, 0.0]),
-            GameAction.ACTION6: torch.tensor([0.0, 0.0, -1.0]),  # Complex action
+            GameAction.ACTION6: torch.tensor([0.0, 0.0, -1.0]),  # Enhanced with coordinates
             GameAction.ACTION7: torch.tensor([0.5, 0.5, 0.0]),
         }
         
-    def arc_to_agent_action(self, arc_action: GameAction, x: int = 0, y: int = 0) -> torch.Tensor:
-        """Convert ARC action to agent action."""
+        # Coordinate strategies for ACTION6
+        self.coordinate_strategies = ['center_start', 'corner_exploration', 'edge_scanning', 'random_intelligent']
+        self.current_strategy = 'center_start'
+        
+    def arc_to_agent_action(self, arc_action: GameAction, x: int = 0, y: int = 0, frame_data: FrameData = None) -> torch.Tensor:
+        """Enhanced ARC to agent action conversion with coordinate analysis."""
         base_action = self.action_mapping.get(arc_action, torch.zeros(3))
         
-        if arc_action == GameAction.ACTION6:  # Complex action with coordinates
-            # Normalize coordinates to [-1, 1] range
+        if arc_action == GameAction.ACTION6:  # Enhanced coordinate-aware handling
+            # Use pathway system recommendations if available
+            if frame_data:
+                # Analyze frame to get intelligent coordinates
+                frame_analysis = self.frame_analyzer.analyze_frame(frame_data.frame)
+                if frame_analysis and frame_analysis.get('agent_position'):
+                    # Use frame analysis for coordinate intelligence
+                    agent_pos = frame_analysis['agent_position']
+                    x, y = agent_pos[0], agent_pos[1]
+            
+            # Apply coordinate strategy
+            x, y = self._apply_coordinate_strategy(x, y)
+            
+            # Normalize coordinates to [-1, 1] range for neural network
             norm_x = (x / 32.0) - 1.0
             norm_y = (y / 32.0) - 1.0
             return torch.tensor([norm_x, norm_y, 0.0])
             
         return base_action
-        
-    def agent_to_arc_action(self, agent_action: torch.Tensor) -> Tuple[GameAction, Dict[str, int]]:
-        """Convert agent action to ARC action."""
+    
+    def agent_to_arc_action(self, agent_action: torch.Tensor, frame_data: FrameData = None, action_history: List = None) -> Tuple[GameAction, Dict[str, int]]:
+        """Enhanced agent to ARC action conversion with pathway learning."""
         action_vec = agent_action.detach().cpu()
         
-        # Find closest action mapping
+        # Get pathway recommendations for action selection
+        action_recommendations = self.pathway_system.get_action_recommendations(
+            game_id=self.game_id,
+            current_context={'frame_data': frame_data, 'action_history': action_history}
+        )
+        
+        # Find closest action mapping with pathway weighting
         best_action = GameAction.RESET
         best_distance = float('inf')
         
         for arc_action, mapped_vec in self.action_mapping.items():
-            distance = torch.norm(action_vec - mapped_vec).item()
-            if distance < best_distance:
-                best_distance = distance
+            base_distance = torch.norm(action_vec - mapped_vec).item()
+            
+            # Apply pathway learning bias
+            pathway_weight = action_recommendations.get(int(arc_action), 1.0)
+            weighted_distance = base_distance / pathway_weight  # Lower distance = higher preference
+            
+            if weighted_distance < best_distance:
+                best_distance = weighted_distance
                 best_action = arc_action
                 
-        # Handle complex actions
+        # Handle coordinate actions with enhanced intelligence
         action_data = {}
         if best_action == GameAction.ACTION6:
-            # Convert back to grid coordinates
-            x = int((action_vec[0].item() + 1.0) * 32.0)
-            y = int((action_vec[1].item() + 1.0) * 32.0)
-            action_data = {"x": max(0, min(63, x)), "y": max(0, min(63, y))}
+            # Get intelligent coordinates based on frame analysis and pathways
+            x, y = self._get_intelligent_coordinates(frame_data, action_history)
+            action_data = {'x': x, 'y': y}
             
         return best_action, action_data
+    
+    def _apply_coordinate_strategy(self, x: int, y: int) -> Tuple[int, int]:
+        """Apply current coordinate strategy for ACTION6."""
+        if self.current_strategy == 'center_start':
+            return self.coordinate_manager.get_center_coordinates()
+        elif self.current_strategy == 'corner_exploration':
+            return self.coordinate_manager.get_corner_coordinates()
+        elif self.current_strategy == 'edge_scanning':
+            return self.coordinate_manager.get_edge_coordinates()
+        elif self.current_strategy == 'random_intelligent':
+            return self.coordinate_manager.get_random_strategic_coordinates()
+        else:
+            return self.coordinate_manager.clamp_coordinates(x, y)
+    
+    def _get_intelligent_coordinates(self, frame_data: FrameData = None, action_history: List = None) -> Tuple[int, int]:
+        """Get intelligent coordinates based on frame analysis and pathway learning."""
+        if frame_data:
+            # Analyze frame for optimal coordinate selection
+            frame_analysis = self.frame_analyzer.analyze_frame(frame_data.frame)
+            
+            if frame_analysis:
+                # Use movement detection to guide coordinates
+                if frame_analysis.get('movement_detected'):
+                    movement_areas = frame_analysis.get('movement_areas', [])
+                    if movement_areas:
+                        # Target areas with detected movement
+                        target_area = movement_areas[0]  # Use first detected area
+                        return self.coordinate_manager.clamp_coordinates(
+                            target_area['center'][0], target_area['center'][1]
+                        )
+                
+                # Use agent position if detected
+                if frame_analysis.get('agent_position'):
+                    pos = frame_analysis['agent_position']
+                    return self.coordinate_manager.clamp_coordinates(pos[0], pos[1])
+        
+        # Fall back to pathway recommendations
+        pathway_coords = self.pathway_system.get_recommended_coordinates(
+            game_id=self.game_id,
+            action_context={'frame_data': frame_data, 'history': action_history}
+        )
+        
+        if pathway_coords:
+            return self.coordinate_manager.clamp_coordinates(pathway_coords[0], pathway_coords[1])
+        
+        # Final fallback to current strategy
+        return self._apply_coordinate_strategy(32, 32)
+    
+    def update_action_result(self, action: GameAction, coordinates: Tuple[int, int], 
+                           success: bool, score_improvement: float):
+        """Update pathway learning with action results."""
+        if action == GameAction.ACTION6:
+            # Track coordinate-based action results using correct method signature
+            self.pathway_system.track_action(
+                action=6,
+                action_data={'coordinates': coordinates},
+                score_before=0,  # Would need current score context
+                score_after=int(score_improvement),
+                win_score=100,  # Would need win score context
+                game_id=self.game_id
+            )
 
 
 class AdaptiveLearningARCAgent(Agent):
@@ -174,7 +272,7 @@ class AdaptiveLearningARCAgent(Agent):
         
         # ARC-specific components
         self.visual_processor = ARCVisualProcessor()
-        self.action_mapper = ARCActionMapper()
+        self.action_mapper = ARCActionMapper(game_id=self.game_id)
         
         # Learning and meta-cognition
         self.task_insights = []
@@ -290,8 +388,13 @@ class AdaptiveLearningARCAgent(Agent):
             # Generate action using the learning agent
             agent_action = self._generate_agent_action(sensory_input, agent_state)
             
-            # Convert to ARC action
-            arc_action, action_data = self.action_mapper.agent_to_arc_action(agent_action)
+            # Convert to ARC action with enhanced coordinate awareness
+            action_history = [step['action'] for step in self.current_episode_data.get('actions', [])]
+            arc_action, action_data = self.action_mapper.agent_to_arc_action(
+                agent_action, 
+                frame_data=latest_frame,
+                action_history=action_history
+            )
             
             # Set action data if needed
             if action_data:
@@ -310,6 +413,34 @@ class AdaptiveLearningARCAgent(Agent):
             logger.error(f"Error in choose_action: {e}")
             # Fallback to reset
             return GameAction.RESET
+    
+    def record_action_result(self, action: GameAction, coordinates: Tuple[int, int] = None,
+                           success: bool = False, score_improvement: float = 0.0):
+        """Record action result for pathway learning and coordinate optimization."""
+        try:
+            # Update action mapper with results
+            if coordinates:
+                self.action_mapper.update_action_result(
+                    action=action,
+                    coordinates=coordinates,
+                    success=success,
+                    score_improvement=score_improvement
+                )
+            
+            # Update pathway system for all actions
+            action_num = int(action) if hasattr(action, '__int__') else 0
+            if hasattr(self.action_mapper.pathway_system, 'track_action'):
+                self.action_mapper.pathway_system.track_action(
+                    action=action_num,
+                    action_data={'coordinates': coordinates} if coordinates else {},
+                    score_before=0,  # Would need to be passed in for accurate tracking
+                    score_after=int(score_improvement),
+                    win_score=100,  # Would need to be passed in
+                    game_id=self.game_id
+                )
+                
+        except Exception as e:
+            logger.error(f"Error recording action result: {e}")
             
     def _handle_reset(self, frames: List[FrameData], latest_frame: FrameData) -> GameAction:
         """Handle game reset."""
