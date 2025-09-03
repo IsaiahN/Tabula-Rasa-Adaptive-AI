@@ -8,8 +8,8 @@ import sys
 import os
 from pathlib import Path
 
-# Add src to path
-sys.path.append(str(Path(__file__).parent / "src"))
+# Add src to path - adjust for tests/integration folder structure
+sys.path.append(str(Path(__file__).parent.parent.parent / "src"))
 
 from src.arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
 from src.vision.frame_analyzer import FrameAnalyzer

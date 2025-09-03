@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import time
 from collections import deque
 
-from src.core.data_models import Goal, AgentState
+from core.data_models import Goal, AgentState
 
 logger = logging.getLogger(__name__)
 

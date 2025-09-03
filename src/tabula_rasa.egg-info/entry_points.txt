@@ -1,0 +1,3 @@
+[console_scripts]
+train-arc-agent = main_training:main
+train-arc-enhanced = train_arc_agent_enhanced:main

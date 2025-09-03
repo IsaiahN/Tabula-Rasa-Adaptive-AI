@@ -15,9 +15,9 @@ from pathlib import Path
 from typing import Dict, Any
 import numpy as np
 
-from src.core.agent import AdaptiveLearningAgent
-from src.environment.survival_environment import SurvivalEnvironment
-from src.utils.config_loader import load_config
+from core.agent import AdaptiveLearningAgent
+from environment.survival_environment import SurvivalEnvironment
+from utils.config_loader import load_config
 
 # Set up logging
 logging.basicConfig(

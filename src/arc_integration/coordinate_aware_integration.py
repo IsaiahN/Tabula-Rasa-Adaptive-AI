@@ -9,9 +9,9 @@ from pathlib import Path
 
 from .continuous_learning_loop import ContinuousLearningLoop
 from .arc_agent_adapter import AdaptiveLearningARCAgent
-from ..api.enhanced_client import ArcAgiApiClient
-from ..vision.frame_analyzer import FrameAnalyzer
-from ..learning.pathway_system import PathwayLearningSystem
+from api.enhanced_client import ArcAgiApiClient
+from vision.frame_analyzer import FrameAnalyzer
+from learning.pathway_system import PathwayLearningSystem
 
 logger = logging.getLogger(__name__)
 
