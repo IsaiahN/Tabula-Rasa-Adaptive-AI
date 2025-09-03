@@ -10,13 +10,10 @@ from pathlib import Path
 
 import pytest
 
-# Add src to path - adjust for tests/integration folder structure
-sys.path.append(str(Path(__file__).parent.parent.parent / "src"))
-
-from src.arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
-from src.vision.frame_analyzer import FrameAnalyzer
-from src.learning.pathway_system import PathwayLearningSystem
-from src.api.enhanced_client import ArcAgiApiClient
+from arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
+from vision.frame_analyzer import FrameAnalyzer
+from learning.pathway_system import PathwayLearningSystem
+from api.enhanced_client import ArcAgiApiClient
 
 
 def test_coordinate_system_imports():

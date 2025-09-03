@@ -9,10 +9,6 @@ import argparse
 import logging
 from pathlib import Path
 
-# Add src to path
-src_path = Path(__file__).parent / "src"
-sys.path.insert(0, str(src_path))
-
 from arc_integration.continuous_learning_loop import ContinuousLearningLoop
 from arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
 from core.salience_system import SalienceMode

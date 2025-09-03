@@ -11,9 +11,6 @@ import tempfile
 import json
 import pytest
 
-# Add src to path - adjust for tests/integration folder structure
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-
 # Import coordinate system components  
 from arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
 from arc_integration.continuous_learning_loop import ContinuousLearningLoop
@@ -120,9 +117,6 @@ async def test_enhanced_training_script_integration():
     print("\n🧪 Testing enhanced training script integration...")
     
     try:
-        # Import the enhanced training script
-        sys.path.append(str(Path(__file__).parent.parent.parent))
-        
         # Test importing the enhanced training manager
         from train_arc_agent_enhanced import EnhancedARCTrainingManager
         print("✅ Enhanced training manager imported successfully")

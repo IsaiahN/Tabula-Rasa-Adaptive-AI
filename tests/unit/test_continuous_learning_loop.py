@@ -13,10 +13,6 @@ from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-# Add src to path for imports
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-
 from arc_integration.continuous_learning_loop import (
     ContinuousLearningLoop, 
     TrainingSession,
@@ -107,10 +103,6 @@ import os
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-
-# Add src to path for imports
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from core.salience_system import SalienceMode
 

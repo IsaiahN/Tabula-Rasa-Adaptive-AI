@@ -8,9 +8,6 @@ import json
 from typing import Dict, List, Any
 from datetime import datetime
 
-# Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 from api.enhanced_client import ArcAgiApiClient, CoordinateManager
 from vision.frame_analyzer import FrameAnalyzer
 from learning.pathway_system import PathwayLearningSystem

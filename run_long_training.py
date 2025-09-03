@@ -14,9 +14,6 @@ import time
 import asyncio
 from pathlib import Path
 
-# Add src to Python path
-sys.path.append(str(Path(__file__).parent / 'src'))
-
 from arc_integration.continuous_learning_loop import ContinuousLearningLoop
 
 async def run_long_arc_training():
