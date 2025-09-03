@@ -27,6 +27,9 @@ from collections import deque  # Added for rate limiting
 from dotenv import load_dotenv
 load_dotenv()
 
+# Import frame analysis for visual intelligence
+from src.vision.frame_analyzer import FrameAnalyzer
+
 # Add the src directory to the path for imports
 current_dir = Path(__file__).parent
 src_dir = current_dir.parent
@@ -251,6 +254,9 @@ class ContinuousLearningLoop:
             insight_threshold=0.6,
             cross_validation_threshold=3
         )
+        
+        # Initialize frame analyzer for visual intelligence
+        self.frame_analyzer = FrameAnalyzer()
         
         # Training state
         self.current_session: Optional[TrainingSession] = None
@@ -1136,13 +1142,93 @@ class ContinuousLearningLoop:
         """Verify coordinates are within actual grid bounds."""
         return 0 <= x < grid_width and 0 <= y < grid_height
     
+    def _analyze_frame_for_action_selection(self, response_data: Dict[str, Any], game_id: str) -> Dict[str, Any]:
+        """
+        Use frame analysis to enhance action selection with visual intelligence.
+        
+        Returns analysis data that can inform action selection decisions.
+        """
+        frame = response_data.get('frame', [])
+        if not frame or not isinstance(frame, list) or len(frame) == 0:
+            return {}
+        
+        try:
+            # Use the actual FrameAnalyzer API
+            analysis_results = self.frame_analyzer.analyze_frame(frame, game_id)
+            
+            if not analysis_results:
+                return {}
+            
+            # Extract useful information for action selection
+            enhanced_analysis = {}
+            
+            # Movement detection - from FrameAnalyzer results
+            if analysis_results.get('movement_detected', False):
+                enhanced_analysis['movement_insight'] = {
+                    'has_movement': True,
+                    'movement_areas': analysis_results.get('frame_changes', []),
+                    'movement_intensity': len(analysis_results.get('frame_changes', [])) / 100.0  # Normalize
+                }
+            
+            # Agent position tracking - from FrameAnalyzer results
+            agent_position = analysis_results.get('agent_position')
+            if agent_position:
+                enhanced_analysis['positions'] = [{'x': agent_position[0], 'y': agent_position[1], 'confidence': analysis_results.get('position_confidence', 0.0)}]
+                enhanced_analysis['primary_target'] = {
+                    'x': agent_position[0], 
+                    'y': agent_position[1], 
+                    'confidence': analysis_results.get('position_confidence', 0.0)
+                }
+            
+            # Basic frame analysis - convert frame to numpy for color analysis
+            frame_array = np.array(frame[0]) if frame and len(frame) > 0 else np.array([])
+            if frame_array.size > 0:
+                # Color and pattern analysis
+                unique_colors = np.unique(frame_array)
+                color_info = {
+                    'unique_colors': unique_colors.tolist(),
+                    'color_count': len(unique_colors),
+                    'dominant_color': int(np.argmax(np.bincount(frame_array.flatten()))) if frame_array.size > 0 else 0
+                }
+                enhanced_analysis['color_analysis'] = color_info
+                
+                # Pattern complexity analysis
+                complexity_score = len(unique_colors) / (frame_array.shape[0] * frame_array.shape[1]) if frame_array.size > 0 else 0
+                enhanced_analysis['complexity'] = {
+                    'score': complexity_score,
+                    'is_simple': complexity_score < 0.1,
+                    'is_complex': complexity_score > 0.5
+                }
+                
+                # Simple boundary detection (based on edge complexity)
+                if len(unique_colors) > 2:  # Has boundaries if more than background + one color
+                    enhanced_analysis['boundary_analysis'] = {
+                        'has_clear_boundaries': True,
+                        'boundary_count': len(unique_colors) - 1,  # Rough estimate
+                        'effective_area': max(0.2, 1.0 - (len(unique_colors) * 0.05))  # Approximate
+                    }
+            
+            # Store frame analysis for game loop usage
+            if not hasattr(self, '_last_frame_analysis'):
+                self._last_frame_analysis = {}
+            self._last_frame_analysis[game_id] = enhanced_analysis
+            
+            logger.debug(f"🔍 Frame analysis for {game_id}: {len(enhanced_analysis)} analysis types completed")
+            return enhanced_analysis
+            
+        except Exception as e:
+            logger.warning(f"Frame analysis failed for {game_id}: {e}")
+            return {}
     def _select_next_action(self, response_data: Dict[str, Any], game_id: str) -> Optional[int]:
-        """Select appropriate action based on learned intelligence and available_actions from API response."""
+        """Select appropriate action based on learned intelligence, available_actions from API response, and visual frame analysis."""
         available = response_data.get('available_actions', [])
         
         if not available:
             logger.warning(f"No available actions for game {game_id}")
             return None
+        
+        # Perform frame analysis for visual intelligence
+        frame_analysis = self._analyze_frame_for_action_selection(response_data, game_id)
         
         # Update available actions tracking
         self._update_available_actions(response_data, game_id)
@@ -1157,13 +1243,18 @@ class ContinuousLearningLoop:
             print(f"🎮 Available Actions for {game_id}: {current_available}")
             self._last_available_actions[game_id] = current_available
         
-        # Use intelligent action selection with strategic ACTION 6 control
-        selected_action = self._select_intelligent_action_with_relevance(available, {'game_id': game_id})
+        # Use intelligent action selection with frame analysis context
+        context = {
+            'game_id': game_id, 
+            'frame_analysis': frame_analysis,
+            'response_data': response_data
+        }
+        selected_action = self._select_intelligent_action_with_relevance(available, context)
         
         # Add to action history
         self.available_actions_memory['action_history'].append(selected_action)
         
-        logger.debug(f"🎯 Selected action {selected_action} from available {available} for {game_id}")
+        logger.debug(f"🎯 Selected action {selected_action} from available {available} for {game_id} (with frame analysis)")
         return selected_action
     
     async def _send_enhanced_action(
@@ -1173,7 +1264,8 @@ class ContinuousLearningLoop:
         x: Optional[int] = None,
         y: Optional[int] = None,
         grid_width: int = 64,
-        grid_height: int = 64
+        grid_height: int = 64,
+        frame_analysis: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
         """Send action with proper validation, coordinate optimization, effectiveness tracking, and rate limiting."""
         guid = self.current_game_sessions.get(game_id)
@@ -1189,9 +1281,16 @@ class ContinuousLearningLoop:
         # Optimize coordinates for coordinate-based actions
         if action_number == 6:
             if x is None or y is None:
-                # Use learned coordinate optimization
-                x, y = self._optimize_coordinates_for_action(action_number, (grid_width, grid_height), game_id)
-                logger.info(f"🎯 Optimized coordinates for action {action_number}: ({x},{y})")
+                # Use enhanced coordinate optimization with frame analysis
+                if frame_analysis:
+                    x, y = self._enhance_coordinate_selection_with_frame_analysis(
+                        action_number, (grid_width, grid_height), game_id, frame_analysis
+                    )
+                    logger.info(f"🎯 Frame-enhanced coordinates for action {action_number}: ({x},{y})")
+                else:
+                    # Fallback to learned coordinate optimization
+                    x, y = self._optimize_coordinates_for_action(action_number, (grid_width, grid_height), game_id)
+                    logger.info(f"🎯 Optimized coordinates for action {action_number}: ({x},{y})")
             
             # Verify coordinates are within actual grid bounds
             if not self._verify_grid_bounds(x, y, grid_width, grid_height):
@@ -1515,6 +1614,109 @@ class ContinuousLearningLoop:
         
         return game_results
 
+    def _calculate_frame_analysis_bonus_action6(self, frame_analysis: Dict[str, Any]) -> float:
+        """Calculate frame analysis bonus specifically for ACTION 6 coordinate selection."""
+        bonus = 0.0
+        
+        # Bonus for clear target positions detected
+        if 'positions' in frame_analysis and frame_analysis['positions']:
+            bonus += 0.3  # Significant bonus for detected targets
+        
+        # Bonus for clear movement patterns (suggests dynamic environment good for ACTION 6)
+        movement_info = frame_analysis.get('movement_insight', {})
+        if movement_info.get('has_movement', False):
+            movement_intensity = movement_info.get('movement_intensity', 0)
+            bonus += min(0.2, movement_intensity * 0.5)  # Up to 20% bonus based on movement
+        
+        # Bonus for clear boundaries (helps coordinate selection)
+        boundary_info = frame_analysis.get('boundary_analysis', {})
+        if boundary_info.get('has_clear_boundaries', False):
+            bonus += 0.1
+        
+        # Penalty for high complexity (ACTION 6 might be less effective in complex scenarios)
+        complexity = frame_analysis.get('complexity', {})
+        if complexity.get('is_complex', False):
+            bonus -= 0.1  # Reduce ACTION 6 attractiveness in complex scenarios
+        
+        return max(0.0, min(0.5, bonus))  # Cap bonus between 0 and 50%
+    
+    def _calculate_frame_analysis_multiplier(self, action: int, frame_analysis: Dict[str, Any]) -> float:
+        """Calculate frame analysis multiplier for non-ACTION 6 actions."""
+        multiplier = 1.0
+        
+        # Different actions benefit from different visual patterns
+        if action in [1, 2, 3, 4, 5, 7]:
+            # General principles for reasoning-based actions
+            
+            # Simple patterns might benefit reasoning actions (clearer to analyze)
+            complexity = frame_analysis.get('complexity', {})
+            if complexity.get('is_simple', False):
+                multiplier *= 1.1  # 10% boost for simple patterns
+            elif complexity.get('is_complex', False):
+                multiplier *= 0.95  # 5% penalty for overly complex patterns
+            
+            # Movement detection helps understand game dynamics
+            movement_info = frame_analysis.get('movement_insight', {})
+            if movement_info.get('has_movement', False):
+                # Some movement suggests active game state, good for reasoning actions
+                multiplier *= 1.05  # 5% boost for active environments
+            
+            # Color diversity might indicate more complex reasoning opportunities
+            color_info = frame_analysis.get('color_analysis', {})
+            if color_info:
+                color_count = color_info.get('color_count', 1)
+                if color_count > 3:  # Rich color environment
+                    multiplier *= 1.05  # 5% boost for rich visual environments
+                elif color_count == 1:  # Very simple
+                    multiplier *= 0.98  # 2% penalty for overly simple environments
+        
+        return max(0.8, min(1.3, multiplier))  # Cap multiplier between 80% and 130%
+    
+    def _enhance_coordinate_selection_with_frame_analysis(self, action_number: int, grid_dimensions: Tuple[int, int], game_id: str, frame_analysis: Dict[str, Any]) -> Tuple[int, int]:
+        """Enhanced coordinate selection using frame analysis data."""
+        grid_width, grid_height = grid_dimensions
+        
+        # Default fallback to existing method
+        fallback_x, fallback_y = self._optimize_coordinates_for_action(action_number, grid_dimensions, game_id)
+        
+        if not frame_analysis or action_number != 6:  # Only enhance ACTION 6 for now
+            return fallback_x, fallback_y
+        
+        try:
+            # Use detected agent position if available
+            primary_target = frame_analysis.get('primary_target')
+            if primary_target and primary_target.get('confidence', 0) > 0.3:
+                target_x = primary_target.get('x', fallback_x)
+                target_y = primary_target.get('y', fallback_y)
+                
+                # Ensure coordinates are within bounds
+                target_x = max(0, min(grid_width - 1, int(target_x)))
+                target_y = max(0, min(grid_height - 1, int(target_y)))
+                
+                logger.info(f"🎯 Frame analysis guided ACTION {action_number} to detected position ({target_x},{target_y})")
+                return target_x, target_y
+            
+            # Use FrameAnalyzer's strategic coordinate selection
+            current_position = getattr(self, '_current_game_x', None), getattr(self, '_current_game_y', None)
+            if current_position[0] is None or current_position[1] is None:
+                current_position = None
+                
+            strategic_coords = self.frame_analyzer.get_strategic_coordinates([action_number], current_position)
+            if action_number in strategic_coords:
+                strategic_x, strategic_y = strategic_coords[action_number]
+                
+                # Clamp to actual grid dimensions
+                strategic_x = max(0, min(grid_width - 1, strategic_x))
+                strategic_y = max(0, min(grid_height - 1, strategic_y))
+                
+                logger.info(f"🎯 FrameAnalyzer strategic coordinates for ACTION {action_number}: ({strategic_x},{strategic_y})")
+                return strategic_x, strategic_y
+        
+        except Exception as e:
+            logger.debug(f"Frame analysis coordinate enhancement failed: {e}")
+        
+        return fallback_x, fallback_y
+
     def _select_intelligent_action_with_relevance(self, available_actions: List[int], context: Dict[str, Any]) -> int:
         """
         Enhanced action selection with relevance scoring and strategic ACTION 6 control.
@@ -1560,7 +1762,9 @@ class ContinuousLearningLoop:
             print("🚨 EMERGENCY: ACTION 6 only option available - allowing minimal access")
             filtered_available_actions = [6]
         
-        # Score only the filtered available actions
+        # Score only the filtered available actions with frame analysis integration
+        frame_analysis = context.get('frame_analysis', {})
+        
         for action in filtered_available_actions:
             if action in self.available_actions_memory['action_relevance_scores']:
                 relevance_data = self.available_actions_memory['action_relevance_scores'][action]
@@ -1568,17 +1772,34 @@ class ContinuousLearningLoop:
                 modifier = relevance_data['current_modifier']
                 success_rate = relevance_data['recent_success_rate']
                 
-                # Special handling for ACTION 6 - your key insight
+                # Special handling for ACTION 6 - your key insight + frame analysis
                 if action == 6:
                     action6_score = self._calculate_action6_strategic_score(action_count, progress_stagnant)
+                    
+                    # Enhance ACTION 6 with frame analysis for coordinate optimization
+                    if frame_analysis:
+                        frame_bonus = self._calculate_frame_analysis_bonus_action6(frame_analysis)
+                        action6_score *= (1.0 + frame_bonus)
+                        if frame_bonus > 0.1:
+                            print(f"🔍 ACTION 6 enhanced by frame analysis: +{frame_bonus:.2f} bonus")
+                    
                     action_scores[action] = action6_score
                 else:
-                    # Standard actions get normal scoring with relevance
+                    # Standard actions get normal scoring with relevance + frame analysis
                     try:
                         semantic_score = self._calculate_semantic_action_score(action, game_id)
                     except:
                         semantic_score = 1.0  # Fallback
+                    
+                    # Base calculation
                     final_score = base_score * modifier * success_rate * semantic_score
+                    
+                    # Apply frame analysis enhancements for all actions
+                    if frame_analysis:
+                        frame_multiplier = self._calculate_frame_analysis_multiplier(action, frame_analysis)
+                        final_score *= frame_multiplier
+                        if frame_multiplier != 1.0:
+                            print(f"🔍 ACTION {action} frame analysis multiplier: {frame_multiplier:.2f}")
                     
                     # Boost recently successful actions
                     if relevance_data['consecutive_failures'] == 0 and success_rate > 0.6:
@@ -1619,7 +1840,22 @@ class ContinuousLearningLoop:
             normalized_weights = [1.0] * len(action_scores)
         
         # Smart weighted selection with anti-bias protection
-        print(f"🎲 ACTION SELECTION SCORES: {[(a, f'{s:.3f}') for a, s in action_scores.items()]}")
+        def format_score(s):
+            try:
+                return f'{float(s):.3f}' if s is not None else '0.000'
+            except (ValueError, TypeError):
+                return str(s)
+        print(f"🎲 ACTION SELECTION SCORES: {[(a, format_score(s)) for a, s in action_scores.items()]}")
+        
+        # Ensure all scores are numeric before proceeding
+        numeric_scores = {}
+        for action, score in action_scores.items():
+            try:
+                numeric_scores[action] = float(score) if score is not None else 0.0
+            except (ValueError, TypeError):
+                print(f"⚠️ Warning: Non-numeric score {score} for action {action}, using 0.0")
+                numeric_scores[action] = 0.0
+        action_scores = numeric_scores
         
         # Apply intelligent weighting that prevents any single action from dominating
         min_score = min(action_scores.values())
@@ -1641,7 +1877,14 @@ class ContinuousLearningLoop:
             # All scores equal - pure random selection
             selected_action = random.choice(list(action_scores.keys()))
         
-        print(f"⚖️  ANTI-BIAS WEIGHTS: {[(a, f'{w:.3f}') for a, w in zip(action_scores.keys(), action_weights if score_range > 0 else ['1.000'] * len(action_scores))]}")
+        def safe_format_weight(w):
+            try:
+                return f'{float(w):.3f}' if w is not None else '0.000'
+            except (ValueError, TypeError):
+                return str(w)
+        
+        weights_to_display = action_weights if score_range > 0 else [1.0] * len(action_scores)
+        print(f"⚖️  ANTI-BIAS WEIGHTS: {[(a, safe_format_weight(w)) for a, w in zip(action_scores.keys(), weights_to_display)]}")
         print(f"🎯 SELECTED ACTION: {selected_action} (WEIGHTED RANDOM with 20% minimum weight per action)")
         print(f"�️ ANTI-BIAS: All actions guaranteed minimum 20% selection chance")
         
@@ -6924,20 +7167,33 @@ class ContinuousLearningLoop:
                 print(f"📋 Current Available Actions: {available_actions}")
                 
                 # Use our intelligent action selection with current available actions
-                selected_action = self._select_next_action({
+                action_selection_response = {
                     'available_actions': available_actions,
                     'state': current_state,
-                    'score': current_score
-                }, game_id)
+                    'score': current_score,
+                    'frame': session_data.get('frame', [])  # Get frame from session data
+                }
+                selected_action = self._select_next_action(action_selection_response, game_id)
                 
                 if selected_action is None:
                     print("⚠️ Action selection failed - stopping game loop")
                     break
                 
+                # Get frame analysis for enhanced action execution
+                if hasattr(self, '_last_frame_analysis'):
+                    current_frame_analysis = getattr(self, '_last_frame_analysis', {}).get(game_id, {})
+                else:
+                    current_frame_analysis = {}
+                
                 # Optimize coordinates if needed (for ACTION6)
                 x, y = None, None
                 if selected_action == 6:
-                    x, y = self._optimize_coordinates_for_action(selected_action, (64, 64), game_id)
+                    if current_frame_analysis:
+                        x, y = self._enhance_coordinate_selection_with_frame_analysis(
+                            selected_action, (64, 64), game_id, current_frame_analysis
+                        )
+                    else:
+                        x, y = self._optimize_coordinates_for_action(selected_action, (64, 64), game_id)
                 
                 print(f"🎯 SELECTED ACTION: {selected_action}" + (f" at ({x},{y})" if x is not None else ""))
                 
@@ -6955,7 +7211,7 @@ class ContinuousLearningLoop:
                 
                 # Execute the action
                 action_result = await self._send_enhanced_action(
-                    game_id, selected_action, x, y, 64, 64
+                    game_id, selected_action, x, y, 64, 64, current_frame_analysis
                 )
                 
                 if action_result:
@@ -6998,6 +7254,10 @@ class ContinuousLearningLoop:
                     current_state = new_state
                     current_score = new_score
                     # available_actions already updated above
+                    
+                    # Update session_data with new frame information for next iteration
+                    if 'frame' in action_result:
+                        session_data['frame'] = action_result['frame']
                     
                 else:
                     # Record failed action
