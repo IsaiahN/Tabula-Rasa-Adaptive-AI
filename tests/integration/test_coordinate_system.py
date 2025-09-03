@@ -8,6 +8,8 @@ import sys
 import os
 from pathlib import Path
 
+import pytest
+
 # Add src to path - adjust for tests/integration folder structure
 sys.path.append(str(Path(__file__).parent.parent.parent / "src"))
 
@@ -92,6 +94,7 @@ def test_coordinate_system_components():
         return False
 
 
+@pytest.mark.asyncio
 async def test_integration_without_api():
     """Test integration components without requiring API access."""
     print("\n🧪 Testing integration without API...")
