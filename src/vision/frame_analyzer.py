@@ -5,6 +5,7 @@ Implements computer vision for agent position tracking and movement detection.
 import cv2
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
+from collections import deque
 import json
 from datetime import datetime
 
@@ -94,20 +95,56 @@ class FrameAnalyzer:
             # 5. RANK TARGETS by interaction potential
             ranked_targets = self._rank_interaction_targets(targets)
             
-            # 6. SELECT BEST TARGET
-            if ranked_targets:
-                best_target = ranked_targets[0]
-                analysis['interactive_targets'] = ranked_targets[:5]  # Top 5
-                analysis['recommended_action6_coord'] = (best_target['x'], best_target['y'])
-                analysis['targeting_reason'] = best_target['reason']
-                analysis['confidence'] = best_target['confidence']
+            # 6. ENHANCED TARGET SELECTION with coordinate avoidance
+            selected_target = None
+            emergency_mode = False
+            
+            # Check if we're stuck (more than 100 attempts at stuck coordinates)
+            total_stuck_attempts = sum(
+                result['try_count'] for result in self.coordinate_results.values() 
+                if result.get('is_stuck_coordinate', False)
+            )
+            
+            if total_stuck_attempts > 50:
+                emergency_mode = True
+                print(f"🚨 EMERGENCY MODE: {total_stuck_attempts} attempts at stuck coordinates")
+                
+                # Force diversification
+                emergency_coord = self.get_emergency_diversification_target(
+                    frame, (frame_array.shape[1], frame_array.shape[0])
+                )
+                selected_target = {
+                    'x': emergency_coord[0], 
+                    'y': emergency_coord[1],
+                    'reason': f'emergency_diversification_from_{total_stuck_attempts}_stuck_attempts',
+                    'confidence': 0.8  # High confidence in diversification
+                }
             else:
-                # 7. FALLBACK: EXPLORATORY TAPPING in systematic pattern
-                exploration_coord = self._generate_exploration_coordinate(frame_array)
+                # Normal target selection with avoidance
+                for target in ranked_targets:
+                    if not self.should_avoid_coordinate(target['x'], target['y']):
+                        selected_target = target
+                        break
+                    else:
+                        avoidance_score = self.get_coordinate_avoidance_score(target['x'], target['y'])
+                        print(f"🚫 AVOIDING ({target['x']},{target['y']}): avoidance score {avoidance_score:.2f}")
+            
+            if selected_target:
+                analysis['interactive_targets'] = ranked_targets[:5]  # Top 5 for reference
+                analysis['recommended_action6_coord'] = (selected_target['x'], selected_target['y'])
+                analysis['targeting_reason'] = selected_target['reason']
+                analysis['confidence'] = selected_target['confidence']
+                
+                if emergency_mode:
+                    analysis['targeting_reason'] += "_EMERGENCY_MODE"
+                    
+            else:
+                # 7. ENHANCED FALLBACK: Smart exploration avoiding stuck coordinates  
+                exploration_coord = self._generate_smart_exploration_coordinate(frame_array)
                 if exploration_coord:
                     analysis['recommended_action6_coord'] = exploration_coord
-                    analysis['targeting_reason'] = 'exploratory_systematic_tapping'
-                    analysis['confidence'] = 0.3  # Lower confidence for exploration
+                    analysis['targeting_reason'] = 'smart_exploration_avoiding_stuck_coordinates'
+                    analysis['confidence'] = 0.4  # Medium confidence for smart exploration
             
             # Store visual feature summary
             analysis['visual_features'] = {
@@ -1431,6 +1468,191 @@ class FrameAnalyzer:
             'current_recommendations': len(self.get_actionable_recommendations()),
             'learning_insights': self._generate_learning_insights()
         }
+
+    def _record_coordinate_effectiveness(self, x: int, y: int, success: bool, 
+                                       score_change: float = 0, context: str = ""):
+        """Enhanced coordinate effectiveness tracking with detailed analysis."""
+        coord_key = (x, y)
+        
+        if coord_key not in self.coordinate_results:
+            self.coordinate_results[coord_key] = {
+                'try_count': 0,
+                'success_count': 0,
+                'total_score_change': 0,
+                'last_attempt': 0,
+                'effectiveness_score': 0,
+                'contexts': [],
+                'recent_attempts': deque(maxlen=5),  # Track last 5 attempts
+                'zero_progress_streak': 0,  # Track consecutive zero-progress attempts
+                'is_stuck_coordinate': False,  # Flag for coordinates that cause loops
+                'penalty_score': 0.0  # Penalty for ineffective coordinates
+            }
+        
+        result = self.coordinate_results[coord_key]
+        result['try_count'] += 1
+        result['last_attempt'] = len(self.frame_history)
+        result['contexts'].append(context)
+        
+        # ENHANCED SUCCESS DETECTION - Zero score change = ineffective
+        is_truly_effective = success and score_change > 0
+        made_progress = score_change != 0  # Any score change (positive or negative) is progress
+        
+        # Track zero progress streaks
+        if score_change == 0:
+            result['zero_progress_streak'] += 1
+        else:
+            result['zero_progress_streak'] = 0  # Reset streak if any progress made
+        
+        # Mark as stuck coordinate if too many zero-progress attempts
+        if result['zero_progress_streak'] >= 5:
+            result['is_stuck_coordinate'] = True
+            result['penalty_score'] = min(result['penalty_score'] + 0.2, 1.0)
+            print(f"⚠️ COORDINATE ({x},{y}) MARKED AS STUCK: {result['zero_progress_streak']} zero-progress attempts")
+        
+        if is_truly_effective:
+            result['success_count'] += 1
+            result['total_score_change'] += score_change
+            # Remove stuck flag if coordinate becomes effective
+            if result['is_stuck_coordinate']:
+                result['is_stuck_coordinate'] = False
+                result['penalty_score'] = max(result['penalty_score'] - 0.3, 0.0)
+                print(f"✅ COORDINATE ({x},{y}) UNSTUCK: Made progress with score change {score_change:+}")
+        
+        # Track recent attempt results
+        attempt_result = {
+            'success': is_truly_effective,
+            'score_change': score_change,
+            'frame_num': len(self.frame_history),
+            'made_progress': made_progress
+        }
+        result['recent_attempts'].append(attempt_result)
+        
+        # ENHANCED EFFECTIVENESS SCORING with penalties for stuck coordinates
+        if result['try_count'] > 0:
+            base_success_rate = result['success_count'] / result['try_count']
+            score_bonus = min(result['total_score_change'] / max(result['try_count'], 1), 0.5)
+            
+            # Apply penalties for stuck coordinates
+            stuck_penalty = result['penalty_score'] * 0.8  # Heavy penalty for stuck coordinates
+            zero_streak_penalty = min(result['zero_progress_streak'] * 0.1, 0.7)  # Progressive penalty
+            
+            result['effectiveness_score'] = max(0.0, base_success_rate + score_bonus - stuck_penalty - zero_streak_penalty)
+            
+            # Extra penalty for coordinates with high try count but no real progress
+            if result['try_count'] > 10 and result['total_score_change'] <= 0:
+                result['effectiveness_score'] = max(0.0, result['effectiveness_score'] - 0.5)
+        
+        # Add coordinate to tried set for avoidance
+        self.tried_coordinates.add(coord_key)
+
+    def get_coordinate_avoidance_score(self, x: int, y: int) -> float:
+        """Get avoidance score for a coordinate (higher = more to avoid)."""
+        coord_key = (x, y)
+        
+        if coord_key not in self.coordinate_results:
+            return 0.0  # No penalty for untried coordinates
+        
+        result = self.coordinate_results[coord_key]
+        
+        # High avoidance score for stuck coordinates
+        if result['is_stuck_coordinate']:
+            return 0.9  # Very high avoidance
+        
+        # Progressive avoidance based on zero progress streak
+        streak_penalty = min(result['zero_progress_streak'] * 0.15, 0.8)
+        
+        # High try count with no progress gets penalized
+        if result['try_count'] > 5 and result['total_score_change'] <= 0:
+            streak_penalty += 0.3
+        
+        return streak_penalty
+
+    def should_avoid_coordinate(self, x: int, y: int) -> bool:
+        """Check if a coordinate should be avoided due to ineffectiveness."""
+        return self.get_coordinate_avoidance_score(x, y) > 0.5
+
+    def get_emergency_diversification_target(self, current_frame: List[List[int]], 
+                                           grid_bounds: Tuple[int, int]) -> Tuple[int, int]:
+        """Get an emergency diversification target when stuck in loops."""
+        width, height = grid_bounds
+        
+        # Find all coordinates NOT in stuck coordinates
+        available_coords = []
+        
+        for y in range(0, height, max(1, height // 10)):  # Sample every 10% of height
+            for x in range(0, width, max(1, width // 10)):  # Sample every 10% of width
+                if not self.should_avoid_coordinate(x, y):
+                    # Check if there's actually something interesting at this coordinate
+                    if current_frame and y < len(current_frame) and x < len(current_frame[0]):
+                        pixel_value = current_frame[y][x] if isinstance(current_frame[y], list) else current_frame[y][x] if hasattr(current_frame[y], '__getitem__') else 0
+                        if pixel_value != 0:  # Non-zero pixel = potentially interesting
+                            available_coords.append((x, y))
+        
+        if available_coords:
+            # Prefer coordinates far from previously stuck coordinates
+            best_coord = None
+            best_distance = 0
+            
+            for coord in available_coords:
+                min_distance = float('inf')
+                for stuck_coord in self.coordinate_results:
+                    if self.coordinate_results[stuck_coord]['is_stuck_coordinate']:
+                        distance = np.sqrt((coord[0] - stuck_coord[0])**2 + (coord[1] - stuck_coord[1])**2)
+                        min_distance = min(min_distance, distance)
+                
+                if min_distance > best_distance:
+                    best_distance = min_distance
+                    best_coord = coord
+            
+            if best_coord:
+                print(f"🚀 EMERGENCY DIVERSIFICATION: Selected {best_coord} (distance {best_distance:.1f} from stuck coordinates)")
+                return best_coord
+        
+        # Fallback: Random coordinate avoiding known stuck areas
+        import random
+        attempts = 0
+        while attempts < 20:
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+            if not self.should_avoid_coordinate(x, y):
+                print(f"🎲 RANDOM DIVERSIFICATION: Selected ({x},{y}) after {attempts + 1} attempts")
+                return (x, y)
+            attempts += 1
+        
+        # Last resort: Pick center if everything else fails
+        center_x, center_y = width // 2, height // 2
+        print(f"🎯 FALLBACK DIVERSIFICATION: Using center ({center_x},{center_y})")
+        return (center_x, center_y)
+
+    def _generate_smart_exploration_coordinate(self, frame_array: np.ndarray) -> Tuple[int, int]:
+        """Generate exploration coordinate that avoids known stuck coordinates."""
+        height, width = frame_array.shape
+        
+        # Try to find an interesting coordinate that's not stuck
+        candidates = []
+        
+        # Look for non-zero pixels (potentially interactive) that aren't stuck
+        for y in range(0, height, max(1, height // 16)):  # Sample grid
+            for x in range(0, width, max(1, width // 16)):
+                if frame_array[y][x] != 0 and not self.should_avoid_coordinate(x, y):
+                    # Score by distance from stuck coordinates
+                    min_distance_from_stuck = float('inf')
+                    for coord_key, result in self.coordinate_results.items():
+                        if result.get('is_stuck_coordinate', False):
+                            distance = np.sqrt((x - coord_key[0])**2 + (y - coord_key[1])**2)
+                            min_distance_from_stuck = min(min_distance_from_stuck, distance)
+                    
+                    candidates.append((x, y, min_distance_from_stuck, frame_array[y][x]))
+        
+        if candidates:
+            # Sort by distance from stuck coordinates (prefer farther)
+            candidates.sort(key=lambda c: c[2], reverse=True)
+            chosen = candidates[0]
+            print(f"🔍 SMART EXPLORATION: ({chosen[0]},{chosen[1]}) - distance {chosen[2]:.1f} from stuck coords")
+            return (chosen[0], chosen[1])
+        
+        # Fallback: Emergency diversification
+        return self.get_emergency_diversification_target(frame_array.tolist(), (width, height))
 
     def analyze_frame(self, frame: List[List[List[int]]], game_id: str = None) -> Dict[str, Any]:
         """

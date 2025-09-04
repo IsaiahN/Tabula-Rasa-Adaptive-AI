@@ -1452,6 +1452,14 @@ class ContinuousLearningLoop:
                                         game_id=game_id
                                     )
                                     
+                                    # ENHANCED: Record coordinate effectiveness for avoidance system
+                                    if hasattr(self.frame_analyzer, '_record_coordinate_effectiveness'):
+                                        api_success = response.status == 200 and data.get('state') not in ['GAME_OVER']
+                                        context = f"api_success_{api_success}_score_{score_change}"
+                                        self.frame_analyzer._record_coordinate_effectiveness(
+                                            x, y, api_success, score_change, context
+                                        )
+                                    
                                     print(f"📊 ACTION6 interaction logged: {interaction_id} at ({x},{y}) with score change {score_change:+}")
                                     
                                     # Store current state for next comparison
