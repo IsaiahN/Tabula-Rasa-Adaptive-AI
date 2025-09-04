@@ -769,6 +769,11 @@ class FrameAnalyzer:
         print(f"   📊 Result: Score {score_change:+.1f}, Actions {len(interaction_result['actions_added'])} added, {len(interaction_result['actions_removed'])} removed")
         print(f"   🔍 Success indicators: {len(interaction_result['success_indicators'])}")
         
+        # Record coordinate effectiveness for the avoidance system
+        api_success = len(interaction_result['success_indicators']) > 0 or interaction_result['state_change']
+        context_info = f"interaction_{interaction_id}_indicators_{len(interaction_result['success_indicators'])}"
+        self._record_coordinate_effectiveness(x, y, api_success, score_change, context_info)
+        
         return interaction_id
     
     def _detect_shape_at_coordinate(self, x: int, y: int, frame: List[List[int]]) -> Dict[str, Any]:
@@ -1558,6 +1563,16 @@ class FrameAnalyzer:
             }
         
         result = self.coordinate_results[coord_key]
+        
+        # DEFENSIVE: Ensure all required keys exist (for backward compatibility)
+        if 'zero_progress_streak' not in result:
+            result['zero_progress_streak'] = 0
+        if 'is_stuck_coordinate' not in result:
+            result['is_stuck_coordinate'] = False
+        if 'penalty_score' not in result:
+            result['penalty_score'] = 0.0
+        if 'recent_attempts' not in result:
+            result['recent_attempts'] = deque(maxlen=5)
         result['try_count'] += 1
         result['last_attempt'] = len(self.frame_history)
         if 'contexts' not in result:
@@ -1689,6 +1704,8 @@ class FrameAnalyzer:
             print(f"✅ EXPLORATION COMPLETE: All {len(self.explored_color_objects)} colors tried at least once")
             return None
         
+        print(f"🔍 EXPLORATION STATUS: {len(self.explored_color_objects)} explored, {len(unexplored_colors)} remaining: {sorted(list(unexplored_colors))}")
+        
         # 3. FIND TARGET FOR NEXT UNEXPLORED COLOR
         target_color = next(iter(unexplored_colors))
         
@@ -1696,7 +1713,9 @@ class FrameAnalyzer:
         color_locations = np.argwhere(frame_array == target_color)
         
         if len(color_locations) == 0:
-            print(f"⚠️ No locations found for color {target_color}")
+            print(f"⚠️ No locations found for color {target_color}, marking as explored anyway")
+            # Mark as explored to prevent infinite loops
+            self.explored_color_objects.add(target_color)
             return None
         
         # Choose a representative location for this color (center of mass) 
@@ -1713,6 +1732,36 @@ class FrameAnalyzer:
             # If center of mass doesn't hit the target color, pick first occurrence
             center_y, center_x = color_locations[0]
             print(f"🔧 Center of mass mismatch, using first occurrence: ({center_x},{center_y})")
+        
+        # PRODUCTIVITY OVERRIDE - Key user insight implementation!
+        # If current exploration target coordinate has been tried many times without progress,
+        # let productivity system override exploration phase
+        coord_key = (int(center_x), int(center_y))
+        if coord_key in self.coordinate_results:
+            result = self.coordinate_results[coord_key]
+            
+            # Check if this coordinate is stuck and should be skipped in exploration
+            if (result.get('zero_progress_streak', 0) >= 5 and 
+                result.get('total_score_change', 0) <= 0):
+                
+                print(f"🎯 PRODUCTIVITY OVERRIDE: Color {target_color} at ({center_x},{center_y}) has {result['zero_progress_streak']} failed attempts")
+                print(f"   Marking color {target_color} as explored and moving to next color")
+                
+                # Mark this color as explored to move on
+                self.explored_color_objects.add(target_color)
+                
+                # Try to find next unexplored color immediately
+                new_unexplored = unique_colors - self.explored_color_objects
+                if new_unexplored:
+                    print(f"   Moving to next unexplored color from {sorted(list(new_unexplored))}")
+                    # Return None to let normal targeting take over this frame
+                    return None
+                else:
+                    # No more colors to explore
+                    self.exploration_phase = False
+                    self.exploration_complete = True
+                    print(f"✅ EXPLORATION COMPLETE (via productivity override)")
+                    return None
         
         # Create exploration target
         exploration_target = {
@@ -1735,7 +1784,12 @@ class FrameAnalyzer:
         Mark a color as explored and record what happened when we clicked it.
         This builds the knowledge base for future targeting.
         """
+        print(f"🔍 MARKING COLOR {color} AS EXPLORED at {coordinate}")
+        print(f"   Before: {len(self.explored_color_objects)} colors explored: {sorted(list(self.explored_color_objects))}")
+        
         self.explored_color_objects.add(color)
+        
+        print(f"   After: {len(self.explored_color_objects)} colors explored: {sorted(list(self.explored_color_objects))}")
         
         # Record detailed exploration result
         exploration_record = {
@@ -1781,6 +1835,8 @@ class FrameAnalyzer:
         
         # Check if exploration phase is complete
         remaining_colors = self.current_game_colors - self.explored_color_objects - {0}  # Exclude background
+        print(f"🔍 EXPLORATION CHECK: current_colors={len(self.current_game_colors)}, explored={len(self.explored_color_objects)}, remaining={len(remaining_colors)}")
+        
         if not remaining_colors:
             self.exploration_phase = False
             self.exploration_complete = True
@@ -1793,6 +1849,8 @@ class FrameAnalyzer:
             print(f"   Total colors tested: {len(self.explored_color_objects)}")
             print(f"   Clickable colors found: {len(clickable_colors)} {clickable_colors}")
             print(f"   Now switching to intelligent targeting based on exploration results")
+        else:
+            print(f"🔍 EXPLORATION CONTINUES: {len(remaining_colors)} colors still need testing: {sorted(list(remaining_colors))}")
 
     def should_avoid_coordinate(self, x: int, y: int) -> bool:
         """Check if a coordinate should be avoided due to ineffectiveness."""

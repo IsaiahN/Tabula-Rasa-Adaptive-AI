@@ -565,7 +565,147 @@ class ContinuousLearningLoop:
             self.current_energy = 100.0
             print(f"⚡ Fresh session starting with full energy: {self.current_energy:.2f}")
         
+        # 🎯 SMART ACTION CAP SYSTEM - Prevents infinite loops and analyzes stagnation
+        self._action_cap_system = {
+            'enabled': True,
+            'base_cap': 100,  # Base actions before considering early termination
+            'multiplier_per_available_action': 15,  # Additional actions per available action
+            'min_cap': 50,    # Minimum actions even for simple games
+            'max_cap': 300,   # Maximum actions to prevent runaway games
+            'stagnation_threshold': 20,  # Actions without progress before early termination
+            'loop_detection_window': 10,  # Actions to look back for pattern detection
+            'early_termination_enabled': True,
+            'analysis_enabled': True
+        }
+        
+        # Progress tracking for cap system
+        self._progress_tracker = {
+            'actions_taken': 0,
+            'last_score': 0,
+            'actions_without_progress': 0,
+            'last_meaningful_change': 0,
+            'action_pattern_history': [],  # Last N actions for loop detection
+            'score_history': [],  # Last N scores for trend analysis
+            'termination_reason': None
+        }
+        
         logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
+        
+    def _calculate_dynamic_action_cap(self, available_actions: List[int]) -> int:
+        """Calculate smart action cap based on game complexity."""
+        config = self._action_cap_system
+        
+        # Base calculation: more actions = more complex game = higher cap
+        base_actions = len(available_actions) if available_actions else 5
+        calculated_cap = config['base_cap'] + (base_actions * config['multiplier_per_available_action'])
+        
+        # Apply bounds
+        capped_value = max(config['min_cap'], min(calculated_cap, config['max_cap']))
+        
+        print(f"🎯 SMART CAP: {base_actions} actions available → {capped_value} action limit")
+        return capped_value
+    
+    def _should_terminate_early(self, current_score: int, actions_taken: int) -> tuple[bool, str]:
+        """Analyze if game should terminate early due to lack of progress."""
+        tracker = self._progress_tracker
+        config = self._action_cap_system
+        
+        if not config['early_termination_enabled']:
+            return False, "Early termination disabled"
+        
+        # Update progress tracking
+        tracker['actions_taken'] = actions_taken
+        if current_score != tracker['last_score']:
+            tracker['last_meaningful_change'] = actions_taken
+            tracker['actions_without_progress'] = 0
+            tracker['score_history'].append(current_score)
+            # Keep only last 20 scores for trend analysis
+            if len(tracker['score_history']) > 20:
+                tracker['score_history'] = tracker['score_history'][-20:]
+        else:
+            tracker['actions_without_progress'] += 1
+        
+        tracker['last_score'] = current_score
+        
+        # Early termination conditions
+        stagnant_actions = tracker['actions_without_progress']
+        
+        # 1. Too many actions without any score progress
+        if stagnant_actions >= config['stagnation_threshold']:
+            return True, f"No progress for {stagnant_actions} actions (threshold: {config['stagnation_threshold']})"
+        
+        # 2. Detect action loops (same action repeated many times)
+        if len(tracker['action_pattern_history']) >= config['loop_detection_window']:
+            recent_actions = tracker['action_pattern_history'][-config['loop_detection_window']:]
+            if len(set(recent_actions)) <= 2 and stagnant_actions >= 10:
+                return True, f"Action loop detected: {recent_actions[-5:]} (no progress for {stagnant_actions})"
+        
+        # 3. Score trend analysis - if score is consistently declining
+        if len(tracker['score_history']) >= 10:
+            recent_scores = tracker['score_history'][-10:]
+            if all(recent_scores[i] <= recent_scores[i-1] for i in range(1, len(recent_scores))) and stagnant_actions >= 15:
+                return True, f"Consistently declining score trend with {stagnant_actions} stagnant actions"
+        
+        return False, "Continue playing"
+    
+    def _analyze_stagnation_cause(self, game_id: str, actions_history: List) -> Dict[str, Any]:
+        """Analyze why the agent got stuck and provide insights."""
+        analysis = {
+            'game_id': game_id,
+            'total_actions': len(actions_history),
+            'stagnation_patterns': [],
+            'suggested_fixes': [],
+            'memory_analysis': {},
+            'action_effectiveness': {}
+        }
+        
+        if not actions_history:
+            return analysis
+        
+        # 1. Action repetition analysis
+        action_counts = {}
+        for action in actions_history:
+            action_type = action.get('action', 'unknown')
+            action_counts[action_type] = action_counts.get(action_type, 0) + 1
+        
+        total_actions = len(actions_history)
+        for action, count in action_counts.items():
+            percentage = (count / total_actions) * 100
+            if percentage > 50:  # More than 50% of actions were the same
+                analysis['stagnation_patterns'].append(f"Action {action} used {percentage:.1f}% of the time ({count}/{total_actions})")
+                analysis['suggested_fixes'].append(f"Diversify from over-reliance on action {action}")
+        
+        # 2. Effectiveness analysis
+        effective_actions = [a for a in actions_history if a.get('score_change', 0) > 0]
+        effectiveness_rate = len(effective_actions) / total_actions * 100 if total_actions > 0 else 0
+        analysis['action_effectiveness'] = {
+            'total_actions': total_actions,
+            'effective_actions': len(effective_actions),
+            'effectiveness_rate': effectiveness_rate
+        }
+        
+        if effectiveness_rate < 5:  # Less than 5% effectiveness
+            analysis['suggested_fixes'].append("Extremely low effectiveness - need better action selection strategy")
+        
+        # 3. Memory analysis - check if we're learning
+        if hasattr(self, 'available_actions_memory'):
+            memory = self.available_actions_memory
+            analysis['memory_analysis'] = {
+                'actions_in_memory': len(memory.get('action_effectiveness', {})),
+                'sequences_learned': len(memory.get('action_sequences', [])),
+                'winning_sequences': len(memory.get('winning_action_sequences', []))
+            }
+            
+            if analysis['memory_analysis']['actions_in_memory'] == 0:
+                analysis['suggested_fixes'].append("No action effectiveness data - memory system not engaged")
+        
+        # 4. Specific recommendations based on patterns
+        if len(action_counts) == 1:
+            analysis['suggested_fixes'].append("Single action used exclusively - enable action diversity")
+        elif len([a for a, c in action_counts.items() if c > 10]) > 3:
+            analysis['suggested_fixes'].append("Multiple high-use actions - consider action prioritization")
+        
+        return analysis
         
     def get_rate_limit_stats(self) -> Dict[str, Any]:
         """Get comprehensive rate limiting statistics."""
@@ -1464,42 +1604,53 @@ class ContinuousLearningLoop:
                                         )
                                     
                                     # EXPLORATION PHASE TRACKING - User insight implementation
-                                    if (hasattr(self.frame_analyzer, 'exploration_phase') and 
-                                        self.frame_analyzer.exploration_phase and
-                                        hasattr(self.frame_analyzer, 'mark_color_explored')):
-                                        
+                                    exploration_active = (hasattr(self.frame_analyzer, 'exploration_phase') and 
+                                                         getattr(self.frame_analyzer, 'exploration_phase', False))
+                                    
+                                    print(f"🔍 EXPLORATION CHECK: active={exploration_active}, has_mark_method={hasattr(self.frame_analyzer, 'mark_color_explored')}")
+                                    
+                                    if exploration_active and hasattr(self.frame_analyzer, 'mark_color_explored'):
                                         # Get the color at clicked coordinate from the BEFORE state frame
                                         # (after state might show changes from the click)
                                         current_frame = before_state.get('frame', [])
                                         if current_frame and 0 <= y < len(current_frame) and 0 <= x < len(current_frame[0]):
-                                            # Handle nested list format
-                                            if isinstance(current_frame[y], list):
-                                                clicked_color = current_frame[y][x]
-                                            else:
-                                                clicked_color = current_frame[y][x]
-                                            
-                                            # Calculate frame changes for exploration record
-                                            frame_changes = {}
-                                            if hasattr(self.frame_analyzer, '_analyze_frame_changes'):
-                                                try:
-                                                    frame_changes = self.frame_analyzer._analyze_frame_changes(
-                                                        before_state.get('frame'), after_state.get('frame')
-                                                    )
-                                                except Exception as e:
-                                                    frame_changes = {'changes_detected': False, 'error': str(e)}
-                                            
-                                            # Mark this color as explored
-                                            self.frame_analyzer.mark_color_explored(
-                                                color=clicked_color,
-                                                coordinate=(x, y),
-                                                success=api_success,
-                                                score_change=score_change,
-                                                frame_changes=frame_changes
-                                            )
-                                            
-                                            print(f"🔍 EXPLORATION: Color {clicked_color} tested at ({x},{y}) - {'✅ Effective' if api_success or score_change != 0 else '❌ No effect'}")
+                                            try:
+                                                # Handle nested list format
+                                                if isinstance(current_frame[y], list):
+                                                    clicked_color = current_frame[y][x]
+                                                else:
+                                                    clicked_color = current_frame[y][x]
+                                                
+                                                # Calculate frame changes for exploration record
+                                                frame_changes = {}
+                                                if hasattr(self.frame_analyzer, '_analyze_frame_changes'):
+                                                    try:
+                                                        frame_changes = self.frame_analyzer._analyze_frame_changes(
+                                                            before_state.get('frame'), after_state.get('frame')
+                                                        )
+                                                    except Exception as e:
+                                                        frame_changes = {'changes_detected': False, 'error': str(e)}
+                                                
+                                                # Mark this color as explored
+                                                print(f"🔍 CALLING mark_color_explored for color {clicked_color} at ({x},{y})")
+                                                self.frame_analyzer.mark_color_explored(
+                                                    color=clicked_color,
+                                                    coordinate=(x, y),
+                                                    success=api_success,
+                                                    score_change=score_change,
+                                                    frame_changes=frame_changes
+                                                )
+                                                
+                                                print(f"🔍 EXPLORATION: Color {clicked_color} tested at ({x},{y}) - {'✅ Effective' if api_success or score_change != 0 else '❌ No effect'}")
+                                            except Exception as e:
+                                                print(f"⚠️ EXPLORATION ERROR: Failed to mark color explored: {e}")
                                         else:
-                                            print(f"⚠️ EXPLORATION: Invalid coordinates ({x},{y}) for frame analysis")
+                                            print(f"⚠️ EXPLORATION: Invalid coordinates ({x},{y}) for frame analysis, frame_len={len(current_frame) if current_frame else 0}")
+                                    else:
+                                        if not exploration_active:
+                                            print(f"🔍 EXPLORATION: Phase not active (exploration_phase={getattr(self.frame_analyzer, 'exploration_phase', 'MISSING')})")
+                                        else:
+                                            print(f"🔍 EXPLORATION: Missing mark_color_explored method")
                                     
                                     print(f"📊 ACTION6 interaction logged: {interaction_id} at ({x},{y}) with score change {score_change:+}")
                                     
@@ -2039,6 +2190,40 @@ class ContinuousLearningLoop:
         if simple_actions:
             print(f"✅ SIMPLE ACTIONS AVAILABLE: {simple_actions} - Prioritizing over ACTION6")
             
+            # EMERGENCY OVERRIDE: Force ACTION 6 if stuck in loop with no progress
+            # Check if we've been using the same action repeatedly without progress
+            actions_without_progress = getattr(self, '_actions_without_progress', 0)
+            if hasattr(self, '_last_selected_actions'):
+                recent_actions = self._last_selected_actions[-20:]  # Last 20 actions
+                # More aggressive emergency override: trigger after just 10 actions without progress
+                # when stuck in simple action loops
+                if (len(recent_actions) >= 8 and 
+                    len(set(recent_actions)) <= 2 and  # Only 1-2 unique actions used
+                    actions_without_progress >= 10):  # No progress for 10+ actions (was 50)
+                    
+                    print(f"🚨 EMERGENCY OVERRIDE: Stuck in action loop {set(recent_actions)} for {actions_without_progress} actions")
+                    print(f"   Forcing ACTION6 to break the loop and engage enhanced intelligence")
+                    
+                    # Clear the loop tracking
+                    if hasattr(self, '_last_selected_actions'):
+                        self._last_selected_actions.clear()
+                    
+                    # Reset actions without progress counter
+                    self._actions_without_progress = 0
+                    
+                    # Force ACTION 6 if available - this should override all scoring logic
+                    if 6 in available_actions:
+                        print(f"⚡ EMERGENCY: Forcing ACTION6 (ignoring all scores)")
+                        return 6
+                    
+            # Also check for simple emergency override based on actions alone
+            if actions_without_progress >= 15:  # Even more aggressive fallback
+                print(f"🚨 FALLBACK EMERGENCY: {actions_without_progress} actions without progress")
+                if 6 in available_actions:
+                    print(f"⚡ FALLBACK: Forcing ACTION6 (ignoring all scores)")
+                    self._actions_without_progress = 0
+                    return 6
+            
             # Update action relevance scores
             self._update_action_relevance_scores()
             
@@ -2062,6 +2247,14 @@ class ContinuousLearningLoop:
             # If we found a decent simple action, use it
             if best_simple_action and best_simple_score > 0.2:  # Reasonable threshold
                 print(f"🎮 SELECTING SIMPLE ACTION {best_simple_action} (score: {best_simple_score:.3f})")
+                
+                # Track selected actions for loop detection
+                if not hasattr(self, '_last_selected_actions'):
+                    self._last_selected_actions = []
+                self._last_selected_actions.append(best_simple_action)
+                if len(self._last_selected_actions) > 50:  # Keep last 50
+                    self._last_selected_actions = self._last_selected_actions[-50:]
+                
                 return best_simple_action
             else:
                 print(f"⚠️ Simple actions available but low scores - considering ACTION6...")
@@ -2134,8 +2327,9 @@ class ContinuousLearningLoop:
                 modifier = 1.0
                 success_rate = 0.5
             
-            # Semantic action intelligence
-            semantic_score = self._calculate_semantic_action_score(action, game_id)
+            # FIXED: Semantic action intelligence - pass game_id as dictionary
+            game_context = {'game_id': game_id} if game_id else {}
+            semantic_score = self._calculate_semantic_action_score(action, game_context)
             
             # Frame analysis bonus for non-ACTION6 actions
             frame_bonus = 0.0
@@ -7618,7 +7812,28 @@ class ContinuousLearningLoop:
             action_history = []
             last_score_check = 0  # Track when we last displayed score progress
             
-            while (actions_taken < max_actions_per_game and 
+            # 🎯 SMART ACTION CAP - Calculate dynamic limit based on game complexity
+            if hasattr(self, '_action_cap_system') and self._action_cap_system['enabled']:
+                dynamic_action_cap = self._calculate_dynamic_action_cap(available_actions)
+                # Use the lower of the dynamic cap or the provided max
+                actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
+                print(f"🧠 SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, original: {max_actions_per_game})")
+            else:
+                actual_max_actions = max_actions_per_game
+            
+            # Reset progress tracker for this game
+            if hasattr(self, '_progress_tracker'):
+                self._progress_tracker.update({
+                    'actions_taken': 0,
+                    'last_score': current_score,
+                    'actions_without_progress': 0,
+                    'last_meaningful_change': 0,
+                    'action_pattern_history': [],
+                    'score_history': [current_score],
+                    'termination_reason': None
+                })
+            
+            while (actions_taken < actual_max_actions and 
                    current_state not in ['WIN', 'GAME_OVER'] and
                    current_score < 100):  # Reasonable win condition
                 
@@ -7627,12 +7842,14 @@ class ContinuousLearningLoop:
                 actions_taken += 1
                 
                 print("=" * 80)
-                print(f"🎯 ACTION {actions_taken}/{max_actions_per_game} | Game: {game_id} | Score: {current_score}")
+                print(f"🎯 ACTION {actions_taken}/{actual_max_actions} | Game: {game_id} | Score: {current_score}")
                 print("=" * 80)
                 
                 # Check if we've reached the action limit
-                if actions_taken >= max_actions_per_game:
-                    print(f"🛑 REACHED ACTION LIMIT ({max_actions_per_game}) - Stopping session")
+                if actions_taken >= actual_max_actions:
+                    print(f"🛑 REACHED SMART ACTION LIMIT ({actual_max_actions}) - Stopping session")
+                    if hasattr(self, '_progress_tracker'):
+                        self._progress_tracker['termination_reason'] = f"Reached smart action cap ({actual_max_actions})"
                     break
                 
                 if not available_actions:
@@ -7640,6 +7857,24 @@ class ContinuousLearningLoop:
                     break
                     
                 print(f"📋 Available: {available_actions}")
+                
+                # 🎯 SMART EARLY TERMINATION - Check if we should stop due to lack of progress
+                if hasattr(self, '_should_terminate_early'):
+                    should_terminate, termination_reason = self._should_terminate_early(current_score, actions_taken)
+                    if should_terminate:
+                        print(f"🛑 EARLY TERMINATION: {termination_reason}")
+                        if hasattr(self, '_progress_tracker'):
+                            self._progress_tracker['termination_reason'] = termination_reason
+                        
+                        # Analyze why we got stuck
+                        if hasattr(self, '_analyze_stagnation_cause'):
+                            stagnation_analysis = self._analyze_stagnation_cause(game_id, action_history)
+                            print(f"📊 STAGNATION ANALYSIS:")
+                            print(f"   Patterns: {stagnation_analysis.get('stagnation_patterns', [])}")
+                            print(f"   Effectiveness: {stagnation_analysis.get('action_effectiveness', {})}")
+                            print(f"   Suggested Fixes: {stagnation_analysis.get('suggested_fixes', [])}")
+                        
+                        break
                 
                 # Use our intelligent action selection with current available actions
                 action_selection_response = {
@@ -7649,6 +7884,17 @@ class ContinuousLearningLoop:
                     'frame': session_data.get('frame', [])  # Get frame from session data
                 }
                 selected_action = self._select_next_action(action_selection_response, game_id)
+                
+                if selected_action is None:
+                    print("❌ Action selection failed - stopping game loop")
+                    break
+                
+                # Update action pattern history for loop detection
+                if hasattr(self, '_progress_tracker'):
+                    self._progress_tracker['action_pattern_history'].append(selected_action)
+                    # Keep only last 15 actions for pattern detection
+                    if len(self._progress_tracker['action_pattern_history']) > 15:
+                        self._progress_tracker['action_pattern_history'] = self._progress_tracker['action_pattern_history'][-15:]
                 
                 if selected_action is None:
                     print("❌ Action selection failed - stopping game loop")
@@ -7791,6 +8037,15 @@ class ContinuousLearningLoop:
                     })
                 
                 actions_taken += 1
+                
+                # Track actions without progress for emergency override
+                if current_score == investigation.get('score', 0):
+                    if not hasattr(self, '_actions_without_progress'):
+                        self._actions_without_progress = 0
+                    self._actions_without_progress += 1
+                else:
+                    # Progress made - reset counter
+                    self._actions_without_progress = 0
                 
                 # Display score progress every 10 actions
                 if actions_taken % 10 == 0 or actions_taken - last_score_check >= 10:
