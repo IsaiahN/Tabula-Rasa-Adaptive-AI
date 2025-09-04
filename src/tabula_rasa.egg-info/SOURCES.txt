@@ -6,7 +6,6 @@ src/arc_integration/__init__.py
 src/arc_integration/arc_agent_adapter.py
 src/arc_integration/arc_meta_learning.py
 src/arc_integration/continuous_learning_loop.py
-src/arc_integration/continuous_learning_loop_backup.py
 src/arc_integration/coordinate_aware_integration.py
 src/core/__init__.py
 src/core/action_selection.py

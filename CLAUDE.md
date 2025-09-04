@@ -77,31 +77,31 @@ Specifically, avoid long prompts when invoking the logging or context-refinement
 
 ## Main Entry Points & File Management
 
-### 🚨 CRITICAL: train_arc_agent.py is THE Main Training File
+### 🚨 CRITICAL: unified_arc_trainer.py is THE Main Training File
 
-**ALWAYS use `train_arc_agent.py` for training operations - NEVER create new run files!**
+**ALWAYS use `unified_arc_trainer.py` for training operations - NEVER create new run files!**
 
 **Rules:**
-- ✅ **MODIFY**: `train_arc_agent.py` for all training changes, improvements, fixes
-- ✅ **RUN**: `python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode demo`  
+- ✅ **MODIFY**: `unified_arc_trainer.py` for all training changes, improvements, fixes
+- ✅ **RUN**: `python unified_arc_trainer.py --run-mode test --test-type arc3 --arc3-mode demo`  
 - ❌ **NEVER CREATE**: `arc3.py`, `run_training.py`, `new_trainer.py`, or any duplicate training files
-- ❌ **NEVER USE**: Deprecated `arc3.py` (marked as deprecated, redirects to train_arc_agent.py)
+- ❌ **NEVER USE**: Deprecated `arc3.py` (marked as deprecated, redirects to unified_arc_trainer.py)
 
 **Why this matters:**
-- `train_arc_agent.py` contains ALL the latest fixes (energy system, coordinate stagnation, ACTION6 improvements)
+- `unified_arc_trainer.py` contains ALL the latest fixes (energy system, coordinate stagnation, ACTION6 improvements)
 - Creating new files fragments the codebase and loses critical fixes
-- The continuous learning loop in `src/arc_integration/continuous_learning_loop.py` is integrated properly only through `train_arc_agent.py`
+- The continuous learning loop in `src/arc_integration/continuous_learning_loop.py` is integrated properly only through `unified_arc_trainer.py`
 
 **Training Command Examples:**
 ```bash
 # Demo training (3 tasks, ~30 minutes)
-python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode demo
+python unified_arc_trainer.py --run-mode test --test-type arc3 --arc3-mode demo
 
 # Full training (all tasks)  
-python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode full
+python unified_arc_trainer.py --run-mode test --test-type arc3 --arc3-mode full
 
 # Status check
-python train_arc_agent.py --run-mode arc3-status
+python unified_arc_trainer.py --run-mode arc3-status
 ```
 
 ## Code Philosophy
