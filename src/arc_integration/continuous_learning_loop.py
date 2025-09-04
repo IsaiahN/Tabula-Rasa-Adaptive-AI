@@ -258,6 +258,9 @@ class ContinuousLearningLoop:
         # Initialize frame analyzer for visual intelligence
         self.frame_analyzer = FrameAnalyzer()
         
+        # Initialize energy system for proper sleep cycle management
+        self.energy_system = EnergySystem()
+        
         # Training state
         self.current_session: Optional[TrainingSession] = None
         self.session_history: List[Dict[str, Any]] = []
@@ -5142,7 +5145,7 @@ class ContinuousLearningLoop:
                 return True
         
         # Energy-based trigger with learning opportunity - more frequent
-        current_energy = getattr(self.agent.energy_system, 'current_energy', 100.0)
+        current_energy = getattr(self.energy_system, 'current_energy', 100.0)
         if current_energy < 70.0 and len(recent_actions) >= 15:  # Increased from 60.0 to 70.0 and reduced from 20 to 15 actions
             # Check if we have patterns worth consolidating
             effectiveness_values = [action.get('effectiveness', 0) for action in recent_actions[-15:]]  # Reduced from 20 to 15
@@ -5170,7 +5173,8 @@ class ContinuousLearningLoop:
             
             # Quick memory consolidation (shorter than post-episode sleep)
             try:
-                if hasattr(self.agent, 'sleep_system'):
+                # Sleep system not available in ContinuousLearningLoop - skip consolidation
+                if False:  # Disabled: hasattr(self.agent, 'sleep_system')
                     # Trigger short consolidation cycle
                     consolidation_duration = min(10, len(effective_actions) * 0.5)  # 0.5s per action
                     
@@ -5182,11 +5186,10 @@ class ContinuousLearningLoop:
                     
                     # Quick memory strengthening without full sleep cycle
                     for i, action in enumerate(effective_actions):
-                        if hasattr(self.agent, 'memory') and hasattr(self.agent.memory, 'update_memory_salience'):
+                        # Memory system not available in ContinuousLearningLoop - skip salience update  
+                        if False:  # Disabled: memory system not available
                             # Use action index as memory index for salience update
-                            memory_idx = torch.tensor([i % self.agent.memory.memory_size])
-                            salience_val = torch.tensor([1.5])
-                            self.agent.memory.update_memory_salience(memory_idx, salience_val)
+                            pass  # Memory operations disabled
                     
                     logger.info(f"✨ Mid-game consolidation completed in {consolidation_duration:.1f}s")
                 
@@ -5194,10 +5197,10 @@ class ContinuousLearningLoop:
                 logger.warning(f"Mid-game sleep error: {e}")
         
         # Partial energy restoration (not full like post-episode)
-        if hasattr(self.agent, 'energy_system'):
-            current_energy = getattr(self.agent.energy_system, 'current_energy', 100.0)
+        if hasattr(self, 'energy_system'):
+            current_energy = getattr(self.energy_system, 'current_energy', 100.0)
             restored_energy = min(100.0, current_energy + 20.0)  # Small restoration
-            self.agent.energy_system.current_energy = restored_energy
+            self.energy_system.current_energy = restored_energy
             logger.info(f"⚡ Energy restored: {current_energy:.2f} → {restored_energy:.2f}")
 
     async def _simulate_mid_game_consolidation(self, effective_actions: List[Dict], total_actions: int) -> None:
@@ -6749,7 +6752,8 @@ class ContinuousLearningLoop:
         These memories get super-high salience and are protected from deletion.
         """
         try:
-            if not hasattr(self.agent, 'memory'):
+            # Memory system not available in ContinuousLearningLoop - skip memory preservation
+            if True:  # Changed: not hasattr(self.agent, 'memory')
                 return
                 
             # Determine preservation strength based on achievement type
@@ -6789,11 +6793,10 @@ class ContinuousLearningLoop:
             # Apply memory preservation with super-high salience
             winning_memory_count = 0
             for i, action in enumerate(effective_actions):
-                if hasattr(self.agent.memory, 'update_memory_salience'):
+                # Memory system not available in ContinuousLearningLoop - skip salience update
+                if False:  # Disabled: memory system not available
                     # Create high-salience preservation
-                    memory_idx = torch.tensor([i % self.agent.memory.memory_size])
-                    salience_val = torch.tensor([preservation_strength])
-                    self.agent.memory.update_memory_salience(memory_idx, salience_val)
+                    pass  # Memory operations disabled
                     winning_memory_count += 1
                     
                 # Mark in training state for long-term protection
@@ -6830,7 +6833,8 @@ class ContinuousLearningLoop:
         Higher levels get stronger protection and demote previous level memories.
         """
         try:
-            if not hasattr(self.agent, 'memory'):
+            # Memory system not available in ContinuousLearningLoop - skip memory hierarchy
+            if True:  # Changed: not hasattr(self.agent, 'memory')
                 return
                 
             # Update game level records
@@ -6878,13 +6882,10 @@ class ContinuousLearningLoop:
             for i, action in enumerate(effective_actions):
                 memory_id = f"{game_id}_L{new_level}_{i}"
                 
-                if hasattr(self.agent.memory, 'update_memory_salience'):
+                # Memory system not available in ContinuousLearningLoop - skip salience update
+                if False:  # Disabled: memory system not available
                     # Apply tier-based salience boost
-                    memory_idx = torch.tensor([i % self.agent.memory.memory_size])
-                    salience_val = torch.tensor([preservation_strength])
-                    self.agent.memory.update_memory_salience(memory_idx, salience_val)
-                    breakthrough_memory_count += 1
-                    breakthrough_memory_ids.append(memory_id)
+                    pass  # Memory operations disabled
                     
                 # Store in hierarchical memory system
                 protection_entry = {
@@ -7266,7 +7267,7 @@ class ContinuousLearningLoop:
                     was_effective = (score_improvement > 0 or new_state in ['WIN'])
                     
                     # CRITICAL: Consume energy per action to enable sleep cycles
-                    if hasattr(self.agent, 'energy_system'):
+                    if hasattr(self, 'energy_system'):
                         # Base energy cost per action (reduced from episode-level)
                         action_energy_cost = 0.5 if was_effective else 1.0  # Effective actions cost less
                         
@@ -7275,13 +7276,13 @@ class ContinuousLearningLoop:
                             action_energy_cost *= 1.2  # 20% penalty for long ineffective sequences
                         
                         # Consume the energy
-                        remaining_energy = self.agent.energy_system.consume_energy(
+                        remaining_energy = self.energy_system.consume_energy(
                             action_cost=action_energy_cost,
                             computation_cost=0.1
                         )
                         
                         # Check if sleep cycle should trigger
-                        if self.agent.energy_system.should_sleep():
+                        if self.energy_system.should_sleep():
                             print(f"😴 ACTION-LEVEL SLEEP TRIGGER: Energy {remaining_energy:.2f} <= {0.4 * 100.0:.1f}")
                             print(f"   Triggering sleep after {actions_taken} actions with {len(effective_actions)} effective actions")
                             
@@ -7293,7 +7294,7 @@ class ContinuousLearningLoop:
                             
                             # Restore some energy after sleep
                             restored_energy = min(100.0, remaining_energy + 25.0)
-                            self.agent.energy_system.current_energy = restored_energy
+                            self.energy_system.current_energy = restored_energy
                             print(f"⚡ Energy restored: {remaining_energy:.2f} → {restored_energy:.2f}")
                     
                     if was_effective:
@@ -7437,11 +7438,9 @@ class ContinuousLearningLoop:
             }
             
             # Execute enhanced sleep cycle using our updated sleep system
-            if hasattr(self.agent, 'sleep_system'):
-                sleep_result = await self.agent.sleep_system.execute_sleep_cycle(
-                    arc_data=arc_data,
-                    goal_data=goal_data
-                )
+            # Sleep system not available in ContinuousLearningLoop - skip sleep cycle
+            if False:  # Disabled: sleep system not available
+                pass  # Sleep operations disabled
                 
                 # Update sleep cycle counter
                 self.global_counters['total_sleep_cycles'] = self.global_counters.get('total_sleep_cycles', 0) + 1

@@ -75,6 +75,35 @@ Specifically, avoid long prompts when invoking the logging or context-refinement
 - **Be specific** - Give agents clear context and goals
 - **One agent, one job** - Don't combine responsibilities
 
+## Main Entry Points & File Management
+
+### 🚨 CRITICAL: train_arc_agent.py is THE Main Training File
+
+**ALWAYS use `train_arc_agent.py` for training operations - NEVER create new run files!**
+
+**Rules:**
+- ✅ **MODIFY**: `train_arc_agent.py` for all training changes, improvements, fixes
+- ✅ **RUN**: `python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode demo`  
+- ❌ **NEVER CREATE**: `arc3.py`, `run_training.py`, `new_trainer.py`, or any duplicate training files
+- ❌ **NEVER USE**: Deprecated `arc3.py` (marked as deprecated, redirects to train_arc_agent.py)
+
+**Why this matters:**
+- `train_arc_agent.py` contains ALL the latest fixes (energy system, coordinate stagnation, ACTION6 improvements)
+- Creating new files fragments the codebase and loses critical fixes
+- The continuous learning loop in `src/arc_integration/continuous_learning_loop.py` is integrated properly only through `train_arc_agent.py`
+
+**Training Command Examples:**
+```bash
+# Demo training (3 tasks, ~30 minutes)
+python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode demo
+
+# Full training (all tasks)  
+python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode full
+
+# Status check
+python train_arc_agent.py --run-mode arc3-status
+```
+
 ## Code Philosophy
 
 ### Locality of Behavior
