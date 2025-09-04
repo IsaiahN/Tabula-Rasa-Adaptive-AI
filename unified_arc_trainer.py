@@ -58,7 +58,7 @@ class TrainingConfig:
     
     # Learning parameters
     salience_mode: SalienceMode = SalienceMode.DECAY_COMPRESSION  # Changed to decay as default
-    max_actions_per_session: int = 100000  # Increased for full exploration
+    max_actions_per_game: int = 500  # Maximum actions per individual game attempt (reasonable limit)
     max_learning_cycles: int = 50  # Increased for deeper learning
     target_score: float = 85.0  # Higher target for full system
     
@@ -204,7 +204,7 @@ class UnifiedARCTrainer:
     
     async def initialize(self):
         """Initialize the unified system."""
-        self.logger.info("🚀 Initializing Unified ARC Trainer - FULL FEATURE MODE")
+        self.logger.info("🚀 Initializing Unified ARC Trainer - MAXIMUM INTELLIGENCE MODE")
         self.logger.info(f"   Mode: {self.config.mode}")
         self.logger.info(f"   Salience: {self.config.salience_mode.value}")
         self.logger.info(f"   🔥 ALL FEATURES ENABLED - Complete System Integration")
@@ -217,10 +217,24 @@ class UnifiedARCTrainer:
                 arc_agents_path=self.config.arc_agents_path
             )
             
+            # Initialize enhanced coordinate intelligence for better clustering
+            try:
+                from enhanced_coordinate_intelligence import EnhancedCoordinateIntelligence
+                self.continuous_loop.enhanced_coordinate_intelligence = EnhancedCoordinateIntelligence(self.continuous_loop)
+                self.continuous_loop.use_enhanced_coordinate_selection = True
+                self.logger.info("✅ Enhanced Coordinate Intelligence initialized")
+            except ImportError as e:
+                self.logger.warning(f"⚠️ Enhanced Coordinate Intelligence not available: {e}")
+                self.continuous_loop.use_enhanced_coordinate_selection = False
+            
+            # Initialize action counter for better tracking
+            self.continuous_loop.action_counter = 0
+            self.continuous_loop.max_actions_limit = self.config.max_actions_per_game
+            
             # Initialize full feature system
             await self._initialize_full_feature_system()
             
-            self.logger.info("✅ Full Feature Continuous Learning Loop initialized")
+            self.logger.info("✅ Maximum Intelligence Continuous Learning Loop initialized")
             return True
             
         except Exception as e:
@@ -607,7 +621,7 @@ class UnifiedARCTrainer:
                 'efficiency': 0.7,
                 'learning_velocity': 0.6
             },
-            max_actions_per_session=self.config.max_actions_per_session,
+            max_actions_per_session=self.config.max_actions_per_game,
             enable_contrarian_strategy=self.config.enable_contrarian_strategy,
             salience_mode=self.config.salience_mode,
             enable_salience_comparison=True,  # Compare modes within session
@@ -650,7 +664,7 @@ class UnifiedARCTrainer:
             session_name=f"research_lab_{int(time.time())}",
             games=self.config.games,
             salience_mode=self.config.salience_mode,
-            max_actions_per_session=self.config.max_actions_per_session
+            max_actions_per_session=self.config.max_actions_per_game
         )
         
         results['main_session'] = await self.continuous_loop.run_continuous_learning(session_id)
@@ -674,7 +688,7 @@ class UnifiedARCTrainer:
             learning_rate_schedule={'default': 0.001},
             save_interval=100,
             target_performance={'default': 50.0},
-            max_actions_per_session=min(1000, self.config.max_actions_per_session),
+            max_actions_per_session=min(1000, self.config.max_actions_per_game),
             salience_mode=self.config.salience_mode,
             swarm_enabled=False  # Disable SWARM for testing
         )
@@ -700,7 +714,7 @@ class UnifiedARCTrainer:
             session_name=f"showcase_demo_{int(time.time())}",
             games=self.config.games[:2],  # Limit to first 2 games for demo
             salience_mode=self.config.salience_mode,
-            max_actions_per_session=5000,  # Moderate length for demo
+            max_actions_per_session=self.config.max_actions_per_game,  # Use user-specified limit for demo
         )
         
         results = await self.continuous_loop.run_continuous_learning(session_id)
@@ -722,7 +736,7 @@ class UnifiedARCTrainer:
                 session_name=f"comparison_{salience_mode.value}_{int(time.time())}",
                 games=self.config.games,
                 salience_mode=salience_mode,
-                max_actions_per_session=self.config.max_actions_per_session // 2,  # Split time
+                max_actions_per_session=self.config.max_actions_per_game // 2,  # Split time
             )
             
             results[f"salience_{salience_mode.value}"] = await self.continuous_loop.run_continuous_learning(session_id)
@@ -749,7 +763,7 @@ class UnifiedARCTrainer:
             learning_rate_schedule={'default': 0.001},
             save_interval=50,
             target_performance={'default': 30.0},
-            max_actions_per_session=500,  # Very limited actions
+            max_actions_per_session=min(self.config.max_actions_per_game, 500),  # Limited for debug
             salience_mode=self.config.salience_mode,
             swarm_enabled=False
         )
@@ -918,8 +932,8 @@ Examples:
                        choices=['lossless', 'decay_compression'],
                        default='decay_compression',  # Changed default to decay
                        help='Salience mode (default: decay_compression)')
-    parser.add_argument('--max-actions', type=int, default=500000,
-                       help='Max actions per session (default: 500K for full system)')
+    parser.add_argument('--max-actions', type=int, default=500,
+                       help='Max actions per game attempt (default: 500 actions per game)')
     parser.add_argument('--max-cycles', type=int, default=50,
                        help='Max learning cycles (default: 50 for full system)')
     parser.add_argument('--target-score', type=float, default=85.0,
@@ -1099,7 +1113,7 @@ async def main():
         api_key=args.api_key or "",
         arc_agents_path=args.arc_agents_path or "",
         salience_mode=salience_mode_map[args.salience],
-        max_actions_per_session=args.max_actions,
+        max_actions_per_game=args.max_actions,
         max_learning_cycles=args.max_cycles,
         target_score=args.target_score,
         
@@ -1135,7 +1149,7 @@ async def main():
     print(f"Mode: {config.mode.upper()}")
     print(f"Salience: {config.salience_mode.value}")
     print(f"Memory: {config.memory_size} slots × {config.memory_word_size} words")
-    print(f"Max Actions: {config.max_actions_per_session:,}")
+    print(f"Max Actions: {config.max_actions_per_game:,}")
     print(f"Learning Cycles: {config.max_learning_cycles}")
     print(f"Target Score: {config.target_score}")
     

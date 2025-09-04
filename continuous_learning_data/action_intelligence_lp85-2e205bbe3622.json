@@ -1,0 +1,43 @@
+{
+  "game_id": "lp85-2e205bbe3622",
+  "initial_actions": [
+    6
+  ],
+  "effective_actions": {
+    "6": {
+      "success_rate": 1.0,
+      "attempts": 4,
+      "successes": 4
+    }
+  },
+  "winning_sequences": [],
+  "coordinate_patterns": {
+    "6": {
+      "37,53": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "40,50": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "54,50": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,42": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      }
+    }
+  },
+  "action_transitions": {
+    "((6,), 6, (6,))": 4
+  },
+  "total_sessions_learned": 4,
+  "last_updated": 1757001201.5260625
+}

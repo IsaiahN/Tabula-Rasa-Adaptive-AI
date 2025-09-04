@@ -198,7 +198,7 @@ class TrainingSession:
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
-    max_actions_per_session: int = 500000  # Increased default action limit for deeper exploration
+    max_actions_per_session: int = 500  # Default action limit per game session
     enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.LOSSLESS
     enable_salience_comparison: bool = False
@@ -2112,7 +2112,13 @@ class ContinuousLearningLoop:
             best_score = 0
             final_state = 'NOT_FINISHED'
             episode_start_time = time.time()
-            max_actions_per_session = 500000  # Significantly increased from 100K to allow deeper exploration
+            
+            # Use the max_actions_per_session from current session if available, otherwise use default
+            max_actions_per_session = getattr(self.current_session, 'max_actions_per_session', 500)
+            
+            # Initialize variables to avoid undefined errors
+            stdout_text = ""
+            stderr_text = ""
             
             print(f"🎮 Starting complete mastery session {session_count} for {game_id}")  # Updated naming
             
@@ -4901,7 +4907,7 @@ class ContinuousLearningLoop:
         self,
         games: List[str],
         max_mastery_sessions_per_game: int = 50,  # Updated parameter name
-        max_actions_per_session: int = 500000,  # Increased default parameter
+        max_actions_per_session: int = 500,  # Default action limit per game session
         enable_contrarian_mode: bool = False,  # New parameter
         target_win_rate: float = 0.3,
         target_avg_score: float = 50.0,
@@ -7196,12 +7202,12 @@ class ContinuousLearningLoop:
     async def start_training_with_direct_control(
         self, 
         game_id: str,
-        max_actions: int = 500,
+        max_actions_per_game: int = 500,
         session_count: int = 0
     ) -> Dict[str, Any]:
         """Run training session with direct API action control instead of external main.py."""
         print(f"\n🎯 STARTING DIRECT CONTROL TRAINING for {game_id}")
-        print(f"   Max Actions: {max_actions}, Session: {session_count}")
+        print(f"   Max Actions: {max_actions_per_game}, Session: {session_count}")
         
         try:
             # First investigate API to understand available actions
@@ -7232,16 +7238,28 @@ class ContinuousLearningLoop:
             action_history = []
             last_score_check = 0  # Track when we last displayed score progress
             
-            while (actions_taken < max_actions and 
+            while (actions_taken < max_actions_per_game and 
                    current_state not in ['WIN', 'GAME_OVER'] and
                    current_score < 100):  # Reasonable win condition
                 
                 # CRITICAL: Always check current available actions from the latest response
+                # Increment action counter (use local session counter, not global)
+                actions_taken += 1
+                
+                print("=" * 80)
+                print(f"🎯 ACTION {actions_taken}/{max_actions_per_game} | Game: {game_id} | Score: {current_score}")
+                print("=" * 80)
+                
+                # Check if we've reached the action limit
+                if actions_taken >= max_actions_per_game:
+                    print(f"🛑 REACHED ACTION LIMIT ({max_actions_per_game}) - Stopping session")
+                    break
+                
                 if not available_actions:
-                    print("⚠️ No available actions - stopping game loop")
+                    print("⚠️  No available actions - stopping game loop")
                     break
                     
-                print(f"📋 Current Available Actions: {available_actions}")
+                print(f"📋 Available: {available_actions}")
                 
                 # Use our intelligent action selection with current available actions
                 action_selection_response = {
@@ -7253,7 +7271,7 @@ class ContinuousLearningLoop:
                 selected_action = self._select_next_action(action_selection_response, game_id)
                 
                 if selected_action is None:
-                    print("⚠️ Action selection failed - stopping game loop")
+                    print("❌ Action selection failed - stopping game loop")
                     break
                 
                 # Get frame analysis for enhanced action execution
@@ -7272,19 +7290,21 @@ class ContinuousLearningLoop:
                     else:
                         x, y = self._optimize_coordinates_for_action(selected_action, (64, 64), game_id)
                 
-                print(f"🎯 SELECTED ACTION: {selected_action}" + (f" at ({x},{y})" if x is not None else ""))
+                coord_display = f" at ({x},{y})" if x is not None else ""
+                print(f"🚀 EXECUTING: Action {selected_action}{coord_display}")
                 
-                # Show intelligent action description
+                # Show intelligent action description (more concise)
                 action_desc = self.get_action_description(selected_action, game_id)
-                if "Learned:" in action_desc or "Role in" in action_desc or "effect:" in action_desc:
-                    print(f"   💡 {action_desc}")
+                if "Learned:" in action_desc:
+                    # Extract just the key learning info
+                    learned_info = action_desc.split("Learned:")[-1].strip()
+                    print(f"   💡 {learned_info[:80]}..." if len(learned_info) > 80 else f"   💡 {learned_info}")
                 elif self.available_actions_memory['action_learning_stats']['total_observations'] > 0:
-                    # Show basic learned info even if not confident
-                    mapping = self.available_actions_memory['action_semantic_mapping'].get(selected_action, {})
+                    # Show basic stats
                     total_attempts = self.available_actions_memory['action_effectiveness'].get(selected_action, {}).get('attempts', 0)
                     if total_attempts > 0:
                         success_rate = self.available_actions_memory['action_effectiveness'][selected_action]['success_rate']
-                        print(f"   📊 Success rate: {success_rate:.1%} ({total_attempts} attempts)")
+                        print(f"   📊 Success: {success_rate:.1%} ({total_attempts} tries)")
                 
                 # Execute the action
                 action_result = await self._send_enhanced_action(
@@ -7298,14 +7318,21 @@ class ContinuousLearningLoop:
                     # CRITICAL: Extract available actions from API response
                     new_available = action_result.get('available_actions', available_actions)
                     
-                    # Update available actions for next iteration
-                    if new_available != available_actions:
-                        print(f"🔄 Available Actions Changed: {available_actions} → {new_available}")
-                        available_actions = new_available
-                    
                     # Track effectiveness
                     score_improvement = new_score - current_score
                     was_effective = (score_improvement > 0 or new_state in ['WIN'])
+                    
+                    # Clean result display
+                    if score_improvement > 0:
+                        print(f"✅ RESULT: Score {current_score} → {new_score} (+{score_improvement:.1f}) | State: {new_state}")
+                    elif score_improvement < 0:
+                        print(f"❌ RESULT: Score {current_score} → {new_score} ({score_improvement:.1f}) | State: {new_state}")
+                    else:
+                        print(f"➡️  RESULT: Score unchanged ({new_score}) | State: {new_state}")
+                    
+                    # Update available actions for next iteration
+                    if new_available != available_actions:
+                        print(f"🔄 Actions: {available_actions} → {new_available}")
                     
                     # CRITICAL: Consume energy per action to enable sleep cycles
                     if hasattr(self, 'energy_system'):
@@ -7322,20 +7349,24 @@ class ContinuousLearningLoop:
                             computation_cost=0.1
                         )
                         
+                        # Show energy status more concisely
+                        if remaining_energy < 50:
+                            print(f"⚡ Energy: {remaining_energy:.1f}/100 {'🔴' if remaining_energy < 20 else '🟡' if remaining_energy < 40 else '🟢'}")
+                        
                         # Check if sleep cycle should trigger
                         if self.energy_system.should_sleep():
-                            print(f"😴 ACTION-LEVEL SLEEP TRIGGER: Energy {remaining_energy:.2f} <= {0.4 * 100.0:.1f}")
-                            print(f"   Triggering sleep after {actions_taken} actions with {len(effective_actions)} effective actions")
+                            print(f"😴 SLEEP TRIGGER: Low energy ({remaining_energy:.1f}) after {actions_taken} actions")
                             
                             # Execute enhanced sleep cycle with current data
                             sleep_result = await self._trigger_enhanced_sleep_with_arc_data(
                                 action_history, effective_actions, game_id
                             )
-                            print(f"🌅 Per-action sleep completed: {sleep_result}")
+                            print(f"🌅 Sleep completed: {sleep_result}")
                             
                             # Restore some energy after sleep
                             restored_energy = min(100.0, remaining_energy + 25.0)
                             self.energy_system.current_energy = restored_energy
+                            print(f"⚡ Energy restored to: {restored_energy:.1f}/100")
                             print(f"⚡ Energy restored: {remaining_energy:.2f} → {restored_energy:.2f}")
                     
                     if was_effective:
@@ -7384,13 +7415,10 @@ class ContinuousLearningLoop:
                 # Display score progress every 10 actions
                 if actions_taken % 10 == 0 or actions_taken - last_score_check >= 10:
                     score_change = current_score - investigation.get('score', 0)
-                    print(f"📊 PROGRESS CHECK (Action {actions_taken}):")
-                    print(f"   Current Score: {current_score} (started: {investigation.get('score', 0)}, change: +{score_change})")
-                    print(f"   Current State: {current_state}")
-                    print(f"   Effective Actions: {len(effective_actions)}/{actions_taken} ({len(effective_actions)/max(1,actions_taken):.1%})")
-                    print(f"   Win Condition: {'🎯 NEAR WIN!' if current_score >= 80 else '🔄 In Progress'}")
+                    effectiveness_pct = len(effective_actions)/max(1,actions_taken)*100
+                    print(f"📊 Progress #{actions_taken}: Score {current_score} (+{score_change}) | Effective: {len(effective_actions)}/{actions_taken} ({effectiveness_pct:.0f}%)")
                     if current_score == investigation.get('score', 0):
-                        print(f"   ⚠️ WARNING: No score progress in {actions_taken} actions!")
+                        print(f"   ⚠️  No progress in {actions_taken} actions")
                     last_score_check = actions_taken
                 
                 # Rate-limit compliant delay between actions
@@ -7398,7 +7426,18 @@ class ContinuousLearningLoop:
                 # Use 0.15s for safety margin (6.67 RPS actual rate)
                 await asyncio.sleep(0.15)
             
-            # Session complete
+            # Session complete - close scorecard to save results
+            if hasattr(self, 'current_scorecard_id') and self.current_scorecard_id:
+                print(f"🔒 Closing scorecard {self.current_scorecard_id} to save results...")
+                try:
+                    scorecard_closed = await self._close_scorecard(self.current_scorecard_id)
+                    if scorecard_closed:
+                        print(f"✅ Scorecard {self.current_scorecard_id} closed successfully")
+                    else:
+                        print(f"⚠️ Failed to close scorecard {self.current_scorecard_id}")
+                except Exception as e:
+                    print(f"❌ Error closing scorecard: {e}")
+            
             final_result = {
                 'final_score': current_score,
                 'final_state': current_state,
@@ -7409,18 +7448,27 @@ class ContinuousLearningLoop:
                 'termination_reason': (
                     'WIN' if current_state == 'WIN' else
                     'GAME_OVER' if current_state == 'GAME_OVER' else
-                    'MAX_ACTIONS' if actions_taken >= max_actions else
+                    'MAX_ACTIONS' if actions_taken >= max_actions_per_game else
                     'HIGH_SCORE' if current_score >= 100 else
                     'UNKNOWN'
                 )
             }
             
-            print(f"\n🏁 DIRECT CONTROL SESSION COMPLETE:")
-            print(f"   Final Score: {current_score}")
-            print(f"   Final State: {current_state}")
-            print(f"   Actions Taken: {actions_taken}")
-            print(f"   Effective Actions: {len(effective_actions)}")
-            print(f"   Termination: {final_result['termination_reason']}")
+            # Clean session summary
+            print("\n" + "="*80)
+            print("🏁 SESSION COMPLETE")
+            print("="*80)
+            print(f"Game: {game_id}")
+            print(f"Final Score: {current_score} | State: {current_state}")
+            print(f"Actions: {actions_taken}/{max_actions_per_game}")
+            print(f"Effective: {len(effective_actions)} ({len(effective_actions)/max(1,actions_taken):.1%})")
+            print(f"Result: {final_result['termination_reason']}")
+            
+            # Show coordinate intelligence summary if available
+            if hasattr(self, 'enhanced_coordinate_intelligence'):
+                print("🧠 Coordinate Intelligence: ACTIVE")
+            
+            print("="*80)
             
             return final_result
             
