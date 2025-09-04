@@ -838,6 +838,14 @@ class ContinuousLearningLoop:
                                 legacy_boundary['current_direction'][game_id] = 'right'
                                 
                                 print(f"🌐 Initialized universal boundary detection system for {game_id}")
+                                
+                                # ENHANCED: Reset frame analyzer tracking for new game
+                                if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
+                                    try:
+                                        self.frame_analyzer.reset_coordinate_tracking()
+                                        print(f"🎯 Reset frame analyzer tracking for new game {game_id}")
+                                    except Exception as e:
+                                        print(f"⚠️ Failed to reset frame analyzer: {e}")
                                 print(f"🔄 All actions will now benefit from boundary awareness and coordinate intelligence")
                             
                             return {
@@ -1399,6 +1407,60 @@ class ContinuousLearningLoop:
                             success = data.get('state') not in ['GAME_OVER'] and 'error' not in data
                             self._record_coordinate_effectiveness(action_number, x, y, success)
                             
+                            # ENHANCED: Log ACTION6 interaction in frame analyzer for hypothesis generation
+                            if self.frame_analyzer and hasattr(self.frame_analyzer, 'log_action6_interaction'):
+                                try:
+                                    # Get current game state for before/after analysis
+                                    current_frame = data.get('grid', [])
+                                    score = data.get('score', 0)
+                                    available_actions = data.get('actions', [])
+                                    
+                                    # Create target info from frame analysis if available
+                                    target_info = {'object_id': f'coord_{x}_{y}', 'dominant_color': 'unknown'}
+                                    if hasattr(self, '_last_frame_analysis') and self._last_frame_analysis:
+                                        # Try to get color information from frame analysis
+                                        analysis_data = self._last_frame_analysis.get(game_id, {})
+                                        for target in analysis_data.get('targets', []):
+                                            target_x, target_y = target.get('coordinate', (None, None))
+                                            if target_x is not None and target_y is not None:
+                                                if abs(target_x - x) <= 1 and abs(target_y - y) <= 1:  # Close match
+                                                    target_info = target
+                                                    break
+                                    
+                                    # Create before/after states
+                                    before_state = {
+                                        'score': getattr(self, '_last_score', 0),
+                                        'frame': getattr(self, '_last_frame', []),
+                                        'available_actions': getattr(self, '_last_available_actions', {}).get(game_id, [])
+                                    }
+                                    after_state = {
+                                        'score': score,
+                                        'frame': current_frame,
+                                        'available_actions': available_actions
+                                    }
+                                    
+                                    # Calculate score change
+                                    score_change = score - before_state['score']
+                                    
+                                    # Log the interaction
+                                    interaction_id = self.frame_analyzer.log_action6_interaction(
+                                        x=x, y=y,
+                                        target_info=target_info,
+                                        before_state=before_state,
+                                        after_state=after_state,
+                                        score_change=score_change,
+                                        game_id=game_id
+                                    )
+                                    
+                                    print(f"📊 ACTION6 interaction logged: {interaction_id} at ({x},{y}) with score change {score_change:+}")
+                                    
+                                    # Store current state for next comparison
+                                    self._last_score = score
+                                    self._last_frame = current_frame
+                                    
+                                except Exception as e:
+                                    logger.warning(f"Failed to log ACTION6 interaction in frame analyzer: {e}")
+                            
                             # Update current position tracking for future directional movement
                             self._current_game_x = x
                             self._current_game_y = y
@@ -1757,6 +1819,22 @@ class ContinuousLearningLoop:
                     
                     print(f"🎯 VISUAL TARGET SELECTED: ({target_x},{target_y}) - {reason} (confidence: {confidence:.2f})")
                     print(f"   📱 Touching/interacting with visual element at pixel ({target_x},{target_y})")
+                    
+                    # ENHANCED: Show movement tracking information
+                    if hasattr(self.frame_analyzer, 'get_movement_analysis'):
+                        try:
+                            movement_info = self.frame_analyzer.get_movement_analysis()
+                            if movement_info['tracked_objects'] > 0:
+                                print(f"   🎮 Objects tracked: {movement_info['tracked_objects']} | Moving: {movement_info['moving_objects']} | Static: {movement_info['static_objects']}")
+                            
+                            # Show avoidance info if coordinate was previously tried
+                            coord_key = (target_x, target_y)
+                            if hasattr(self.frame_analyzer, 'tried_coordinates') and coord_key in self.frame_analyzer.tried_coordinates:
+                                try_count = self.frame_analyzer.coordinate_results.get(coord_key, {}).get('try_count', 0)
+                                success_count = self.frame_analyzer.coordinate_results.get(coord_key, {}).get('success_count', 0)
+                                print(f"   📊 Coordinate history: {try_count} attempts, {success_count} successes")
+                        except Exception as e:
+                            pass
                     
                     # Log target type for learning
                     if len(targeting_analysis['interactive_targets']) > 0:
@@ -4444,6 +4522,15 @@ class ContinuousLearningLoop:
         
         # Get current game ID
         game_id = self.available_actions_memory.get('current_game_id', 'unknown')
+        
+        # ENHANCED: Record coordinate attempt in frame analyzer for learning
+        if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
+            try:
+                self.frame_analyzer.record_coordinate_attempt(
+                    x, y, success, score_improvement
+                )
+            except Exception as e:
+                print(f"⚠️ Frame analyzer tracking failed: {e}")
         
         # Record using universal coordinate intelligence system
         self.record_action_result(action, coordinates, success, score_improvement, game_id)
@@ -7795,6 +7882,28 @@ class ContinuousLearningLoop:
                 
                 # Wake up from sleep
                 wake_result = self.sleep_system.wake_up()
+                
+                # ENHANCED: Run Frame Analyzer Sleep Consolidation
+                if self.frame_analyzer and hasattr(self.frame_analyzer, 'consolidate_learning_during_sleep'):
+                    print(f"🔍 VISUAL INTELLIGENCE CONSOLIDATION...")
+                    visual_consolidation = self.frame_analyzer.consolidate_learning_during_sleep()
+                    
+                    print(f"   📝 Visual Hypotheses Generated: {visual_consolidation['new_hypotheses_generated']}")
+                    print(f"   🎯 Visual Patterns Discovered: {visual_consolidation['patterns_discovered']}")
+                    print(f"   💡 Visual Learning Insights: {len(visual_consolidation['learning_insights'])}")
+                    
+                    # Log visual insights for debugging
+                    for insight in visual_consolidation['learning_insights']:
+                        print(f"      • {insight}")
+                    
+                    # Get and apply visual recommendations for next actions
+                    visual_recommendations = self.frame_analyzer.get_actionable_recommendations()
+                    if visual_recommendations:
+                        print(f"   🎯 Top Visual Recommendation: {visual_recommendations[0]['recommendation']}")
+                        print(f"      Confidence: {visual_recommendations[0]['confidence']:.1%}")
+                        print(f"      Reasoning: {visual_recommendations[0]['reasoning']}")
+                else:
+                    print(f"   ⚠️ Frame analyzer not available for visual consolidation")
                 
                 # Update sleep cycle counter
                 self.global_counters['total_sleep_cycles'] = self.global_counters.get('total_sleep_cycles', 0) + 1

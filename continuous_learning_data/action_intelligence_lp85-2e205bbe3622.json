@@ -6,8 +6,8 @@
   "effective_actions": {
     "6": {
       "success_rate": 1.0,
-      "attempts": 4,
-      "successes": 4
+      "attempts": 1281,
+      "successes": 1281
     }
   },
   "winning_sequences": [],
@@ -32,12 +32,17 @@
         "success_rate": 1.0,
         "attempts": 1,
         "successes": 1
+      },
+      "15,36": {
+        "success_rate": 1.0,
+        "attempts": 1277,
+        "successes": 1277
       }
     }
   },
   "action_transitions": {
-    "((6,), 6, (6,))": 4
+    "((6,), 6, (6,))": 1281
   },
-  "total_sessions_learned": 4,
-  "last_updated": 1757001201.5260625
+  "total_sessions_learned": 1277,
+  "last_updated": 1757012018.6888652
 }

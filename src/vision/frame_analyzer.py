@@ -19,7 +19,7 @@ class FrameAnalyzer:
         self.previous_frame = None
         self.agent_position = None  # (x, y) coordinates
         self.frame_history = []  # Store recent frames for pattern detection
-        self.max_history = 5
+        self.max_history = 10  # Increased for better tracking
         self.grid_size = 64  # ARC-AGI-3 uses 64x64 grids
         
         # Color detection parameters
@@ -29,6 +29,22 @@ class FrameAnalyzer:
         # Movement detection parameters
         self.movement_threshold = 0.1  # Minimum change to detect movement
         self.position_confidence = 0.0  # How confident we are about position
+        
+        # ENHANCED FULL-FRAME TRACKING SYSTEM
+        self.tried_coordinates = set()  # Track all previously tried coordinates
+        self.coordinate_results = {}  # Map coordinates to their results
+        self.color_object_tracker = {}  # Track all color objects and their movements
+        self.frame_scan_history = []  # Complete frame analysis history
+        self.exploration_spiral = 0  # For systematic exploration
+        self.last_successful_coords = []  # Track successful interactions
+        
+        # ENHANCED INTERACTION LOGGING SYSTEM
+        self.interaction_log = []  # Detailed log of all ACTION6 interactions
+        self.object_interaction_history = {}  # object_id -> list of interaction results
+        self.color_behavior_patterns = {}  # color -> behavior patterns observed
+        self.shape_behavior_patterns = {}  # shape_type -> behavior patterns observed
+        self.spatial_interaction_map = {}  # (x, y) -> interaction results and context
+        self.hypothesis_database = []  # Generated hypotheses about object behaviors
         
     def analyze_frame_for_action6_targets(self, frame: List[List[List[int]]], game_id: str = None) -> Dict[str, Any]:
         """
@@ -114,38 +130,129 @@ class FrameAnalyzer:
         return analysis
     
     def _find_color_anomalies(self, frame_array: np.ndarray) -> List[Dict]:
-        """Find regions of unique/standout colors that might be interactive."""
+        """ENHANCED: Find ALL color objects across ENTIRE frame and track their movements."""
         targets = []
         
-        # Get color frequency distribution
+        # Get COMPLETE color frequency distribution across entire frame
         unique_colors, counts = np.unique(frame_array, return_counts=True)
         total_pixels = frame_array.size
         
-        # Find rare colors (potential buttons/objects)
+        # Track ALL color objects, not just rare ones
         for color, count in zip(unique_colors, counts):
             frequency = count / total_pixels
             
-            # Colors that appear in 0.5% to 10% of pixels are interesting
-            if 0.005 < frequency < 0.1:
-                # Find all positions with this color
+            # EXPANDED CRITERIA: Track more colors (from very rare to moderately common)
+            if 0.001 < frequency < 0.2:  # Much broader range than before
+                # Find ALL positions with this color (not just centroid)
                 positions = np.where(frame_array == color)
+                
                 if len(positions[0]) > 0:
-                    # Calculate centroid of this color
-                    center_y = int(np.mean(positions[0]))
-                    center_x = int(np.mean(positions[1]))
+                    # Group nearby positions into SEPARATE OBJECTS
+                    color_objects = self._cluster_color_positions(positions[0], positions[1], color)
                     
-                    # Color rarity = interaction potential
-                    confidence = min(1.0, (1.0 - frequency) * 2)  
-                    
-                    targets.append({
-                        'x': center_x,
-                        'y': center_y,
-                        'reason': f'rare_color_{color}_freq_{frequency:.3f}',
-                        'confidence': confidence,
-                        'type': 'color_anomaly'
-                    })
+                    for obj_id, obj_data in color_objects.items():
+                        center_y, center_x = obj_data['centroid']
+                        object_size = obj_data['size']
+                        
+                        # Skip if we've already tried this exact coordinate repeatedly
+                        coord_key = (int(center_x), int(center_y))
+                        if coord_key in self.tried_coordinates:
+                            # Check if this coordinate has been tried too many times recently
+                            recent_tries = self.coordinate_results.get(coord_key, {}).get('try_count', 0)
+                            if recent_tries > 3:  # Skip if tried more than 3 times
+                                continue
+                        
+                        # Calculate confidence based on rarity and size
+                        confidence = min(1.0, (1.0 - frequency) * 2 + object_size / 50.0)
+                        
+                        # Track this color object for movement analysis
+                        object_id = f"color_{color}_{int(center_x)}_{int(center_y)}"
+                        self._update_color_object_tracking(object_id, center_x, center_y, color, object_size)
+                        
+                        targets.append({
+                            'x': int(center_x),
+                            'y': int(center_y),
+                            'reason': f'color_{color}_freq_{frequency:.3f}_size_{object_size}',
+                            'confidence': confidence,
+                            'type': 'color_object',
+                            'object_id': object_id,
+                            'color': color,
+                            'size': object_size
+                        })
         
         return targets
+    
+    def _cluster_color_positions(self, y_positions: np.ndarray, x_positions: np.ndarray, color: int) -> Dict[str, Dict]:
+        """Group nearby color positions into separate objects."""
+        objects = {}
+        positions = list(zip(x_positions, y_positions))
+        
+        if not positions:
+            return objects
+        
+        # Simple clustering: group positions within distance threshold
+        distance_threshold = 5  # pixels
+        object_counter = 0
+        
+        for x, y in positions:
+            # Find which existing object this position belongs to
+            assigned = False
+            for obj_id, obj_data in objects.items():
+                obj_x, obj_y = obj_data['centroid']
+                distance = np.sqrt((x - obj_x)**2 + (y - obj_y)**2)
+                
+                if distance <= distance_threshold:
+                    # Add to existing object
+                    obj_data['positions'].append((x, y))
+                    # Update centroid
+                    obj_data['centroid'] = (
+                        np.mean([p[0] for p in obj_data['positions']]),
+                        np.mean([p[1] for p in obj_data['positions']])
+                    )
+                    obj_data['size'] = len(obj_data['positions'])
+                    assigned = True
+                    break
+            
+            if not assigned:
+                # Create new object
+                obj_id = f"obj_{object_counter}"
+                objects[obj_id] = {
+                    'centroid': (x, y),
+                    'positions': [(x, y)],
+                    'size': 1,
+                    'color': color
+                }
+                object_counter += 1
+        
+        return objects
+    
+    def _update_color_object_tracking(self, object_id: str, x: float, y: float, color: int, size: int):
+        """Track color object movements over time."""
+        current_time = len(self.frame_history)
+        
+        if object_id not in self.color_object_tracker:
+            self.color_object_tracker[object_id] = {
+                'positions': [],
+                'color': color,
+                'first_seen': current_time,
+                'size_history': [],
+                'movement_vector': None
+            }
+        
+        tracker = self.color_object_tracker[object_id]
+        tracker['positions'].append((x, y, current_time))
+        tracker['size_history'].append(size)
+        
+        # Calculate movement if we have multiple positions
+        if len(tracker['positions']) > 1:
+            prev_x, prev_y, _ = tracker['positions'][-2]
+            movement = (x - prev_x, y - prev_y)
+            tracker['movement_vector'] = movement
+            
+        # Keep only recent history
+        if len(tracker['positions']) > 10:
+            tracker['positions'] = tracker['positions'][-10:]
+            tracker['size_history'] = tracker['size_history'][-10:]
     
     def _find_contrast_extremes(self, frame_array: np.ndarray) -> List[Dict]:
         """Find brightest/darkest points that might be interactive."""
@@ -270,36 +377,1060 @@ class FrameAnalyzer:
         return targets
     
     def _rank_interaction_targets(self, targets: List[Dict]) -> List[Dict]:
-        """Rank targets by interaction potential."""
+        """ENHANCED: Rank targets avoiding repetitive coordinates and prioritizing unexplored areas."""
         # Sort by confidence, then by type priority
         type_priority = {
-            'dynamic_change': 4,      # Moving objects = highest priority
-            'color_anomaly': 3,       # Unique colors = likely buttons
-            'geometric_shape': 2,     # Shapes = possible buttons
-            'brightness_extreme': 1   # Brightness = might be indicators
+            'dynamic_change': 5,      # Moving objects = highest priority
+            'color_object': 4,        # Enhanced color objects = high priority  
+            'geometric_shape': 3,     # Shapes = possible buttons
+            'brightness_extreme': 2,  # Brightness = might be indicators
+            'color_anomaly': 1        # Basic color anomaly = lowest priority
         }
         
         for target in targets:
+            base_score = target['confidence'] * 100
+            type_score = type_priority.get(target['type'], 0) * 10
+            
+            # COORDINATE AVOIDANCE PENALTY
+            coord_key = (target['x'], target['y'])
+            avoidance_penalty = 0
+            
+            if coord_key in self.tried_coordinates:
+                try_count = self.coordinate_results.get(coord_key, {}).get('try_count', 0)
+                success_count = self.coordinate_results.get(coord_key, {}).get('success_count', 0)
+                
+                if try_count > 0:
+                    # Heavy penalty for repeatedly tried coordinates with no success
+                    if success_count == 0 and try_count > 2:
+                        avoidance_penalty = 80  # Heavy penalty
+                    elif success_count == 0 and try_count > 0:
+                        avoidance_penalty = 40  # Moderate penalty
+                    elif success_count > 0:
+                        avoidance_penalty = 10  # Light penalty for previously successful
+            
+            # MOVEMENT BONUS for objects that have moved
+            movement_bonus = 0
+            if 'object_id' in target and target['object_id'] in self.color_object_tracker:
+                tracker = self.color_object_tracker[target['object_id']]
+                if tracker.get('movement_vector') and tracker['movement_vector'] != (0, 0):
+                    movement_bonus = 20  # Bonus for moving objects
+            
+            # EXPLORATION BONUS for unexplored regions
+            exploration_bonus = 0
+            if coord_key not in self.tried_coordinates:
+                exploration_bonus = 15  # Bonus for completely new coordinates
+            
             target['priority_score'] = (
-                target['confidence'] * 100 + 
-                type_priority.get(target['type'], 0) * 10
+                base_score + 
+                type_score + 
+                movement_bonus + 
+                exploration_bonus - 
+                avoidance_penalty
             )
+            
+            target['avoidance_penalty'] = avoidance_penalty
+            target['movement_bonus'] = movement_bonus
+            target['exploration_bonus'] = exploration_bonus
         
         return sorted(targets, key=lambda t: t['priority_score'], reverse=True)
     
     def _generate_exploration_coordinate(self, frame_array: np.ndarray) -> Optional[Tuple[int, int]]:
-        """Generate systematic exploration coordinate when no clear targets found."""
-        # Simple spiral pattern from center outward
+        """ENHANCED: Generate systematic exploration avoiding previously tried coordinates."""
+        # Use spiral exploration pattern from center outward
         center_x, center_y = frame_array.shape[1] // 2, frame_array.shape[0] // 2
         
-        # Use frame hash to get consistent but varied exploration pattern
-        frame_hash = hash(frame_array.tobytes()) % 100
+        # Generate spiral coordinates
+        spiral_coords = self._generate_spiral_coordinates(center_x, center_y, max_radius=25)
         
-        # Generate exploration point based on frame content
-        explore_x = (center_x + (frame_hash % 20) - 10) % frame_array.shape[1]
-        explore_y = (center_y + ((frame_hash // 20) % 20) - 10) % frame_array.shape[0]
+        # Find first coordinate not yet tried
+        for x, y in spiral_coords:
+            # Ensure within bounds
+            if 0 <= x < frame_array.shape[1] and 0 <= y < frame_array.shape[0]:
+                coord_key = (x, y)
+                if coord_key not in self.tried_coordinates:
+                    return (x, y)
+                    
+                # If coordinate was tried but unsuccessful, consider retrying after many attempts
+                if coord_key in self.tried_coordinates:
+                    try_count = self.coordinate_results.get(coord_key, {}).get('try_count', 0)
+                    if try_count < 2:  # Allow up to 2 retries for exploration
+                        return (x, y)
         
-        return (int(explore_x), int(explore_y))
+        # If all spiral coordinates tried, use frame-based exploration
+        frame_hash = hash(frame_array.tobytes()) % 1000
+        attempts = 0
+        
+        while attempts < 50:  # Max 50 attempts to find untried coordinate
+            explore_x = (frame_hash + attempts * 7) % frame_array.shape[1]
+            explore_y = ((frame_hash + attempts * 11) // frame_array.shape[1]) % frame_array.shape[0]
+            
+            coord_key = (explore_x, explore_y)
+            if coord_key not in self.tried_coordinates:
+                return (explore_x, explore_y)
+            
+            attempts += 1
+        
+        # Last resort: return center with offset
+        offset = len(self.tried_coordinates) % 20
+        return (center_x + offset - 10, center_y + offset - 10)
+    
+    def _generate_spiral_coordinates(self, center_x: int, center_y: int, max_radius: int) -> List[Tuple[int, int]]:
+        """Generate coordinates in a spiral pattern from center outward."""
+        coords = [(center_x, center_y)]
+        
+        for radius in range(1, max_radius):
+            # Generate coordinates in a square spiral at this radius
+            for i in range(radius * 8):  # 8 points per radius level
+                angle = (i / (radius * 8)) * 2 * np.pi
+                x = int(center_x + radius * np.cos(angle))
+                y = int(center_y + radius * np.sin(angle))
+                coords.append((x, y))
+        
+        return coords
+
+    def record_coordinate_attempt(self, x: int, y: int, was_successful: bool, score_change: float = 0):
+        """Record the result of trying a specific coordinate for learning."""
+        coord_key = (x, y)
+        self.tried_coordinates.add(coord_key)
+        
+        if coord_key not in self.coordinate_results:
+            self.coordinate_results[coord_key] = {
+                'try_count': 0,
+                'success_count': 0,
+                'total_score_change': 0.0,
+                'last_tried_frame': len(self.frame_history)
+            }
+        
+        result = self.coordinate_results[coord_key]
+        result['try_count'] += 1
+        result['last_tried_frame'] = len(self.frame_history)
+        result['total_score_change'] += score_change
+        
+        if was_successful or score_change > 0:
+            result['success_count'] += 1
+            # Track successful coordinates for pattern learning
+            if len(self.last_successful_coords) >= 10:
+                self.last_successful_coords.pop(0)
+            self.last_successful_coords.append((x, y, len(self.frame_history)))
+    
+    def get_movement_analysis(self) -> Dict[str, Any]:
+        """Get comprehensive movement analysis of all tracked objects."""
+        movement_summary = {
+            'tracked_objects': len(self.color_object_tracker),
+            'moving_objects': 0,
+            'static_objects': 0,
+            'object_details': {}
+        }
+        
+        for object_id, tracker in self.color_object_tracker.items():
+            movement_vector = tracker.get('movement_vector', (0, 0))
+            if movement_vector is None:
+                movement_vector = (0, 0)
+            
+            is_moving = movement_vector != (0, 0) and (abs(movement_vector[0]) > 0.5 or abs(movement_vector[1]) > 0.5)
+            
+            if is_moving:
+                movement_summary['moving_objects'] += 1
+            else:
+                movement_summary['static_objects'] += 1
+            
+            if len(tracker['positions']) > 1:
+                last_pos = tracker['positions'][-1]
+                first_pos = tracker['positions'][0]
+                total_movement = np.sqrt((last_pos[0] - first_pos[0])**2 + (last_pos[1] - first_pos[1])**2)
+                
+                movement_summary['object_details'][object_id] = {
+                    'color': tracker['color'],
+                    'current_position': (last_pos[0], last_pos[1]),
+                    'is_moving': is_moving,
+                    'movement_vector': movement_vector,
+                    'total_distance_moved': total_movement,
+                    'size': tracker['size_history'][-1] if tracker['size_history'] else 0
+                }
+        
+        return movement_summary
+    
+    def reset_coordinate_tracking(self):
+        """Reset coordinate tracking for new game or when needed."""
+        self.tried_coordinates.clear()
+        self.coordinate_results.clear()
+        self.color_object_tracker.clear()
+        self.last_successful_coords.clear()
+        self.exploration_spiral = 0
+        
+        # Reset interaction logging for new game
+        self.interaction_log.clear()
+        self.object_interaction_history.clear()
+        self.color_behavior_patterns.clear() 
+        self.shape_behavior_patterns.clear()
+        self.spatial_interaction_map.clear()
+        # Keep hypothesis database across games for pattern learning
+
+    def log_action6_interaction(self, x: int, y: int, target_info: Dict[str, Any], 
+                               before_state: Dict[str, Any], after_state: Dict[str, Any],
+                               score_change: float = 0, game_id: str = None) -> str:
+        """
+        Log detailed information about an ACTION6 interaction with a visual object.
+        
+        Args:
+            x, y: Coordinates clicked
+            target_info: Information about the visual target (from frame analysis)
+            before_state: Game state before the action
+            after_state: Game state after the action  
+            score_change: Change in game score
+            game_id: Current game identifier
+            
+        Returns:
+            Unique interaction ID for reference
+        """
+        import uuid
+        from datetime import datetime
+        
+        interaction_id = str(uuid.uuid4())[:8]
+        timestamp = datetime.now().isoformat()
+        
+        # Extract visual characteristics
+        visual_data = {
+            'coordinate': (x, y),
+            'color': target_info.get('color', 'unknown'),
+            'object_type': target_info.get('type', 'unknown'),
+            'object_size': target_info.get('size', 0),
+            'confidence': target_info.get('confidence', 0.0),
+            'targeting_reason': target_info.get('reason', 'unknown'),
+            'shape_detected': self._detect_shape_at_coordinate(x, y, before_state.get('frame')),
+            'local_context': self._analyze_local_context(x, y, before_state.get('frame'))
+        }
+        
+        # Analyze what changed
+        interaction_result = {
+            'score_change': score_change,
+            'state_change': before_state.get('state') != after_state.get('state'),
+            'new_actions_available': after_state.get('available_actions', []),
+            'actions_removed': list(set(before_state.get('available_actions', [])) - 
+                                  set(after_state.get('available_actions', []))),
+            'actions_added': list(set(after_state.get('available_actions', [])) - 
+                                set(before_state.get('available_actions', []))),
+            'frame_changes': self._analyze_frame_changes(before_state.get('frame'), 
+                                                        after_state.get('frame')),
+            'success_indicators': self._detect_success_indicators(before_state, after_state, score_change)
+        }
+        
+        # Create comprehensive interaction record
+        interaction_record = {
+            'id': interaction_id,
+            'timestamp': timestamp,
+            'game_id': game_id or 'unknown',
+            'visual_data': visual_data,
+            'interaction_result': interaction_result,
+            'context': {
+                'frame_number': len(self.frame_history),
+                'total_interactions': len(self.interaction_log),
+                'previous_attempts_at_coord': self.coordinate_results.get((x, y), {}).get('try_count', 0),
+                'nearby_interactions': self._find_nearby_interactions(x, y, radius=5)
+            }
+        }
+        
+        # Store in various tracking systems
+        self.interaction_log.append(interaction_record)
+        
+        # Update object-specific history
+        object_id = target_info.get('object_id', f'obj_{x}_{y}')
+        if object_id not in self.object_interaction_history:
+            self.object_interaction_history[object_id] = []
+        self.object_interaction_history[object_id].append(interaction_record)
+        
+        # Update color behavior patterns
+        color = visual_data['color']
+        if color != 'unknown':
+            if color not in self.color_behavior_patterns:
+                self.color_behavior_patterns[color] = {
+                    'interactions': [],
+                    'success_rate': 0.0,
+                    'common_effects': [],
+                    'best_contexts': []
+                }
+            self.color_behavior_patterns[color]['interactions'].append(interaction_record)
+            self._update_color_behavior_analysis(color)
+        
+        # Update spatial interaction map
+        coord_key = (x, y)
+        if coord_key not in self.spatial_interaction_map:
+            self.spatial_interaction_map[coord_key] = []
+        self.spatial_interaction_map[coord_key].append(interaction_record)
+        
+        print(f"📝 INTERACTION LOGGED: {interaction_id}")
+        print(f"   🎯 Target: {visual_data['object_type']} color_{color} at ({x},{y})")
+        print(f"   📊 Result: Score {score_change:+.1f}, Actions {len(interaction_result['actions_added'])} added, {len(interaction_result['actions_removed'])} removed")
+        print(f"   🔍 Success indicators: {len(interaction_result['success_indicators'])}")
+        
+        return interaction_id
+    
+    def _detect_shape_at_coordinate(self, x: int, y: int, frame: List[List[int]]) -> Dict[str, Any]:
+        """Analyze the shape/pattern at the clicked coordinate."""
+        if not frame:
+            return {'shape_type': 'unknown', 'details': {}}
+            
+        try:
+            frame_array = np.array(frame[0]) if isinstance(frame[0][0], list) else np.array(frame)
+            
+            # Extract local region around click point
+            region_size = 7
+            y_start = max(0, y - region_size//2)
+            y_end = min(frame_array.shape[0], y + region_size//2 + 1)
+            x_start = max(0, x - region_size//2) 
+            x_end = min(frame_array.shape[1], x + region_size//2 + 1)
+            
+            local_region = frame_array[y_start:y_end, x_start:x_end]
+            
+            # Analyze shape characteristics
+            unique_colors = len(np.unique(local_region))
+            center_color = frame_array[y, x] if 0 <= y < frame_array.shape[0] and 0 <= x < frame_array.shape[1] else -1
+            
+            # Check for geometric patterns
+            shape_analysis = {
+                'shape_type': 'pixel_cluster',
+                'details': {
+                    'region_size': local_region.shape,
+                    'unique_colors': unique_colors,
+                    'center_color': int(center_color),
+                    'dominant_color': int(np.bincount(local_region.flatten()).argmax()),
+                    'is_uniform': unique_colors == 1,
+                    'has_pattern': unique_colors > 2
+                }
+            }
+            
+            return shape_analysis
+            
+        except Exception as e:
+            return {'shape_type': 'analysis_error', 'details': {'error': str(e)}}
+    
+    def _analyze_local_context(self, x: int, y: int, frame: List[List[int]]) -> Dict[str, Any]:
+        """Analyze the local context around a clicked coordinate."""
+        if not frame:
+            return {}
+            
+        try:
+            frame_array = np.array(frame[0]) if isinstance(frame[0][0], list) else np.array(frame)
+            
+            # Analyze surrounding area
+            context_size = 10
+            y_start = max(0, y - context_size)
+            y_end = min(frame_array.shape[0], y + context_size + 1)
+            x_start = max(0, x - context_size)
+            x_end = min(frame_array.shape[1], x + context_size + 1)
+            
+            context_region = frame_array[y_start:y_end, x_start:x_end]
+            
+            return {
+                'surrounding_colors': list(np.unique(context_region).astype(int)),
+                'context_diversity': len(np.unique(context_region)),
+                'distance_to_edge': min(x, y, frame_array.shape[1] - x - 1, frame_array.shape[0] - y - 1),
+                'is_near_boundary': min(x, y, frame_array.shape[1] - x - 1, frame_array.shape[0] - y - 1) < 3,
+                'local_density': float(np.count_nonzero(context_region)) / context_region.size
+            }
+            
+        except Exception as e:
+            return {'error': str(e)}
+    
+    def _analyze_frame_changes(self, before_frame: List[List[int]], after_frame: List[List[int]]) -> Dict[str, Any]:
+        """Analyze what changed in the frame after the interaction."""
+        if not before_frame or not after_frame:
+            return {'changes_detected': False}
+            
+        try:
+            before_array = np.array(before_frame[0]) if isinstance(before_frame[0][0], list) else np.array(before_frame)
+            after_array = np.array(after_frame[0]) if isinstance(after_frame[0][0], list) else np.array(after_frame)
+            
+            # Calculate differences
+            if before_array.shape != after_array.shape:
+                return {
+                    'changes_detected': True,
+                    'change_type': 'frame_size_change',
+                    'before_size': before_array.shape,
+                    'after_size': after_array.shape
+                }
+            
+            diff = before_array != after_array
+            num_changes = np.sum(diff)
+            
+            if num_changes == 0:
+                return {'changes_detected': False, 'change_type': 'no_visual_changes'}
+            
+            # Find areas of change
+            changed_coords = np.where(diff)
+            change_locations = list(zip(changed_coords[1], changed_coords[0]))  # (x, y) format
+            
+            return {
+                'changes_detected': True,
+                'change_type': 'visual_changes',
+                'num_pixels_changed': int(num_changes),
+                'change_percentage': float(num_changes) / before_array.size,
+                'change_locations': change_locations[:20],  # Limit to first 20 for storage
+                'change_center': (float(np.mean(changed_coords[1])), float(np.mean(changed_coords[0]))) if len(changed_coords[0]) > 0 else None
+            }
+            
+        except Exception as e:
+            return {'changes_detected': False, 'error': str(e)}
+    
+    def _detect_success_indicators(self, before_state: Dict, after_state: Dict, score_change: float) -> List[str]:
+        """Detect various indicators of successful interaction."""
+        indicators = []
+        
+        # Score-based indicators
+        if score_change > 0:
+            indicators.append(f'score_increase_{score_change}')
+        
+        # State change indicators
+        if before_state.get('state') != after_state.get('state'):
+            indicators.append('game_state_changed')
+        
+        # Action availability indicators
+        before_actions = set(before_state.get('available_actions', []))
+        after_actions = set(after_state.get('available_actions', []))
+        
+        if len(after_actions) > len(before_actions):
+            indicators.append('new_actions_unlocked')
+        
+        if len(after_actions) < len(before_actions):
+            indicators.append('actions_consumed')
+        
+        # Frame-based indicators (if visual changes occurred)
+        frame_changes = self._analyze_frame_changes(before_state.get('frame'), after_state.get('frame'))
+        if frame_changes.get('changes_detected'):
+            indicators.append('visual_feedback')
+            if frame_changes.get('num_pixels_changed', 0) > 10:
+                indicators.append('significant_visual_change')
+        
+        return indicators
+    
+    def _find_nearby_interactions(self, x: int, y: int, radius: int = 5) -> List[Dict]:
+        """Find previous interactions near this coordinate."""
+        nearby = []
+        
+        for record in self.interaction_log:
+            other_x, other_y = record['visual_data']['coordinate']
+            distance = np.sqrt((x - other_x)**2 + (y - other_y)**2)
+            
+            if distance <= radius:
+                nearby.append({
+                    'id': record['id'],
+                    'distance': distance,
+                    'color': record['visual_data']['color'],
+                    'success_indicators': len(record['interaction_result']['success_indicators']),
+                    'score_change': record['interaction_result']['score_change']
+                })
+        
+        return sorted(nearby, key=lambda x: x['distance'])[:5]  # Return closest 5
+    
+    def _update_color_behavior_analysis(self, color: int):
+        """Update behavior pattern analysis for a specific color."""
+        if color not in self.color_behavior_patterns:
+            return
+            
+        pattern_data = self.color_behavior_patterns[color]
+        interactions = pattern_data['interactions']
+        
+        if not interactions:
+            return
+        
+        # Calculate success rate
+        successful_interactions = sum(1 for record in interactions 
+                                    if record['interaction_result']['score_change'] > 0 
+                                    or len(record['interaction_result']['success_indicators']) > 0)
+        pattern_data['success_rate'] = successful_interactions / len(interactions)
+        
+        # Identify common effects
+        all_effects = []
+        for record in interactions:
+            all_effects.extend(record['interaction_result']['success_indicators'])
+        
+        from collections import Counter
+        common_effects = Counter(all_effects).most_common(3)
+        pattern_data['common_effects'] = [effect for effect, count in common_effects]
+        
+        # Find best contexts (simplified)
+        successful_records = [r for r in interactions 
+                            if r['interaction_result']['score_change'] > 0 
+                            or len(r['interaction_result']['success_indicators']) > 0]
+        
+        pattern_data['best_contexts'] = [
+            {
+                'context': record['visual_data']['local_context'],
+                'score_change': record['interaction_result']['score_change']
+            }
+            for record in successful_records[-3:]  # Last 3 successful contexts
+        ]
+
+    def generate_interaction_hypotheses(self) -> List[Dict[str, Any]]:
+        """
+        Generate hypotheses about object behaviors based on interaction history.
+        This method is designed to be called during sleep/consolidation phases.
+        """
+        if len(self.interaction_log) < 3:  # Need some data to form hypotheses
+            return []
+        
+        new_hypotheses = []
+        
+        # HYPOTHESIS 1: Color-based behavior patterns
+        color_hypotheses = self._generate_color_hypotheses()
+        new_hypotheses.extend(color_hypotheses)
+        
+        # HYPOTHESIS 2: Spatial pattern hypotheses  
+        spatial_hypotheses = self._generate_spatial_hypotheses()
+        new_hypotheses.extend(spatial_hypotheses)
+        
+        # HYPOTHESIS 3: Context-based hypotheses
+        context_hypotheses = self._generate_context_hypotheses()
+        new_hypotheses.extend(context_hypotheses)
+        
+        # HYPOTHESIS 4: Sequence-based hypotheses
+        sequence_hypotheses = self._generate_sequence_hypotheses()
+        new_hypotheses.extend(sequence_hypotheses)
+        
+        # Add to database and remove duplicates
+        for hypothesis in new_hypotheses:
+            if not self._is_duplicate_hypothesis(hypothesis):
+                hypothesis['generated_at'] = len(self.frame_history)
+                hypothesis['confidence_score'] = self._calculate_hypothesis_confidence(hypothesis)
+                self.hypothesis_database.append(hypothesis)
+        
+        # Sort by confidence and keep top hypotheses
+        self.hypothesis_database.sort(key=lambda h: h['confidence_score'], reverse=True)
+        self.hypothesis_database = self.hypothesis_database[:50]  # Keep top 50 hypotheses
+        
+        print(f"💡 HYPOTHESIS GENERATION: Generated {len(new_hypotheses)} new hypotheses")
+        print(f"   📊 Total hypotheses in database: {len(self.hypothesis_database)}")
+        print(f"   🎯 Top hypothesis: {self.hypothesis_database[0]['description'] if self.hypothesis_database else 'None'}")
+        
+        return new_hypotheses
+    
+    def _generate_color_hypotheses(self) -> List[Dict[str, Any]]:
+        """Generate hypotheses about specific color behaviors."""
+        hypotheses = []
+        
+        for color, pattern_data in self.color_behavior_patterns.items():
+            interactions = pattern_data['interactions']
+            if len(interactions) < 2:
+                continue
+                
+            success_rate = pattern_data['success_rate']
+            common_effects = pattern_data['common_effects']
+            
+            # High success rate hypothesis
+            if success_rate > 0.7:
+                hypotheses.append({
+                    'type': 'color_behavior',
+                    'description': f'Color {color} objects are highly effective (success rate: {success_rate:.1%})',
+                    'prediction': f'Clicking color {color} objects will likely produce positive results',
+                    'evidence': {
+                        'interaction_count': len(interactions),
+                        'success_rate': success_rate,
+                        'common_effects': common_effects
+                    },
+                    'actionable_advice': f'Prioritize color {color} objects when available',
+                    'color': color
+                })
+            
+            # Specific effect hypothesis
+            if common_effects:
+                most_common_effect = common_effects[0]
+                hypotheses.append({
+                    'type': 'color_effect',
+                    'description': f'Color {color} objects commonly cause: {most_common_effect}',
+                    'prediction': f'Clicking color {color} objects will likely result in {most_common_effect}',
+                    'evidence': {
+                        'interaction_count': len(interactions),
+                        'effect_frequency': common_effects
+                    },
+                    'actionable_advice': f'Use color {color} objects when {most_common_effect} is desired',
+                    'color': color,
+                    'expected_effect': most_common_effect
+                })
+        
+        return hypotheses
+    
+    def _generate_spatial_hypotheses(self) -> List[Dict[str, Any]]:
+        """Generate hypotheses about spatial patterns and locations."""
+        hypotheses = []
+        
+        # Analyze successful coordinate clusters
+        successful_coords = []
+        for record in self.interaction_log:
+            if (record['interaction_result']['score_change'] > 0 or 
+                len(record['interaction_result']['success_indicators']) > 0):
+                successful_coords.append(record['visual_data']['coordinate'])
+        
+        if len(successful_coords) >= 3:
+            # Find spatial clusters of success
+            clusters = self._find_coordinate_clusters(successful_coords)
+            
+            for cluster in clusters:
+                if len(cluster['members']) >= 2:
+                    hypotheses.append({
+                        'type': 'spatial_cluster',
+                        'description': f'Area around {cluster["center"]} has high success rate',
+                        'prediction': f'Coordinates near {cluster["center"]} are likely to be effective',
+                        'evidence': {
+                            'successful_interactions': len(cluster['members']),
+                            'cluster_center': cluster['center'],
+                            'cluster_radius': cluster['radius']
+                        },
+                        'actionable_advice': f'Explore coordinates within {cluster["radius"]} pixels of {cluster["center"]}',
+                        'target_area': cluster
+                    })
+        
+        # Edge vs center hypothesis
+        edge_successes = sum(1 for record in self.interaction_log 
+                           if (record['interaction_result']['score_change'] > 0 or 
+                               len(record['interaction_result']['success_indicators']) > 0) and
+                               record['visual_data']['local_context'].get('is_near_boundary', False))
+        
+        total_edge_attempts = sum(1 for record in self.interaction_log 
+                                if record['visual_data']['local_context'].get('is_near_boundary', False))
+        
+        if total_edge_attempts > 0:
+            edge_success_rate = edge_successes / total_edge_attempts
+            if edge_success_rate > 0.6:
+                hypotheses.append({
+                    'type': 'spatial_preference',
+                    'description': 'Boundary/edge locations have higher success rates',
+                    'prediction': 'Objects near frame boundaries are more likely to be interactive',
+                    'evidence': {
+                        'edge_success_rate': edge_success_rate,
+                        'edge_successes': edge_successes,
+                        'total_edge_attempts': total_edge_attempts
+                    },
+                    'actionable_advice': 'Prioritize objects near frame boundaries',
+                    'spatial_preference': 'boundary'
+                })
+        
+        return hypotheses
+    
+    def _generate_context_hypotheses(self) -> List[Dict[str, Any]]:
+        """Generate hypotheses about contextual factors that influence success."""
+        hypotheses = []
+        
+        # Context diversity hypothesis
+        high_diversity_successes = []
+        low_diversity_successes = []
+        
+        for record in self.interaction_log:
+            context = record['visual_data']['local_context']
+            diversity = context.get('context_diversity', 0)
+            is_successful = (record['interaction_result']['score_change'] > 0 or 
+                           len(record['interaction_result']['success_indicators']) > 0)
+            
+            if is_successful:
+                if diversity > 3:
+                    high_diversity_successes.append(record)
+                else:
+                    low_diversity_successes.append(record)
+        
+        if len(high_diversity_successes) > len(low_diversity_successes) and len(high_diversity_successes) > 2:
+            hypotheses.append({
+                'type': 'context_complexity',
+                'description': 'Objects in visually complex areas are more interactive',
+                'prediction': 'Target objects in areas with high color diversity',
+                'evidence': {
+                    'high_diversity_successes': len(high_diversity_successes),
+                    'low_diversity_successes': len(low_diversity_successes)
+                },
+                'actionable_advice': 'Prioritize objects in areas with multiple different colors',
+                'context_preference': 'high_diversity'
+            })
+        
+        return hypotheses
+    
+    def _generate_sequence_hypotheses(self) -> List[Dict[str, Any]]:
+        """Generate hypotheses about action sequences and timing."""
+        hypotheses = []
+        
+        # Recent vs distant success patterns
+        recent_interactions = self.interaction_log[-10:] if len(self.interaction_log) >= 10 else self.interaction_log
+        recent_successes = sum(1 for record in recent_interactions 
+                             if (record['interaction_result']['score_change'] > 0 or 
+                                 len(record['interaction_result']['success_indicators']) > 0))
+        
+        if len(recent_interactions) > 0:
+            recent_success_rate = recent_successes / len(recent_interactions)
+            overall_success_rate = len([r for r in self.interaction_log 
+                                      if (r['interaction_result']['score_change'] > 0 or 
+                                          len(r['interaction_result']['success_indicators']) > 0)]) / len(self.interaction_log)
+            
+            if recent_success_rate > overall_success_rate * 1.5:  # Recent performance is much better
+                hypotheses.append({
+                    'type': 'learning_trend',
+                    'description': 'Recent interactions show improved success patterns',
+                    'prediction': 'Current strategy is working better than earlier approaches',
+                    'evidence': {
+                        'recent_success_rate': recent_success_rate,
+                        'overall_success_rate': overall_success_rate,
+                        'improvement_factor': recent_success_rate / overall_success_rate
+                    },
+                    'actionable_advice': 'Continue with current targeting approach',
+                    'trend': 'improving'
+                })
+        
+        return hypotheses
+    
+    def _find_coordinate_clusters(self, coordinates: List[Tuple[int, int]], max_distance: int = 8) -> List[Dict]:
+        """Find clusters of coordinates that are close together."""
+        if not coordinates:
+            return []
+        
+        clusters = []
+        used_coords = set()
+        
+        for coord in coordinates:
+            if coord in used_coords:
+                continue
+                
+            # Find all coordinates within max_distance
+            cluster_members = [coord]
+            used_coords.add(coord)
+            
+            for other_coord in coordinates:
+                if other_coord in used_coords:
+                    continue
+                    
+                distance = np.sqrt((coord[0] - other_coord[0])**2 + (coord[1] - other_coord[1])**2)
+                if distance <= max_distance:
+                    cluster_members.append(other_coord)
+                    used_coords.add(other_coord)
+            
+            if len(cluster_members) >= 2:  # Only clusters with multiple points
+                center_x = sum(c[0] for c in cluster_members) / len(cluster_members)
+                center_y = sum(c[1] for c in cluster_members) / len(cluster_members)
+                
+                clusters.append({
+                    'center': (center_x, center_y),
+                    'members': cluster_members,
+                    'radius': max_distance
+                })
+        
+        return clusters
+    
+    def _is_duplicate_hypothesis(self, new_hypothesis: Dict) -> bool:
+        """Check if a similar hypothesis already exists."""
+        for existing in self.hypothesis_database:
+            if (existing['type'] == new_hypothesis['type'] and 
+                existing.get('color') == new_hypothesis.get('color') and
+                abs(existing.get('confidence_score', 0) - self._calculate_hypothesis_confidence(new_hypothesis)) < 0.1):
+                return True
+        return False
+    
+    def _calculate_hypothesis_confidence(self, hypothesis: Dict) -> float:
+        """Calculate confidence score for a hypothesis based on evidence strength."""
+        base_confidence = 0.5
+        evidence = hypothesis.get('evidence', {})
+        
+        # Adjust based on sample size
+        interaction_count = evidence.get('interaction_count', 0)
+        if interaction_count > 10:
+            base_confidence += 0.3
+        elif interaction_count > 5:
+            base_confidence += 0.2
+        elif interaction_count > 2:
+            base_confidence += 0.1
+        
+        # Adjust based on success rate
+        success_rate = evidence.get('success_rate', 0)
+        base_confidence += success_rate * 0.3
+        
+        # Adjust based on hypothesis type
+        if hypothesis['type'] in ['color_behavior', 'spatial_cluster']:
+            base_confidence += 0.1  # These tend to be more reliable
+        
+        return min(1.0, base_confidence)
+    
+    def get_actionable_recommendations(self, current_frame: List[List[int]] = None) -> List[Dict[str, Any]]:
+        """
+        Get actionable recommendations based on current hypotheses and frame analysis.
+        This method provides specific guidance for ACTION6 targeting.
+        """
+        if not self.hypothesis_database:
+            return []
+        
+        recommendations = []
+        
+        # Sort hypotheses by confidence
+        top_hypotheses = sorted(self.hypothesis_database, key=lambda h: h['confidence_score'], reverse=True)[:10]
+        
+        for hypothesis in top_hypotheses:
+            if hypothesis['confidence_score'] < 0.3:  # Skip low-confidence hypotheses
+                continue
+            
+            rec = {
+                'hypothesis_id': hypothesis.get('generated_at', 0),
+                'type': hypothesis['type'],
+                'recommendation': hypothesis.get('actionable_advice', ''),
+                'confidence': hypothesis['confidence_score'],
+                'reasoning': hypothesis['description'],
+                'priority': self._calculate_recommendation_priority(hypothesis)
+            }
+            
+            # Add specific targeting advice
+            if hypothesis['type'] == 'color_behavior' and 'color' in hypothesis:
+                rec['target_criteria'] = {'preferred_color': hypothesis['color']}
+            elif hypothesis['type'] == 'spatial_cluster' and 'target_area' in hypothesis:
+                rec['target_criteria'] = {'preferred_area': hypothesis['target_area']}
+            elif hypothesis['type'] == 'context_complexity':
+                rec['target_criteria'] = {'context_preference': hypothesis.get('context_preference')}
+            
+            recommendations.append(rec)
+        
+        return sorted(recommendations, key=lambda r: r['priority'], reverse=True)
+    
+    def _calculate_recommendation_priority(self, hypothesis: Dict) -> float:
+        """Calculate priority score for a recommendation."""
+        base_priority = hypothesis['confidence_score']
+        
+        # Boost priority for actionable hypotheses
+        if hypothesis.get('actionable_advice'):
+            base_priority += 0.2
+        
+        # Boost priority for recent hypotheses
+        generation_time = hypothesis.get('generated_at', 0)
+        current_time = len(self.frame_history)
+        recency_factor = max(0, 1 - (current_time - generation_time) / 100.0)
+        base_priority += recency_factor * 0.1
+        
+        return base_priority
+
+    def consolidate_learning_during_sleep(self) -> Dict[str, Any]:
+        """
+        Perform comprehensive learning consolidation during sleep phases.
+        This is the main method called by the sleep system.
+        """
+        print(f"🛏️ SLEEP CONSOLIDATION: Starting learning consolidation...")
+        
+        consolidation_results = {
+            'new_hypotheses_generated': 0,
+            'patterns_discovered': 0,
+            'recommendations_updated': 0,
+            'memory_optimization': {},
+            'learning_insights': []
+        }
+        
+        # Generate new hypotheses
+        new_hypotheses = self.generate_interaction_hypotheses()
+        consolidation_results['new_hypotheses_generated'] = len(new_hypotheses)
+        
+        # Discover new patterns
+        new_patterns = self._discover_interaction_patterns()
+        consolidation_results['patterns_discovered'] = len(new_patterns)
+        
+        # Update color behavior analysis
+        self._consolidate_color_behaviors()
+        
+        # Optimize memory usage
+        memory_stats = self._optimize_memory_usage()
+        consolidation_results['memory_optimization'] = memory_stats
+        
+        # Generate learning insights
+        insights = self._generate_learning_insights()
+        consolidation_results['learning_insights'] = insights
+        
+        # Update recommendations
+        recommendations = self.get_actionable_recommendations()
+        consolidation_results['recommendations_updated'] = len(recommendations)
+        
+        print(f"✅ SLEEP CONSOLIDATION COMPLETE:")
+        print(f"   📝 New hypotheses: {consolidation_results['new_hypotheses_generated']}")
+        print(f"   🔍 Patterns found: {consolidation_results['patterns_discovered']}")
+        print(f"   💡 Insights generated: {len(consolidation_results['learning_insights'])}")
+        print(f"   🎯 Active recommendations: {consolidation_results['recommendations_updated']}")
+        
+        return consolidation_results
+    
+    def _discover_interaction_patterns(self) -> List[Dict[str, Any]]:
+        """Discover new interaction patterns from recent data."""
+        if len(self.interaction_log) < 5:
+            return []
+        
+        patterns = []
+        
+        # Pattern 1: Sequential success patterns
+        recent_log = self.interaction_log[-20:]  # Last 20 interactions
+        success_sequences = []
+        current_sequence = []
+        
+        for record in recent_log:
+            is_successful = (record['interaction_result']['score_change'] > 0 or 
+                           len(record['interaction_result']['success_indicators']) > 0)
+            
+            if is_successful:
+                current_sequence.append(record)
+            else:
+                if len(current_sequence) >= 2:
+                    success_sequences.append(current_sequence)
+                current_sequence = []
+        
+        if len(current_sequence) >= 2:
+            success_sequences.append(current_sequence)
+        
+        for sequence in success_sequences:
+            if len(sequence) >= 3:  # Meaningful sequence
+                patterns.append({
+                    'type': 'success_sequence',
+                    'description': f'Found successful sequence of {len(sequence)} interactions',
+                    'sequence_data': {
+                        'length': len(sequence),
+                        'colors_involved': [r['visual_data']['dominant_color'] for r in sequence if 'dominant_color' in r.get('visual_data', {})],
+                        'coordinates': [r['visual_data']['coordinate'] for r in sequence if 'coordinate' in r.get('visual_data', {})]
+                    }
+                })
+        
+        return patterns
+    
+    def _consolidate_color_behaviors(self):
+        """Consolidate and refine color behavior patterns."""
+        for color in list(self.color_behavior_patterns.keys()):
+            pattern_data = self.color_behavior_patterns[color]
+            interactions = pattern_data['interactions']
+            
+            if len(interactions) < 2:
+                continue  # Need more data
+            
+            # Recalculate success rate
+            successful = sum(1 for i in interactions if i['was_successful'])
+            pattern_data['success_rate'] = successful / len(interactions)
+            
+            # Update common effects
+            effects = [i['effects'] for i in interactions if i['effects']]
+            all_effects = []
+            for effect_list in effects:
+                all_effects.extend(effect_list)
+            
+            if all_effects:
+                from collections import Counter
+                effect_counts = Counter(all_effects)
+                pattern_data['common_effects'] = [effect for effect, count in effect_counts.most_common(3)]
+    
+    def _optimize_memory_usage(self) -> Dict[str, Any]:
+        """Optimize memory by removing old/irrelevant data."""
+        initial_counts = {
+            'frame_history': len(self.frame_history),
+            'interaction_log': len(self.interaction_log),
+            'hypothesis_database': len(self.hypothesis_database)
+        }
+        
+        # Keep only last 100 frames
+        if len(self.frame_history) > 100:
+            self.frame_history = self.frame_history[-100:]
+        
+        # Keep only last 200 interactions
+        if len(self.interaction_log) > 200:
+            self.interaction_log = self.interaction_log[-200:]
+        
+        # Remove low-confidence old hypotheses
+        current_time = len(self.frame_history)
+        self.hypothesis_database = [
+            h for h in self.hypothesis_database
+            if h['confidence_score'] > 0.3 or (current_time - h.get('generated_at', 0)) < 50
+        ]
+        
+        final_counts = {
+            'frame_history': len(self.frame_history),
+            'interaction_log': len(self.interaction_log),
+            'hypothesis_database': len(self.hypothesis_database)
+        }
+        
+        return {
+            'initial_counts': initial_counts,
+            'final_counts': final_counts,
+            'memory_saved': {
+                'frame_history': initial_counts['frame_history'] - final_counts['frame_history'],
+                'interaction_log': initial_counts['interaction_log'] - final_counts['interaction_log'],
+                'hypothesis_database': initial_counts['hypothesis_database'] - final_counts['hypothesis_database']
+            }
+        }
+    
+    def _generate_learning_insights(self) -> List[str]:
+        """Generate high-level insights about learning progress."""
+        insights = []
+        
+        if len(self.interaction_log) < 5:
+            insights.append("Need more interaction data to generate meaningful insights")
+            return insights
+        
+        # Overall success trend
+        recent_success_rate = self._calculate_recent_success_rate()
+        overall_success_rate = self._calculate_overall_success_rate()
+        
+        if recent_success_rate > overall_success_rate * 1.2:
+            insights.append("🔥 Learning trend: Performance improving over time")
+        elif recent_success_rate < overall_success_rate * 0.8:
+            insights.append("⚠️ Learning trend: Recent performance decline - need strategy adjustment")
+        else:
+            insights.append("➡️ Learning trend: Performance stable")
+        
+        # Color strategy insights
+        best_colors = self._get_best_performing_colors()
+        if best_colors:
+            insights.append(f"🎨 Best performing colors: {', '.join(best_colors[:3])}")
+        
+        # Spatial strategy insights
+        if len(self.tried_coordinates) > 20:
+            coverage = len(self.tried_coordinates) / (80 * 80) * 100  # Assuming 80x80 grid
+            insights.append(f"🗺️ Frame exploration: {coverage:.1f}% coverage achieved")
+        
+        # Hypothesis quality
+        high_confidence_hypotheses = len([h for h in self.hypothesis_database if h['confidence_score'] > 0.7])
+        insights.append(f"💡 Knowledge base: {high_confidence_hypotheses} high-confidence hypotheses")
+        
+        return insights
+    
+    def _calculate_recent_success_rate(self, window_size: int = 10) -> float:
+        """Calculate success rate for recent interactions."""
+        if len(self.interaction_log) == 0:
+            return 0.0
+        
+        recent_log = self.interaction_log[-window_size:]
+        successes = sum(1 for record in recent_log 
+                       if (record['interaction_result']['score_change'] > 0 or 
+                           len(record['interaction_result']['success_indicators']) > 0))
+        
+        return successes / len(recent_log)
+    
+    def _calculate_overall_success_rate(self) -> float:
+        """Calculate overall success rate."""
+        if len(self.interaction_log) == 0:
+            return 0.0
+        
+        successes = sum(1 for record in self.interaction_log 
+                       if (record['interaction_result']['score_change'] > 0 or 
+                           len(record['interaction_result']['success_indicators']) > 0))
+        
+        return successes / len(self.interaction_log)
+    
+    def _get_best_performing_colors(self, min_interactions: int = 3) -> List[str]:
+        """Get list of best performing colors."""
+        color_performance = []
+        
+        for color, pattern_data in self.color_behavior_patterns.items():
+            if len(pattern_data['interactions']) >= min_interactions:
+                color_performance.append((color, pattern_data['success_rate']))
+        
+        color_performance.sort(key=lambda x: x[1], reverse=True)
+        return [color for color, rate in color_performance if rate > 0.5]
+    
+    def get_current_learning_state(self) -> Dict[str, Any]:
+        """Get comprehensive snapshot of current learning state."""
+        return {
+            'interaction_count': len(self.interaction_log),
+            'hypothesis_count': len(self.hypothesis_database),
+            'color_patterns_tracked': len(self.color_behavior_patterns),
+            'coordinates_explored': len(self.tried_coordinates),
+            'recent_success_rate': self._calculate_recent_success_rate(),
+            'overall_success_rate': self._calculate_overall_success_rate(),
+            'best_colors': self._get_best_performing_colors(),
+            'top_hypotheses': [h['description'] for h in sorted(self.hypothesis_database, 
+                                                               key=lambda x: x['confidence_score'], 
+                                                               reverse=True)[:3]],
+            'current_recommendations': len(self.get_actionable_recommendations()),
+            'learning_insights': self._generate_learning_insights()
+        }
 
     def analyze_frame(self, frame: List[List[List[int]]], game_id: str = None) -> Dict[str, Any]:
         """
