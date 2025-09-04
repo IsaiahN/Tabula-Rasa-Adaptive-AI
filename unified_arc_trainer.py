@@ -568,7 +568,7 @@ class UnifiedARCTrainer:
             return False
         
         try:
-            if self.config.mode == "adaptive-learning" or self.config.mode == "maximum-intelligence":
+            if self.config.mode == "maximum-intelligence":
                 return await self._run_maximum_intelligence_mode()
             elif self.config.mode == "research-lab":
                 return await self._run_research_lab_mode()
@@ -889,13 +889,13 @@ def create_parser():
         epilog="""
 Examples:
   # Maximum Intelligence mode (default) - ALL cognitive systems enabled
-  python unified_arc_trainer.py --mode maximum-intelligence --verbose
+  python unified_arc_trainer.py --verbose
   
-  # Maximum Intelligence with custom memory configuration
-  python unified_arc_trainer.py --mode maximum-intelligence --memory-size 1024 --memory-read-heads 8
+  # Maximum Intelligence with custom memory configuration  
+  python unified_arc_trainer.py --memory-size 1024 --memory-read-heads 8
   
-  # Maximum Intelligence with decay salience (default now)
-  python unified_arc_trainer.py --mode maximum-intelligence --salience decay_compression --salience-threshold 0.7
+  # Maximum Intelligence with custom action limit and salience
+  python unified_arc_trainer.py --max-actions 1000 --salience decay_compression --salience-threshold 0.7
   
   # Minimal Debug mode - essential features only
   python unified_arc_trainer.py --mode minimal-debug
@@ -913,8 +913,8 @@ Examples:
     
     # Core mode selection
     parser.add_argument('--mode', 
-                       choices=['maximum-intelligence', 'adaptive-learning', 'research-lab', 'quick-validation', 'showcase-demo', 'system-comparison', 'minimal-debug'],
-                       default='maximum-intelligence',  # MAXIMUM INTELLIGENCE IS NOW DEFAULT
+                       choices=['maximum-intelligence', 'research-lab', 'quick-validation', 'showcase-demo', 'system-comparison', 'minimal-debug'],
+                       default='maximum-intelligence',  # MAXIMUM INTELLIGENCE IS THE DEFAULT AND ONLY FULL-FEATURED MODE
                        help='Training mode (default: maximum-intelligence - all cognitive systems enabled)')
     
     # Debug and minimal modes for specific testing
