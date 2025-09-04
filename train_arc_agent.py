@@ -9,6 +9,7 @@ Single script with mode parameters to eliminate bloat:
 
 No multiple scripts, just one with parameters.
 Shows moves, memory operations, decay, consolidation with error alerts.
+Includes graceful shutdown and adaptive energy management.
 """
 
 import asyncio
@@ -17,7 +18,38 @@ import time
 import os
 import argparse
 import logging
+import signal
+import json
 from pathlib import Path
+from typing import Optional
+
+# Global flag for graceful shutdown
+shutdown_requested = False
+training_state = {}
+
+def signal_handler(signum, frame):
+    """Handle graceful shutdown signals."""
+    global shutdown_requested, training_state
+    shutdown_requested = True
+    
+    print(f"\n🛑 GRACEFUL SHUTDOWN REQUESTED (Signal: {signum})")
+    print("💾 Saving training state...")
+    
+    # Save current training state
+    try:
+        state_file = Path("training_state_backup.json")
+        with open(state_file, 'w') as f:
+            json.dump(training_state, f, indent=2)
+        print(f"✅ Training state saved to: {state_file}")
+    except Exception as e:
+        print(f"⚠️ Could not save training state: {e}")
+    
+    print("🔄 Training will complete current cycle and then stop.")
+    print("📊 Progress and data will be preserved.")
+
+# Register signal handlers
+signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+signal.signal(signal.SIGTERM, signal_handler)  # Termination request
 
 try:
     from arc_integration.continuous_learning_loop import ContinuousLearningLoop
@@ -786,7 +818,27 @@ class UnifiedTrainer:
             
             # Learning cycles (renamed from training iterations)
             for cycle in range(1, self.max_learning_cycles + 1):  # Updated naming
+                # Check for graceful shutdown request
+                if shutdown_requested:
+                    print(f"\n🛑 GRACEFUL SHUTDOWN: Stopping after cycle {cycle-1}")
+                    break
+                    
                 self.training_cycles = cycle  # Updated variable name
+                
+                # Update global training state for shutdown handling
+                global training_state
+                training_state.update({
+                    'current_cycle': cycle,
+                    'total_cycles': self.max_learning_cycles,
+                    'training_games': training_games,
+                    'best_performance': self.best_performance,
+                    'scorecard_id': self.scorecard_id,
+                    'session_config': {
+                        'salience_mode': salience_mode.value,
+                        'max_actions_per_session': self.max_actions_per_session,
+                        'enable_contrarian_mode': self.enable_contrarian_mode
+                    }
+                })
                 
                 print(f"\n🚀 LEARNING CYCLE {cycle}/{self.max_learning_cycles}")  # Updated naming
                 print("="*40)
@@ -888,9 +940,18 @@ class UnifiedTrainer:
         return await self.demo_runner.run_demo(demo_type)
     
     async def _run_with_error_handling(self, session_id: str):
-        """Run session with comprehensive error handling."""
+        """Run session with comprehensive error handling and graceful shutdown support."""
         try:
-            return await self.continuous_loop.run_continuous_learning(session_id)
+            # Check for shutdown before starting session
+            if shutdown_requested:
+                print(f"🛑 SHUTDOWN REQUESTED: Skipping session {session_id}")
+                return None
+                
+            print(f"▶️  Starting session {session_id}...")
+            
+            # Run with periodic shutdown checks
+            return await self._run_session_with_shutdown_checks(session_id)
+            
         except KeyboardInterrupt:
             print(f"🛑 USER INTERRUPTED TRAINING")
             raise
@@ -899,6 +960,25 @@ class UnifiedTrainer:
             print(f"   Error Type: {type(e).__name__}")
             print(f"   Session ID: {session_id}")
             return None
+    
+    async def _run_session_with_shutdown_checks(self, session_id: str):
+        """Run session with periodic checks for graceful shutdown."""
+        # This would ideally be integrated into the continuous learning loop
+        # For now, we'll run the session normally but check afterwards
+        
+        if shutdown_requested:
+            print(f"🛑 SHUTDOWN DETECTED: Stopping session {session_id}")
+            return {'shutdown_requested': True, 'session_id': session_id}
+        
+        # Run the actual training session
+        result = await self.continuous_loop.run_continuous_learning(session_id)
+        
+        # Check again after completion
+        if shutdown_requested:
+            print(f"🛑 SHUTDOWN COMPLETED: Session {session_id} finished before shutdown")
+            result['graceful_shutdown'] = True
+        
+        return result
     
     def _show_verbose_status(self):
         """Show detailed verbose status information."""

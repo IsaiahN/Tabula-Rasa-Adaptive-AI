@@ -43,6 +43,7 @@ from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeigh
 from core.sleep_system import SleepCycle
 from core.agent import AdaptiveLearningAgent
 from core.predictive_core import PredictiveCore
+from core.adaptive_energy_system import AdaptiveEnergySystem, EnergyConfig, EnergySystemIntegration
 from goals.goal_system import GoalInventionSystem, GoalPhase
 from core.energy_system import EnergySystem
 from memory.dnc import DNCMemory
@@ -276,6 +277,26 @@ class ContinuousLearningLoop:
         except Exception as e:
             logger.warning(f"⚠️ Could not initialize enhanced sleep system: {e}")
             self.sleep_system = None
+        
+        # Initialize adaptive energy system for smart sleep triggers and action management
+        try:
+            energy_config = EnergyConfig(
+                max_energy=100.0,
+                base_depletion_rate=0.02,  # Base rate for unlimited actions
+                action_based_depletion=0.1,  # Rate for limited actions 
+                sleep_trigger_threshold=40.0,  # Default threshold
+                time_based_sleep_interval=5.0,  # Sleep every 5 minutes for unlimited actions
+                min_time_interval=2.0,  # Minimum 2 minutes between sleeps
+                max_time_interval=15.0  # Maximum 15 minutes between sleeps
+            )
+            
+            self.adaptive_energy = AdaptiveEnergySystem(energy_config)
+            self.energy_integration = EnergySystemIntegration(self, self.adaptive_energy)
+            logger.info("✅ Adaptive energy system initialized for intelligent sleep scheduling")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not initialize adaptive energy system: {e}")
+            self.adaptive_energy = None
+            self.energy_integration = None
         
         # Training state
         self.current_session: Optional[TrainingSession] = None
@@ -5153,6 +5174,21 @@ class ContinuousLearningLoop:
             compression_threshold=0.15
         )
         
+        # Configure adaptive energy system for this session
+        if self.energy_integration:
+            session_config = {
+                'max_actions_per_session': max_actions_per_session,
+                'estimated_duration_minutes': 30 if max_actions_per_session < 10000 else 60,  # Estimate based on actions
+                'games_count': len(games),
+                'salience_mode': salience_mode,
+                'enable_contrarian_mode': enable_contrarian_mode
+            }
+            
+            # Integrate adaptive energy with session
+            updated_config = self.energy_integration.integrate_with_training_session(session_config)
+            logger.info(f"Adaptive energy configured: threshold={updated_config.get('adaptive_sleep_threshold', 40):.1f}, "
+                       f"interval={updated_config.get('adaptive_sleep_interval', 5):.1f}min")
+        
         # Display session startup information
         self._display_session_startup_info(session_id, games, salience_mode)
         
@@ -5612,6 +5648,21 @@ class ContinuousLearningLoop:
         
         # Apply success multiplier for memory prioritization
         final_effectiveness = base_effectiveness * success_multiplier
+        
+        # Update adaptive energy system with session performance
+        if self.energy_integration:
+            success = session_result.get('success', False)
+            score_improvement = current_score - session_result.get('initial_score', 0)
+            
+            energy_update = self.energy_integration.update_during_training(
+                actions_taken=actions_taken,
+                success=success,
+                score_improvement=score_improvement
+            )
+            
+            # Check if adaptive energy triggered sleep
+            if energy_update.get('sleep_triggered', False):
+                logger.info(f"🌙 Adaptive energy triggered sleep: {energy_update['sleep_reason']}")
         
         return min(final_effectiveness, 5.0)  # Cap but allow high values for wins
     
