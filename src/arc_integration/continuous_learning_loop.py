@@ -261,6 +261,22 @@ class ContinuousLearningLoop:
         # Initialize energy system for proper sleep cycle management
         self.energy_system = EnergySystem()
         
+        # Initialize enhanced sleep system for memory consolidation and strategic learning
+        try:
+            from core.predictive_core import PredictiveCore
+            # Create a minimal predictive core for sleep system (if needed)
+            self.sleep_system = SleepCycle(
+                predictive_core=None,  # Will be set to None for now, can be enhanced later
+                sleep_trigger_energy=40.0,  # Trigger sleep at 40% energy
+                sleep_trigger_boredom_steps=50,  # More frequent sleep for rapid consolidation
+                sleep_duration_steps=20,  # Shorter but more focused sleep cycles
+                use_salience_weighting=True
+            )
+            logger.info("✅ Enhanced sleep system initialized for memory consolidation")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not initialize enhanced sleep system: {e}")
+            self.sleep_system = None
+        
         # Training state
         self.current_session: Optional[TrainingSession] = None
         self.session_history: List[Dict[str, Any]] = []
@@ -7704,28 +7720,52 @@ class ContinuousLearningLoop:
             }
             
             # Execute enhanced sleep cycle using our updated sleep system
-            # Sleep system not available in ContinuousLearningLoop - skip sleep cycle
-            if False:  # Disabled: sleep system not available
-                pass  # Sleep operations disabled
+            if hasattr(self, 'sleep_system') and self.sleep_system is not None:
+                # Initialize sleep system if needed
+                if not hasattr(self.sleep_system, 'is_sleeping'):
+                    logger.warning("Sleep system not properly initialized, using fallback")
+                    await asyncio.sleep(0.5)
+                    return self._fallback_sleep_result()
+                
+                # Enter sleep mode
+                fake_agent_state = type('AgentState', (), {'energy': self.current_energy})()
+                self.sleep_system.enter_sleep(fake_agent_state)
+                
+                # Create minimal replay buffer from recent actions
+                replay_buffer = self._create_replay_buffer_from_actions(action_history)
+                
+                # Execute enhanced sleep cycle
+                print(f"🌙 ENHANCED SLEEP CONSOLIDATION STARTING...")
+                sleep_result = self.sleep_system.execute_sleep_cycle(
+                    replay_buffer=replay_buffer,
+                    arc_data=arc_data,
+                    goal_data=goal_data
+                )
+                
+                # Wake up from sleep
+                wake_result = self.sleep_system.wake_up()
                 
                 # Update sleep cycle counter
                 self.global_counters['total_sleep_cycles'] = self.global_counters.get('total_sleep_cycles', 0) + 1
                 
+                print(f"🌅 ENHANCED SLEEP COMPLETE - Patterns: {sleep_result.get('failed_patterns_identified', 0)} failed, "
+                     f"{sleep_result.get('successful_patterns_strengthened', 0)} successful, "
+                     f"Strategies: {sleep_result.get('diversification_strategies_created', 0)}")
+                
                 return {
                     'success': True,
+                    'sleep_type': 'enhanced_consolidation',
                     'sleep_cycles_completed': self.global_counters['total_sleep_cycles'],
                     'arc_data_processed': len(arc_data['action_effectiveness']),
                     'coordinate_patterns_analyzed': len(arc_data['coordinate_intelligence']['successful_coordinates']),
-                    'sleep_system_result': sleep_result
+                    'sleep_system_result': sleep_result,
+                    'wake_result': wake_result,
+                    'failed_patterns_identified': sleep_result.get('failed_patterns_identified', 0),
+                    'successful_patterns_strengthened': sleep_result.get('successful_patterns_strengthened', 0),
+                    'diversification_strategies_created': sleep_result.get('diversification_strategies_created', 0)
                 }
             else:
-                # Fallback to basic sleep
-                await asyncio.sleep(0.5)  # Brief pause
-                return {
-                    'success': True,
-                    'sleep_type': 'fallback',
-                    'note': 'Agent sleep system not available, used basic pause'
-                }
+                return self._fallback_sleep_result()
                 
         except Exception as e:
             logger.error(f"Enhanced sleep cycle error: {e}")
@@ -7734,6 +7774,63 @@ class ContinuousLearningLoop:
                 'error': str(e),
                 'fallback_executed': True
             }
+    
+    def _fallback_sleep_result(self) -> Dict[str, Any]:
+        """Fallback sleep result when enhanced sleep system is not available."""
+        return {
+            'success': True,
+            'sleep_type': 'fallback',
+            'note': 'Agent sleep system not available, used basic pause'
+        }
+    
+    def _create_replay_buffer_from_actions(self, action_history: List[Dict]) -> List:
+        """Create a minimal replay buffer from action history for sleep system."""
+        try:
+            from core.data_models import Experience, AgentState, SensoryInput
+            import torch
+            
+            replay_buffer = []
+            
+            for i, action_data in enumerate(action_history[-50:]):  # Last 50 actions
+                try:
+                    # Create minimal states for experience
+                    current_state = AgentState(
+                        visual=torch.randn(3, 64, 64),  # Placeholder visual
+                        proprioception=torch.tensor([
+                            action_data.get('coordinates', [0, 0])[0] if action_data.get('coordinates') else 0,
+                            action_data.get('coordinates', [0, 0])[1] if action_data.get('coordinates') else 0
+                        ], dtype=torch.float32),
+                        energy_level=action_data.get('energy', 50.0),
+                        timestamp=i
+                    )
+                    
+                    next_state = AgentState(
+                        visual=torch.randn(3, 64, 64),  # Placeholder visual
+                        proprioception=current_state.proprioception + torch.randn(2) * 0.1,
+                        energy_level=max(0, current_state.energy_level - 0.5),
+                        timestamp=i + 1
+                    )
+                    
+                    # Create experience
+                    experience = Experience(
+                        state=current_state,
+                        action=action_data.get('action', 1),
+                        reward=action_data.get('after_score', 0) - action_data.get('before_score', 0),
+                        next_state=next_state,
+                        learning_progress=action_data.get('effective', 0) * 0.5 if action_data.get('effective') is not None else 0.0
+                    )
+                    
+                    replay_buffer.append(experience)
+                    
+                except Exception as e:
+                    logger.debug(f"Failed to create experience from action {i}: {e}")
+                    continue
+            
+            return replay_buffer
+            
+        except ImportError:
+            logger.warning("Could not import required classes for replay buffer creation")
+            return []
     
     def _analyze_action_patterns(self, action_history: List[Dict]) -> Dict[str, Any]:
         """Analyze patterns in action history for sleep system integration."""

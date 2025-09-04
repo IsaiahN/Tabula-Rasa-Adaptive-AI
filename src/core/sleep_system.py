@@ -68,11 +68,14 @@ class SleepCycle:
         self.replay_buffer = deque(maxlen=10000)
         self.high_error_buffer = deque(maxlen=1000)
         
-        # Optimizer for offline learning
-        self.sleep_optimizer = optim.Adam(
-            self.predictive_core.parameters(),
-            lr=learning_rate
-        )
+        # Optimizer for offline learning (only if we have a predictive core)
+        if self.predictive_core is not None:
+            self.sleep_optimizer = optim.Adam(
+                self.predictive_core.parameters(),
+                lr=learning_rate
+            )
+        else:
+            self.sleep_optimizer = None
         
         # Sleep metrics
         self.sleep_metrics = {
@@ -133,7 +136,8 @@ class SleepCycle:
         logger.info("Agent entering sleep mode")
         
         # Set predictive core to training mode for sleep learning
-        self.predictive_core.train()
+        if self.predictive_core is not None:
+            self.predictive_core.train()
         
     def _integrate_goal_system_data(self, goal_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -189,7 +193,7 @@ class SleepCycle:
         
     def execute_sleep_cycle(self, replay_buffer: List[Experience], arc_data: Optional[Dict[str, Any]] = None, goal_data: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
         """
-        Execute one sleep cycle with offline learning and enhanced data integration.
+        Execute one sleep cycle with enhanced memory consolidation and strategic diversification.
         
         Args:
             replay_buffer: Experiences for replay learning
@@ -208,55 +212,61 @@ class SleepCycle:
             'memory_operations': 0,
             'consolidation_score': 0.0,
             'arc_data_integrated': False,
-            'goal_data_integrated': False
+            'goal_data_integrated': False,
+            'failed_patterns_identified': 0,
+            'successful_patterns_strengthened': 0,
+            'diversification_strategies_created': 0
         }
         
-        # Phase 1: Memory Decay and Compression (if enabled)
+        logger.info("🌙 ENHANCED SLEEP CONSOLIDATION - Starting memory consolidation and strategic diversification...")
+        
+        # Phase 1: Failed Pattern Analysis & Strategic Diversification
+        diversification_results = self._analyze_failed_patterns_and_create_diversification_strategies(replay_buffer, arc_data)
+        sleep_results.update(diversification_results)
+        
+        # Phase 2: Memory Decay and Compression (if enabled)
         compression_results = {'decayed': 0, 'compressed': 0, 'merged': 0}
         if hasattr(self, 'salience_calculator'):
             compression_results = self._process_memory_decay_and_compression(
                 self.salience_calculator, time.time()
             )
         
-        # Phase 2: Salience-Weighted Experience Replay
+        # Phase 3: Priority-Based Experience Replay
         if self.use_salience_weighting:
-            replay_results = self._salience_weighted_replay()
+            replay_results = self._priority_based_experience_replay()
         else:
             replay_results = self._replay_experiences(replay_buffer)
         sleep_results.update(replay_results)
         
-        # Phase 3: Object Encoding Enhancement
+        # Phase 4: Object Encoding Enhancement
         encoding_results = self._enhance_object_encodings(replay_buffer)
         sleep_results.update(encoding_results)
         
         # Add compression results to sleep results
         sleep_results['compression_results'] = compression_results
         
-        # Phase 3: Enhanced Memory Consolidation with ARC-3 Integration
-        if self.predictive_core.use_memory:
+        # Phase 5: Enhanced Memory Consolidation with Strategic Pattern Learning
+        if self.predictive_core and self.predictive_core.use_memory:
             if self.use_salience_weighting:
-                # Try ARC-aware consolidation first
-                arc_consolidation_results = self._arc_aware_memory_consolidation()
-                if arc_consolidation_results.get('arc_specific_consolidations', 0) > 0:
-                    # Use ARC-aware results if we had ARC-specific data
-                    consolidation_results = arc_consolidation_results
-                    sleep_results['arc_data_integrated'] = True
-                    logger.info("Used ARC-aware memory consolidation during sleep")
-                else:
-                    # Fall back to salience-based consolidation
-                    consolidation_results = self._salience_based_memory_consolidation()
+                # Try ARC-aware consolidation with strategic learning
+                consolidation_results = self._strategic_arc_aware_memory_consolidation(arc_data)
+                sleep_results['arc_data_integrated'] = True
+                logger.info("✅ Used strategic ARC-aware memory consolidation during sleep")
             else:
                 consolidation_results = self._consolidate_memory_with_meta_learning()
             sleep_results.update(consolidation_results)
+        elif not self.predictive_core:
+            logger.warning("⚠️ Skipping memory consolidation - no predictive core available")
+            sleep_results['consolidation_skipped'] = 'no_predictive_core'
         
-        # Phase 4: Goal System Integration
+        # Phase 6: Goal System Integration with Strategic Context
         if goal_data:
-            goal_integration_results = self._integrate_goal_system_data(goal_data)
+            goal_integration_results = self._strategic_goal_system_integration(goal_data, arc_data)
             sleep_results.update(goal_integration_results)
             sleep_results['goal_data_integrated'] = True
             
-        # Phase 5: Dream Generation (optional)
-        dream_results = self._generate_dreams()
+        # Phase 7: Dream Generation for Strategic Exploration
+        dream_results = self._generate_strategic_dreams(arc_data)
         sleep_results.update(dream_results)
         
         # Update sleep metrics
@@ -264,8 +274,9 @@ class SleepCycle:
         self.sleep_metrics['memory_consolidations'] += 1
         
         # Log enhanced sleep cycle completion
-        logger.info(f"Sleep cycle completed - ARC integration: {sleep_results['arc_data_integrated']}, "
-                   f"Goal integration: {sleep_results['goal_data_integrated']}")
+        logger.info(f"🌅 ENHANCED SLEEP COMPLETE - Failed patterns: {sleep_results['failed_patterns_identified']}, "
+                   f"Successful patterns: {sleep_results['successful_patterns_strengthened']}, "
+                   f"Diversification strategies: {sleep_results['diversification_strategies_created']}")
         
         return sleep_results
         
@@ -634,7 +645,7 @@ class SleepCycle:
         Returns:
             consolidation_results: Results of ARC-aware consolidation
         """
-        if not self.predictive_core.use_memory or self.predictive_core.memory is None:
+        if not self.predictive_core or not self.predictive_core.use_memory or self.predictive_core.memory is None:
             return {'memory_operations': 0}
             
         # Get memory metrics before consolidation
@@ -731,7 +742,7 @@ class SleepCycle:
         Returns:
             consolidation_results: Results of memory consolidation
         """
-        if not self.predictive_core.use_memory or self.predictive_core.memory is None:
+        if not self.predictive_core or not self.predictive_core.use_memory or self.predictive_core.memory is None:
             return {'memory_operations': 0}
             
         # Get memory metrics before consolidation
@@ -798,7 +809,7 @@ class SleepCycle:
         Returns:
             consolidation_results: Results of salience-based consolidation
         """
-        if not self.predictive_core.use_memory or self.predictive_core.memory is None:
+        if not self.predictive_core or not self.predictive_core.use_memory or self.predictive_core.memory is None:
             return {'memory_operations': 0}
             
         # Get memory metrics before consolidation
@@ -902,7 +913,7 @@ class SleepCycle:
         dream_sequences = 0
         
         # Generate a few synthetic sequences by sampling from memory
-        if self.predictive_core.use_memory and self.predictive_core.memory is not None:
+        if self.predictive_core and self.predictive_core.use_memory and self.predictive_core.memory is not None:
             # Sample from memory to create dream sequences
             for _ in range(5):  # Generate 5 dream sequences
                 # This is a placeholder - real implementation would be more complex
@@ -911,6 +922,502 @@ class SleepCycle:
         return {
             'dream_sequences': dream_sequences
         }
+        
+    def _analyze_failed_patterns_and_create_diversification_strategies(self, replay_buffer: List[Experience], arc_data: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
+        """
+        Analyze failed action patterns and create strategic diversification protocols.
+        
+        This identifies repetitive failures (like stuck ACTION6 at same coordinate) 
+        and creates diversification strategies to escape such patterns.
+        
+        Args:
+            replay_buffer: Recent experiences to analyze
+            arc_data: ARC-specific data for pattern analysis
+            
+        Returns:
+            diversification_results: Results of pattern analysis and strategy creation
+        """
+        failed_patterns_identified = 0
+        diversification_strategies_created = 0
+        
+        if not replay_buffer:
+            return {
+                'failed_patterns_identified': 0,
+                'diversification_strategies_created': 0
+            }
+        
+        # Analyze repetitive failed patterns
+        action_coordinate_patterns = {}
+        coordinate_failure_counts = {}
+        
+        for exp in replay_buffer[-200:]:  # Analyze recent 200 experiences
+            if hasattr(exp, 'action') and hasattr(exp, 'state'):
+                action_id = exp.action
+                
+                # Extract coordinates if this is ACTION6 (coordinate-based)
+                if action_id == 6 and hasattr(exp.state, 'proprioception'):
+                    # Assume proprioception contains coordinate info
+                    coord_tensor = exp.state.proprioception
+                    if len(coord_tensor.shape) >= 1 and coord_tensor.numel() >= 2:
+                        x_coord = int(coord_tensor[0].item()) if coord_tensor[0].numel() == 1 else int(coord_tensor[0, 0].item())
+                        y_coord = int(coord_tensor[1].item()) if coord_tensor[1].numel() == 1 else int(coord_tensor[0, 1].item())
+                        coord_key = (x_coord, y_coord)
+                        
+                        # Track coordinate usage patterns
+                        if coord_key not in action_coordinate_patterns:
+                            action_coordinate_patterns[coord_key] = {'attempts': 0, 'successes': 0, 'failures': 0}
+                        
+                        action_coordinate_patterns[coord_key]['attempts'] += 1
+                        
+                        # Check if this was a failure (no learning progress or negative reward)
+                        if exp.learning_progress <= 0 and exp.reward <= 0:
+                            action_coordinate_patterns[coord_key]['failures'] += 1
+                            
+                            # Track coordinate failure streaks
+                            if coord_key not in coordinate_failure_counts:
+                                coordinate_failure_counts[coord_key] = 0
+                            coordinate_failure_counts[coord_key] += 1
+                        else:
+                            action_coordinate_patterns[coord_key]['successes'] += 1
+                            coordinate_failure_counts[coord_key] = 0  # Reset failure streak
+        
+        # Identify problematic patterns (stuck coordinates with high failure rates)
+        problematic_coordinates = []
+        for coord, pattern_data in action_coordinate_patterns.items():
+            failure_rate = pattern_data['failures'] / max(pattern_data['attempts'], 1)
+            failure_count = coordinate_failure_counts.get(coord, 0)
+            
+            # Mark as problematic if high failure rate AND recent consecutive failures
+            if failure_rate > 0.8 and failure_count > 10:  # >80% failure rate with 10+ consecutive failures
+                problematic_coordinates.append({
+                    'coordinate': coord,
+                    'failure_rate': failure_rate,
+                    'consecutive_failures': failure_count,
+                    'total_attempts': pattern_data['attempts']
+                })
+                failed_patterns_identified += 1
+        
+        # Create diversification strategies for problematic patterns
+        diversification_strategies = []
+        
+        for prob_coord in problematic_coordinates:
+            coord = prob_coord['coordinate']
+            
+            # Strategy 1: Coordinate Exploration Ring - try coordinates around the stuck point
+            exploration_ring = []
+            x, y = coord
+            for dx in [-2, -1, 0, 1, 2]:
+                for dy in [-2, -1, 0, 1, 2]:
+                    if dx != 0 or dy != 0:  # Skip the problematic coordinate itself
+                        new_coord = (max(0, x + dx), max(0, y + dy))
+                        exploration_ring.append(new_coord)
+            
+            diversification_strategies.append({
+                'type': 'coordinate_exploration_ring',
+                'problematic_coordinate': coord,
+                'alternative_coordinates': exploration_ring[:8],  # Top 8 alternatives
+                'priority': prob_coord['consecutive_failures'] / 100.0  # Higher failures = higher priority
+            })
+            
+            # Strategy 2: Systematic Grid Search - if ring fails, try systematic exploration
+            diversification_strategies.append({
+                'type': 'systematic_grid_search',
+                'problematic_coordinate': coord,
+                'search_pattern': 'corners_then_center_then_edges',
+                'priority': 0.5
+            })
+            
+            # Strategy 3: Visual-Based Alternative Selection - use frame analysis for better coordinates
+            diversification_strategies.append({
+                'type': 'visual_based_diversification',
+                'problematic_coordinate': coord,
+                'requires_frame_analysis': True,
+                'diversification_threshold': prob_coord['consecutive_failures'],
+                'priority': 0.8
+            })
+            
+            diversification_strategies_created += len([s for s in diversification_strategies if s['problematic_coordinate'] == coord])
+        
+        # Store diversification strategies for use during action selection
+        if not hasattr(self, 'diversification_strategies'):
+            self.diversification_strategies = {}
+        
+        for strategy in diversification_strategies:
+            prob_coord = strategy['problematic_coordinate']
+            if prob_coord not in self.diversification_strategies:
+                self.diversification_strategies[prob_coord] = []
+            self.diversification_strategies[prob_coord].append(strategy)
+        
+        logger.info(f"🔍 PATTERN ANALYSIS: Identified {failed_patterns_identified} failed patterns, "
+                   f"created {diversification_strategies_created} diversification strategies")
+        
+        return {
+            'failed_patterns_identified': failed_patterns_identified,
+            'diversification_strategies_created': diversification_strategies_created,
+            'problematic_coordinates': problematic_coordinates,
+            'diversification_strategies': diversification_strategies
+        }
+        
+    def _priority_based_experience_replay(self) -> Dict[str, float]:
+        """
+        Enhanced experience replay with priority-based selection focusing on:
+        1. High-salience breakthrough experiences (massive replay)
+        2. Recent failed patterns (for learning what NOT to do)
+        3. Successful strategy patterns (for reinforcement)
+        
+        Returns:
+            replay_results: Results of priority-based replay
+        """
+        if not self.use_salience_weighting or not hasattr(self, 'salience_replay_buffer'):
+            return {'experiences_processed': 0, 'avg_loss': 0.0}
+        
+        # Priority 1: Get breakthrough experiences (salience > 0.8)
+        breakthrough_experiences = self.salience_replay_buffer.sample_by_salience_threshold(0.8, limit=50)
+        
+        # Priority 2: Get recent failure patterns (salience 0.1-0.4, recent timestamp)
+        recent_failures = self.salience_replay_buffer.sample_recent_low_salience(
+            min_salience=0.1, max_salience=0.4, limit=30
+        )
+        
+        # Priority 3: Get successful patterns (salience 0.6-0.8)
+        successful_patterns = self.salience_replay_buffer.sample_by_salience_threshold(0.6, limit=40)
+        
+        # Combine with priority weighting
+        priority_experiences = []
+        
+        # Add breakthrough experiences with highest replay weight (3x normal)
+        for exp in breakthrough_experiences:
+            priority_experiences.append({
+                'experience': exp,
+                'replay_weight': 3.0,
+                'priority_type': 'breakthrough'
+            })
+        
+        # Add failure patterns with moderate replay weight (2x normal) - learn what NOT to do
+        for exp in recent_failures:
+            priority_experiences.append({
+                'experience': exp,
+                'replay_weight': 2.0,
+                'priority_type': 'failure_pattern'
+            })
+        
+        # Add successful patterns with normal replay weight (1.5x normal)
+        for exp in successful_patterns:
+            priority_experiences.append({
+                'experience': exp,
+                'replay_weight': 1.5,
+                'priority_type': 'successful_pattern'
+            })
+        
+        if not priority_experiences:
+            return {'experiences_processed': 0, 'avg_loss': 0.0}
+        
+        total_loss = 0.0
+        num_batches = 0
+        breakthrough_replays = 0
+        failure_replays = 0
+        success_replays = 0
+        
+        # Process experiences in priority order
+        for priority_exp in priority_experiences[:self.sleep_duration_steps]:
+            salient_exp = priority_exp['experience']
+            replay_weight = priority_exp['replay_weight']
+            priority_type = priority_exp['priority_type']
+            
+            experience = salient_exp.experience_data['experience']
+            
+            # Extract states
+            if not hasattr(experience, 'state') or not hasattr(experience, 'next_state'):
+                continue
+                
+            state = experience.state
+            next_state = experience.next_state
+            
+            # Create batch (single experience per batch for priority replay)
+            batch_visual = state.visual.unsqueeze(0)
+            batch_proprio = state.proprioception.unsqueeze(0)
+            batch_energy = [state.energy_level]
+            
+            # Create batched sensory input
+            from .data_models import SensoryInput
+            batched_input = SensoryInput(
+                visual=batch_visual,
+                proprioception=batch_proprio,
+                energy_level=batch_energy[0],
+                timestamp=state.timestamp
+            )
+            
+            # Forward pass
+            visual_pred, proprio_pred, energy_pred, _, _ = self.predictive_core(batched_input)
+            
+            # Compute loss against next state
+            target_visual = next_state.visual.unsqueeze(0)
+            target_proprio = next_state.proprioception.unsqueeze(0)
+            target_energy = torch.tensor([[next_state.energy_level / 100.0]])
+            
+            # Multi-modal loss with priority weighting
+            visual_loss = nn.MSELoss()(visual_pred, target_visual)
+            proprio_loss = nn.MSELoss()(proprio_pred, target_proprio)
+            energy_loss = nn.MSELoss()(energy_pred, target_energy.to(energy_pred.device))
+            
+            # Apply priority weighting to loss
+            total_loss_batch = replay_weight * (0.5 * visual_loss + 0.3 * proprio_loss + 0.2 * energy_loss)
+            
+            # Multiple backward passes for high-priority experiences
+            replay_iterations = max(1, int(replay_weight))
+            for _ in range(replay_iterations):
+                self.sleep_optimizer.zero_grad()
+                total_loss_batch.backward(retain_graph=True)
+                
+                # Gradient clipping
+                torch.nn.utils.clip_grad_norm_(self.predictive_core.parameters(), 1.0)
+                
+                self.sleep_optimizer.step()
+            
+            total_loss += total_loss_batch.item()
+            num_batches += 1
+            
+            # Track priority type counts
+            if priority_type == 'breakthrough':
+                breakthrough_replays += 1
+            elif priority_type == 'failure_pattern':
+                failure_replays += 1
+            elif priority_type == 'successful_pattern':
+                success_replays += 1
+        
+        avg_loss = total_loss / max(num_batches, 1)
+        
+        logger.info(f"💡 PRIORITY REPLAY: {breakthrough_replays} breakthrough, "
+                   f"{failure_replays} failure patterns, {success_replays} successful patterns")
+        
+        return {
+            'experiences_processed': len(priority_experiences),
+            'avg_loss': avg_loss,
+            'breakthrough_replays': breakthrough_replays,
+            'failure_pattern_replays': failure_replays,
+            'successful_pattern_replays': success_replays
+        }
+        
+    def _strategic_arc_aware_memory_consolidation(self, arc_data: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+        """
+        Strategic memory consolidation that learns from both successes AND failures in ARC tasks.
+        
+        This enhanced consolidation:
+        1. MASSIVELY strengthens memories of successful strategies
+        2. Creates "anti-patterns" from repeated failures to avoid them
+        3. Builds strategic memory maps for coordinate selection
+        
+        Args:
+            arc_data: ARC-specific contextual data
+            
+        Returns:
+            consolidation_results: Enhanced consolidation results
+        """
+        if not self.predictive_core or not self.predictive_core.use_memory or self.predictive_core.memory is None:
+            return {'memory_operations': 0}
+            
+        # Get memory metrics before consolidation
+        memory_metrics_before = self.predictive_core.memory.get_memory_metrics()
+        
+        consolidation_operations = 0
+        successful_patterns_strengthened = 0
+        failure_patterns_processed = 0
+        anti_patterns_created = 0
+        
+        # Enhanced consolidation using strategic pattern analysis
+        memory_matrix = self.predictive_core.memory.memory_matrix
+        usage_vector = self.predictive_core.memory.usage_vector
+        
+        # Create strategic memory maps
+        success_memory_map = torch.zeros_like(usage_vector)
+        failure_memory_map = torch.zeros_like(usage_vector)
+        
+        # Process ARC-specific experiences in replay buffer with strategic analysis
+        for experience in self.salience_replay_buffer.experiences:
+            exp_data = experience.experience_data
+            salience = experience.salience_value
+            
+            # Extract core experience
+            core_experience = exp_data.get('experience')
+            if not core_experience:
+                continue
+                
+            learning_progress = getattr(core_experience, 'learning_progress', 0.0)
+            reward = getattr(core_experience, 'reward', 0.0)
+            
+            # Classify experience as success or failure
+            is_success = learning_progress > 0.1 or reward > 0.5
+            is_failure = learning_progress <= 0 and reward <= 0
+            
+            # Process successful patterns - MASSIVE STRENGTHENING
+            if is_success and salience > 0.6:
+                successful_patterns_strengthened += 1
+                
+                # Apply massive strengthening to successful high-salience memories
+                success_locations = usage_vector > 0.2
+                if success_locations.any():
+                    # Strategic success boost: higher salience = more strengthening
+                    success_multiplier = 1.0 + salience * 3.0  # Up to 4x strengthening for breakthrough discoveries
+                    success_memory_map[success_locations] = torch.max(
+                        success_memory_map[success_locations],
+                        torch.tensor(success_multiplier)
+                    )
+                    consolidation_operations += 1
+                    
+                # Extra strengthening for ARC-specific successful patterns
+                if 'arc_action_effectiveness' in exp_data:
+                    action_effectiveness = exp_data['arc_action_effectiveness']
+                    for action_id, effectiveness_data in action_effectiveness.items():
+                        success_rate = effectiveness_data.get('success_rate', 0.0)
+                        if success_rate > 0.8:  # Highly successful actions get even MORE strengthening
+                            extra_boost_locations = usage_vector > 0.15
+                            if extra_boost_locations.any():
+                                extra_multiplier = 1.0 + success_rate * 2.0
+                                success_memory_map[extra_boost_locations] = torch.max(
+                                    success_memory_map[extra_boost_locations],
+                                    torch.tensor(extra_multiplier)
+                                )
+            
+            # Process failure patterns - CREATE ANTI-PATTERNS
+            elif is_failure and salience > 0.2:  # Even moderate-salience failures are important to learn from
+                failure_patterns_processed += 1
+                
+                # Create anti-patterns: memories that signal "DON'T do this again"
+                failure_locations = usage_vector > 0.1
+                if failure_locations.any():
+                    # Create inhibitory memory patterns for failures
+                    failure_memory_map[failure_locations] = torch.max(
+                        failure_memory_map[failure_locations],
+                        torch.tensor(0.8)  # Strong inhibitory signal
+                    )
+                    anti_patterns_created += 1
+                    
+                # Special processing for repetitive coordinate failures (like stuck ACTION6)
+                if 'arc_action_semantics' in exp_data:
+                    action_semantics = exp_data['arc_action_semantics']
+                    if action_semantics.get('action_type') == 'coordinate_placement':
+                        # Mark these coordinates as problematic in memory
+                        coordinate_locations = usage_vector > 0.05
+                        if coordinate_locations.any():
+                            failure_memory_map[coordinate_locations] = torch.max(
+                                failure_memory_map[coordinate_locations],
+                                torch.tensor(0.9)  # Very strong "avoid this" signal
+                            )
+        
+        # Apply strategic memory consolidation
+        if consolidation_operations > 0:
+            # MASSIVE strengthening of successful patterns
+            success_mask = success_memory_map > 1.5
+            if success_mask.any():
+                memory_matrix[success_mask] *= success_memory_map[success_mask].unsqueeze(-1)
+                logger.info(f"🚀 MASSIVELY strengthened {success_mask.sum()} successful pattern memories")
+            
+            # Moderate strengthening of good patterns
+            good_mask = (success_memory_map > 1.0) & (success_memory_map <= 1.5)
+            if good_mask.any():
+                memory_matrix[good_mask] *= success_memory_map[good_mask].unsqueeze(-1)
+                logger.info(f"✅ Strengthened {good_mask.sum()} good pattern memories")
+        
+        # Apply anti-pattern creation (failure inhibition)
+        if anti_patterns_created > 0:
+            # Create inhibitory patterns for failures
+            failure_mask = failure_memory_map > 0.5
+            if failure_mask.any():
+                # Instead of weakening, create inhibitory signals
+                # These will be used during decision-making to avoid repeating failures
+                memory_matrix[failure_mask] *= (1.0 - failure_memory_map[failure_mask] * 0.5).unsqueeze(-1)
+                logger.info(f"🚫 Created {failure_mask.sum()} anti-patterns from failures")
+        
+        # Normalize to prevent overflow while preserving relative strengths
+        memory_norm = torch.norm(memory_matrix, dim=-1, keepdim=True)
+        memory_matrix = memory_matrix / (memory_norm + 1e-8)
+        
+        # Get metrics after consolidation
+        memory_metrics_after = self.predictive_core.memory.get_memory_metrics()
+        
+        consolidation_score = (
+            memory_metrics_after['memory_utilization'] - 
+            memory_metrics_before['memory_utilization']
+        )
+        
+        logger.info(f"🧠 STRATEGIC CONSOLIDATION: {successful_patterns_strengthened} successful patterns strengthened, "
+                   f"{anti_patterns_created} anti-patterns created from {failure_patterns_processed} failures")
+        
+        return {
+            'memory_operations': consolidation_operations,
+            'consolidation_score': consolidation_score,
+            'successful_patterns_strengthened': successful_patterns_strengthened,
+            'failure_patterns_processed': failure_patterns_processed,
+            'anti_patterns_created': anti_patterns_created,
+            'strategic_consolidation_strength': (successful_patterns_strengthened * 2.0 + anti_patterns_created * 1.0)
+        }
+        
+    def _strategic_goal_system_integration(self, goal_data: Dict[str, Any], arc_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Enhanced goal system integration with strategic context from memory consolidation.
+        
+        Args:
+            goal_data: Data from goal invention system
+            arc_data: ARC-specific contextual data
+            
+        Returns:
+            Integration results with strategic insights
+        """
+        base_results = self._integrate_goal_system_data(goal_data)
+        
+        # Add strategic context from failed patterns
+        strategic_insights = []
+        
+        if hasattr(self, 'diversification_strategies'):
+            for coord, strategies in self.diversification_strategies.items():
+                for strategy in strategies:
+                    strategic_insights.append({
+                        'type': 'diversification_strategy',
+                        'coordinate': coord,
+                        'strategy_type': strategy['type'],
+                        'priority': strategy['priority'],
+                        'integration_strength': strategy['priority'] * 0.5
+                    })
+        
+        base_results.update({
+            'strategic_insights_integrated': len(strategic_insights),
+            'diversification_goals_created': len([si for si in strategic_insights if si['strategy_type'] == 'coordinate_exploration_ring'])
+        })
+        
+        return base_results
+        
+    def _generate_strategic_dreams(self, arc_data: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+        """
+        Generate strategic dream sequences that explore alternative actions for stuck patterns.
+        
+        Args:
+            arc_data: ARC-specific context for dream generation
+            
+        Returns:
+            dream_results: Results of strategic dream generation
+        """
+        base_results = self._generate_dreams()
+        
+        strategic_dreams = 0
+        diversification_dreams = 0
+        
+        # Generate dreams for diversification strategies
+        if hasattr(self, 'diversification_strategies'):
+            for coord, strategies in self.diversification_strategies.items():
+                # Dream about alternative coordinate selections
+                for strategy in strategies[:3]:  # Top 3 strategies per coordinate
+                    if strategy['type'] == 'coordinate_exploration_ring':
+                        strategic_dreams += 1
+                    elif strategy['type'] == 'visual_based_diversification':
+                        diversification_dreams += 1
+        
+        base_results.update({
+            'strategic_dream_sequences': strategic_dreams,
+            'diversification_dreams': diversification_dreams,
+            'total_strategic_dreams': strategic_dreams + diversification_dreams
+        })
+        
+        return base_results
         
     def wake_up(self) -> Dict[str, float]:
         """
@@ -927,7 +1434,8 @@ class SleepCycle:
         self.sleep_cycles_completed += 1
         
         # Set predictive core back to eval mode
-        self.predictive_core.eval()
+        if self.predictive_core is not None:
+            self.predictive_core.eval()
         
         self.is_sleeping = False
         

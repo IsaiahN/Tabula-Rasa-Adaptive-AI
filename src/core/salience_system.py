@@ -662,3 +662,26 @@ class SalienceWeightedReplayBuffer:
         )
         
         return sorted_experiences[:k]
+        
+    def sample_by_salience_threshold(self, threshold: float, limit: int = 50) -> List[SalientExperience]:
+        """Sample experiences above a salience threshold."""
+        if not self.experiences:
+            return []
+            
+        high_salience = [exp for exp in self.experiences if exp.salience_value >= threshold]
+        return high_salience[:limit]
+        
+    def sample_recent_low_salience(self, min_salience: float = 0.1, max_salience: float = 0.4, limit: int = 30) -> List[SalientExperience]:
+        """Sample recent low-salience experiences (for failure pattern analysis)."""
+        if not self.experiences:
+            return []
+            
+        # Get experiences in salience range, sorted by recency (more recent first)
+        filtered_experiences = []
+        for exp in reversed(list(self.experiences)):  # Recent first
+            if min_salience <= exp.salience_value <= max_salience:
+                filtered_experiences.append(exp)
+                if len(filtered_experiences) >= limit:
+                    break
+                    
+        return filtered_experiences
