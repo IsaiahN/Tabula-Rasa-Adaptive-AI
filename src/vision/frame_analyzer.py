@@ -30,6 +30,277 @@ class FrameAnalyzer:
         self.movement_threshold = 0.1  # Minimum change to detect movement
         self.position_confidence = 0.0  # How confident we are about position
         
+    def analyze_frame_for_action6_targets(self, frame: List[List[List[int]]], game_id: str = None) -> Dict[str, Any]:
+        """
+        ADVANCED VISUAL TARGETING SYSTEM for ACTION6.
+        
+        Implements the new paradigm: ACTION6(x,y) = "touch/interact with object at (x,y)"
+        Not movement, but interaction with visual elements.
+        
+        Args:
+            frame: 64x64 grid of color indices (0-15)
+            game_id: Current game identifier
+            
+        Returns:
+            Dictionary with interactive targets, ranked by priority
+        """
+        # Convert frame to numpy array
+        frame_array = np.array(frame[0]) if isinstance(frame[0][0], list) else np.array(frame)
+        
+        targets = []
+        analysis = {
+            'interactive_targets': [],
+            'recommended_action6_coord': None,
+            'targeting_reason': '',
+            'confidence': 0.0,
+            'visual_features': {},
+            'exploration_zones': []
+        }
+        
+        try:
+            # 1. COLOR CLUSTERING - Find unique/standout colors
+            color_targets = self._find_color_anomalies(frame_array)
+            targets.extend(color_targets)
+            
+            # 2. BRIGHTNESS/CONTRAST - Find bright/dark extremes  
+            contrast_targets = self._find_contrast_extremes(frame_array)
+            targets.extend(contrast_targets)
+            
+            # 3. PATTERN/SHAPE DETECTION - Simple geometric shapes
+            shape_targets = self._find_geometric_shapes(frame_array)
+            targets.extend(shape_targets)
+            
+            # 4. FRAME DIFFERENCING - Objects that changed
+            if self.previous_frame is not None:
+                change_targets = self._find_frame_changes(frame_array, self.previous_frame)
+                targets.extend(change_targets)
+            
+            # 5. RANK TARGETS by interaction potential
+            ranked_targets = self._rank_interaction_targets(targets)
+            
+            # 6. SELECT BEST TARGET
+            if ranked_targets:
+                best_target = ranked_targets[0]
+                analysis['interactive_targets'] = ranked_targets[:5]  # Top 5
+                analysis['recommended_action6_coord'] = (best_target['x'], best_target['y'])
+                analysis['targeting_reason'] = best_target['reason']
+                analysis['confidence'] = best_target['confidence']
+            else:
+                # 7. FALLBACK: EXPLORATORY TAPPING in systematic pattern
+                exploration_coord = self._generate_exploration_coordinate(frame_array)
+                if exploration_coord:
+                    analysis['recommended_action6_coord'] = exploration_coord
+                    analysis['targeting_reason'] = 'exploratory_systematic_tapping'
+                    analysis['confidence'] = 0.3  # Lower confidence for exploration
+            
+            # Store visual feature summary
+            analysis['visual_features'] = {
+                'unique_colors': len(np.unique(frame_array)),
+                'max_brightness': int(np.max(frame_array)),
+                'min_brightness': int(np.min(frame_array)),
+                'color_variance': float(np.var(frame_array)),
+                'frame_size': frame_array.shape
+            }
+            
+            # Update frame history
+            self.previous_frame = frame_array.copy()
+            
+        except Exception as e:
+            # Safe fallback
+            analysis['recommended_action6_coord'] = (32, 32)  # Center
+            analysis['targeting_reason'] = f'analysis_error_fallback: {str(e)[:50]}'
+            analysis['confidence'] = 0.1
+            
+        return analysis
+    
+    def _find_color_anomalies(self, frame_array: np.ndarray) -> List[Dict]:
+        """Find regions of unique/standout colors that might be interactive."""
+        targets = []
+        
+        # Get color frequency distribution
+        unique_colors, counts = np.unique(frame_array, return_counts=True)
+        total_pixels = frame_array.size
+        
+        # Find rare colors (potential buttons/objects)
+        for color, count in zip(unique_colors, counts):
+            frequency = count / total_pixels
+            
+            # Colors that appear in 0.5% to 10% of pixels are interesting
+            if 0.005 < frequency < 0.1:
+                # Find all positions with this color
+                positions = np.where(frame_array == color)
+                if len(positions[0]) > 0:
+                    # Calculate centroid of this color
+                    center_y = int(np.mean(positions[0]))
+                    center_x = int(np.mean(positions[1]))
+                    
+                    # Color rarity = interaction potential
+                    confidence = min(1.0, (1.0 - frequency) * 2)  
+                    
+                    targets.append({
+                        'x': center_x,
+                        'y': center_y,
+                        'reason': f'rare_color_{color}_freq_{frequency:.3f}',
+                        'confidence': confidence,
+                        'type': 'color_anomaly'
+                    })
+        
+        return targets
+    
+    def _find_contrast_extremes(self, frame_array: np.ndarray) -> List[Dict]:
+        """Find brightest/darkest points that might be interactive."""
+        targets = []
+        
+        # Find brightest points
+        max_val = np.max(frame_array)
+        bright_positions = np.where(frame_array == max_val)
+        if len(bright_positions[0]) > 0:
+            # Get first bright point
+            bright_y, bright_x = bright_positions[0][0], bright_positions[1][0]
+            targets.append({
+                'x': int(bright_x),
+                'y': int(bright_y),
+                'reason': f'brightest_point_value_{max_val}',
+                'confidence': 0.7,
+                'type': 'brightness_extreme'
+            })
+        
+        # Find darkest points (but not background)
+        min_val = np.min(frame_array)
+        if min_val > 0:  # Skip if it's just background
+            dark_positions = np.where(frame_array == min_val)
+            if len(dark_positions[0]) > 0:
+                dark_y, dark_x = dark_positions[0][0], dark_positions[1][0]
+                targets.append({
+                    'x': int(dark_x),
+                    'y': int(dark_y),
+                    'reason': f'darkest_point_value_{min_val}',
+                    'confidence': 0.6,
+                    'type': 'darkness_extreme'
+                })
+        
+        return targets
+    
+    def _find_geometric_shapes(self, frame_array: np.ndarray) -> List[Dict]:
+        """Find simple geometric shapes that might be buttons/objects."""
+        targets = []
+        
+        try:
+            # Convert to binary for edge detection
+            binary = (frame_array > np.mean(frame_array)).astype(np.uint8) * 255
+            
+            # Find edges
+            edges = cv2.Canny(binary, 50, 150)
+            
+            # Find contours
+            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                
+                # Look for shapes with reasonable area (not too small/large)
+                if 10 < area < 200:  # Adjust based on 64x64 grid
+                    # Get bounding rectangle
+                    x, y, w, h = cv2.boundingRect(contour)
+                    center_x = x + w // 2
+                    center_y = y + h // 2
+                    
+                    # Analyze shape
+                    approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
+                    num_vertices = len(approx)
+                    
+                    shape_type = 'unknown'
+                    confidence = 0.5
+                    
+                    if num_vertices == 4:
+                        shape_type = 'rectangle'
+                        confidence = 0.8  # Rectangles often buttons
+                    elif num_vertices > 6:
+                        shape_type = 'circle'
+                        confidence = 0.7  # Circles often ports/buttons
+                    
+                    targets.append({
+                        'x': int(center_x),
+                        'y': int(center_y),
+                        'reason': f'{shape_type}_shape_area_{int(area)}',
+                        'confidence': confidence,
+                        'type': 'geometric_shape'
+                    })
+                    
+        except Exception as e:
+            # OpenCV operations can fail, continue gracefully
+            pass
+            
+        return targets
+    
+    def _find_frame_changes(self, current_frame: np.ndarray, previous_frame: np.ndarray) -> List[Dict]:
+        """Find areas that changed between frames - likely interactive."""
+        targets = []
+        
+        try:
+            # Calculate frame difference
+            diff = np.abs(current_frame.astype(int) - previous_frame.astype(int))
+            
+            # Find significant changes
+            change_threshold = np.std(diff) + 1  # Adaptive threshold
+            significant_changes = np.where(diff > change_threshold)
+            
+            if len(significant_changes[0]) > 0:
+                # Group changes into clusters
+                change_points = list(zip(significant_changes[1], significant_changes[0]))  # (x,y) format
+                
+                if change_points:
+                    # Find center of mass of changes
+                    center_x = int(np.mean([p[0] for p in change_points]))
+                    center_y = int(np.mean([p[1] for p in change_points]))
+                    
+                    confidence = min(1.0, len(change_points) / 50.0)  # More changes = higher confidence
+                    
+                    targets.append({
+                        'x': center_x,
+                        'y': center_y,
+                        'reason': f'frame_change_cluster_{len(change_points)}_points',
+                        'confidence': confidence,
+                        'type': 'dynamic_change'
+                    })
+                    
+        except Exception as e:
+            pass
+            
+        return targets
+    
+    def _rank_interaction_targets(self, targets: List[Dict]) -> List[Dict]:
+        """Rank targets by interaction potential."""
+        # Sort by confidence, then by type priority
+        type_priority = {
+            'dynamic_change': 4,      # Moving objects = highest priority
+            'color_anomaly': 3,       # Unique colors = likely buttons
+            'geometric_shape': 2,     # Shapes = possible buttons
+            'brightness_extreme': 1   # Brightness = might be indicators
+        }
+        
+        for target in targets:
+            target['priority_score'] = (
+                target['confidence'] * 100 + 
+                type_priority.get(target['type'], 0) * 10
+            )
+        
+        return sorted(targets, key=lambda t: t['priority_score'], reverse=True)
+    
+    def _generate_exploration_coordinate(self, frame_array: np.ndarray) -> Optional[Tuple[int, int]]:
+        """Generate systematic exploration coordinate when no clear targets found."""
+        # Simple spiral pattern from center outward
+        center_x, center_y = frame_array.shape[1] // 2, frame_array.shape[0] // 2
+        
+        # Use frame hash to get consistent but varied exploration pattern
+        frame_hash = hash(frame_array.tobytes()) % 100
+        
+        # Generate exploration point based on frame content
+        explore_x = (center_x + (frame_hash % 20) - 10) % frame_array.shape[1]
+        explore_y = (center_y + ((frame_hash // 20) % 20) - 10) % frame_array.shape[0]
+        
+        return (int(explore_x), int(explore_y))
+
     def analyze_frame(self, frame: List[List[List[int]]], game_id: str = None) -> Dict[str, Any]:
         """
         Analyze a single frame to detect agent position and changes.

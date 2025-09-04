@@ -1251,7 +1251,8 @@ class ContinuousLearningLoop:
         context = {
             'game_id': game_id, 
             'frame_analysis': frame_analysis,
-            'response_data': response_data
+            'response_data': response_data,
+            'frame': response_data.get('frame') if response_data else None  # Add actual frame data
         }
         selected_action = self._select_intelligent_action_with_relevance(available, context)
         
@@ -1679,165 +1680,341 @@ class ContinuousLearningLoop:
         return max(0.8, min(1.3, multiplier))  # Cap multiplier between 80% and 130%
     
     def _enhance_coordinate_selection_with_frame_analysis(self, action_number: int, grid_dimensions: Tuple[int, int], game_id: str, frame_analysis: Dict[str, Any]) -> Tuple[int, int]:
-        """Enhanced coordinate selection combining frame analysis with intelligent memory-based selection."""
+        """
+        🎯 ADVANCED VISUAL-INTERACTIVE ACTION6 TARGETING SYSTEM
+        
+        NEW PARADIGM: ACTION6(x,y) = "touch/interact with object at (x,y)" 
+        NOT movement - it's a universal targeting system for touching visual elements.
+        
+        The grid is treated like a touchscreen. ACTION6 touches whatever is at that pixel.
+        """
         grid_width, grid_height = grid_dimensions
         
-        # ENHANCED: First try intelligent coordinate selection if available
-        if hasattr(self, 'enhanced_coordinate_intelligence') and hasattr(self, 'use_enhanced_coordinate_selection'):
-            if self.use_enhanced_coordinate_selection and action_number == 6:
-                try:
-                    # Get intelligent coordinates that use cluster expansion and memory avoidance
-                    intelligent_coord = self.enhanced_coordinate_intelligence.get_intelligent_coordinates(action_number, grid_dimensions, game_id)
-                    print(f"🧠 ENHANCED FRAME ANALYSIS: Using intelligent coordinate {intelligent_coord}")
-                    return intelligent_coord
-                except Exception as e:
-                    print(f"⚠️ Enhanced frame analysis failed: {e}, falling back to standard analysis")
+        if action_number != 6:
+            # For non-ACTION6, use existing logic
+            return self._optimize_coordinates_for_action(action_number, grid_dimensions, game_id)
         
-        # Default fallback to existing method
-        fallback_x, fallback_y = self._optimize_coordinates_for_action(action_number, grid_dimensions, game_id)
-        
-        if not frame_analysis or action_number != 6:  # Only enhance ACTION 6 for now
-            return fallback_x, fallback_y
+        # 🧠 ADVANCED VISUAL TARGETING for ACTION6
+        print(f"🎯 VISUAL-INTERACTIVE ACTION6 TARGETING - Analyzing frame for touchable objects...")
         
         try:
-            # Use detected agent position if available
-            primary_target = frame_analysis.get('primary_target')
-            if primary_target and primary_target.get('confidence', 0) > 0.3:
-                target_x = primary_target.get('x', fallback_x)
-                target_y = primary_target.get('y', fallback_y)
-                
-                # Ensure coordinates are within bounds
-                target_x = max(0, min(grid_width - 1, int(target_x)))
-                target_y = max(0, min(grid_height - 1, int(target_y)))
-                
-                logger.info(f"🎯 Frame analysis guided ACTION {action_number} to detected position ({target_x},{target_y})")
-                return target_x, target_y
+            # Get current frame from the game state if available
+            current_frame = None
+            if hasattr(self, 'current_frame_data'):
+                current_frame = getattr(self, 'current_frame_data', None)
             
-            # Use FrameAnalyzer's strategic coordinate selection
-            current_position = getattr(self, '_current_game_x', None), getattr(self, '_current_game_y', None)
-            if current_position[0] is None or current_position[1] is None:
-                current_position = None
+            if current_frame is not None:
+                # Use advanced frame analysis for ACTION6 targeting
+                targeting_analysis = self.frame_analyzer.analyze_frame_for_action6_targets(
+                    current_frame, game_id
+                )
                 
-            strategic_coords = self.frame_analyzer.get_strategic_coordinates([action_number], current_position)
-            if action_number in strategic_coords:
-                strategic_x, strategic_y = strategic_coords[action_number]
+                if targeting_analysis['recommended_action6_coord']:
+                    target_x, target_y = targeting_analysis['recommended_action6_coord']
+                    reason = targeting_analysis['targeting_reason']
+                    confidence = targeting_analysis['confidence']
+                    
+                    # Ensure coordinates are within bounds
+                    target_x = max(0, min(grid_width - 1, int(target_x)))
+                    target_y = max(0, min(grid_height - 1, int(target_y)))
+                    
+                    print(f"🎯 VISUAL TARGET SELECTED: ({target_x},{target_y}) - {reason} (confidence: {confidence:.2f})")
+                    print(f"   📱 Touching/interacting with visual element at pixel ({target_x},{target_y})")
+                    
+                    # Log target type for learning
+                    if len(targeting_analysis['interactive_targets']) > 0:
+                        target_types = [t['type'] for t in targeting_analysis['interactive_targets'][:3]]
+                        print(f"   🎮 Target types found: {target_types}")
+                    
+                    return target_x, target_y
+                else:
+                    print("🔍 No clear visual targets detected - using systematic exploration...")
+            else:
+                print("⚠️ No frame data available for visual analysis")
                 
-                # Clamp to actual grid dimensions
-                strategic_x = max(0, min(grid_width - 1, strategic_x))
-                strategic_y = max(0, min(grid_height - 1, strategic_y))
-                
-                logger.info(f"🎯 FrameAnalyzer strategic coordinates for ACTION {action_number}: ({strategic_x},{strategic_y})")
-                return strategic_x, strategic_y
-        
         except Exception as e:
-            logger.debug(f"Frame analysis coordinate enhancement failed: {e}")
+            print(f"⚠️ Visual targeting analysis failed: {e}")
         
-        return fallback_x, fallback_y
+        # 🗺️ FALLBACK: SYSTEMATIC EXPLORATION MODE
+        # When no clear visual targets, use intelligent exploration pattern
+        print("🗺️ EXPLORATORY MODE: Systematic tapping pattern for discovery...")
+        
+        # Use enhanced coordinate intelligence if available for exploration
+        if hasattr(self, 'enhanced_coordinate_intelligence') and hasattr(self, 'use_enhanced_coordinate_selection'):
+            if self.use_enhanced_coordinate_selection:
+                try:
+                    exploration_coord = self.enhanced_coordinate_intelligence.get_intelligent_coordinates(
+                        action_number, grid_dimensions, game_id
+                    )
+                    print(f"🧭 INTELLIGENT EXPLORATION: Tapping at ({exploration_coord[0]},{exploration_coord[1]})")
+                    return exploration_coord
+                except Exception as e:
+                    print(f"⚠️ Enhanced exploration failed: {e}")
+        
+        # Final fallback: strategic grid exploration
+        explore_x, explore_y = self._generate_exploration_coordinates(grid_dimensions, game_id)
+        print(f"🎯 SYSTEMATIC EXPLORATION: Tapping at ({explore_x},{explore_y}) to discover interactions")
+        
+        return explore_x, explore_y
+    
+    def _generate_exploration_coordinates(self, grid_dimensions: Tuple[int, int], game_id: str) -> Tuple[int, int]:
+        """Generate systematic exploration coordinates for ACTION6 when no visual targets found."""
+        grid_width, grid_height = grid_dimensions
+        
+        # Get exploration history for this game
+        if not hasattr(self, 'action6_exploration_history'):
+            self.action6_exploration_history = {}
+        
+        if game_id not in self.action6_exploration_history:
+            self.action6_exploration_history[game_id] = {
+                'exploration_phase': 'corners',
+                'attempts': 0,
+                'last_coordinates': []
+            }
+        
+        exploration_data = self.action6_exploration_history[game_id]
+        phase = exploration_data['exploration_phase']
+        attempts = exploration_data['attempts']
+        
+        # Systematic exploration phases
+        if phase == 'corners' and attempts < 4:
+            # Explore corners first (buttons/switches often in corners)
+            corners = [(5, 5), (grid_width-6, 5), (5, grid_height-6), (grid_width-6, grid_height-6)]
+            coord = corners[attempts]
+            exploration_data['attempts'] += 1
+            
+            if attempts >= 3:
+                exploration_data['exploration_phase'] = 'center'
+                exploration_data['attempts'] = 0
+                
+            return coord
+            
+        elif phase == 'center' and attempts < 3:
+            # Explore center region
+            center_x, center_y = grid_width // 2, grid_height // 2
+            offsets = [(0, 0), (-8, -8), (8, 8)]
+            offset_x, offset_y = offsets[attempts]
+            coord = (center_x + offset_x, center_y + offset_y)
+            exploration_data['attempts'] += 1
+            
+            if attempts >= 2:
+                exploration_data['exploration_phase'] = 'edges'
+                exploration_data['attempts'] = 0
+                
+            return coord
+            
+        elif phase == 'edges' and attempts < 4:
+            # Explore edge midpoints
+            edges = [
+                (grid_width // 2, 3),          # top edge
+                (grid_width - 3, grid_height // 2),  # right edge  
+                (grid_width // 2, grid_height - 3),  # bottom edge
+                (3, grid_height // 2)          # left edge
+            ]
+            coord = edges[attempts]
+            exploration_data['attempts'] += 1
+            
+            if attempts >= 3:
+                exploration_data['exploration_phase'] = 'random'
+                exploration_data['attempts'] = 0
+                
+            return coord
+            
+        else:
+            # Random exploration with bias toward unexplored areas
+            import random
+            
+            # Avoid recently explored coordinates
+            recent_coords = exploration_data.get('last_coordinates', [])
+            max_attempts = 10
+            
+            for _ in range(max_attempts):
+                explore_x = random.randint(3, grid_width - 4)
+                explore_y = random.randint(3, grid_height - 4)
+                coord = (explore_x, explore_y)
+                
+                # Check if we've explored this area recently
+                too_close = False
+                for prev_x, prev_y in recent_coords[-5:]:  # Last 5 coordinates
+                    if abs(coord[0] - prev_x) < 5 and abs(coord[1] - prev_y) < 5:
+                        too_close = True
+                        break
+                        
+                if not too_close:
+                    break
+            
+            # Update history
+            exploration_data['last_coordinates'].append(coord)
+            if len(exploration_data['last_coordinates']) > 10:
+                exploration_data['last_coordinates'] = exploration_data['last_coordinates'][-10:]
+                
+            return coord
 
     def _select_intelligent_action_with_relevance(self, available_actions: List[int], context: Dict[str, Any]) -> int:
         """
-        Enhanced action selection with relevance scoring and strategic ACTION 6 control.
+        🎯 ADVANCED ACTION6 DECISION PROTOCOL - Visual-Interactive Agent
         
-        Key improvements:
-        - ACTION 6 used sparingly as strategic mini-reset only when stuck
-        - Dynamic relevance scoring that adapts over time
-        - Progress tracking to prevent disruption of good sequences
-        - Predictive coordinate selection for ACTION 6
+        NEW PROTOCOL IMPLEMENTATION:
+        1. FIRST: Always prefer simpler actions (1-5,7) if they might progress
+        2. ONLY USE ACTION6 when it's the best or only visual-interactive option
+        3. ACTION6 now analyzes frame for visual targets (buttons, objects, anomalies)
+        4. Systematic exploration when no clear visual targets found
+        
+        This transforms the agent from a "blind mover" to a "visual-interactive agent"
         """
         game_id = context.get('game_id', 'unknown')
         action_count = len(self.available_actions_memory['action_history'])
-        
-        # Update action relevance scores based on recent performance
-        self._update_action_relevance_scores()
-        
-        # Check for progress stagnation (key insight from your observation)
-        progress_stagnant = self._is_progress_stagnant(action_count)
-        
-        # Calculate weighted action scores with relevance modifiers
-        action_scores = {}
-        
-        # CRITICAL FIX: Hard filter ACTION 6 before scoring to prevent spam
-        filtered_available_actions = []
-        action6_blocked = False
-        
-        for action in available_actions:
-            if action == 6:
-                # Apply strict ACTION 6 availability check
-                action6_score = self._calculate_action6_strategic_score(action_count, progress_stagnant)
-                if action6_score > 0.001:  # LOWERED from 0.01 to 0.001 to prevent infinite loops
-                    filtered_available_actions.append(action)
-                    print(f"🎯 ACTION 6 STRATEGIC USE: Progress stagnant={progress_stagnant}, Score={action6_score:.3f}")
-                else:
-                    action6_blocked = True
-                    if action_count % 25 == 0:  # More frequent logging for debugging
-                        print(f"🎯 ACTION 6 blocked: Score={action6_score:.6f}, Need score > 0.001")
-            else:
-                filtered_available_actions.append(action)
-        
-        # If ACTION 6 was the only option but blocked, allow minimal emergency access
-        if not filtered_available_actions and action6_blocked:
-            print("🚨 EMERGENCY: ACTION 6 only option available - allowing minimal access")
-            filtered_available_actions = [6]
-        
-        # Score only the filtered available actions with frame analysis integration
         frame_analysis = context.get('frame_analysis', {})
         
-        for action in filtered_available_actions:
+        print(f"🎯 ACTION DECISION PROTOCOL - Available: {available_actions}")
+        
+        # 🚀 PHASE 1: PRIORITIZE SIMPLER ACTIONS (1-5,7) 
+        # These are more predictable and often make direct progress
+        simple_actions = [a for a in available_actions if a != 6]
+        
+        if simple_actions:
+            print(f"✅ SIMPLE ACTIONS AVAILABLE: {simple_actions} - Prioritizing over ACTION6")
+            
+            # Update action relevance scores
+            self._update_action_relevance_scores()
+            
+            # Score simple actions with enhanced intelligence
+            best_simple_action = None
+            best_simple_score = 0.0
+            
+            for action in simple_actions:
+                try:
+                    # Calculate comprehensive score for simple action
+                    score = self._calculate_comprehensive_action_score(action, game_id, frame_analysis)
+                    
+                    if score > best_simple_score:
+                        best_simple_score = score
+                        best_simple_action = action
+                        
+                except Exception as e:
+                    print(f"⚠️ Error scoring action {action}: {e}")
+                    continue
+            
+            # If we found a decent simple action, use it
+            if best_simple_action and best_simple_score > 0.2:  # Reasonable threshold
+                print(f"🎮 SELECTING SIMPLE ACTION {best_simple_action} (score: {best_simple_score:.3f})")
+                return best_simple_action
+            else:
+                print(f"⚠️ Simple actions available but low scores - considering ACTION6...")
+        
+        # 🎯 PHASE 2: ACTION6 VISUAL-INTERACTIVE ANALYSIS
+        # Only if ACTION6 is available AND (no good simple actions OR ACTION6 is only option)
+        if 6 in available_actions:
+            print(f"🎯 ACTION6 VISUAL-INTERACTIVE ANALYSIS - Frame analysis: {'✅' if frame_analysis else '❌'}")
+            
+            # Store current frame for visual analysis
+            current_frame = context.get('frame')
+            if current_frame:
+                setattr(self, 'current_frame_data', current_frame)
+                print(f"📱 Frame data stored for visual targeting analysis")
+            
+            # Check if ACTION6 is strategically appropriate  
+            progress_stagnant = self._is_progress_stagnant(action_count)
+            action6_strategic_score = self._calculate_action6_strategic_score(action_count, progress_stagnant)
+            
+            # Visual targeting analysis if we have frame data
+            visual_targeting_bonus = 0.0
+            if frame_analysis:
+                visual_targeting_bonus = self._calculate_frame_analysis_bonus_action6(frame_analysis)
+                print(f"🔍 Visual targeting bonus: +{visual_targeting_bonus:.3f}")
+            
+            # Calculate final ACTION6 score
+            action6_final_score = action6_strategic_score * (1.0 + visual_targeting_bonus)
+            
+            # Decision logic
+            if not simple_actions:
+                # ACTION6 is only option
+                print(f"📱 ACTION6 ONLY OPTION - Using visual-interactive targeting")
+                return 6
+            elif action6_final_score > 0.4:  # High threshold for choosing ACTION6 over simple actions
+                print(f"🎯 ACTION6 HIGH PRIORITY - Visual targeting score: {action6_final_score:.3f}")
+                return 6  
+            elif progress_stagnant and action6_final_score > 0.1:
+                print(f"🔄 PROGRESS STAGNANT - Using ACTION6 as visual reset (score: {action6_final_score:.3f})")
+                return 6
+            else:
+                print(f"⚠️ ACTION6 score too low ({action6_final_score:.3f}) - using best simple action")
+                
+                # Fallback to best simple action even if score is low
+                if simple_actions:
+                    fallback_action = simple_actions[0]  # Just pick first available
+                    print(f"🔄 FALLBACK: Using simple action {fallback_action}")
+                    return fallback_action
+        
+        # 🚨 EMERGENCY FALLBACK
+        print("🚨 EMERGENCY FALLBACK - No clear action choice")
+        if available_actions:
+            emergency_action = available_actions[0]
+            print(f"⚡ Emergency selection: ACTION{emergency_action}")
+            return emergency_action
+        else:
+            print("❌ NO AVAILABLE ACTIONS - This should not happen!")
+            return 1  # Ultimate fallback
+    
+    def _calculate_comprehensive_action_score(self, action: int, game_id: str, frame_analysis: Dict[str, Any]) -> float:
+        """Calculate comprehensive score for simple actions (1-5,7)."""
+        try:
+            # Get base relevance data
             if action in self.available_actions_memory['action_relevance_scores']:
                 relevance_data = self.available_actions_memory['action_relevance_scores'][action]
                 base_score = relevance_data['base_relevance']
                 modifier = relevance_data['current_modifier']
                 success_rate = relevance_data['recent_success_rate']
-                
-                # Special handling for ACTION 6 - your key insight + frame analysis
-                if action == 6:
-                    action6_score = self._calculate_action6_strategic_score(action_count, progress_stagnant)
-                    
-                    # Enhance ACTION 6 with frame analysis for coordinate optimization
-                    if frame_analysis:
-                        frame_bonus = self._calculate_frame_analysis_bonus_action6(frame_analysis)
-                        action6_score *= (1.0 + frame_bonus)
-                        if frame_bonus > 0.1:
-                            print(f"🔍 ACTION 6 enhanced by frame analysis: +{frame_bonus:.2f} bonus")
-                    
-                    action_scores[action] = action6_score
-                else:
-                    # Standard actions get normal scoring with relevance + frame analysis
-                    try:
-                        semantic_score = self._calculate_semantic_action_score(action, game_id)
-                    except:
-                        semantic_score = 1.0  # Fallback
-                    
-                    # Base calculation
-                    final_score = base_score * modifier * success_rate * semantic_score
-                    
-                    # Apply frame analysis enhancements for all actions
-                    if frame_analysis:
-                        frame_multiplier = self._calculate_frame_analysis_multiplier(action, frame_analysis)
-                        final_score *= frame_multiplier
-                        if frame_multiplier != 1.0:
-                            print(f"🔍 ACTION {action} frame analysis multiplier: {frame_multiplier:.2f}")
-                    
-                    # Boost recently successful actions
-                    if relevance_data['consecutive_failures'] == 0 and success_rate > 0.6:
-                        final_score *= 1.2  # 20% boost for successful actions
-                    
-                    # Penalize recently failed actions
-                    elif relevance_data['consecutive_failures'] > 2:
-                        final_score *= 0.7  # 30% penalty for failing actions
-                    
-                    action_scores[action] = final_score
             else:
-                # Fallback for actions without relevance data
-                action_scores[action] = 0.5
+                base_score = 0.5
+                modifier = 1.0
+                success_rate = 0.5
+            
+            # Semantic action intelligence
+            semantic_score = self._calculate_semantic_action_score(action, game_id)
+            
+            # Frame analysis bonus for non-ACTION6 actions
+            frame_bonus = 0.0
+            if frame_analysis and action != 6:
+                # Simple actions can benefit from movement analysis
+                if action in [1, 2, 3, 4]:  # Movement actions
+                    if frame_analysis.get('movement_detected', False):
+                        frame_bonus = 0.2  # Slight bonus if movement detected
+                elif action in [5, 7]:  # Interaction/undo actions
+                    if frame_analysis.get('interaction_opportunity', False):
+                        frame_bonus = 0.3  # Interaction actions get bonus for opportunities
+            
+            # Combine all factors
+            final_score = base_score * modifier * success_rate * semantic_score * (1.0 + frame_bonus)
+            
+            return max(0.0, min(1.0, final_score))  # Clamp to [0,1]
+            
+        except Exception as e:
+            print(f"⚠️ Error calculating score for action {action}: {e}")
+            return 0.3  # Safe fallback score
+
+    def _calculate_frame_analysis_bonus_action6(self, frame_analysis: Dict[str, Any]) -> float:
+        """Calculate bonus score for ACTION6 based on visual frame analysis"""
+        if not frame_analysis:
+            return 0.0
+            
+        bonus = 0.0
         
-        # Select action based on weighted scores (with balanced diversity and performance)
-        if not action_scores:
-            # Emergency fallback - this should rarely happen
-            return random.choice(available_actions) if available_actions else 1
-        
-        # CRITICAL FIX: Respect user's principle of diverse action usage
-        # Instead of 90% deterministic selection, use balanced weighted random selection
+        # Bonus for having interactive targets
+        if frame_analysis.get('interactive_targets'):
+            num_targets = len(frame_analysis['interactive_targets'])
+            bonus += min(0.5, num_targets * 0.1)  # Up to 0.5 bonus
+            
+        # Bonus for high confidence targets
+        if frame_analysis.get('recommended_coordinate'):
+            confidence = frame_analysis.get('confidence', 0.0)
+            bonus += confidence * 0.3  # Up to 0.3 bonus for high confidence
+            
+        # Bonus for visual anomalies that suggest interactable elements
+        if frame_analysis.get('targeting_reason', '').startswith('rare_color'):
+            bonus += 0.2  # Rare colors often indicate buttons/objects
+            
+        return min(1.0, bonus)  # Cap at 1.0
         
         # Normalize scores to prevent extreme bias towards any single action
         min_score = min(action_scores.values())

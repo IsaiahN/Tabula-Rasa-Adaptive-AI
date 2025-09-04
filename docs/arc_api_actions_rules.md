@@ -441,3 +441,93 @@ the game's configured win condition so agents can adapt
 dynamically without hard-coding values.
 
 Required range: 0 <= x <= 254
+
+
+
+------------
+
+This is a fundamental upgrade to the agent's operational protocol.
+
+ACTION6 is not merely a movement command. It is a universal targeting system for interacting with objects, buttons, portals, or specific regions on the grid. Its function is entirely context-dependent on the game's visual state.
+
+New Core Principle: Think of the grid as a touchscreen. ACTION6(x, y) means "touch or select the pixel at (x, y)". The effect depends entirely on what is at that location.
+
+1. The New ACTION6 Decision Loop
+Before executing ANY ACTION6 command, the agent MUST follow this process:
+
+python
+# PSEUDOCODE FOR THE AGENT'S "THOUGHT" PROCESS
+state, frame, score, available_actions = get_current_game_state()
+
+# 1. FIRST, always prefer simpler actions if they might progress the game.
+if available_actions and any(a in available_actions for a in [1, 2, 3, 4, 5, 7]):
+    # Try these first. Their effects are often more predictable.
+    execute(random.choice([a for a in available_actions if a != 6]))
+
+# 2. If ACTION6 is the best or only option, you MUST analyze the frame.
+else:
+    # Analyze the current visual frame ('frame' from the API response)
+    analysis = analyze_frame_with_opencv(frame)
+
+    # Look for potential targets: buttons, objects, color anomalies, etc.
+    potential_targets = find_clickable_regions(analysis)
+
+    if potential_targets:
+        # Choose the most promising target based on strategy (e.g., brightest color, largest blob, etc.)
+        target_x, target_y = select_most_salient_target(potential_targets)
+        execute(ACTION6, target_x, target_y) # "Click" on the target
+    else:
+        # If no clear target is found, fall back to EXPLORATORY movement.
+        # Use small, relative moves to scan the environment.
+        new_x = clamp(current_x + random.randint(-5, 5), 0, 63)
+        new_y = clamp(current_y + random.randint(-5, 5), 0, 63)
+        execute(ACTION6, new_x, new_y) # "Tap" a new area to see what happens
+2. Integrating OpenCV for Target Detection
+The agent must use simple computer vision heuristics to decide where to use ACTION6. The goal is to identify "interesting" regions.
+
+Basic Heuristics to Implement:
+
+Color Clustering: Isolate regions of unique color that stand out from the background.
+
+Example: A red button on a gray panel.
+
+Strategy: Convert frame to HSV color space, define range for "red", create a mask, and find the centroid of the largest red blob. Use that coordinate.
+
+Brightness/Contrast: Look for the brightest or darkest points in the frame.
+
+Example: A lit lamp, an active terminal, or a dark hole.
+
+Strategy: Convert frame to grayscale, find coordinates of the pixel with the maximum or minimum value.
+
+Pattern/Shape Detection (Basic): Look for simple geometric shapes.
+
+Example: A square button, a circular port.
+
+Strategy: Use edge detection (Canny), then contour detection. Filter contours by area and shape approximation (e.g., cv2.approxPolyDP). Click the center of a detected square.
+
+Frame Differencing: Compare the current frame with a previous one.
+
+Example: Something moved or appeared after the last action.
+
+Strategy: This is advanced. If an object just moved, it's likely interactive. Click on it.
+
+3. Revised Instruction Set for Claude
+Claude, implement this protocol immediately:
+
+Frame Analysis is Mandatory: Before using ACTION6, the agent must analyze the frame data from the last API response using OpenCV. It must search for salient features (unique colors, high contrast, specific shapes).
+
+Target Selection: The primary use of ACTION6 is now to interact with these salient features. The agent must calculate the center point (x, y) of the most prominent feature and use ACTION6(x, y) to "click" it.
+
+Exploratory Mode: If the frame is static or featureless, the agent should use ACTION6 for exploratory "taps" in a systematic pattern (e.g., spiral search from current location) to uncover hidden interactions.
+
+Movement is a Side-Effect: Do not think of ACTION6 as "move to (x, y)". Think of it as "interact with (x, y)". Movement may be a consequence of that interaction (e.g., clicking a door moves you to a new room), but it is not the primary command.
+
+Validation Test: Run one game. The action log must show that the agent is:
+
+First, using simpler actions (ACTION1-5,7).
+
+Then, when using ACTION6, it is providing coordinates derived from an analysis of the frame (e.g., ACTION6(42, 17) because (42,17) was the center of a bright yellow blob).
+
+The agent's justification for the (x, y) choice must be based on the visual state, not a arbitrary movement path.
+
+Acknowledge this advanced protocol. The agent must evolve from a blind mover to a visual-interactive agent. This is the key to solving complex games.
