@@ -8,7 +8,7 @@ information, and strengthen important patterns without active sensory input.
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 import numpy as np
 import logging
 from collections import deque
@@ -135,12 +135,66 @@ class SleepCycle:
         # Set predictive core to training mode for sleep learning
         self.predictive_core.train()
         
-    def execute_sleep_cycle(self, replay_buffer: List[Experience]) -> Dict[str, float]:
+    def _integrate_goal_system_data(self, goal_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Execute one sleep cycle with offline learning.
+        Integrate goal system data during sleep for goal-aware consolidation.
+        
+        Args:
+            goal_data: Data from goal invention system
+            
+        Returns:
+            Integration results
+        """
+        if not goal_data:
+            return {'goals_processed': 0}
+            
+        goals_processed = 0
+        goal_insights = []
+        
+        # Process active goals and their success patterns
+        active_goals = goal_data.get('active_goals', [])
+        for goal in active_goals:
+            goal_success_rate = goal.get('success_rate', 0.0)
+            goal_type = goal.get('goal_type', 'unknown')
+            
+            if goal_success_rate > 0.6:  # Successful goals
+                # Extract patterns from successful goal pursuit
+                goal_pattern = {
+                    'type': 'successful_goal_pattern',
+                    'goal_type': goal_type,
+                    'success_rate': goal_success_rate,
+                    'consolidation_priority': goal_success_rate
+                }
+                goal_insights.append(goal_pattern)
+                goals_processed += 1
+        
+        # Process emergent goals from high-salience experiences
+        emergent_goals = goal_data.get('emergent_goals', [])
+        for goal in emergent_goals:
+            # These goals emerged from salient experiences - prioritize them
+            goal_insights.append({
+                'type': 'emergent_goal',
+                'salience_origin': True,
+                'consolidation_priority': 0.8  # High priority for emergent goals
+            })
+            goals_processed += 1
+        
+        logger.info(f"Integrated {goals_processed} goals, extracted {len(goal_insights)} goal insights")
+        
+        return {
+            'goals_processed': goals_processed,
+            'goal_insights': goal_insights,
+            'goal_consolidation_strength': sum(gi.get('consolidation_priority', 0) for gi in goal_insights)
+        }
+        
+    def execute_sleep_cycle(self, replay_buffer: List[Experience], arc_data: Optional[Dict[str, Any]] = None, goal_data: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+        """
+        Execute one sleep cycle with offline learning and enhanced data integration.
         
         Args:
             replay_buffer: Experiences for replay learning
+            arc_data: ARC-3 specific data (action effectiveness, game patterns, etc.)
+            goal_data: Goal system data (active goals, emergent goals, etc.)
             
         Returns:
             sleep_results: Results of sleep cycle
@@ -152,7 +206,9 @@ class SleepCycle:
             'experiences_processed': 0,
             'avg_loss': 0.0,
             'memory_operations': 0,
-            'consolidation_score': 0.0
+            'consolidation_score': 0.0,
+            'arc_data_integrated': False,
+            'goal_data_integrated': False
         }
         
         # Phase 1: Memory Decay and Compression (if enabled)
@@ -176,21 +232,40 @@ class SleepCycle:
         # Add compression results to sleep results
         sleep_results['compression_results'] = compression_results
         
-        # Phase 3: Salience-Based Memory Consolidation
+        # Phase 3: Enhanced Memory Consolidation with ARC-3 Integration
         if self.predictive_core.use_memory:
             if self.use_salience_weighting:
-                consolidation_results = self._salience_based_memory_consolidation()
+                # Try ARC-aware consolidation first
+                arc_consolidation_results = self._arc_aware_memory_consolidation()
+                if arc_consolidation_results.get('arc_specific_consolidations', 0) > 0:
+                    # Use ARC-aware results if we had ARC-specific data
+                    consolidation_results = arc_consolidation_results
+                    sleep_results['arc_data_integrated'] = True
+                    logger.info("Used ARC-aware memory consolidation during sleep")
+                else:
+                    # Fall back to salience-based consolidation
+                    consolidation_results = self._salience_based_memory_consolidation()
             else:
                 consolidation_results = self._consolidate_memory_with_meta_learning()
             sleep_results.update(consolidation_results)
+        
+        # Phase 4: Goal System Integration
+        if goal_data:
+            goal_integration_results = self._integrate_goal_system_data(goal_data)
+            sleep_results.update(goal_integration_results)
+            sleep_results['goal_data_integrated'] = True
             
-        # Phase 4: Dream Generation (optional)
+        # Phase 5: Dream Generation (optional)
         dream_results = self._generate_dreams()
         sleep_results.update(dream_results)
         
         # Update sleep metrics
         self.sleep_metrics['experiences_replayed'] += sleep_results['experiences_processed']
         self.sleep_metrics['memory_consolidations'] += 1
+        
+        # Log enhanced sleep cycle completion
+        logger.info(f"Sleep cycle completed - ARC integration: {sleep_results['arc_data_integrated']}, "
+                   f"Goal integration: {sleep_results['goal_data_integrated']}")
         
         return sleep_results
         
@@ -546,6 +621,109 @@ class SleepCycle:
         
         return {'objects_encoded': 0, 'encoding_improvement': 0.0}
     
+    def _arc_aware_memory_consolidation(self) -> Dict[str, float]:
+        """
+        Consolidate memory using ARC-3 specific patterns and learned effectiveness data.
+        
+        This enhanced consolidation considers:
+        - Action effectiveness patterns
+        - Game-specific success strategies  
+        - Coordinate intelligence insights
+        - Boundary detection patterns
+        
+        Returns:
+            consolidation_results: Results of ARC-aware consolidation
+        """
+        if not self.predictive_core.use_memory or self.predictive_core.memory is None:
+            return {'memory_operations': 0}
+            
+        # Get memory metrics before consolidation
+        memory_metrics_before = self.predictive_core.memory.get_memory_metrics()
+        
+        consolidation_operations = 0
+        arc_specific_consolidations = 0
+        
+        # Enhanced consolidation using ARC-specific experience data
+        memory_matrix = self.predictive_core.memory.memory_matrix
+        usage_vector = self.predictive_core.memory.usage_vector
+        
+        # Process ARC-specific experiences in replay buffer
+        for experience in self.salience_replay_buffer.experiences:
+            exp_data = experience.experience_data
+            salience = experience.salience_value
+            
+            # Check for ARC-specific data
+            if ('arc_action_effectiveness' in exp_data or 
+                'arc_game_context' in exp_data or 
+                'arc_action_semantics' in exp_data):
+                
+                arc_specific_consolidations += 1
+                
+                # Extract ARC-specific insights
+                action_effectiveness = exp_data.get('arc_action_effectiveness', {})
+                game_context = exp_data.get('arc_game_context', {})
+                action_semantics = exp_data.get('arc_action_semantics', {})
+                
+                # Consolidate based on action effectiveness patterns
+                if action_effectiveness:
+                    # Boost memories associated with highly effective actions
+                    for action_id, effectiveness_data in action_effectiveness.items():
+                        success_rate = effectiveness_data.get('success_rate', 0.0)
+                        if success_rate > 0.7:  # High success rate
+                            # Find memory locations associated with this action pattern
+                            high_usage_mask = usage_vector > 0.2
+                            if high_usage_mask.any():
+                                # Apply effectiveness-based strengthening
+                                effectiveness_multiplier = 1.0 + (success_rate - 0.7) * 2.0
+                                memory_matrix[high_usage_mask] *= effectiveness_multiplier
+                                consolidation_operations += 1
+                
+                # Consolidate based on game-specific context patterns
+                if game_context:
+                    game_id = game_context.get('game_id')
+                    if game_id:
+                        # Context-specific memory strengthening
+                        context_locations = usage_vector > 0.15
+                        if context_locations.any():
+                            context_boost = 1.0 + salience * 0.5
+                            memory_matrix[context_locations] *= context_boost
+                            consolidation_operations += 1
+                
+                # Consolidate semantic understanding
+                if action_semantics:
+                    semantic_confidence = action_semantics.get('confidence', 0.0)
+                    if semantic_confidence > 0.5:
+                        # Strengthen memories associated with confident semantic understanding
+                        semantic_locations = usage_vector > 0.1
+                        if semantic_locations.any():
+                            semantic_boost = 1.0 + semantic_confidence * 0.3
+                            memory_matrix[semantic_locations] *= semantic_boost
+                            consolidation_operations += 1
+        
+        # Normalize to prevent overflow
+        if consolidation_operations > 0:
+            memory_norm = torch.norm(memory_matrix, dim=-1, keepdim=True)
+            memory_matrix = memory_matrix / (memory_norm + 1e-8)
+        
+        # Get metrics after consolidation
+        memory_metrics_after = self.predictive_core.memory.get_memory_metrics()
+        
+        consolidation_score = (
+            memory_metrics_after['memory_utilization'] - 
+            memory_metrics_before['memory_utilization']
+        )
+        
+        logger.info(f"ARC-aware consolidation: {consolidation_operations} total operations, "
+                   f"{arc_specific_consolidations} ARC-specific consolidations")
+        
+        return {
+            'memory_operations': consolidation_operations,
+            'consolidation_score': consolidation_score,
+            'arc_specific_consolidations': arc_specific_consolidations,
+            'total_arc_experiences_processed': len([exp for exp in self.salience_replay_buffer.experiences 
+                                                   if 'arc_action_effectiveness' in exp.experience_data])
+        }
+        
     def _consolidate_memory_with_meta_learning(self) -> Dict[str, float]:
         """
         Consolidate memory using meta-learning insights for object-aware consolidation.
@@ -761,15 +939,16 @@ class SleepCycle:
             'total_sleep_time': self.sleep_metrics['total_sleep_time']
         }
         
-    def add_experience(self, experience: Experience, energy_change: float = 0.0, current_energy: float = 50.0, context: str = "general"):
+    def add_experience(self, experience: Experience, energy_change: float = 0.0, current_energy: float = 50.0, context: str = "general", arc_data: Optional[Dict[str, Any]] = None):
         """
-        Add experience to replay buffer for future sleep cycles.
+        Add experience to replay buffer for future sleep cycles with enhanced ARC-3 integration.
         
         Args:
             experience: Experience to add to buffer
             energy_change: Change in energy for salience calculation
             current_energy: Current energy level
             context: Context of the experience
+            arc_data: ARC-specific data (action effectiveness, game state, etc.)
         """
         self.replay_buffer.append(experience)
         
@@ -779,14 +958,27 @@ class SleepCycle:
             
         # Add to salience-weighted buffer if enabled
         if self.use_salience_weighting:
+            # Enhanced experience data with ARC-3 context
+            experience_data = {
+                'experience': experience,
+                'state': experience.state,
+                'next_state': experience.next_state,
+                'action': experience.action,
+                'reward': experience.reward
+            }
+            
+            # Add ARC-3 specific data if available
+            if arc_data:
+                experience_data.update({
+                    'arc_action_effectiveness': arc_data.get('action_effectiveness', {}),
+                    'arc_game_context': arc_data.get('game_context', {}),
+                    'arc_action_semantics': arc_data.get('action_semantics', {}),
+                    'arc_boundary_data': arc_data.get('boundary_data', {}),
+                    'arc_coordinate_intelligence': arc_data.get('coordinate_intelligence', {})
+                })
+                
             salient_experience = self.salience_calculator.create_salient_experience(
-                experience_data={
-                    'experience': experience,
-                    'state': experience.state,
-                    'next_state': experience.next_state,
-                    'action': experience.action,
-                    'reward': experience.reward
-                },
+                experience_data=experience_data,
                 learning_progress=experience.learning_progress,
                 energy_change=energy_change,
                 current_energy=current_energy,
