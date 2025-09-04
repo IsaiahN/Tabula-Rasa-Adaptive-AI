@@ -32,7 +32,7 @@ class SleepCycle:
         self,
         predictive_core: PredictiveCore,
         meta_learning: Optional[MetaLearningSystem] = None,
-        sleep_trigger_energy: float = 20.0,
+        sleep_trigger_energy: float = 40.0,  # Increased from 20.0 to 40.0 for more frequent sleep cycles
         sleep_trigger_boredom_steps: int = 1000,
         sleep_trigger_memory_pressure: float = 0.9,
         sleep_duration_steps: int = 100,

@@ -958,7 +958,7 @@ class ContinuousLearningLoop:
                     'use_learned_importance': False
                 },
                 'sleep': {
-                    'sleep_trigger_energy': 20.0,
+                    'sleep_trigger_energy': 40.0,  # Increased from 20.0 to 40.0 for more frequent sleep cycles
                     'sleep_trigger_boredom_steps': 100,
                     'sleep_duration_steps': 50
                 }
@@ -2268,7 +2268,7 @@ class ContinuousLearningLoop:
             # Dynamic energy system based on game complexity and learning opportunities
             
             # Calculate adaptive energy cost based on actions and effectiveness
-            base_energy_cost = episode_actions * 0.15  # Optimized rate: 0.15 per action (better balance)
+            base_energy_cost = episode_actions * 0.08  # Reduced from 0.15 to 0.08 per action for more frequent sleep cycles
             
             # Adjust energy cost based on game complexity
             if episode_actions > 500:  # Very complex game
@@ -2298,11 +2298,11 @@ class ContinuousLearningLoop:
             # Dynamic sleep threshold based on learning opportunities
             if len(effective_actions) > 0:
                 # Lower threshold when we have effective actions to consolidate
-                sleep_threshold = 0.4 + (len(effective_actions) * 0.1)  # More effective actions = higher threshold
+                sleep_threshold = 0.6 + (len(effective_actions) * 0.1)  # Increased from 0.4 to 0.6 for more frequent sleep
                 sleep_reason = f"Learning consolidation needed ({len(effective_actions)} effective actions)"
             else:
                 # Higher threshold when no learning occurred
-                sleep_threshold = 0.2
+                sleep_threshold = 0.5  # Increased from 0.2 to 0.5 for more frequent sleep
                 sleep_reason = f"Energy depletion (no effective actions found)"
             
             # Trigger sleep based on adaptive thresholds
@@ -4920,12 +4920,12 @@ class ContinuousLearningLoop:
     
     def _should_agent_sleep(self, agent_state: Dict[str, Any], episode_count: int) -> bool:
         """Determine if agent should enter sleep cycle."""
-        # Sleep triggers
+        # Sleep triggers - adjusted for more frequent sleep cycles
         sleep_triggers = {
-            'low_energy': agent_state['energy'] < 20.0,
-            'high_memory_usage': agent_state['memory_usage'] > 0.9,
-            'periodic_sleep': episode_count % 10 == 0 and episode_count > 0,
-            'low_learning_progress': agent_state['learning_progress'] < 0.05
+            'low_energy': agent_state['energy'] < 40.0,  # Increased from 20.0 to 40.0
+            'high_memory_usage': agent_state['memory_usage'] > 0.7,  # Reduced from 0.9 to 0.7
+            'periodic_sleep': episode_count % 5 == 0 and episode_count > 0,  # Reduced from 10 to 5 episodes
+            'low_learning_progress': agent_state['learning_progress'] < 0.1  # Increased from 0.05 to 0.1
         }
         
         should_sleep = any(sleep_triggers.values())
@@ -5093,28 +5093,28 @@ class ContinuousLearningLoop:
         """
         # Don't sleep too early or too frequently
         last_sleep = getattr(self, '_last_mid_game_sleep_step', 0)
-        min_sleep_interval = 100  # Minimum actions between sleep cycles
+        min_sleep_interval = 50  # Reduced from 100 to 50 minimum actions between sleep cycles
         
         if step_count - last_sleep < min_sleep_interval:
             return False
         
-        # Trigger conditions for mid-game sleep
-        pattern_accumulation_trigger = step_count % 150 == 0  # Regular pattern consolidation
+        # Trigger conditions for mid-game sleep - more frequent for better learning
+        pattern_accumulation_trigger = step_count % 75 == 0  # Reduced from 150 to 75 for more frequent sleep
         
         # Check for significant learning signals in recent actions
         if len(recent_actions) >= 10:
             recent_scores = [action.get('effectiveness', 0) for action in recent_actions[-10:]]
-            high_learning_signal = np.mean(recent_scores) > 0.3
+            high_learning_signal = np.mean(recent_scores) > 0.2  # Reduced from 0.3 to 0.2 for easier trigger
             
             if pattern_accumulation_trigger or high_learning_signal:
                 return True
         
-        # Energy-based trigger with learning opportunity
+        # Energy-based trigger with learning opportunity - more frequent
         current_energy = getattr(self.agent.energy_system, 'current_energy', 100.0)
-        if current_energy < 60.0 and len(recent_actions) >= 20:
+        if current_energy < 70.0 and len(recent_actions) >= 15:  # Increased from 60.0 to 70.0 and reduced from 20 to 15 actions
             # Check if we have patterns worth consolidating
-            effectiveness_values = [action.get('effectiveness', 0) for action in recent_actions[-20:]]
-            if len([e for e in effectiveness_values if e > 0.2]) >= 5:  # At least 5 effective actions
+            effectiveness_values = [action.get('effectiveness', 0) for action in recent_actions[-15:]]  # Reduced from 20 to 15
+            if len([e for e in effectiveness_values if e > 0.15]) >= 3:  # Reduced thresholds: 0.2→0.15, 5→3 actions
                 return True
         
         return False

@@ -105,7 +105,7 @@ class EnergySystem:
         
     def should_sleep(self) -> bool:
         """Check if agent should enter sleep mode (low energy)."""
-        return self.current_energy < 0.2 * self.max_energy
+        return self.current_energy < 0.4 * self.max_energy  # Increased from 0.2 to 0.4 for more frequent sleep cycles
         
     def reset_energy(self):
         """Reset energy to maximum (for respawn)."""

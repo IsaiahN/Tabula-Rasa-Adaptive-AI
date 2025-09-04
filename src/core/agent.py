@@ -265,9 +265,13 @@ class AdaptiveLearningAgent:
         """Initialize the sleep and dream cycle system."""
         sleep_config = self.config.get('sleep', {})
         
+    def _init_sleep_system(self):
+        """Initialize the sleep and dream cycle system."""
+        sleep_config = self.config.get('sleep', {})
+        
         self.sleep_system = SleepCycle(
             predictive_core=self.predictive_core,
-            sleep_trigger_energy=sleep_config.get('sleep_trigger_energy', 20.0),
+            sleep_trigger_energy=sleep_config.get('sleep_trigger_energy', 40.0),  # Increased from 20.0 to 40.0
             sleep_trigger_boredom_steps=sleep_config.get('sleep_trigger_boredom_steps', 1000),
             sleep_trigger_memory_pressure=sleep_config.get('sleep_trigger_memory_pressure', 0.9),
             sleep_duration_steps=sleep_config.get('sleep_duration_steps', 100),
