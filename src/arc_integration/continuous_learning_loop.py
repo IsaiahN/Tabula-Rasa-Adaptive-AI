@@ -4068,6 +4068,38 @@ class ContinuousLearningLoop:
         self._current_game_x = new_x
         self._current_game_y = new_y
         
+        # CRITICAL: Detect coordinate stagnation and force movement
+        coord_key = (new_x, new_y)
+        if coord_key in boundary_system['coordinate_attempts'][game_id]:
+            consecutive_stuck = boundary_system['coordinate_attempts'][game_id][coord_key].get('consecutive_stuck', 0)
+            if consecutive_stuck > 10:  # Stuck at same coordinates for 10+ attempts
+                print(f"🚨 COORDINATE STAGNATION DETECTED at ({new_x},{new_y}) - FORCING MOVEMENT")
+                
+                # Force jump to a completely different region
+                import random
+                jump_regions = [
+                    (grid_width // 8, grid_height // 8),      # Far corner
+                    (7 * grid_width // 8, grid_height // 8),  # Opposite corner  
+                    (grid_width // 2, grid_height // 8),      # Top center
+                    (grid_width // 8, grid_height // 2),      # Left center
+                    (7 * grid_width // 8, 7 * grid_height // 8), # Far bottom right
+                ]
+                new_x, new_y = random.choice(jump_regions)
+                
+                # Reset stagnation counter
+                boundary_system['coordinate_attempts'][game_id][coord_key]['consecutive_stuck'] = 0
+                
+                # Reset direction to explore from new position
+                directional_system['current_direction'][game_id] = random.choice(['right', 'down', 'left', 'up'])
+                
+                print(f"🔀 EMERGENCY JUMP: Moved to ({new_x},{new_y}), new direction: {directional_system['current_direction'][game_id]}")
+                
+                # Update tracking for new position
+                self._current_game_x = new_x
+                self._current_game_y = new_y
+            else:
+                boundary_system['coordinate_attempts'][game_id][coord_key]['consecutive_stuck'] = consecutive_stuck + 1
+        
         # Display boundary intelligence
         num_boundaries = len(boundary_system['boundary_data'][game_id])
         direction_display = current_direction.upper()
@@ -7233,6 +7265,37 @@ class ContinuousLearningLoop:
                     score_improvement = new_score - current_score
                     was_effective = (score_improvement > 0 or new_state in ['WIN'])
                     
+                    # CRITICAL: Consume energy per action to enable sleep cycles
+                    if hasattr(self.agent, 'energy_system'):
+                        # Base energy cost per action (reduced from episode-level)
+                        action_energy_cost = 0.5 if was_effective else 1.0  # Effective actions cost less
+                        
+                        # Extra cost for ineffective repetitive actions
+                        if not was_effective and actions_taken > 100:
+                            action_energy_cost *= 1.2  # 20% penalty for long ineffective sequences
+                        
+                        # Consume the energy
+                        remaining_energy = self.agent.energy_system.consume_energy(
+                            action_cost=action_energy_cost,
+                            computation_cost=0.1
+                        )
+                        
+                        # Check if sleep cycle should trigger
+                        if self.agent.energy_system.should_sleep():
+                            print(f"😴 ACTION-LEVEL SLEEP TRIGGER: Energy {remaining_energy:.2f} <= {0.4 * 100.0:.1f}")
+                            print(f"   Triggering sleep after {actions_taken} actions with {len(effective_actions)} effective actions")
+                            
+                            # Execute enhanced sleep cycle with current data
+                            sleep_result = await self._trigger_enhanced_sleep_with_arc_data(
+                                action_history, effective_actions, game_id
+                            )
+                            print(f"🌅 Per-action sleep completed: {sleep_result}")
+                            
+                            # Restore some energy after sleep
+                            restored_energy = min(100.0, remaining_energy + 25.0)
+                            self.agent.energy_system.current_energy = restored_energy
+                            print(f"⚡ Energy restored: {remaining_energy:.2f} → {restored_energy:.2f}")
+                    
                     if was_effective:
                         effective_actions.append({
                             'action_number': selected_action,
@@ -7322,3 +7385,109 @@ class ContinuousLearningLoop:
         except Exception as e:
             print(f"   ⚠️ Error in direct control training: {e}")
             return {"error": str(e), "actions_taken": 0}
+    
+    async def _trigger_enhanced_sleep_with_arc_data(
+        self, 
+        action_history: List[Dict], 
+        effective_actions: List[Dict], 
+        game_id: str
+    ) -> Dict[str, Any]:
+        """Enhanced sleep cycle that integrates with our updated sleep system."""
+        try:
+            # Prepare ARC-specific data for enhanced sleep system
+            arc_data = {
+                'action_effectiveness': {
+                    action['action']: {
+                        'effectiveness': action.get('effective', False),
+                        'score_improvement': action.get('after_score', 0) - action.get('before_score', 0),
+                        'coordinates': action.get('coordinates'),
+                        'context': f"Game {game_id}, Action {action.get('action')}"
+                    }
+                    for action in action_history[-50:]  # Last 50 actions
+                },
+                'coordinate_intelligence': {
+                    'successful_coordinates': [
+                        action.get('coordinates') for action in effective_actions 
+                        if action.get('coordinates') is not None
+                    ],
+                    'failed_patterns': [
+                        action.get('coordinates') for action in action_history 
+                        if not action.get('effective', False) and action.get('coordinates') is not None
+                    ][-20:],  # Last 20 failed coordinates
+                    'game_context': game_id
+                },
+                'action_sequences': {
+                    'recent_sequence': [action.get('action') for action in action_history[-10:]],
+                    'effective_sequence': [action.get('action_number') for action in effective_actions[-5:]],
+                    'pattern_analysis': self._analyze_action_patterns(action_history)
+                }
+            }
+            
+            # Get goal system data if available
+            goal_data = {
+                'active_goals': getattr(self, '_current_active_goals', []),
+                'emergent_goals': {
+                    'coordinate_exploration': len(set(
+                        action.get('coordinates') for action in action_history 
+                        if action.get('coordinates') is not None
+                    )),
+                    'score_improvement': len(effective_actions),
+                    'game_completion': game_id
+                }
+            }
+            
+            # Execute enhanced sleep cycle using our updated sleep system
+            if hasattr(self.agent, 'sleep_system'):
+                sleep_result = await self.agent.sleep_system.execute_sleep_cycle(
+                    arc_data=arc_data,
+                    goal_data=goal_data
+                )
+                
+                # Update sleep cycle counter
+                self.global_counters['total_sleep_cycles'] = self.global_counters.get('total_sleep_cycles', 0) + 1
+                
+                return {
+                    'success': True,
+                    'sleep_cycles_completed': self.global_counters['total_sleep_cycles'],
+                    'arc_data_processed': len(arc_data['action_effectiveness']),
+                    'coordinate_patterns_analyzed': len(arc_data['coordinate_intelligence']['successful_coordinates']),
+                    'sleep_system_result': sleep_result
+                }
+            else:
+                # Fallback to basic sleep
+                await asyncio.sleep(0.5)  # Brief pause
+                return {
+                    'success': True,
+                    'sleep_type': 'fallback',
+                    'note': 'Agent sleep system not available, used basic pause'
+                }
+                
+        except Exception as e:
+            logger.error(f"Enhanced sleep cycle error: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'fallback_executed': True
+            }
+    
+    def _analyze_action_patterns(self, action_history: List[Dict]) -> Dict[str, Any]:
+        """Analyze patterns in action history for sleep system integration."""
+        if not action_history:
+            return {'pattern_type': 'no_data'}
+        
+        recent_actions = [action.get('action') for action in action_history[-20:]]
+        
+        # Detect loops and repetitive patterns
+        action_frequency = {}
+        for action in recent_actions:
+            action_frequency[action] = action_frequency.get(action, 0) + 1
+        
+        most_frequent = max(action_frequency.items(), key=lambda x: x[1]) if action_frequency else (None, 0)
+        
+        return {
+            'pattern_type': 'repetitive_loop' if most_frequent[1] > len(recent_actions) * 0.6 else 'diverse_exploration',
+            'dominant_action': most_frequent[0],
+            'dominance_ratio': most_frequent[1] / max(1, len(recent_actions)),
+            'action_diversity': len(set(recent_actions)),
+            'total_actions_analyzed': len(recent_actions)
+        }
