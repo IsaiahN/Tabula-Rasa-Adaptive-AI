@@ -47,6 +47,43 @@ class FrameAnalyzer:
         self.spatial_interaction_map = {}  # (x, y) -> interaction results and context
         self.hypothesis_database = []  # Generated hypotheses about object behaviors
         
+        # INITIAL EXPLORATION PHASE - User insight implementation
+        self.exploration_phase = True
+        self.color_objects_to_explore = set()  # Colors we haven't tried yet
+        self.explored_color_objects = set()   # Colors we've clicked at least once
+        self.exploration_complete = False
+        self.current_game_colors = set()      # Colors detected in current game
+        self.game_state_memory = {}           # Remember game states and transitions
+        
+    def reset_for_new_game(self, game_id: str = None):
+        """Reset exploration phase for a new game while preserving learned patterns."""
+        print(f"🎯 Reset frame analyzer tracking for new game")
+        
+        # Reset exploration phase
+        self.exploration_phase = True
+        self.exploration_complete = False
+        self.current_game_colors = set()
+        self.color_objects_to_explore = set()
+        
+        # Keep learned patterns but reset game-specific data
+        self.previous_frame = None
+        self.frame_history = []
+        self.tried_coordinates = set()  # Reset for new game
+        
+        # Keep coordinate results and behavior patterns for cross-game learning
+        # Only reset if explicitly requested or if patterns are very poor
+        poor_performance = len(self.coordinate_results) > 50 and sum(
+            result.get('total_score_change', 0) for result in self.coordinate_results.values()
+        ) <= 0
+        
+        if poor_performance:
+            print("🔄 Poor performance detected - resetting coordinate intelligence")
+            self.coordinate_results = {}
+            self.color_behavior_patterns = {}
+        
+        print(f"   📊 Retaining {len(self.coordinate_results)} coordinate results")
+        print(f"   🎨 Retaining {len(self.color_behavior_patterns)} color behavior patterns")
+        
     def analyze_frame_for_action6_targets(self, frame: List[List[List[int]]], game_id: str = None) -> Dict[str, Any]:
         """
         ADVANCED VISUAL TARGETING SYSTEM for ACTION6.
@@ -95,39 +132,47 @@ class FrameAnalyzer:
             # 5. RANK TARGETS by interaction potential
             ranked_targets = self._rank_interaction_targets(targets)
             
+            # 5.5. INITIAL EXPLORATION PHASE - User insight implementation
+            exploration_target = self._check_exploration_phase(frame_array, ranked_targets)
+            
             # 6. ENHANCED TARGET SELECTION with coordinate avoidance
             selected_target = None
             emergency_mode = False
             
-            # Check if we're stuck (more than 100 attempts at stuck coordinates)
-            total_stuck_attempts = sum(
-                result['try_count'] for result in self.coordinate_results.values() 
-                if result.get('is_stuck_coordinate', False)
-            )
-            
-            if total_stuck_attempts > 50:
-                emergency_mode = True
-                print(f"🚨 EMERGENCY MODE: {total_stuck_attempts} attempts at stuck coordinates")
-                
-                # Force diversification
-                emergency_coord = self.get_emergency_diversification_target(
-                    frame, (frame_array.shape[1], frame_array.shape[0])
-                )
-                selected_target = {
-                    'x': emergency_coord[0], 
-                    'y': emergency_coord[1],
-                    'reason': f'emergency_diversification_from_{total_stuck_attempts}_stuck_attempts',
-                    'confidence': 0.8  # High confidence in diversification
-                }
+            # EXPLORATION PHASE takes priority over normal selection
+            if exploration_target:
+                selected_target = exploration_target
+                print(f"🔍 EXPLORATION MODE: Targeting {exploration_target['reason']}")
             else:
-                # Normal target selection with avoidance
-                for target in ranked_targets:
-                    if not self.should_avoid_coordinate(target['x'], target['y']):
-                        selected_target = target
-                        break
-                    else:
-                        avoidance_score = self.get_coordinate_avoidance_score(target['x'], target['y'])
-                        print(f"🚫 AVOIDING ({target['x']},{target['y']}): avoidance score {avoidance_score:.2f}")
+                # Check if we're stuck (more than 100 attempts at stuck coordinates)
+                total_stuck_attempts = sum(
+                    result['try_count'] for result in self.coordinate_results.values() 
+                    if result.get('is_stuck_coordinate', False)
+                )
+                
+                if total_stuck_attempts > 50:
+                    emergency_mode = True
+                    print(f"🚨 EMERGENCY MODE: {total_stuck_attempts} attempts at stuck coordinates")
+                    
+                    # Force diversification
+                    emergency_coord = self.get_emergency_diversification_target(
+                        frame, (frame_array.shape[1], frame_array.shape[0])
+                    )
+                    selected_target = {
+                        'x': emergency_coord[0], 
+                        'y': emergency_coord[1],
+                        'reason': f'emergency_diversification_from_{total_stuck_attempts}_stuck_attempts',
+                        'confidence': 0.8  # High confidence in diversification
+                    }
+                else:
+                    # Normal target selection with avoidance
+                    for target in ranked_targets:
+                        if not self.should_avoid_coordinate(target['x'], target['y']):
+                            selected_target = target
+                            break
+                        else:
+                            avoidance_score = self.get_coordinate_avoidance_score(target['x'], target['y'])
+                            print(f"🚫 AVOIDING ({target['x']},{target['y']}): avoidance score {avoidance_score:.2f}")
             
             if selected_target:
                 analysis['interactive_targets'] = ranked_targets[:5]  # Top 5 for reference
@@ -414,7 +459,7 @@ class FrameAnalyzer:
         return targets
     
     def _rank_interaction_targets(self, targets: List[Dict]) -> List[Dict]:
-        """ENHANCED: Rank targets avoiding repetitive coordinates and prioritizing unexplored areas."""
+        """ENHANCED: Rank targets prioritizing productive coordinates and avoiding stuck ones."""
         # Sort by confidence, then by type priority
         type_priority = {
             'dynamic_change': 5,      # Moving objects = highest priority
@@ -428,22 +473,44 @@ class FrameAnalyzer:
             base_score = target['confidence'] * 100
             type_score = type_priority.get(target['type'], 0) * 10
             
-            # COORDINATE AVOIDANCE PENALTY
+            # PRODUCTIVITY BONUS - Key user insight implementation!
             coord_key = (target['x'], target['y'])
+            productivity_bonus = 0
             avoidance_penalty = 0
             
-            if coord_key in self.tried_coordinates:
-                try_count = self.coordinate_results.get(coord_key, {}).get('try_count', 0)
-                success_count = self.coordinate_results.get(coord_key, {}).get('success_count', 0)
+            if coord_key in self.coordinate_results:
+                result = self.coordinate_results[coord_key]
                 
-                if try_count > 0:
-                    # Heavy penalty for repeatedly tried coordinates with no success
-                    if success_count == 0 and try_count > 2:
-                        avoidance_penalty = 80  # Heavy penalty
-                    elif success_count == 0 and try_count > 0:
-                        avoidance_penalty = 40  # Moderate penalty
-                    elif success_count > 0:
-                        avoidance_penalty = 10  # Light penalty for previously successful
+                # MAJOR BONUS for coordinates that have produced score increases
+                total_score_gain = max(0, result.get('total_score_change', 0))
+                if total_score_gain > 0:
+                    productivity_bonus = min(total_score_gain * 50, 200)  # Up to 200 point bonus!
+                    print(f"🎯 PRODUCTIVITY BONUS: ({target['x']},{target['y']}) gets +{productivity_bonus} for {total_score_gain} total score gain")
+                
+                # Check recent attempts for ongoing productivity
+                recent_gains = sum(attempt.get('score_change', 0) 
+                                 for attempt in result.get('recent_attempts', []) 
+                                 if attempt.get('score_change', 0) > 0)
+                
+                if recent_gains > 0:
+                    recent_bonus = min(recent_gains * 30, 150)  # Bonus for recent gains
+                    productivity_bonus += recent_bonus
+                    print(f"🔥 RECENT GAINS BONUS: ({target['x']},{target['y']}) gets +{recent_bonus} for {recent_gains} recent gains")
+                
+                # PENALTY for stuck coordinates (but reduced if they had past gains)
+                if result.get('is_stuck_coordinate', False):
+                    if total_score_gain > 0:
+                        avoidance_penalty = 30  # Reduced penalty for previously productive stuck coords
+                    else:
+                        avoidance_penalty = 80  # Heavy penalty for unproductive stuck coords
+                elif result.get('try_count', 0) > 0:
+                    success_count = result.get('success_count', 0)
+                    try_count = result['try_count']
+                    
+                    if success_count == 0 and try_count > 3:
+                        avoidance_penalty = 40  # Penalty for repeatedly unsuccessful
+                    elif success_count > 0 and total_score_gain == 0:
+                        avoidance_penalty = 20  # Light penalty for "successful" but no score gain
             
             # MOVEMENT BONUS for objects that have moved
             movement_bonus = 0
@@ -460,11 +527,13 @@ class FrameAnalyzer:
             target['priority_score'] = (
                 base_score + 
                 type_score + 
+                productivity_bonus +  # NEW: Major boost for productive coordinates
                 movement_bonus + 
                 exploration_bonus - 
                 avoidance_penalty
             )
             
+            target['productivity_bonus'] = productivity_bonus
             target['avoidance_penalty'] = avoidance_penalty
             target['movement_bonus'] = movement_bonus
             target['exploration_bonus'] = exploration_bonus
@@ -1491,32 +1560,49 @@ class FrameAnalyzer:
         result = self.coordinate_results[coord_key]
         result['try_count'] += 1
         result['last_attempt'] = len(self.frame_history)
+        if 'contexts' not in result:
+            result['contexts'] = []
         result['contexts'].append(context)
         
         # ENHANCED SUCCESS DETECTION - Zero score change = ineffective
         is_truly_effective = success and score_change > 0
         made_progress = score_change != 0  # Any score change (positive or negative) is progress
         
-        # Track zero progress streaks
-        if score_change == 0:
-            result['zero_progress_streak'] += 1
-        else:
-            result['zero_progress_streak'] = 0  # Reset streak if any progress made
-        
-        # Mark as stuck coordinate if too many zero-progress attempts
-        if result['zero_progress_streak'] >= 5:
-            result['is_stuck_coordinate'] = True
-            result['penalty_score'] = min(result['penalty_score'] + 0.2, 1.0)
-            print(f"⚠️ COORDINATE ({x},{y}) MARKED AS STUCK: {result['zero_progress_streak']} zero-progress attempts")
-        
-        if is_truly_effective:
+        # SCORE INCREASE OVERRIDES STUCK STATUS - Key insight from user!
+        if score_change > 0:
+            # Reset all negative tracking when score increases
+            result['zero_progress_streak'] = 0
             result['success_count'] += 1
             result['total_score_change'] += score_change
-            # Remove stuck flag if coordinate becomes effective
+            
+            # CRITICAL: Remove stuck flag if coordinate produces score increase
             if result['is_stuck_coordinate']:
                 result['is_stuck_coordinate'] = False
-                result['penalty_score'] = max(result['penalty_score'] - 0.3, 0.0)
-                print(f"✅ COORDINATE ({x},{y}) UNSTUCK: Made progress with score change {score_change:+}")
+                result['penalty_score'] = max(result['penalty_score'] - 0.5, 0.0)  # Bigger penalty reduction
+                print(f"🎯 COORDINATE ({x},{y}) PRODUCTIVE: Score +{score_change} - removing stuck flag!")
+        elif score_change == 0:
+            # Only increment zero progress if no score gained
+            result['zero_progress_streak'] += 1
+        else:
+            # Negative score change still counts as some form of progress
+            result['zero_progress_streak'] = 0
+        
+        # Mark as stuck coordinate ONLY if too many consecutive zero-progress attempts
+        # AND no recent positive score changes
+        if result['zero_progress_streak'] >= 8:  # Increased threshold to be less aggressive
+            # Check recent attempts for any positive score changes
+            recent_positive_scores = [attempt for attempt in result['recent_attempts'] 
+                                    if attempt.get('score_change', 0) > 0]
+            
+            # Only mark as stuck if no positive scores in recent attempts
+            if not recent_positive_scores:
+                result['is_stuck_coordinate'] = True
+                result['penalty_score'] = min(result['penalty_score'] + 0.2, 1.0)
+                print(f"⚠️ COORDINATE ({x},{y}) MARKED AS STUCK: {result['zero_progress_streak']} zero-progress attempts, no recent gains")
+        
+        if is_truly_effective and score_change == 0:
+            # Handle case where action was "successful" but no score change
+            result['success_count'] += 1
         
         # Track recent attempt results
         attempt_result = {
@@ -1554,18 +1640,159 @@ class FrameAnalyzer:
         
         result = self.coordinate_results[coord_key]
         
-        # High avoidance score for stuck coordinates
+        # PRODUCTIVE COORDINATES GET PRIORITY - User insight implementation
+        # If coordinate has produced positive score changes recently, prioritize it
+        recent_score_gains = sum(attempt.get('score_change', 0) 
+                               for attempt in result['recent_attempts'] 
+                               if attempt.get('score_change', 0) > 0)
+        
+        if recent_score_gains > 0:
+            # NEGATIVE avoidance score = actively seek this coordinate
+            productivity_bonus = min(recent_score_gains * 0.1, 0.5)
+            return -productivity_bonus  # Negative = attractive, not avoided
+        
+        # High avoidance score for stuck coordinates (only if no recent gains)
         if result['is_stuck_coordinate']:
             return 0.9  # Very high avoidance
         
         # Progressive avoidance based on zero progress streak
-        streak_penalty = min(result['zero_progress_streak'] * 0.15, 0.8)
+        streak_penalty = min(result['zero_progress_streak'] * 0.1, 0.6)  # Reduced max penalty
         
-        # High try count with no progress gets penalized
-        if result['try_count'] > 5 and result['total_score_change'] <= 0:
-            streak_penalty += 0.3
+        # High try count with no progress gets penalized (but less aggressively)
+        if result['try_count'] > 8 and result['total_score_change'] <= 0:
+            streak_penalty += 0.2  # Reduced penalty
         
         return streak_penalty
+
+    def _check_exploration_phase(self, frame_array: np.ndarray, ranked_targets: List[Dict]) -> Optional[Dict]:
+        """
+        EXPLORATION PHASE - User insight implementation.
+        Systematically click every color object at least once to discover what's clickable.
+        """
+        if self.exploration_complete:
+            return None
+        
+        # 1. DETECT ALL COLORS in current frame
+        unique_colors = set(np.unique(frame_array))
+        self.current_game_colors.update(unique_colors)
+        
+        # Remove background color (assume 0 is background)
+        unique_colors.discard(0)
+        
+        # 2. IDENTIFY UNEXPLORED COLORS
+        unexplored_colors = unique_colors - self.explored_color_objects
+        
+        if not unexplored_colors:
+            # All colors explored - switch to normal targeting
+            self.exploration_phase = False
+            self.exploration_complete = True
+            print(f"✅ EXPLORATION COMPLETE: All {len(self.explored_color_objects)} colors tried at least once")
+            return None
+        
+        # 3. FIND TARGET FOR NEXT UNEXPLORED COLOR
+        target_color = next(iter(unexplored_colors))
+        
+        # Find coordinates where this color appears
+        color_locations = np.argwhere(frame_array == target_color)
+        
+        if len(color_locations) == 0:
+            print(f"⚠️ No locations found for color {target_color}")
+            return None
+        
+        # Choose a representative location for this color (center of mass) 
+        # Note: argwhere returns (row, col) which is (y, x)
+        center_y, center_x = np.mean(color_locations, axis=0).astype(int)
+        
+        # Ensure coordinates are within bounds
+        center_x = max(0, min(center_x, frame_array.shape[1] - 1))
+        center_y = max(0, min(center_y, frame_array.shape[0] - 1))
+        
+        # Double-check we're targeting the right color
+        actual_color_at_target = frame_array[center_y, center_x]
+        if actual_color_at_target != target_color:
+            # If center of mass doesn't hit the target color, pick first occurrence
+            center_y, center_x = color_locations[0]
+            print(f"🔧 Center of mass mismatch, using first occurrence: ({center_x},{center_y})")
+        
+        # Create exploration target
+        exploration_target = {
+            'x': int(center_x),
+            'y': int(center_y),
+            'color': int(target_color),
+            'reason': f'exploration_color_{target_color}_of_{len(unexplored_colors)}_remaining',
+            'confidence': 0.9,  # High confidence in exploration
+            'type': 'color_exploration',
+            'exploration_phase': True
+        }
+        
+        print(f"🔍 EXPLORATION TARGET: Color {target_color} at ({center_x},{center_y}) - {len(unexplored_colors)} colors remaining")
+        
+        return exploration_target
+
+    def mark_color_explored(self, color: int, coordinate: Tuple[int, int], 
+                          success: bool, score_change: float, frame_changes: Dict):
+        """
+        Mark a color as explored and record what happened when we clicked it.
+        This builds the knowledge base for future targeting.
+        """
+        self.explored_color_objects.add(color)
+        
+        # Record detailed exploration result
+        exploration_record = {
+            'color': color,
+            'coordinate': coordinate,
+            'success': success,
+            'score_change': score_change,
+            'frame_changes': frame_changes,
+            'timestamp': len(self.frame_history),
+            'clickable': success or score_change != 0 or frame_changes.get('changes_detected', False),
+            'effects_observed': []
+        }
+        
+        # Detect specific effects
+        if score_change > 0:
+            exploration_record['effects_observed'].append('score_increase')
+        if score_change < 0:
+            exploration_record['effects_observed'].append('score_decrease')
+        if frame_changes.get('changes_detected', False):
+            exploration_record['effects_observed'].append('visual_change')
+            if frame_changes.get('num_pixels_changed', 0) > 50:
+                exploration_record['effects_observed'].append('significant_visual_change')
+        
+        # Initialize color behavior pattern if not exists
+        if color not in self.color_behavior_patterns:
+            self.color_behavior_patterns[color] = {
+                'interactions': [],
+                'success_rate': 0.0,
+                'avg_score_change': 0.0,
+                'common_effects': [],
+                'clickable': exploration_record['clickable'],
+                'exploration_result': exploration_record
+            }
+        
+        pattern = self.color_behavior_patterns[color]
+        pattern['exploration_result'] = exploration_record
+        pattern['clickable'] = exploration_record['clickable']
+        
+        print(f"📝 COLOR {color} EXPLORATION RESULT:")
+        print(f"   Clickable: {exploration_record['clickable']}")
+        print(f"   Score change: {score_change:+}")
+        print(f"   Effects: {exploration_record['effects_observed']}")
+        
+        # Check if exploration phase is complete
+        remaining_colors = self.current_game_colors - self.explored_color_objects - {0}  # Exclude background
+        if not remaining_colors:
+            self.exploration_phase = False
+            self.exploration_complete = True
+            
+            # Summarize exploration results
+            clickable_colors = [color for color, pattern in self.color_behavior_patterns.items() 
+                              if pattern.get('clickable', False)]
+            
+            print(f"🎯 EXPLORATION PHASE COMPLETE!")
+            print(f"   Total colors tested: {len(self.explored_color_objects)}")
+            print(f"   Clickable colors found: {len(clickable_colors)} {clickable_colors}")
+            print(f"   Now switching to intelligent targeting based on exploration results")
 
     def should_avoid_coordinate(self, x: int, y: int) -> bool:
         """Check if a coordinate should be avoided due to ineffectiveness."""

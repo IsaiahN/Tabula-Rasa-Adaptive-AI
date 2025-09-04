@@ -839,10 +839,13 @@ class ContinuousLearningLoop:
                                 
                                 print(f"🌐 Initialized universal boundary detection system for {game_id}")
                                 
-                                # ENHANCED: Reset frame analyzer tracking for new game
+                                # ENHANCED: Reset frame analyzer tracking for new game including exploration phase
                                 if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
                                     try:
-                                        self.frame_analyzer.reset_coordinate_tracking()
+                                        if hasattr(self.frame_analyzer, 'reset_for_new_game'):
+                                            self.frame_analyzer.reset_for_new_game(game_id)
+                                        else:
+                                            self.frame_analyzer.reset_coordinate_tracking()
                                         print(f"🎯 Reset frame analyzer tracking for new game {game_id}")
                                     except Exception as e:
                                         print(f"⚠️ Failed to reset frame analyzer: {e}")
@@ -1459,6 +1462,44 @@ class ContinuousLearningLoop:
                                         self.frame_analyzer._record_coordinate_effectiveness(
                                             x, y, api_success, score_change, context
                                         )
+                                    
+                                    # EXPLORATION PHASE TRACKING - User insight implementation
+                                    if (hasattr(self.frame_analyzer, 'exploration_phase') and 
+                                        self.frame_analyzer.exploration_phase and
+                                        hasattr(self.frame_analyzer, 'mark_color_explored')):
+                                        
+                                        # Get the color at clicked coordinate from the BEFORE state frame
+                                        # (after state might show changes from the click)
+                                        current_frame = before_state.get('frame', [])
+                                        if current_frame and 0 <= y < len(current_frame) and 0 <= x < len(current_frame[0]):
+                                            # Handle nested list format
+                                            if isinstance(current_frame[y], list):
+                                                clicked_color = current_frame[y][x]
+                                            else:
+                                                clicked_color = current_frame[y][x]
+                                            
+                                            # Calculate frame changes for exploration record
+                                            frame_changes = {}
+                                            if hasattr(self.frame_analyzer, '_analyze_frame_changes'):
+                                                try:
+                                                    frame_changes = self.frame_analyzer._analyze_frame_changes(
+                                                        before_state.get('frame'), after_state.get('frame')
+                                                    )
+                                                except Exception as e:
+                                                    frame_changes = {'changes_detected': False, 'error': str(e)}
+                                            
+                                            # Mark this color as explored
+                                            self.frame_analyzer.mark_color_explored(
+                                                color=clicked_color,
+                                                coordinate=(x, y),
+                                                success=api_success,
+                                                score_change=score_change,
+                                                frame_changes=frame_changes
+                                            )
+                                            
+                                            print(f"🔍 EXPLORATION: Color {clicked_color} tested at ({x},{y}) - {'✅ Effective' if api_success or score_change != 0 else '❌ No effect'}")
+                                        else:
+                                            print(f"⚠️ EXPLORATION: Invalid coordinates ({x},{y}) for frame analysis")
                                     
                                     print(f"📊 ACTION6 interaction logged: {interaction_id} at ({x},{y}) with score change {score_change:+}")
                                     
