@@ -1,0 +1,228 @@
+{
+  "game_id": "ft09-f340c8e5138e",
+  "initial_actions": [
+    6
+  ],
+  "effective_actions": {
+    "6": {
+      "success_rate": 1.0,
+      "attempts": 80,
+      "successes": 80
+    }
+  },
+  "winning_sequences": [],
+  "coordinate_patterns": {
+    "6": {
+      "2,15": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "29,26": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "33,22": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "32,29": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "36,26": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "58,0": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "63,4": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "63,14": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "63,24": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "63,34": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "63,44": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "63,54": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "63,61": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "27,21": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "27,29": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "35,21": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "35,29": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "2,5": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "2,25": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "2,35": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "2,45": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "2,55": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "3,61": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "5,1": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "5,11": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "5,21": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "5,31": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "5,41": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "5,51": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "59,5": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "59,15": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "59,25": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "59,35": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "59,45": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "59,55": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "60,61": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "62,1": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "62,11": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "62,21": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "62,31": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "61,63": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      }
+    }
+  },
+  "action_transitions": {
+    "((6,), 6, (6,))": 160
+  },
+  "total_sessions_learned": 40,
+  "last_updated": 1757020226.9328818
+}

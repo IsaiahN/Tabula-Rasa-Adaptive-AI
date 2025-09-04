@@ -13910,3 +13910,35 @@
 2025-09-04 10:57:32,489 - __main__ - INFO - 🧠 MAXIMUM INTELLIGENCE ANALYSIS:
 2025-09-04 10:57:32,490 - __main__ - INFO -    Memory Operations: 0
 2025-09-04 10:57:32,490 - __main__ - INFO - ✅ Maximum intelligence analysis complete
+2025-09-04 16:06:13,709 - __main__ - INFO - Found ARC-AGI-3-Agents at: C:\Users\Admin\Documents\GitHub\ARC-AGI-3-Agents
+2025-09-04 16:06:13,709 - __main__ - INFO - 🚀 Initializing Unified ARC Trainer - MAXIMUM INTELLIGENCE MODE
+2025-09-04 16:06:13,712 - __main__ - INFO -    Mode: minimal-debug
+2025-09-04 16:06:13,713 - __main__ - INFO -    Salience: decay_compression
+2025-09-04 16:06:13,713 - __main__ - INFO -    🔥 ALL FEATURES ENABLED - Complete System Integration
+2025-09-04 16:06:13,717 - arc_integration.arc_meta_learning - INFO - ARC Meta-Learning System initialized
+2025-09-04 16:06:13,717 - src.arc_integration.continuous_learning_loop - INFO - ✅ Enhanced sleep system initialized for memory consolidation
+2025-09-04 16:06:13,719 - core.adaptive_energy_system - INFO - AdaptiveEnergySystem initialized with config: EnergyConfig(max_energy=100.0, base_depletion_rate=0.02, action_based_depletion=0.1, sleep_trigger_threshold=40.0, min_sleep_threshold=20.0, max_sleep_threshold=60.0, time_based_sleep_interval=5.0, min_time_interval=2.0, max_time_interval=15.0, success_rate_multiplier=0.8, failure_rate_multiplier=1.2)
+2025-09-04 16:06:13,721 - src.arc_integration.continuous_learning_loop - INFO - ✅ Adaptive energy system initialized for intelligent sleep scheduling
+2025-09-04 16:06:13,721 - goals.goal_system - INFO - Goal system initialized in survival phase
+2025-09-04 16:06:13,741 - core.agent - INFO - Predictive core initialized with lstm architecture
+2025-09-04 16:06:13,744 - core.agent - INFO - DNC memory system initialized and integrated with predictive core
+2025-09-04 16:06:13,745 - core.agent - INFO - Learning progress drive initialized
+2025-09-04 16:06:13,746 - core.agent - INFO - Energy and death management system initialized
+2025-09-04 16:06:13,748 - goals.goal_system - INFO - Goal system initialized in survival phase
+2025-09-04 16:06:13,749 - core.agent - INFO - Goal system initialized in survival phase
+2025-09-04 16:06:16,128 - core.agent - INFO - Action selection system initialized
+2025-09-04 16:06:16,128 - core.agent - INFO - Sleep and dream cycle system initialized
+2025-09-04 16:06:16,129 - core.agent - INFO - Monitoring and metrics system initialized
+2025-09-04 16:06:16,132 - core.agent - INFO - Meta-learning system initialized
+2025-09-04 16:06:16,133 - core.agent - INFO - Adaptive Learning Agent initialized successfully
+2025-09-04 16:06:16,133 - src.arc_integration.continuous_learning_loop - INFO - Demo agent initialized for monitoring
+2025-09-04 16:06:16,136 - src.arc_integration.continuous_learning_loop - INFO - Continuous Learning Loop initialized with ARC-3 API integration
+2025-09-04 16:06:16,138 - __main__ - INFO - ✅ Enhanced Coordinate Intelligence initialized
+2025-09-04 16:06:16,138 - __main__ - INFO - 🔧 Initializing ALL system features...
+2025-09-04 16:06:16,139 - __main__ - INFO - ✅ All features configured and ready
+2025-09-04 16:06:16,141 - __main__ - INFO - ✅ Maximum Intelligence Continuous Learning Loop initialized
+2025-09-04 16:06:16,142 - __main__ - INFO - 🔧 Starting Minimal Debug Mode
+2025-09-04 16:06:16,143 - src.arc_integration.continuous_learning_loop - INFO - Running continuous learning for session minimal_debug_1757019976
+2025-09-04 16:06:16,154 - arc_integration.arc_meta_learning - INFO - ARC meta-learning state saved to continuous_learning_data\meta_learning_minimal_debug_1757019976.json
+2025-09-04 16:06:16,156 - src.arc_integration.continuous_learning_loop - INFO - Completed training session minimal_debug_1757019976 - Win rate: 0.0%
+2025-09-04 16:06:16,157 - __main__ - INFO - Minimal Debug FAILED

@@ -7,10 +7,10 @@
     4
   ],
   "effective_actions": {
-    "4": {
+    "1": {
       "success_rate": 1.0,
-      "attempts": 1,
-      "successes": 1
+      "attempts": 40,
+      "successes": 40
     }
   },
   "winning_sequences": [],
@@ -21,8 +21,8 @@
     "4": {}
   },
   "action_transitions": {
-    "((1, 2, 3, 4), 4, (1, 2, 3, 4))": 1
+    "((1, 2, 3, 4), 1, (1, 2, 3, 4))": 80
   },
-  "total_sessions_learned": 1,
-  "last_updated": 1756962973.6050391
+  "total_sessions_learned": 40,
+  "last_updated": 1757020270.8966663
 }

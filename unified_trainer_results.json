@@ -15,7 +15,7 @@
     "enable_meta_learning": false,
     "enable_salience_system": false,
     "enable_contrarian_strategy": false,
-    "enable_frame_analysis": false,
+    "enable_frame_analysis": true,
     "enable_boundary_detection": false,
     "enable_memory_consolidation": false,
     "enable_action_intelligence": false,

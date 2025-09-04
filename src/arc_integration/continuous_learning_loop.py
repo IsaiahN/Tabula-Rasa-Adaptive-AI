@@ -279,20 +279,21 @@ class ContinuousLearningLoop:
             self.sleep_system = None
         
         # Initialize adaptive energy system for smart sleep triggers and action management
+        # WIN RATE-BASED SLEEP FREQUENCY: Sleep more when learning, less when skilled
         try:
             energy_config = EnergyConfig(
                 max_energy=100.0,
-                base_depletion_rate=0.02,  # Base rate for unlimited actions
-                action_based_depletion=0.1,  # Rate for limited actions 
-                sleep_trigger_threshold=40.0,  # Default threshold
-                time_based_sleep_interval=5.0,  # Sleep every 5 minutes for unlimited actions
-                min_time_interval=2.0,  # Minimum 2 minutes between sleeps
-                max_time_interval=15.0  # Maximum 15 minutes between sleeps
+                base_depletion_rate=0.08,  # Increased from 0.02 for more frequent sleep
+                action_based_depletion=0.25,  # Increased from 0.1 for rapid energy depletion initially
+                sleep_trigger_threshold=60.0,  # Increased from 40.0 to trigger sleep sooner
+                time_based_sleep_interval=3.0,  # Reduced from 5.0 for more frequent time-based sleep
+                min_time_interval=1.0,  # Reduced from 2.0 for minimum sleep intervals
+                max_time_interval=8.0  # Reduced from 15.0 for maximum sleep intervals
             )
             
             self.adaptive_energy = AdaptiveEnergySystem(energy_config)
             self.energy_integration = EnergySystemIntegration(self, self.adaptive_energy)
-            logger.info("✅ Adaptive energy system initialized for intelligent sleep scheduling")
+            logger.info("✅ Adaptive energy system initialized for win rate-based sleep scheduling")
         except Exception as e:
             logger.warning(f"⚠️ Could not initialize adaptive energy system: {e}")
             self.adaptive_energy = None
@@ -590,6 +591,98 @@ class ContinuousLearningLoop:
         }
         
         logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
+
+    def _calculate_current_win_rate(self) -> float:
+        """
+        Calculate current win rate as a decimal (0.0 to 1.0).
+        
+        Returns:
+            Current win rate as decimal between 0.0 and 1.0
+        """
+        return self.global_performance_metrics.get('win_rate', 0.0)
+
+    def _calculate_win_rate_adaptive_energy_parameters(self) -> Dict[str, float]:
+        """
+        Calculate energy parameters based on current win rate for adaptive sleep frequency.
+        
+        Initial learners (0% win rate) should sleep very frequently to consolidate learning.
+        Experienced agents (high win rate) can sleep less and focus on performance.
+        
+        Returns:
+            Dictionary with adaptive energy parameters
+        """
+        # Calculate current win rate from global performance metrics
+        current_win_rate = self._calculate_current_win_rate() * 100  # Convert to percentage
+        total_episodes = self.global_performance_metrics.get('total_episodes', 0)
+        
+        # PROGRESSIVE ENERGY SYSTEM BASED ON SKILL LEVEL
+        if current_win_rate == 0.0 and total_episodes < 50:
+            # 🟥 BEGINNER PHASE: Maximum learning focus - sleep every 8-12 actions
+            return {
+                'action_energy_cost': 4.5,  # Very high cost per action (8-12 actions = ~36-54 energy = sleep trigger at 60)  
+                'sleep_trigger_threshold': 60.0,  # Sleep when energy drops to 60%
+                'effectiveness_multiplier': 1.0,  # No penalty for ineffective actions yet
+                'learning_phase': 'beginner_intensive',
+                'skill_phase': 'Beginner',
+                'expected_actions_before_sleep': 9,
+                'description': 'Beginner: Intensive learning with frequent memory consolidation'
+            }
+        elif current_win_rate < 15.0:
+            # 🟧 EARLY LEARNING PHASE: High learning focus - sleep every 12-18 actions
+            return {
+                'action_energy_cost': 3.0,  # High cost per action (12-18 actions = ~36-54 energy)
+                'sleep_trigger_threshold': 55.0,  # Sleep when energy drops to 55%  
+                'effectiveness_multiplier': 1.1,  # Small penalty for ineffective actions
+                'learning_phase': 'early_learning',
+                'skill_phase': 'Early Learning',
+                'expected_actions_before_sleep': 15,
+                'description': 'Early Learning: Frequent consolidation with some efficiency focus'
+            }
+        elif current_win_rate < 35.0:
+            # 🟨 DEVELOPING PHASE: Moderate learning focus - sleep every 20-30 actions
+            return {
+                'action_energy_cost': 2.0,  # Moderate cost per action (20-30 actions = ~40-60 energy)
+                'sleep_trigger_threshold': 50.0,  # Sleep when energy drops to 50%
+                'effectiveness_multiplier': 1.2,  # Moderate penalty for ineffective actions
+                'learning_phase': 'developing_skills', 
+                'skill_phase': 'Developing',
+                'expected_actions_before_sleep': 25,
+                'description': 'Developing: Balanced learning and performance optimization'
+            }
+        elif current_win_rate < 55.0:
+            # 🟩 COMPETENT PHASE: Performance focus - sleep every 35-50 actions
+            return {
+                'action_energy_cost': 1.4,  # Lower cost per action (35-50 actions = ~49-70 energy)
+                'sleep_trigger_threshold': 45.0,  # Sleep when energy drops to 45%
+                'effectiveness_multiplier': 1.3,  # Higher penalty for ineffective actions
+                'learning_phase': 'competent_performance',
+                'skill_phase': 'Competent',
+                'expected_actions_before_sleep': 40,
+                'description': 'Competent: Performance-focused with strategic consolidation'
+            }
+        elif current_win_rate < 75.0:
+            # 🟦 SKILLED PHASE: Efficiency focus - sleep every 50-70 actions  
+            return {
+                'action_energy_cost': 1.0,  # Low cost per action (50-70 actions = ~50-70 energy)
+                'sleep_trigger_threshold': 40.0,  # Sleep when energy drops to 40%
+                'effectiveness_multiplier': 1.4,  # High penalty for ineffective actions
+                'learning_phase': 'skilled_efficiency',
+                'skill_phase': 'Skilled',
+                'expected_actions_before_sleep': 60,
+                'description': 'Skilled: Efficiency-focused with minimal consolidation needs'
+            }
+        else:
+            # 🟪 EXPERT PHASE: Maximum efficiency - sleep every 80+ actions
+            return {
+                'action_energy_cost': 0.7,  # Very low cost per action (80+ actions = ~56+ energy)
+                'sleep_trigger_threshold': 35.0,  # Sleep when energy drops to 35%
+                'effectiveness_multiplier': 1.5,  # Maximum penalty for ineffective actions
+                'learning_phase': 'expert_mastery',
+                'skill_phase': 'Expert',
+                'expected_actions_before_sleep': 80,
+                'description': 'Expert: Maximum efficiency with rare consolidation'
+            }
+    
         
     def _calculate_dynamic_action_cap(self, available_actions: List[int]) -> int:
         """Calculate smart action cap based on game complexity."""
@@ -665,7 +758,12 @@ class ContinuousLearningLoop:
         # 1. Action repetition analysis
         action_counts = {}
         for action in actions_history:
-            action_type = action.get('action', 'unknown')
+            # FIXED: Handle both integer actions and dictionary actions
+            if isinstance(action, dict):
+                action_type = action.get('action', 'unknown')
+            else:
+                # Integer format - action number directly
+                action_type = action
             action_counts[action_type] = action_counts.get(action_type, 0) + 1
         
         total_actions = len(actions_history)
@@ -676,7 +774,18 @@ class ContinuousLearningLoop:
                 analysis['suggested_fixes'].append(f"Diversify from over-reliance on action {action}")
         
         # 2. Effectiveness analysis
-        effective_actions = [a for a in actions_history if a.get('score_change', 0) > 0]
+        # FIXED: Handle both integer actions and dictionary actions
+        effective_actions = []
+        for a in actions_history:
+            if isinstance(a, dict):
+                # Dictionary format with score_change
+                if a.get('score_change', 0) > 0:
+                    effective_actions.append(a)
+            else:
+                # Integer format - we can't determine effectiveness without score data
+                # Consider all actions as potentially effective for now
+                effective_actions.append(a)
+        
         effectiveness_rate = len(effective_actions) / total_actions * 100 if total_actions > 0 else 0
         analysis['action_effectiveness'] = {
             'total_actions': total_actions,
@@ -1373,32 +1482,55 @@ class ContinuousLearningLoop:
                 }
             
             # Basic frame analysis - convert frame to numpy for color analysis
-            frame_array = np.array(frame[0]) if frame and len(frame) > 0 else np.array([])
-            if frame_array.size > 0:
-                # Color and pattern analysis
-                unique_colors = np.unique(frame_array)
-                color_info = {
-                    'unique_colors': unique_colors.tolist(),
-                    'color_count': len(unique_colors),
-                    'dominant_color': int(np.argmax(np.bincount(frame_array.flatten()))) if frame_array.size > 0 else 0
-                }
-                enhanced_analysis['color_analysis'] = color_info
-                
-                # Pattern complexity analysis
-                complexity_score = len(unique_colors) / (frame_array.shape[0] * frame_array.shape[1]) if frame_array.size > 0 else 0
-                enhanced_analysis['complexity'] = {
-                    'score': complexity_score,
-                    'is_simple': complexity_score < 0.1,
-                    'is_complex': complexity_score > 0.5
-                }
-                
-                # Simple boundary detection (based on edge complexity)
-                if len(unique_colors) > 2:  # Has boundaries if more than background + one color
-                    enhanced_analysis['boundary_analysis'] = {
-                        'has_clear_boundaries': True,
-                        'boundary_count': len(unique_colors) - 1,  # Rough estimate
-                        'effective_area': max(0.2, 1.0 - (len(unique_colors) * 0.05))  # Approximate
-                    }
+            # FIXED: Proper frame structure handling with error checking
+            frame_array = None
+            try:
+                if frame and len(frame) > 0:
+                    # Handle different frame structures
+                    if isinstance(frame[0], list):
+                        # Frame is a 2D array: [[row1], [row2], ...]
+                        frame_array = np.array(frame)
+                    else:
+                        # Frame is already a flat list or other structure
+                        frame_array = np.array(frame)
+                        
+                    if frame_array.size > 0 and frame_array.ndim >= 1:
+                        # Ensure we have a valid 2D structure for analysis
+                        if frame_array.ndim == 1:
+                            # Convert 1D to 2D if needed (assume square-ish grid)
+                            side_length = int(np.sqrt(len(frame_array)))
+                            if side_length * side_length == len(frame_array):
+                                frame_array = frame_array.reshape(side_length, side_length)
+                        
+                        # Color and pattern analysis
+                        unique_colors = np.unique(frame_array)
+                        color_info = {
+                            'unique_colors': unique_colors.tolist(),
+                            'color_count': len(unique_colors),
+                            'dominant_color': int(np.argmax(np.bincount(frame_array.flatten()))) if frame_array.size > 0 else 0
+                        }
+                        enhanced_analysis['color_analysis'] = color_info
+                        
+                        # Pattern complexity analysis
+                        total_elements = frame_array.size
+                        complexity_score = len(unique_colors) / total_elements if total_elements > 0 else 0
+                        enhanced_analysis['complexity'] = {
+                            'score': complexity_score,
+                            'is_simple': complexity_score < 0.1,
+                            'is_complex': complexity_score > 0.5
+                        }
+                        
+                        # Simple boundary detection (based on edge complexity)
+                        if len(unique_colors) > 2:  # Has boundaries if more than background + one color
+                            enhanced_analysis['boundary_analysis'] = {
+                                'has_clear_boundaries': True,
+                                'boundary_count': len(unique_colors) - 1,  # Rough estimate
+                                'complexity_level': 'high' if complexity_score > 0.5 else 'medium' if complexity_score > 0.2 else 'low'
+                            }
+            except Exception as frame_error:
+                print(f"⚠️ Frame structure analysis failed: {frame_error}")
+                # Continue without frame array analysis
+                pass
             
             # Store frame analysis for game loop usage
             if not hasattr(self, '_last_frame_analysis'):
@@ -1744,6 +1876,16 @@ class ContinuousLearningLoop:
             self.standalone_mode = True
         
         print(f"Starting ENHANCED ARC-3 training on game: {game_id}")
+        
+        # Display current win rate-based energy status at training start
+        current_win_rate = self._calculate_current_win_rate()
+        energy_params = self._calculate_win_rate_adaptive_energy_parameters()
+        skill_phase = energy_params['skill_phase']
+        actions_until_sleep = int(self.current_energy / energy_params['action_energy_cost'])
+        
+        print(f"🧠 Training Start Status: Win Rate {current_win_rate:.1%} | Phase: {skill_phase} | Energy: {self.current_energy:.1f}% | ~{actions_until_sleep} actions until sleep")
+        print(f"⚡ Current Energy Profile: {energy_params['action_energy_cost']:.1f} energy/action | Sleep threshold: {energy_params['sleep_trigger_threshold']:.0f}%")
+        
         print(f"Using API Key: {self.api_key[:8]}...{self.api_key[-4:]}")
         print(f"ARC-AGI-3-Agents path: {self.arc_agents_path}")
         
@@ -2555,14 +2697,31 @@ class ContinuousLearningLoop:
 
     def _get_recent_action_attempts(self, action_num: int, window: int = 10) -> Dict[str, int]:
         """Get recent attempt statistics for an action."""
+        # FIXED: Use actual action effectiveness data instead of placeholder
+        effectiveness_data = self.available_actions_memory['action_effectiveness'].get(action_num, {
+            'attempts': 0, 'successes': 0, 'success_rate': 0.0
+        })
+        
+        # Use the actual tracked data
+        total_attempts = effectiveness_data['attempts']
+        total_successes = effectiveness_data['successes']
+        
+        # For recent window, count from action history
         action_history = self.available_actions_memory['action_history']
         recent_history = action_history[-window:] if len(action_history) >= window else action_history
+        recent_attempts = recent_history.count(action_num)
         
-        attempts = recent_history.count(action_num)
-        # For now, assume 50% success rate - this would be updated with actual game feedback
-        successes = attempts // 2  # Placeholder - would track actual success/failure
+        # Estimate recent successes based on overall success rate
+        overall_success_rate = effectiveness_data['success_rate']
+        estimated_recent_successes = int(recent_attempts * overall_success_rate)
         
-        return {'total': attempts, 'successes': successes}
+        return {
+            'total': recent_attempts, 
+            'successes': estimated_recent_successes,
+            'overall_attempts': total_attempts,
+            'overall_successes': total_successes,
+            'overall_success_rate': overall_success_rate
+        }
 
     def _has_recent_meaningful_progress(self) -> bool:
         """
@@ -2656,6 +2815,15 @@ class ContinuousLearningLoop:
             stderr_text = ""
             
             print(f"🎮 Starting complete mastery session {session_count} for {game_id}")  # Updated naming
+            
+            # Display current win rate-based energy status
+            current_win_rate = self._calculate_current_win_rate()
+            energy_params = self._calculate_win_rate_adaptive_energy_parameters()
+            skill_phase = energy_params['skill_phase']
+            actions_until_sleep = int(self.current_energy / energy_params['action_energy_cost'])
+            
+            print(f"🧠 Agent Status: Win Rate {current_win_rate:.1%} | Phase: {skill_phase} | Energy: {self.current_energy:.1f}% | Actions until sleep: ~{actions_until_sleep}")
+            print(f"⚡ Energy Config: {energy_params['action_energy_cost']:.1f} per action | Sleep at {energy_params['sleep_trigger_threshold']:.0f}% energy")
             
             # Enhanced option: Choose between external main.py and direct control
             use_direct_control = True  # Set to True to use our enhanced action selection
@@ -2843,49 +3011,54 @@ class ContinuousLearningLoop:
             # Now process the complete game session results
             # Dynamic energy system based on game complexity and learning opportunities
             
-            # Calculate adaptive energy cost based on actions and effectiveness
-            base_energy_cost = episode_actions * 0.08  # Reduced from 0.15 to 0.08 per action for more frequent sleep cycles
+            # WIN RATE-BASED ADAPTIVE ENERGY SYSTEM
+            # Calculate energy parameters based on current skill level
+            energy_params = self._calculate_win_rate_adaptive_energy_parameters()
             
-            # Adjust energy cost based on game complexity
-            if episode_actions > 500:  # Very complex game
-                energy_multiplier = 1.5  # Higher cost for complex games
-                sleep_frequency_target = 200  # Trigger sleep every ~200 actions worth
-            elif episode_actions > 200:  # Moderately complex game  
-                energy_multiplier = 1.2
-                sleep_frequency_target = 150  # Trigger sleep every ~150 actions worth
-            else:  # Simple game
-                energy_multiplier = 1.0
-                sleep_frequency_target = 100  # Trigger sleep every ~100 actions worth
+            print(f"🎯 ENERGY PHASE: {energy_params['learning_phase']}")
+            print(f"   {energy_params['description']}")
+            print(f"   Expected actions before sleep: ~{energy_params['expected_actions_before_sleep']}")
             
-            # Additional cost if no effective actions (wasted energy)
-            if len(effective_actions) == 0 and episode_actions > 50:
-                energy_multiplier *= 1.3  # Penalty for ineffective long games
-                print(f"⚡ Energy penalty applied for {episode_actions} ineffective actions")
+            # Calculate energy cost based on win rate-adaptive parameters
+            base_action_cost = energy_params['action_energy_cost']
+            effectiveness_ratio = len(effective_actions) / max(1, episode_actions)
+            
+            # Apply effectiveness multiplier - penalize ineffective actions more for experienced agents
+            if effectiveness_ratio < 0.1:  # Less than 10% effectiveness
+                ineffectiveness_penalty = energy_params['effectiveness_multiplier']
+                base_action_cost *= ineffectiveness_penalty
+                print(f"⚡ Ineffectiveness penalty: {ineffectiveness_penalty:.1f}x (effectiveness: {effectiveness_ratio:.1%})")
+            else:
+                # Reward effective actions with slight energy savings
+                effectiveness_bonus = max(0.8, 1.0 - (effectiveness_ratio * 0.2))  # Up to 20% savings
+                base_action_cost *= effectiveness_bonus
+                print(f"⚡ Effectiveness bonus: {effectiveness_bonus:.1f}x (effectiveness: {effectiveness_ratio:.1%})")
             
             # Calculate final energy cost
-            energy_cost = base_energy_cost * energy_multiplier
+            energy_cost = episode_actions * base_action_cost
             current_energy = pre_sleep_status.get('current_energy_level', self.current_energy)
             remaining_energy = max(0.0, current_energy - energy_cost)
             
             print(f"⚡ Energy: {current_energy:.2f} -> {remaining_energy:.2f}")
-            print(f"   Cost: {energy_cost:.3f} (base: {base_energy_cost:.3f} × {energy_multiplier:.1f} multiplier)")
-            print(f"   Game complexity: {episode_actions} actions -> {'High' if episode_actions > 500 else 'Medium' if episode_actions > 200 else 'Low'}")
+            print(f"   Cost: {energy_cost:.3f} (base: {base_action_cost:.3f} × {episode_actions} actions)")
+            print(f"   Game complexity: {episode_actions} actions -> {'Low' if episode_actions <= 21 else 'Medium' if episode_actions <= 100 else 'High'}")
             
-            # Dynamic sleep threshold based on learning opportunities
+            # Use win rate-based sleep threshold
+            sleep_threshold = energy_params['sleep_trigger_threshold']
+            
+            # Determine sleep reason
             if len(effective_actions) > 0:
-                # Lower threshold when we have effective actions to consolidate
-                sleep_threshold = 0.6 + (len(effective_actions) * 0.1)  # Increased from 0.4 to 0.6 for more frequent sleep
-                sleep_reason = f"Learning consolidation needed ({len(effective_actions)} effective actions)"
+                sleep_reason = f"Learning consolidation ({len(effective_actions)} effective actions) - {energy_params['learning_phase']}"
             else:
-                # Higher threshold when no learning occurred
-                sleep_threshold = 0.5  # Increased from 0.2 to 0.5 for more frequent sleep
-                sleep_reason = f"Energy depletion (no effective actions found)"
+                sleep_reason = f"Energy depletion (no effective actions) - {energy_params['learning_phase']}"
             
-            # Trigger sleep based on adaptive thresholds
+            # Trigger sleep based on adaptive thresholds - use current energy from per-action management  
             sleep_triggered = False
-            if remaining_energy <= sleep_threshold:
+            if self.current_energy <= sleep_threshold:
+                skill_phase = energy_params['skill_phase']
                 print(f"😴 Sleep triggered: {sleep_reason}")
-                print(f"   Energy {remaining_energy:.2f} <= threshold {sleep_threshold:.2f}")
+                print(f"   Energy {self.current_energy:.2f} <= threshold {sleep_threshold:.2f} | Skill Phase: {skill_phase}")
+                print(f"   Win Rate: {self._calculate_current_win_rate():.1%} | Action Cost: {energy_params['action_energy_cost']:.1f}")
                 
                 sleep_result = await self._trigger_sleep_cycle(effective_actions)
                 print(f"🌅 Sleep completed: {sleep_result}")
@@ -2912,13 +3085,20 @@ class ContinuousLearningLoop:
                     complexity_bonus = 0.0
                 
                 total_replenishment = base_replenishment + learning_bonus + complexity_bonus
-                remaining_energy = min(100.0, remaining_energy + total_replenishment)
-                print(f"⚡ Energy replenished: {total_replenishment:.2f} total -> {remaining_energy:.2f}")
+                self.current_energy = min(100.0, self.current_energy + total_replenishment)
+                skill_phase = energy_params['skill_phase']
+                actions_until_next_sleep = int(self.current_energy / energy_params['action_energy_cost'])
+                
+                print(f"⚡ Energy replenished: {total_replenishment:.2f} total -> {self.current_energy:.2f}")
+                print(f"🎯 Ready for ~{actions_until_next_sleep} actions until next sleep cycle ({skill_phase} phase)")
             else:
-                print(f"⚡ Sleep not needed: Energy {remaining_energy:.2f} > threshold {sleep_threshold:.2f}")
+                print(f"⚡ Sleep not needed: Energy {self.current_energy:.2f} > threshold {energy_params['sleep_trigger_threshold']:.2f} ({energy_params['skill_phase']} phase)")
             
-            # Update energy level in system
-            self._update_energy_level(remaining_energy)
+            # Update energy level in system - use current energy from per-action depletion
+            # The per-action energy system has already managed energy during gameplay
+            final_energy = max(0.0, self.current_energy)  # Use energy from per-action management
+            print(f"⚡ Energy level updated to {final_energy:.2f}")
+            self._update_energy_level(final_energy)
             
             # Update game complexity history for future energy allocation
             # Ensure we have valid values to prevent NoneType errors
@@ -4157,7 +4337,15 @@ class ContinuousLearningLoop:
             return 0.0
         
         mapping = self.available_actions_memory['action_semantic_mapping'][action]
-        game_id = game_context.get('game_id') if game_context else None
+        
+        # FIXED: Handle both dictionary and string game_context
+        if isinstance(game_context, dict):
+            game_id = game_context.get('game_id')
+        elif isinstance(game_context, str):
+            game_id = game_context
+        else:
+            game_id = None
+            
         semantic_score = 0.0
         
         # 1. Game-specific role bonus
@@ -8037,6 +8225,65 @@ class ContinuousLearningLoop:
                     })
                 
                 actions_taken += 1
+                
+                # WIN RATE-BASED PER-ACTION ENERGY DEPLETION
+                # Get current energy parameters based on win rate
+                energy_params = self._calculate_win_rate_adaptive_energy_parameters()
+                action_cost = energy_params['action_energy_cost']
+                
+                # Apply effectiveness modifier to energy cost
+                if was_effective:
+                    action_cost *= 0.8  # Reward effective actions with 20% energy savings
+                else:
+                    action_cost *= energy_params.get('effectiveness_multiplier', 1.0)  # Penalize ineffective actions
+                
+                # Deplete energy
+                self.current_energy = max(0.0, self.current_energy - action_cost)
+                
+                # Display energy status periodically
+                if actions_taken % 5 == 0:  # Every 5 actions
+                    energy_emoji = "🟢" if self.current_energy > 70 else "🟡" if self.current_energy > 40 else "🔴"
+                    print(f"⚡ Energy: {self.current_energy:.1f}/100 {energy_emoji}")
+                
+                # Check for immediate sleep trigger due to low energy
+                sleep_threshold = energy_params['sleep_trigger_threshold']
+                if self.current_energy <= sleep_threshold:
+                    print(f"😴 SLEEP TRIGGER: Low energy ({self.current_energy:.1f}) after {actions_taken} actions")
+                    print(f"🌙 ENHANCED SLEEP CONSOLIDATION STARTING...")
+                    
+                    # Trigger sleep consolidation
+                    if hasattr(self, 'sleep_system') and self.sleep_system:
+                        try:
+                            # Create a mini sleep experience for rapid consolidation
+                            sleep_experiences = [{
+                                'action': selected_action,
+                                'coordinates': (x, y) if x is not None else None,
+                                'effectiveness': was_effective,
+                                'score_change': new_score - current_score if action_result else 0,
+                                'context': f"Action during {energy_params['learning_phase']} phase"
+                            }]
+                            
+                            sleep_result = self._enhanced_sleep_consolidation(
+                                experiences=sleep_experiences,
+                                sleep_reason=f"Energy depletion during {energy_params['learning_phase']}"
+                            )
+                            
+                            # Restore energy based on sleep quality
+                            if sleep_result and sleep_result.get('success', False):
+                                energy_restoration = min(40.0, 100.0 - self.current_energy)  # Restore up to 40 energy
+                                self.current_energy += energy_restoration
+                                print(f"⚡ Energy restored: {self.current_energy - energy_restoration:.1f} → {self.current_energy:.1f}")
+                            
+                        except Exception as e:
+                            print(f"⚠️ Sleep consolidation error: {e}")
+                            # Fallback: restore some energy anyway
+                            self.current_energy = min(100.0, self.current_energy + 25.0)
+                    else:
+                        # Simple energy restoration if no sleep system
+                        print("⚠️ Skipping memory consolidation - no predictive core available")
+                        self.current_energy = min(100.0, self.current_energy + 25.0)
+                        print(f"⚡ Energy restored to: {self.current_energy:.1f}/100")
+                
                 
                 # Track actions without progress for emergency override
                 if current_score == investigation.get('score', 0):
