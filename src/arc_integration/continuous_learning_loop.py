@@ -419,6 +419,7 @@ class ContinuousLearningLoop:
                 },
                 'boundary_stuck_threshold': 3,          # Same coordinates N times = boundary detected
                 'success_zone_mapping': {},             # game_id -> {(x,y): {'success_count': int, 'total_attempts': int, 'successful_actions': [int]}}
+                'last_coordinates': {},                 # game_id -> (x,y) - track last used coordinates per game
                 'global_coordinate_intelligence': {     # Cross-game coordinate learning
                     'universal_boundaries': {},         # Coordinates that are problematic across games
                     'universal_success_zones': {},      # Coordinates that work well across games
@@ -1747,13 +1748,13 @@ class ContinuousLearningLoop:
             if action == 6:
                 # Apply strict ACTION 6 availability check
                 action6_score = self._calculate_action6_strategic_score(action_count, progress_stagnant)
-                if action6_score > 0.01:  # Only allow ACTION 6 if strategic score is meaningful (reduced threshold)
+                if action6_score > 0.001:  # LOWERED from 0.01 to 0.001 to prevent infinite loops
                     filtered_available_actions.append(action)
                     print(f"🎯 ACTION 6 STRATEGIC USE: Progress stagnant={progress_stagnant}, Score={action6_score:.3f}")
                 else:
                     action6_blocked = True
-                    if action_count % 50 == 0:  # Less frequent logging to reduce spam
-                        print(f"🎯 ACTION 6 blocked: Score={action6_score:.3f}, Need progress stagnation")
+                    if action_count % 25 == 0:  # More frequent logging for debugging
+                        print(f"🎯 ACTION 6 blocked: Score={action6_score:.6f}, Need score > 0.001")
             else:
                 filtered_available_actions.append(action)
         
@@ -7149,11 +7150,13 @@ class ContinuousLearningLoop:
             print(f"   Initial State: {current_state}")
             print(f"   Initial Score: {current_score}")
             print(f"   Available Actions: {available_actions}")
+            print(f"   🎯 TARGET: Win (score ≥ 100) or reach terminal state")
             
             # Direct action control loop
             actions_taken = 0
             effective_actions = []
             action_history = []
+            last_score_check = 0  # Track when we last displayed score progress
             
             while (actions_taken < max_actions and 
                    current_state not in ['WIN', 'GAME_OVER'] and
@@ -7272,6 +7275,18 @@ class ContinuousLearningLoop:
                     })
                 
                 actions_taken += 1
+                
+                # Display score progress every 10 actions
+                if actions_taken % 10 == 0 or actions_taken - last_score_check >= 10:
+                    score_change = current_score - investigation.get('score', 0)
+                    print(f"📊 PROGRESS CHECK (Action {actions_taken}):")
+                    print(f"   Current Score: {current_score} (started: {investigation.get('score', 0)}, change: +{score_change})")
+                    print(f"   Current State: {current_state}")
+                    print(f"   Effective Actions: {len(effective_actions)}/{actions_taken} ({len(effective_actions)/max(1,actions_taken):.1%})")
+                    print(f"   Win Condition: {'🎯 NEAR WIN!' if current_score >= 80 else '🔄 In Progress'}")
+                    if current_score == investigation.get('score', 0):
+                        print(f"   ⚠️ WARNING: No score progress in {actions_taken} actions!")
+                    last_score_check = actions_taken
                 
                 # Rate-limit compliant delay between actions
                 # With 8 RPS limit, we need at least 0.125s between requests

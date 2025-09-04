@@ -1,6 +1,24 @@
 #!/usr/bin/env python3
 """
-ARC-3 Competition Launcher
+⚠️  DEPRECATED: ARC-3 Competition Launcher
+
+🚨 THIS SCRIPT IS DEPRECATED - Use train_arc_agent.py instead!
+
+MIGRATION:
+  OLD: python arc3.py status    → NEW: python train_arc_agent.py --run-mode arc3-status
+  OLD: python arc3.py demo      → NEW: python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode demo
+  OLD: python arc3.py full      → NEW: python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode full
+  OLD: python arc3.py compare   → NEW: python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode comparison
+
+WHY MIGRATE?
+❌ arc3.py has broken imports and falls back to basic random agent testing
+❌ Missing frame analysis, progress monitoring, ACTION 6 fixes, and other improvements  
+✅ train_arc_agent.py has all arc3.py features PLUS enhanced continuous learning system
+
+See MIGRATION.md for complete migration guide.
+
+---
+LEGACY DOCUMENTATION BELOW (for reference only):
 
 Dedicated script for ARC-3 AGI competition testing.
 This script ONLY handles ARC-3 related testing and makes it clear

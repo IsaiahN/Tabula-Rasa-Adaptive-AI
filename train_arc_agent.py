@@ -968,6 +968,158 @@ class UnifiedTrainer:
         except Exception:
             return []
 
+# ============================================================================
+# ARC-3 COMPETITION INTEGRATION (from arc3.py)
+# ============================================================================
+
+def print_arc3_banner():
+    """Print ARC-3 competition banner."""
+    print("🏆" * 60)
+    print("🏆" + " " * 58 + "🏆")
+    print("🏆" + " " * 15 + "ARC-3 COMPETITION SYSTEM" + " " * 15 + "🏆") 
+    print("🏆" + " " * 58 + "🏆")
+    print("🏆" + " " * 10 + "REAL API • OFFICIAL SERVERS • LIVE SCORES" + " " * 7 + "🏆")
+    print("🏆" + " " * 58 + "🏆")
+    print("🏆" * 60)
+    print()
+
+def check_arc3_requirements():
+    """Verify ARC-3 requirements are met."""
+    import os
+    from pathlib import Path
+    
+    print("🔍 Checking ARC-3 Requirements...")
+    
+    # Check API key
+    api_key = os.getenv('ARC_API_KEY')
+    if not api_key:
+        print("❌ ARC_API_KEY missing")
+        print("💡 Please:")
+        print("   1. Register at https://three.arcprize.org")
+        print("   2. Get your API key from your profile")
+        print("   3. Add it to your .env file: ARC_API_KEY=your_key_here")
+        return False, None, None
+    
+    print(f"✅ API Key found: {api_key[:8]}...{api_key[-4:]}")
+    
+    # Check ARC-AGI-3-Agents repository
+    arc_agents_path = os.getenv('ARC_AGENTS_PATH')
+    if not arc_agents_path:
+        possible_paths = [
+            Path("C:/Users/Admin/Documents/GitHub/ARC-AGI-3-Agents"),
+            Path.cwd().parent / "ARC-AGI-3-Agents",
+            Path.cwd() / "ARC-AGI-3-Agents"
+        ]
+        
+        for path in possible_paths:
+            if path.exists() and (path / "main.py").exists():
+                arc_agents_path = str(path)
+                break
+                
+    if not arc_agents_path or not Path(arc_agents_path).exists():
+        print("❌ ARC-AGI-3-Agents repository not found")
+        print("💡 Please ensure ARC-AGI-3-Agents is cloned and accessible")
+        return False, None, None
+    
+    print(f"✅ ARC-AGI-3-Agents found: {arc_agents_path}")
+    
+    # Check tabula-rasa components
+    try:
+        # Simple test import to verify the system is working
+        import sys
+        
+        # Add the tabula-rasa src directory to Python path
+        tabula_rasa_src = Path(__file__).parent / "src"
+        if tabula_rasa_src.exists():
+            sys.path.insert(0, str(tabula_rasa_src))
+        
+        # Test basic imports
+        from core.agent import AdaptiveLearningAgent
+        print("✅ Tabula-Rasa ARC integration loaded")
+        
+        return True, api_key, arc_agents_path
+        
+    except ImportError as e:
+        print(f"❌ Tabula-Rasa components not accessible: {e}")
+        print("💡 Please ensure the system is properly installed")
+        return False, None, None
+
+async def test_api_connection(api_key: str, arc_agents_path: str):
+    """Test connection to ARC-3 API servers."""
+    print("🌐 Testing ARC-3 API Connection...")
+    
+    try:
+        import subprocess
+        import json
+        
+        # Set up environment to help with imports
+        env = os.environ.copy()
+        env['ARC_API_KEY'] = api_key
+        env['PYTHONPATH'] = str(Path(__file__).parent / "src") + os.pathsep + env.get('PYTHONPATH', '')
+        
+        # Test basic connection by running a simple random agent first
+        print("🔧 Testing with built-in random agent...")
+        result = subprocess.run([
+            "cmd", "/c", f"cd {arc_agents_path} && uv run main.py --agent=random --game=nonexistent"
+        ], capture_output=True, text=True, timeout=30, env=env)
+        
+        if "Game list:" in result.stderr:
+            print("✅ API Connection successful!")
+            # Extract game list from output
+            lines = result.stderr.split('\n')
+            for line in lines:
+                if "Game list:" in line:
+                    games_info = line.split("Game list:")[1].strip()
+                    if games_info and games_info != "[]":
+                        try:
+                            games = eval(games_info)  # Safe here as it's our own output
+                            print(f"📊 Available games: {len(games)} tasks")
+                            print(f"🎮 Sample games: {games[:3]}...")
+                            print("✅ Successfully reached ARC-3 servers")
+                            return True, games
+                        except:
+                            pass
+            
+            print("⚠️ Connected but no games available right now")
+            return True, []
+        else:
+            print("❌ Failed to connect to ARC-3 servers")
+            if result.stderr:
+                print(f"Error: {result.stderr[:200]}...")
+            return False, []
+            
+    except Exception as e:
+        print(f"❌ API connection test failed: {e}")
+        return False, []
+
+async def show_arc3_status():
+    """Show ARC-3 system status."""
+    print_arc3_banner()
+    print("📊 ARC-3 System Status")
+    print("=" * 50)
+    
+    requirements_ok, api_key, arc_agents_path = check_arc3_requirements()
+    
+    if not requirements_ok:
+        print("❌ Requirements not met - cannot connect to ARC-3")
+        return False
+    
+    # Test API connection
+    connection_ok, games = await test_api_connection(api_key, arc_agents_path)
+    
+    if connection_ok:
+        print(f"✅ Ready for ARC-3 competition testing!")
+        print(f"📈 Scoreboard: https://arcprize.org/leaderboard")
+        print(f"🎮 Available Games: {len(games)}")
+        return True
+    else:
+        print("❌ Cannot connect to ARC-3 - check network/API status")
+        return False
+
+# ============================================================================
+# END ARC-3 INTEGRATION
+# ============================================================================
+
 def create_parser():
     """Create argument parser for unified training script."""
     parser = argparse.ArgumentParser(
@@ -989,8 +1141,10 @@ Examples:
   python train_arc_agent.py --run-mode continuous --continuous-mode performance_comparison
   
   # Testing with real ARC-3 API:
-  python train_arc_agent.py --run-mode test --test-type unit
+  python train_arc_agent.py --run-mode arc3-status              # Check ARC-3 connection and status
   python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode demo
+  python train_arc_agent.py --run-mode test --test-type arc3 --arc3-mode full
+  python train_arc_agent.py --run-mode test --test-type unit
   python train_arc_agent.py --run-mode test --test-type all
   
   # Performance demos:
@@ -1006,7 +1160,7 @@ Examples:
     parser.add_argument(
         "--run-mode", 
         type=str, 
-        choices=["training", "continuous", "test", "demo"], 
+        choices=["training", "continuous", "test", "demo", "arc3-status"], 
         default="training",
         help="Primary operation mode"
     )
@@ -1205,6 +1359,12 @@ async def main():
             await trainer.run_demo(args.demo_type)
             print(f"\n🎉 DEMO COMPLETED!")
             return 0
+            
+        elif args.run_mode == "arc3-status":
+            # ARC-3 status check mode
+            print("🔍 CHECKING ARC-3 COMPETITION STATUS...")
+            status_ok = await show_arc3_status()
+            return 0 if status_ok else 1
             
         else:
             print(f"❌ Unknown run mode: {args.run_mode}")
