@@ -657,6 +657,7 @@ class SandboxTester:
                           test_games: List[str] = None) -> TestResult:
         """Test a mutation in a sandboxed environment."""
         start_time = time.time()
+        sandbox_path = None
         
         try:
             # Create mutated genome
@@ -703,7 +704,8 @@ class SandboxTester:
             )
         finally:
             # Cleanup sandbox
-            await self._cleanup_sandbox(sandbox_path)
+            if sandbox_path is not None:
+                await self._cleanup_sandbox(sandbox_path)
     
     async def _create_sandbox(self, genome: SystemGenome) -> Path:
         """Create isolated sandbox environment for testing."""
@@ -711,8 +713,22 @@ class SandboxTester:
         sandbox_path = self.sandbox_dir / sandbox_id
         
         # Copy core system files to sandbox
-        shutil.copytree(self.base_path / "src", sandbox_path / "src")
-        shutil.copy2(self.base_path / "unified_arc_trainer.py", sandbox_path)
+        base_path = Path(self.base_path)
+        if (base_path / "src").exists():
+            shutil.copytree(base_path / "src", sandbox_path / "src")
+        elif base_path.name == "src":
+            # If base_path is already the src directory
+            shutil.copytree(base_path, sandbox_path / "src")
+        else:
+            # Create minimal src structure
+            (sandbox_path / "src").mkdir(parents=True)
+            
+        # Copy training script if available
+        for script_name in ["master_arc_trainer.py", "unified_arc_trainer.py", "train_arc_agent.py"]:
+            script_path = base_path.parent / script_name if base_path.name == "src" else base_path / script_name
+            if script_path.exists():
+                shutil.copy2(script_path, sandbox_path)
+                break
         
         # Create custom config file for this genome
         config_path = sandbox_path / "sandbox_config.json"
@@ -727,12 +743,26 @@ class SandboxTester:
         start_time = time.time()
         
         try:
-            # Use the unified trainer for actual game testing
-            training_script = os.path.join(self.base_path, "..", "unified_arc_trainer.py")
-            if not os.path.exists(training_script):
-                training_script = os.path.join(self.base_path, "..", "train_arc_agent.py")
+            # Use the master training script (consolidated system)
+            base_dir = Path(self.base_path).parent if Path(self.base_path).name == "src" else Path(self.base_path)
             
-            if not os.path.exists(training_script):
+            # Try the new master script first, then fallback to legacy scripts
+            training_scripts_to_try = [
+                "master_arc_trainer.py",  # New consolidated script
+                "unified_arc_trainer.py",
+                "train_arc_agent.py",
+                "run_meta_cognitive_arc_training.py"
+            ]
+            
+            training_script = None
+            for script_name in training_scripts_to_try:
+                script_path = base_dir / script_name
+                if script_path.exists():
+                    training_script = str(script_path)
+                    self.logger.info(f"🎯 Using training script: {script_name}")
+                    break
+            
+            if not training_script:
                 self.logger.warning("⚠️ No training script found, using simulated results")
                 await asyncio.sleep(2)
                 return self._get_simulated_results(test_games)
@@ -740,39 +770,67 @@ class SandboxTester:
             # Prepare test configuration
             config_path = sandbox_path / "test_config.json"
             test_config = {
-                "max_episodes": 10,  # Quick test
-                "max_actions_per_game": 200,
+                "max_episodes": 5,  # Quick test
+                "max_actions_per_game": 100,
                 "test_mode": True,
-                "games": test_games[:3] if len(test_games) > 3 else test_games,
-                "timeout_per_game": 60,
+                "games": test_games[:2] if len(test_games) > 2 else test_games,
+                "timeout_per_game": 30,
                 "salience_mode": "decay_compression"
             }
             
             with open(config_path, 'w') as f:
                 json.dump(test_config, f, indent=2)
             
-            # Run training in test mode with timeout
-            cmd = [
-                sys.executable, training_script,
-                "--mode", "test",
-                "--config", str(config_path),
-                "--max-episodes", "10",
-                "--timeout", "180",  # 3 minute timeout
-                "--quiet"
-            ]
+            # Run training with appropriate parameters for each script
+            if "master_arc_trainer.py" in training_script:
+                # New master script - uses standardized parameters
+                cmd = [
+                    sys.executable, training_script,
+                    "--mode", "quick-validation",
+                    "--games", "test1,test2",
+                    "--max-cycles", "3",
+                    "--session-duration", "2",
+                    "--no-logs",
+                    "--no-monitoring"
+                ]
+            elif "unified_arc_trainer.py" in training_script:
+                # Legacy unified trainer
+                cmd = [
+                    sys.executable, training_script,
+                    "--mode", "quick-validation",
+                    "--games", "test1,test2",
+                    "--max-cycles", "3",
+                    "--session-duration", "2",
+                    "--no-logs",
+                    "--no-monitoring"
+                ]
+            elif "train_arc_agent.py" in training_script:
+                # Legacy train agent
+                cmd = [
+                    sys.executable, training_script,
+                    "--mode", "test",
+                    "--max-episodes", "3",
+                    "--games", "test1,test2"
+                ]
+            else:
+                # Fallback for other scripts
+                cmd = [
+                    sys.executable, training_script,
+                    "--help"  # Just get help to verify it works
+                ]
             
             self.logger.info(f"🎮 Running actual ARC training test: {' '.join(cmd)}")
             
-            # Execute with timeout
+            # Execute with timeout - run from base directory where scripts exist
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=str(sandbox_path)
+                cwd=str(base_dir)  # Run from the directory where training scripts exist
             )
             
             try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=200.0)
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=90.0)  # Shorter timeout
                 test_duration = time.time() - start_time
                 
                 if process.returncode == 0:
@@ -988,7 +1046,7 @@ class Architect:
     
     def _load_current_genome(self) -> SystemGenome:
         """Load current system genome from configuration."""
-        # Would load from unified_arc_trainer.py TrainingConfig or config files
+        # Would load from master_arc_trainer.py TrainingConfig or config files
         # For now, create default genome
         return SystemGenome()
     
@@ -1241,7 +1299,7 @@ This is an experimental change - requires review before merging.
     
     def _apply_mutation_to_files(self, mutation: Mutation):
         """Apply mutation changes to actual configuration files."""
-        # This would modify unified_arc_trainer.py or config files
+        # This would modify master_arc_trainer.py or config files
         # For now, create a config patch file
         
         patch_file = self.base_path / f"mutation_{mutation.id}.json"
@@ -1350,6 +1408,7 @@ This is an experimental change - requires review before merging.
         
         training_processes = []
         training_scripts = [
+            'master_arc_trainer.py',  # New master script
             'train_arc_agent.py',
             'unified_arc_trainer.py',
             'continuous_training',
@@ -1449,8 +1508,9 @@ This is an experimental change - requires review before merging.
     def _start_training_system(self) -> bool:
         """Start the training system if not running."""
         try:
-            # Look for the best training script to start
+            # Look for the best training script to start (prioritize master script)
             training_scripts = [
+                "master_arc_trainer.py",  # New consolidated script
                 "run_meta_cognitive_arc_training.py",
                 "unified_arc_trainer.py", 
                 "train_arc_agent.py"

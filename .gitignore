@@ -1,4 +1,49 @@
+# Environment files
 .env
+.env.local
+
+# Python cache and artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Memory and training data
+meta_learning_data/
+continuous_learning_data/
+test_meta_learning_data/
+checkpoints/
+research_results/
+
+# Training session files
 meta_learning_session*.json
 session_session*.json
 combined_score*.json
+continuous_session_*.json
+mutation_exploratory_*.json
+meta_cognitive_results_*.json
+
+# Log files
+*.log
+governor_decisions_*.log
+arc3_competition.log
+meta_cognitive_test.log
+meta_cognitive_training.log
+meta_cognitive_training_*.log
+unified_trainer.log
+
+# Training state and performance data
+persistent_learning_state.json
+task_performance.json
+training_state_backup.json
+unified_trainer_results.json
+
+# Temporary experiment and sandbox files
+experiments/
+sandbox_tests/

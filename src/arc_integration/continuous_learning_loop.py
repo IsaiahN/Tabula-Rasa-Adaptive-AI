@@ -2063,7 +2063,15 @@ class ContinuousLearningLoop:
                     await asyncio.sleep(episode_delay)
                         
                 else:
-                    print(f"Session {session_count + 1} failed: {session_result.get('error', 'Unknown error')}")
+                    # Handle case where session_result might be a string instead of dict
+                    if isinstance(session_result, str):
+                        error_msg = session_result
+                    elif isinstance(session_result, dict):
+                        error_msg = session_result.get('error', 'Unknown error')
+                    else:
+                        error_msg = f"Unexpected result type: {type(session_result)}"
+                    
+                    print(f"Session {session_count + 1} failed: {error_msg}")
                     consecutive_failures += 1
                     
                     # Stop if too many consecutive API failures
