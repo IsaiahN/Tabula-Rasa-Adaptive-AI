@@ -259,12 +259,26 @@ class ContinuousLearningLoop:
         # Initialize frame analyzer for visual intelligence
         self.frame_analyzer = FrameAnalyzer()
         
-        # Initialize energy system for proper sleep cycle management
+        # 🔧 CRITICAL FIX: Unified energy system to prevent inconsistencies
+        # Initialize primary energy system for proper sleep cycle management
         self.energy_system = EnergySystem()
+        self.current_energy = 100.0  # Unified energy state
         
-        # Initialize enhanced sleep system for memory consolidation and strategic learning
+        # Energy consumption constants for consistency
+        self.ENERGY_COSTS = {
+            'action_base': 0.5,
+            'action_effective': 0.3,  # Lower cost for effective actions
+            'action_ineffective': 0.8,  # Higher cost for ineffective actions
+            'computation_base': 0.1,
+            'exploration_bonus': -0.1,  # Slight energy gain for exploration
+            'repetitive_penalty': 1.2  # Multiplier for repetitive actions
+        }
+        
+        # 🔧 CRITICAL FIX: Enhanced sleep system initialization with better error handling
         try:
             from core.predictive_core import PredictiveCore
+            from core.sleep_cycle import SleepCycle
+            
             # Create a minimal predictive core for sleep system (if needed)
             self.sleep_system = SleepCycle(
                 predictive_core=None,  # Will be set to None for now, can be enhanced later
@@ -273,27 +287,42 @@ class ContinuousLearningLoop:
                 sleep_duration_steps=20,  # Shorter but more focused sleep cycles
                 use_salience_weighting=True
             )
+            
+            # Ensure sleep system has required attributes
+            if not hasattr(self.sleep_system, 'is_sleeping'):
+                self.sleep_system.is_sleeping = False
+            
             logger.info("✅ Enhanced sleep system initialized for memory consolidation")
+            
+        except ImportError as e:
+            logger.warning(f"⚠️ Sleep system dependencies not available: {e}")
+            logger.info("💡 Will use enhanced fallback sleep system with memory consolidation")
+            self.sleep_system = None
+            
         except Exception as e:
             logger.warning(f"⚠️ Could not initialize enhanced sleep system: {e}")
+            logger.info("💡 Will use enhanced fallback sleep system with memory consolidation")
             self.sleep_system = None
         
-        # Initialize adaptive energy system for smart sleep triggers and action management
+        # 🔧 CRITICAL FIX: Optional adaptive energy system (for advanced features only)
         # WIN RATE-BASED SLEEP FREQUENCY: Sleep more when learning, less when skilled
         try:
             energy_config = EnergyConfig(
                 max_energy=100.0,
-                base_depletion_rate=0.08,  # Increased from 0.02 for more frequent sleep
-                action_based_depletion=0.25,  # Increased from 0.1 for rapid energy depletion initially
-                sleep_trigger_threshold=60.0,  # Increased from 40.0 to trigger sleep sooner
-                time_based_sleep_interval=3.0,  # Reduced from 5.0 for more frequent time-based sleep
-                min_time_interval=1.0,  # Reduced from 2.0 for minimum sleep intervals
-                max_time_interval=8.0  # Reduced from 15.0 for maximum sleep intervals
+                base_depletion_rate=0.05,  # Standardized depletion rate
+                action_based_depletion=0.5,  # Matches primary system action costs
+                sleep_trigger_threshold=40.0,  # Consistent with primary system
+                time_based_sleep_interval=5.0,  # Standardized intervals
+                min_time_interval=2.0,
+                max_time_interval=10.0
             )
             
             self.adaptive_energy = AdaptiveEnergySystem(energy_config)
             self.energy_integration = EnergySystemIntegration(self, self.adaptive_energy)
-            logger.info("✅ Adaptive energy system initialized for win rate-based sleep scheduling")
+            
+            # IMPORTANT: Use primary energy system as source of truth
+            # Adaptive system provides recommendations only
+            logger.info("✅ Adaptive energy system initialized (advisory mode)")
         except Exception as e:
             logger.warning(f"⚠️ Could not initialize adaptive energy system: {e}")
             self.adaptive_energy = None
@@ -502,6 +531,9 @@ class ContinuousLearningLoop:
         self.current_scorecard_id: Optional[str] = None
         self.current_game_sessions: Dict[str, str] = {}  # game_id -> guid mapping
         
+        # 🔧 CRITICAL FIX: Swarm mode tracking for scorecard isolation
+        self._swarm_mode_active: bool = False
+        
         # Rate limiting for ARC-AGI-3 API compliance
         self.rate_limiter = RateLimiter()
         print(f"🛡️ Rate limiter initialized: {ARC3_RATE_LIMIT['safe_requests_per_second']} RPS max, 600 RPM limit")
@@ -567,19 +599,22 @@ class ContinuousLearningLoop:
             print(f"⚡ Fresh session starting with full energy: {self.current_energy:.2f}")
         
         # 🎯 SMART ACTION CAP SYSTEM - Prevents infinite loops and analyzes stagnation
+        # 🔧 CRITICAL FIX: Improved action cap system with less aggressive termination
         self._action_cap_system = {
             'enabled': True,
-            'base_cap': 100,  # Base actions before considering early termination
-            'multiplier_per_available_action': 15,  # Additional actions per available action
-            'min_cap': 50,    # Minimum actions even for simple games
-            'max_cap': 300,   # Maximum actions to prevent runaway games
-            'stagnation_threshold': 20,  # Actions without progress before early termination
-            'loop_detection_window': 10,  # Actions to look back for pattern detection
+            'base_cap': 150,  # Increased base actions for more exploration
+            'multiplier_per_available_action': 20,  # More actions per available action
+            'min_cap': 75,    # Higher minimum for complex pattern discovery
+            'max_cap': 400,   # Higher maximum for difficult games
+            'stagnation_threshold': 50,  # Increased from 20 - much more patient
+            'loop_detection_window': 15,  # Longer window for better pattern detection
             'early_termination_enabled': True,
-            'analysis_enabled': True
+            'analysis_enabled': True,
+            'exploration_bonus': 25,  # Extra actions if exploring new coordinates
+            'score_improvement_bonus': 30  # Extra actions after score improvement
         }
         
-        # Progress tracking for cap system
+        # 🔧 CRITICAL FIX: Enhanced progress tracking for smarter termination
         self._progress_tracker = {
             'actions_taken': 0,
             'last_score': 0,
@@ -587,10 +622,69 @@ class ContinuousLearningLoop:
             'last_meaningful_change': 0,
             'action_pattern_history': [],  # Last N actions for loop detection
             'score_history': [],  # Last N scores for trend analysis
-            'termination_reason': None
+            'termination_reason': None,
+            'explored_coordinates': set(),  # Track coordinate exploration
+            'recent_improvements': [],  # Track recent score improvements
+            'exploration_bonus_used': False  # Track if exploration bonus was applied
         }
         
         logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
+
+    def _unified_energy_consumption(self, action_effective: bool = False, is_exploration: bool = False, is_repetitive: bool = False) -> float:
+        """🔧 CRITICAL FIX: Unified energy consumption method for consistency across all systems."""
+        
+        # Calculate base energy cost
+        if action_effective:
+            base_cost = self.ENERGY_COSTS['action_effective']
+        else:
+            base_cost = self.ENERGY_COSTS['action_ineffective']
+        
+        # Apply modifiers
+        total_cost = base_cost + self.ENERGY_COSTS['computation_base']
+        
+        # Exploration bonus (slight energy gain)
+        if is_exploration:
+            total_cost += self.ENERGY_COSTS['exploration_bonus']
+        
+        # Repetitive action penalty
+        if is_repetitive:
+            total_cost *= self.ENERGY_COSTS['repetitive_penalty']
+        
+        # Consume energy from primary system
+        self.current_energy = max(0.0, self.current_energy - total_cost)
+        
+        # Update primary energy system
+        if hasattr(self.energy_system, 'consume_energy'):
+            self.energy_system.consume_energy(action_cost=base_cost, computation_cost=self.ENERGY_COSTS['computation_base'])
+        
+        print(f"⚡ Energy consumed: {total_cost:.2f} (effective={action_effective}, exploration={is_exploration}, repetitive={is_repetitive}) -> {self.current_energy:.1f}/100")
+        
+        return self.current_energy
+    
+    def _should_trigger_sleep_cycle(self, actions_taken: int, recent_effectiveness: float = 0.0) -> bool:
+        """🔧 CRITICAL FIX: Intelligent sleep trigger based on energy, effectiveness, and learning needs."""
+        
+        # Base energy threshold
+        if self.current_energy <= 40.0:
+            return True
+        
+        # Sleep after long ineffective sequences for consolidation
+        if actions_taken > 100 and recent_effectiveness < 0.3:
+            print(f"🌙 Sleep trigger: Long ineffective sequence ({actions_taken} actions, {recent_effectiveness:.1%} effective)")
+            return True
+        
+        # Periodic consolidation sleep every 200 actions regardless
+        if actions_taken % 200 == 0 and actions_taken > 0:
+            print(f"🌙 Sleep trigger: Periodic consolidation at {actions_taken} actions")
+            return True
+        
+        # Energy-based trigger with sliding scale
+        energy_threshold = 50.0 - (recent_effectiveness * 20)  # Lower threshold if ineffective
+        if self.current_energy <= energy_threshold:
+            print(f"🌙 Sleep trigger: Adaptive energy threshold ({energy_threshold:.1f}) reached")
+            return True
+        
+        return False
 
     def _calculate_current_win_rate(self) -> float:
         """
@@ -708,35 +802,58 @@ class ContinuousLearningLoop:
         
         # Update progress tracking
         tracker['actions_taken'] = actions_taken
+        score_improved = False
+        
         if current_score != tracker['last_score']:
+            score_improved = current_score > tracker['last_score']
             tracker['last_meaningful_change'] = actions_taken
             tracker['actions_without_progress'] = 0
             tracker['score_history'].append(current_score)
             # Keep only last 20 scores for trend analysis
             if len(tracker['score_history']) > 20:
                 tracker['score_history'] = tracker['score_history'][-20:]
+            
+            # 🔧 CRITICAL FIX: Reset stagnation counter on ANY score change, not just improvement
+            print(f"🔄 Score changed from {tracker['last_score']} to {current_score}, resetting stagnation counter")
         else:
             tracker['actions_without_progress'] += 1
         
         tracker['last_score'] = current_score
         
-        # Early termination conditions
+        # Early termination conditions (much more forgiving)
         stagnant_actions = tracker['actions_without_progress']
         
-        # 1. Too many actions without any score progress
-        if stagnant_actions >= config['stagnation_threshold']:
-            return True, f"No progress for {stagnant_actions} actions (threshold: {config['stagnation_threshold']})"
+        # 🔧 CRITICAL FIX: More intelligent stagnation detection
+        # 1. Base threshold increased, but consider recent improvements
+        base_threshold = config['stagnation_threshold']
         
-        # 2. Detect action loops (same action repeated many times)
+        # Give bonus actions if we've had recent score improvements
+        if len(tracker['score_history']) >= 3:
+            recent_max = max(tracker['score_history'][-3:])
+            if recent_max > tracker['score_history'][0] if len(tracker['score_history']) > 1 else 0:
+                base_threshold += config.get('score_improvement_bonus', 30)
+                print(f"🎯 Recent improvement detected, extending patience to {base_threshold} actions")
+        
+        # 1. Too many actions without any score progress (much more patient)
+        if stagnant_actions >= base_threshold:
+            return True, f"No progress for {stagnant_actions} actions (threshold: {base_threshold})"
+        
+        # 🔧 CRITICAL FIX: Improved loop detection - only terminate if truly stuck
+        # 2. Detect action loops (same action repeated many times) - more forgiving
         if len(tracker['action_pattern_history']) >= config['loop_detection_window']:
             recent_actions = tracker['action_pattern_history'][-config['loop_detection_window']:]
-            if len(set(recent_actions)) <= 2 and stagnant_actions >= 10:
-                return True, f"Action loop detected: {recent_actions[-5:]} (no progress for {stagnant_actions})"
+            unique_actions = len(set(recent_actions))
+            
+            # Only terminate on loops if we're really stuck (fewer unique actions + high stagnation)
+            if unique_actions <= 2 and stagnant_actions >= (base_threshold // 2):
+                return True, f"Action loop detected: {recent_actions[-5:]} (only {unique_actions} unique actions, {stagnant_actions} stagnant)"
+            elif unique_actions <= 3 and stagnant_actions >= (base_threshold * 2 // 3):
+                return True, f"Repetitive actions detected: {recent_actions[-5:]} (only {unique_actions} unique actions, {stagnant_actions} stagnant)"
         
-        # 3. Score trend analysis - if score is consistently declining
+        # 3. Score trend analysis - only if consistently declining AND high stagnation
         if len(tracker['score_history']) >= 10:
             recent_scores = tracker['score_history'][-10:]
-            if all(recent_scores[i] <= recent_scores[i-1] for i in range(1, len(recent_scores))) and stagnant_actions >= 15:
+            if all(recent_scores[i] <= recent_scores[i-1] for i in range(1, len(recent_scores))) and stagnant_actions >= (base_threshold * 3 // 4):
                 return True, f"Consistently declining score trend with {stagnant_actions} stagnant actions"
         
         return False, "Continue playing"
@@ -1321,14 +1438,18 @@ class ContinuousLearningLoop:
             frame = response_data.get('frame', [])
             if frame and len(frame) > 0 and isinstance(frame[0], list):
                 # Frame is a 2D grid: frame[y][x] format
-                height = len(frame[0])  # Number of rows
-                width = len(frame[0][0]) if len(frame[0]) > 0 else 64  # Number of columns
-                
-                # Validate dimensions are reasonable
-                if 1 <= width <= 64 and 1 <= height <= 64:
-                    return (width, height)
+                # 🔧 CRITICAL FIX: Ensure frame[0] exists before accessing it
+                if len(frame[0]) > 0:
+                    height = len(frame)  # Number of rows (corrected from len(frame[0]))
+                    width = len(frame[0])  # Number of columns
+                    
+                    # Validate dimensions are reasonable
+                    if 1 <= width <= 64 and 1 <= height <= 64:
+                        return (width, height)
+                    else:
+                        logger.warning(f"Invalid grid dimensions detected: {width}x{height}, using fallback")
                 else:
-                    logger.warning(f"Invalid grid dimensions detected: {width}x{height}, using fallback")
+                    logger.warning(f"Frame has empty rows, using fallback dimensions")
             
         except (IndexError, TypeError) as e:
             logger.warning(f"Error extracting grid dimensions: {e}")
@@ -1485,8 +1606,30 @@ class ContinuousLearningLoop:
         return should_continue
     
     def _verify_grid_bounds(self, x: int, y: int, grid_width: int, grid_height: int) -> bool:
-        """Verify coordinates are within actual grid bounds."""
-        return 0 <= x < grid_width and 0 <= y < grid_height
+        """🔧 CRITICAL FIX: Enhanced coordinate validation with detailed logging."""
+        if x is None or y is None:
+            return False
+        
+        # Check bounds
+        x_valid = 0 <= x < grid_width
+        y_valid = 0 <= y < grid_height
+        
+        if not (x_valid and y_valid):
+            print(f"⚠️ BOUNDS CHECK FAILED: ({x},{y}) not in bounds [0-{grid_width-1}, 0-{grid_height-1}]")
+            print(f"   X valid: {x_valid} (0 <= {x} < {grid_width})")
+            print(f"   Y valid: {y_valid} (0 <= {y} < {grid_height})")
+            return False
+        
+        return True
+    
+    def _safe_coordinate_fallback(self, grid_width: int, grid_height: int, reason: str = "bounds check failed") -> Tuple[int, int]:
+        """🔧 CRITICAL FIX: Generate safe fallback coordinates that are guaranteed to be in bounds."""
+        # Use center coordinates as safe fallback, but ensure they're valid
+        center_x = max(0, min(grid_width - 1, grid_width // 2))
+        center_y = max(0, min(grid_height - 1, grid_height // 2))
+        
+        print(f"🔧 SAFE FALLBACK: Using ({center_x},{center_y}) for {grid_width}x{grid_height} grid - {reason}")
+        return (center_x, center_y)
     
     def _analyze_frame_for_action_selection(self, response_data: Dict[str, Any], game_id: str) -> Dict[str, Any]:
         """
@@ -1790,7 +1933,17 @@ class ContinuousLearningLoop:
                                         # Get the color at clicked coordinate from the BEFORE state frame
                                         # (after state might show changes from the click)
                                         current_frame = before_state.get('frame', [])
-                                        if current_frame and 0 <= y < len(current_frame) and 0 <= x < len(current_frame[0]):
+                                        
+                                        # 🔧 CRITICAL FIX: Proper frame validation to prevent frame_len=0 errors
+                                        frame_valid = (
+                                            current_frame and 
+                                            len(current_frame) > 0 and 
+                                            len(current_frame[0]) > 0 and 
+                                            0 <= y < len(current_frame) and 
+                                            0 <= x < len(current_frame[0])
+                                        )
+                                        
+                                        if frame_valid:
                                             try:
                                                 # Handle nested list format
                                                 if isinstance(current_frame[y], list):
@@ -1822,7 +1975,13 @@ class ContinuousLearningLoop:
                                             except Exception as e:
                                                 print(f"⚠️ EXPLORATION ERROR: Failed to mark color explored: {e}")
                                         else:
-                                            print(f"⚠️ EXPLORATION: Invalid coordinates ({x},{y}) for frame analysis, frame_len={len(current_frame) if current_frame else 0}")
+                                            # 🔧 CRITICAL FIX: Better error reporting for frame validation failures
+                                            frame_height = len(current_frame) if current_frame else 0
+                                            frame_width = len(current_frame[0]) if current_frame and len(current_frame) > 0 else 0
+                                            print(f"⚠️ EXPLORATION: Invalid coordinates ({x},{y}) for frame analysis")
+                                            print(f"   Frame dimensions: {frame_height}x{frame_width}")
+                                            print(f"   Frame valid: {current_frame is not None}")
+                                            print(f"   Coordinates in bounds: x={0 <= x < frame_width if frame_width > 0 else False}, y={0 <= y < frame_height if frame_height > 0 else False}")
                                     else:
                                         if not exploration_active:
                                             print(f"🔍 EXPLORATION: Phase not active (exploration_phase={getattr(self.frame_analyzer, 'exploration_phase', 'MISSING')})")
@@ -3372,6 +3531,9 @@ class ContinuousLearningLoop:
         print(f"Total Games: {len(games)}")
         print("="*60)
         
+        # 🔧 CRITICAL FIX: Set swarm mode flag to enable per-game scorecard isolation
+        self._swarm_mode_active = True
+        
         swarm_results = {
             'mode': 'swarm',
             'total_games': len(games),
@@ -3449,6 +3611,10 @@ class ContinuousLearningLoop:
         
         # Show rate limiting statistics
         self.print_rate_limit_status()
+        
+        # 🔧 CRITICAL FIX: Cleanup swarm mode flag
+        self._swarm_mode_active = False
+        print(f"🔧 [SWARM-FIX] Swarm mode deactivated, scorecard isolation disabled")
         
         return swarm_results
     
@@ -8164,6 +8330,34 @@ class ContinuousLearningLoop:
         print(f"\n🎯 STARTING DIRECT CONTROL TRAINING for {game_id}")
         print(f"   Max Actions: {max_actions_per_game}, Session: {session_count}")
         
+        # 🔧 CRITICAL FIX: Handle per-game scorecard for swarm mode
+        original_scorecard_id = self.current_scorecard_id
+        dedicated_scorecard_needed = False
+        
+        # Check if we're in swarm mode (multiple concurrent games)
+        # If we don't have a scorecard or multiple games are running, create dedicated scorecard
+        if not self.current_scorecard_id:
+            dedicated_scorecard_needed = True
+            print(f"🆔 [SWARM-FIX] Opening dedicated scorecard for {game_id} (no existing scorecard)")
+        elif hasattr(self, '_swarm_mode_active') and self._swarm_mode_active:
+            dedicated_scorecard_needed = True
+            print(f"🆔 [SWARM-FIX] Opening dedicated scorecard for {game_id} (swarm mode active)")
+        
+        dedicated_scorecard_id = None
+        if dedicated_scorecard_needed:
+            try:
+                dedicated_scorecard_id = await self._open_scorecard()
+                if dedicated_scorecard_id:
+                    # Temporarily use dedicated scorecard for this game
+                    self.current_scorecard_id = dedicated_scorecard_id
+                    print(f"✅ [SWARM-FIX] Using dedicated scorecard {dedicated_scorecard_id} for {game_id}")
+                else:
+                    print(f"❌ [SWARM-FIX] Failed to open dedicated scorecard for {game_id}")
+                    return {"error": "Failed to open dedicated scorecard", "actions_taken": 0}
+            except Exception as e:
+                print(f"❌ [SWARM-FIX] Exception opening scorecard: {e}")
+                return {"error": f"Scorecard exception: {e}", "actions_taken": 0}
+        
         try:
             # First investigate API to understand available actions
             investigation = await self.investigate_api_available_actions(game_id)
@@ -8287,15 +8481,37 @@ class ContinuousLearningLoop:
                 else:
                     current_frame_analysis = {}
                 
+                # 🔧 CRITICAL FIX: Get actual frame dimensions for all actions
+                actual_frame = session_data.get('frame', investigation.get('frame', []))
+                if actual_frame and len(actual_frame) > 0:
+                    actual_height = len(actual_frame)
+                    actual_width = len(actual_frame[0]) if len(actual_frame[0]) > 0 else 64
+                    actual_grid_dims = (actual_width, actual_height)
+                    print(f"🎯 Using actual frame dimensions: {actual_grid_dims}")
+                else:
+                    actual_grid_dims = (64, 64)  # Fallback only if no frame data
+                    print(f"⚠️ No frame data available, using fallback dimensions: {actual_grid_dims}")
+                
                 # Optimize coordinates if needed (for ACTION6)
                 x, y = None, None
                 if selected_action == 6:
                     if current_frame_analysis:
                         x, y = self._enhance_coordinate_selection_with_frame_analysis(
-                            selected_action, (64, 64), game_id, current_frame_analysis
+                            selected_action, actual_grid_dims, game_id, current_frame_analysis
                         )
                     else:
-                        x, y = self._optimize_coordinates_for_action(selected_action, (64, 64), game_id)
+                        x, y = self._optimize_coordinates_for_action(selected_action, actual_grid_dims, game_id)
+                    
+                    # 🔧 CRITICAL FIX: Validate coordinates before action execution
+                    if x is not None and y is not None:
+                        if not self._verify_grid_bounds(x, y, actual_grid_dims[0], actual_grid_dims[1]):
+                            print(f"❌ COORDINATE ERROR: ({x},{y}) out of bounds for {actual_grid_dims}, using safe fallback")
+                            # Use safe fallback coordinates
+                            x, y = self._safe_coordinate_fallback(actual_grid_dims[0], actual_grid_dims[1], "coordinate out of bounds")
+                    elif selected_action == 6:
+                        # If no coordinates were generated for ACTION6, create safe ones
+                        print(f"⚠️ No coordinates generated for ACTION6, using safe fallback")
+                        x, y = self._safe_coordinate_fallback(actual_grid_dims[0], actual_grid_dims[1], "no coordinates generated")
                 
                 coord_display = f" at ({x},{y})" if x is not None else ""
                 print(f"🚀 EXECUTING: Action {selected_action}{coord_display}")
@@ -8313,9 +8529,9 @@ class ContinuousLearningLoop:
                         success_rate = self.available_actions_memory['action_effectiveness'][selected_action]['success_rate']
                         print(f"   📊 Success: {success_rate:.1%} ({total_attempts} tries)")
                 
-                # Execute the action
+                # Execute the action with actual grid dimensions
                 action_result = await self._send_enhanced_action(
-                    game_id, selected_action, x, y, 64, 64, current_frame_analysis
+                    game_id, selected_action, x, y, actual_grid_dims[0], actual_grid_dims[1], current_frame_analysis
                 )
                 
                 if action_result:
@@ -8341,37 +8557,43 @@ class ContinuousLearningLoop:
                     if new_available != available_actions:
                         print(f"🔄 Actions: {available_actions} → {new_available}")
                     
-                    # CRITICAL: Consume energy per action to enable sleep cycles
-                    if hasattr(self, 'energy_system'):
-                        # Base energy cost per action (reduced from episode-level)
-                        action_energy_cost = 0.5 if was_effective else 1.0  # Effective actions cost less
+                    # 🔧 CRITICAL FIX: Use unified energy consumption for consistency
+                    # Determine if this was exploration or repetitive behavior
+                    is_exploration = selected_action == 6 and hasattr(self, '_progress_tracker')  # ACTION6 is typically exploration
+                    is_repetitive = (not was_effective and actions_taken > 100)
+                    
+                    # Consume energy using unified method
+                    remaining_energy = self._unified_energy_consumption(
+                        action_effective=was_effective,
+                        is_exploration=is_exploration,
+                        is_repetitive=is_repetitive
+                    )
+                    
+                    # Show energy status more concisely
+                    if remaining_energy < 50:
+                        print(f"⚡ Energy: {remaining_energy:.1f}/100 {'🔴' if remaining_energy < 20 else '🟡' if remaining_energy < 40 else '🟢'}")
+                    
+                    # 🔧 CRITICAL FIX: Intelligent sleep trigger system
+                    # Calculate recent effectiveness for smart sleep decisions
+                    recent_effective_count = sum(1 for action in action_history[-20:] if action.get('effective', False))
+                    recent_effectiveness = recent_effective_count / max(1, len(action_history[-20:]))
+                    
+                    # Check if sleep cycle should trigger using intelligent method
+                    should_sleep = self._should_trigger_sleep_cycle(actions_taken, recent_effectiveness)
+                    
+                    if should_sleep:
+                        print(f"😴 SLEEP TRIGGER: Low energy ({remaining_energy:.1f}) after {actions_taken} actions")
                         
-                        # Extra cost for ineffective repetitive actions
-                        if not was_effective and actions_taken > 100:
-                            action_energy_cost *= 1.2  # 20% penalty for long ineffective sequences
-                        
-                        # Consume the energy
-                        remaining_energy = self.energy_system.consume_energy(
-                            action_cost=action_energy_cost,
-                            computation_cost=0.1
+                        # Execute enhanced sleep cycle with current data
+                        sleep_result = await self._trigger_enhanced_sleep_with_arc_data(
+                            action_history, effective_actions, game_id
                         )
+                        print(f"🌅 Sleep completed: {sleep_result}")
                         
-                        # Show energy status more concisely
-                        if remaining_energy < 50:
-                            print(f"⚡ Energy: {remaining_energy:.1f}/100 {'🔴' if remaining_energy < 20 else '🟡' if remaining_energy < 40 else '🟢'}")
-                        
-                        # Check if sleep cycle should trigger
-                        if self.energy_system.should_sleep():
-                            print(f"😴 SLEEP TRIGGER: Low energy ({remaining_energy:.1f}) after {actions_taken} actions")
-                            
-                            # Execute enhanced sleep cycle with current data
-                            sleep_result = await self._trigger_enhanced_sleep_with_arc_data(
-                                action_history, effective_actions, game_id
-                            )
-                            print(f"🌅 Sleep completed: {sleep_result}")
-                            
-                            # Restore some energy after sleep
-                            restored_energy = min(100.0, remaining_energy + 25.0)
+                        # Restore energy using unified system
+                        energy_restoration = 25.0
+                        self.current_energy = min(100.0, self.current_energy + energy_restoration)
+                        print(f"⚡ Energy restored: +{energy_restoration:.1f} → {self.current_energy:.1f}/100")
                             self.energy_system.current_energy = restored_energy
                             print(f"⚡ Energy restored to: {restored_energy:.1f}/100")
                             print(f"⚡ Energy restored: {remaining_energy:.2f} → {restored_energy:.2f}")
@@ -8684,12 +8906,81 @@ class ContinuousLearningLoop:
             }
     
     def _fallback_sleep_result(self) -> Dict[str, Any]:
-        """Fallback sleep result when enhanced sleep system is not available."""
-        return {
-            'success': True,
-            'sleep_type': 'fallback',
-            'note': 'Agent sleep system not available, used basic pause'
+        """🔧 CRITICAL FIX: Enhanced fallback sleep with memory consolidation when advanced system is unavailable."""
+        
+        print(f"🌙 ENHANCED FALLBACK SLEEP STARTING...")
+        
+        # Perform basic memory consolidation operations
+        consolidation_results = {
+            'patterns_identified': 0,
+            'successful_patterns_strengthened': 0,
+            'failed_patterns_weakened': 0,
+            'coordinate_patterns_discovered': 0,
+            'action_effectiveness_updated': 0
         }
+        
+        try:
+            # 1. Consolidate action effectiveness memory
+            if hasattr(self, 'available_actions_memory'):
+                action_memory = self.available_actions_memory
+                total_observations = action_memory.get('action_learning_stats', {}).get('total_observations', 0)
+                
+                if total_observations > 0:
+                    print(f"   📊 Consolidating {total_observations} action observations...")
+                    
+                    # Strengthen successful patterns
+                    effectiveness_data = action_memory.get('action_effectiveness', {})
+                    for action, data in effectiveness_data.items():
+                        if data.get('success_rate', 0) > 0.6:  # High success rate
+                            # Strengthen successful patterns (increase confidence)
+                            data['confidence'] = min(1.0, data.get('confidence', 0.5) + 0.1)
+                            consolidation_results['successful_patterns_strengthened'] += 1
+                        elif data.get('success_rate', 0) < 0.2:  # Low success rate
+                            # Weaken failed patterns (decrease confidence)
+                            data['confidence'] = max(0.1, data.get('confidence', 0.5) - 0.05)
+                            consolidation_results['failed_patterns_weakened'] += 1
+                    
+                    consolidation_results['action_effectiveness_updated'] = len(effectiveness_data)
+            
+            # 2. Consolidate coordinate intelligence if frame analyzer exists
+            if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
+                print(f"   🔍 Running basic visual consolidation...")
+                
+                # Simple pattern discovery in explored coordinates
+                if hasattr(self, '_progress_tracker'):
+                    explored_coords = getattr(self._progress_tracker, 'explored_coordinates', set())
+                    if len(explored_coords) > 10:
+                        print(f"      🎯 Analyzed {len(explored_coords)} coordinate patterns")
+                        consolidation_results['coordinate_patterns_discovered'] = len(explored_coords) // 10
+            
+            # 3. Update global memory counters
+            if hasattr(self, 'global_counters'):
+                self.global_counters['total_memory_operations'] = self.global_counters.get('total_memory_operations', 0) + 1
+                self.global_counters['total_sleep_cycles'] = self.global_counters.get('total_sleep_cycles', 0) + 1
+            
+            # 4. Basic rest period for system consolidation
+            await asyncio.sleep(0.2)  # Brief consolidation pause
+            
+            print(f"🌅 FALLBACK SLEEP COMPLETE - Strengthened: {consolidation_results['successful_patterns_strengthened']}, "
+                  f"Weakened: {consolidation_results['failed_patterns_weakened']}, "
+                  f"Coordinates: {consolidation_results['coordinate_patterns_discovered']}")
+            
+            return {
+                'success': True,
+                'sleep_type': 'enhanced_fallback',
+                'memory_consolidation_performed': True,
+                'sleep_cycles_completed': self.global_counters.get('total_sleep_cycles', 0),
+                **consolidation_results
+            }
+            
+        except Exception as e:
+            logger.warning(f"Fallback sleep consolidation error: {e}")
+            return {
+                'success': True,
+                'sleep_type': 'basic_fallback',
+                'note': 'Basic sleep with minimal consolidation',
+                'error': str(e)
+            }
     
     def _create_replay_buffer_from_actions(self, action_history: List[Dict]) -> List:
         """Create a minimal replay buffer from action history for sleep system."""

@@ -1,0 +1,749 @@
+2025-09-05 13:32:26,456 - arc_integration.arc_meta_learning - INFO - ARC Meta-Learning System initialized
+2025-09-05 13:32:26,457 - src.arc_integration.continuous_learning_loop - INFO - ✅ Enhanced sleep system initialized for memory consolidation
+2025-09-05 13:32:26,458 - core.adaptive_energy_system - INFO - AdaptiveEnergySystem initialized with config: EnergyConfig(max_energy=100.0, base_depletion_rate=0.08, action_based_depletion=0.25, sleep_trigger_threshold=60.0, min_sleep_threshold=20.0, max_sleep_threshold=60.0, time_based_sleep_interval=3.0, min_time_interval=1.0, max_time_interval=8.0, success_rate_multiplier=0.8, failure_rate_multiplier=1.2)
+2025-09-05 13:32:26,461 - src.arc_integration.continuous_learning_loop - INFO - ✅ Adaptive energy system initialized for win rate-based sleep scheduling
+2025-09-05 13:32:26,462 - goals.goal_system - INFO - Goal system initialized in survival phase
+2025-09-05 13:32:26,483 - core.agent - INFO - Predictive core initialized with lstm architecture
+2025-09-05 13:32:26,486 - core.agent - INFO - DNC memory system initialized and integrated with predictive core
+2025-09-05 13:32:26,487 - core.agent - INFO - Learning progress drive initialized
+2025-09-05 13:32:26,488 - core.agent - INFO - Energy and death management system initialized
+2025-09-05 13:32:26,489 - goals.goal_system - INFO - Goal system initialized in survival phase
+2025-09-05 13:32:26,490 - core.agent - INFO - Goal system initialized in survival phase
+2025-09-05 13:32:28,647 - core.agent - INFO - Action selection system initialized
+2025-09-05 13:32:28,649 - core.agent - INFO - Sleep and dream cycle system initialized
+2025-09-05 13:32:28,649 - core.agent - INFO - Monitoring and metrics system initialized
+2025-09-05 13:32:28,654 - core.agent - INFO - Meta-learning system initialized
+2025-09-05 13:32:28,656 - core.agent - INFO - Adaptive Learning Agent initialized successfully
+2025-09-05 13:32:28,657 - src.arc_integration.continuous_learning_loop - INFO - Demo agent initialized for monitoring
+2025-09-05 13:32:28,658 - src.arc_integration.continuous_learning_loop - INFO - Continuous Learning Loop initialized with ARC-3 API integration
+2025-09-05 13:32:28,660 - __main__ - INFO - ✅ Coordinate intelligence initialized
+2025-09-05 13:32:28,667 - src.core.meta_cognitive_governor.Governor - INFO - Outcome tracking enabled
+2025-09-05 13:32:28,679 - src.core.meta_cognitive_governor.Governor - INFO - Loaded 0 learned patterns from disk
+2025-09-05 13:32:28,681 - src.core.meta_cognitive_governor.Governor - INFO - Cross-session learning manager initialized with 0 existing patterns
+2025-09-05 13:32:28,681 - src.core.meta_cognitive_governor.Governor - INFO - Cross-session learning enabled
+2025-09-05 13:32:28,686 - src.core.meta_cognitive_governor.Governor - INFO - Meta-cognitive memory management enabled
+2025-09-05 13:32:28,690 - src.core.meta_cognitive_governor.Governor - INFO - Memory pattern optimization enabled - Phase 1 immediate wins
+2025-09-05 13:32:31,460 - src.core.hierarchical_memory_clusterer - INFO - 🗂️ HierarchicalMemoryClusterer initialized for Phase 2
+2025-09-05 13:32:31,461 - src.core.meta_cognitive_governor.Governor - INFO - Hierarchical memory clustering enabled - Phase 2 intelligent clusters
+2025-09-05 13:32:31,465 - src.core.architect_evolution_engine - INFO - 🏗️ Architect Evolution Engine initialized for Phase 3
+2025-09-05 13:32:31,465 - src.core.architect_evolution_engine - INFO -    Autonomous evolution: enabled
+2025-09-05 13:32:31,465 - src.core.architect_evolution_engine - INFO -    Loaded 0 existing insights
+2025-09-05 13:32:31,466 - src.core.architect_evolution_engine - INFO -    Loaded 0 evolution strategies
+2025-09-05 13:32:31,467 - src.core.meta_cognitive_governor.Governor - INFO - Architect Evolution Engine enabled - Phase 3 autonomous evolution
+2025-09-05 13:32:31,473 - src.core.performance_optimization_engine - INFO - ⚡ Initialized 1 adaptive configurations
+2025-09-05 13:32:31,474 - src.core.performance_optimization_engine - INFO - ⚡ Real-time optimization thread started
+2025-09-05 13:32:31,475 - src.core.performance_optimization_engine - INFO - ⚡ Performance Optimization Engine initialized for Phase 4
+2025-09-05 13:32:31,476 - src.core.performance_optimization_engine - INFO -    Real-time optimization: enabled
+2025-09-05 13:32:31,477 - src.core.performance_optimization_engine - INFO -    Optimization interval: 60.0s
+2025-09-05 13:32:31,477 - src.core.performance_optimization_engine - INFO -    Loaded 0 optimization history entries
+2025-09-05 13:32:31,478 - src.core.performance_optimization_engine - INFO -    Adaptive configurations: 1
+2025-09-05 13:32:31,479 - src.core.meta_cognitive_governor.Governor - INFO - Performance Optimization Engine enabled - Phase 4 performance maximization
+2025-09-05 13:32:31,484 - src.core.meta_cognitive_governor.Governor - INFO - 🔍 Initialized 37 cognitive system monitors
+2025-09-05 13:32:31,484 - src.core.meta_cognitive_governor.Governor - INFO - 🧠 MetaCognitiveGovernor initialized - Third Brain online
+2025-09-05 13:32:31,485 - __main__ - INFO - 🧠 Meta-cognitive Governor (Third Brain) initialized
+2025-09-05 13:32:31,486 - src.core.architect.Architect - INFO - Architect memory management enabled
+2025-09-05 13:32:31,491 - src.core.architect.Architect - INFO - ✅ Already on correct branch: Tabula-Rasa-v3
+2025-09-05 13:32:31,493 - src.core.architect.Architect - INFO - ✅ GitIgnore already configured for Architect control
+2025-09-05 13:32:31,494 - src.core.architect.Architect - INFO - 🔬 Architect initialized - Zeroth Brain online
+2025-09-05 13:32:31,494 - __main__ - INFO - 🏗️ Architect (Zeroth Brain) initialized
+2025-09-05 13:32:31,495 - __main__ - INFO - ✅ Core systems initialized successfully
+2025-09-05 13:32:31,495 - src.core.meta_cognitive_dashboard.Dashboard - WARNING - Invalid metric value for status: starting, using 0.0
+2025-09-05 13:32:31,497 - __main__ - INFO - 🚀 Starting training mode: meta-cognitive-training
+2025-09-05 13:32:31,499 - __main__ - INFO - Meta-Cognitive Training Mode - Comprehensive monitoring
+2025-09-05 13:32:31,502 - src.core.meta_cognitive_governor.Governor - INFO - Started outcome measurement outcome_1757097151_2741 for governor_mode_switch
+2025-09-05 13:32:31,505 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: mode_switch (confidence: 0.80)
+2025-09-05 13:32:31,509 - __main__ - INFO - No games specified, fetching from ARC-AGI-3 API...
+2025-09-05 13:32:31,740 - src.arc_integration.continuous_learning_loop - INFO - Retrieved 6 available games from ARC-AGI-3 API
+2025-09-05 13:32:31,742 - __main__ - INFO - Selected 6 games from ARC API: ['as66-821a4dcad9c2', 'lp85-2e205bbe3622', 'ft09-f340c8e5138e', 'ls20-fa137e247ce6', 'sp80-5f3511b239b8', 'vc33-58ec4396715d']
+2025-09-05 13:32:31,743 - core.adaptive_energy_system - INFO - Energy parameters recalculated: threshold=60.0, interval=3.0min, rate=0.4000
+2025-09-05 13:32:31,744 - core.adaptive_energy_system - INFO - Session configured - Actions: 500, Time limit: 30 min, Sleep threshold: 60.0, Sleep interval: 3.0 min
+2025-09-05 13:32:31,744 - core.adaptive_energy_system - INFO - Sleep system threshold updated to: 60.0
+2025-09-05 13:32:31,745 - src.arc_integration.continuous_learning_loop - INFO - Adaptive energy configured: threshold=60.0, interval=3.0min
+2025-09-05 13:32:31,747 - src.arc_integration.continuous_learning_loop - INFO - Started training session session_1757097151 with 6 games using lossless mode
+2025-09-05 13:32:31,748 - src.arc_integration.continuous_learning_loop - INFO - Running continuous learning for session session_1757097151
+2025-09-05 13:32:32,207 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Loaded action intelligence for ft09-f340c8e5138e: 1 effective actions
+2025-09-05 13:32:32,208 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:32,437 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Loaded action intelligence for lp85-2e205bbe3622: 1 effective actions
+2025-09-05 13:32:32,445 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:32,530 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Loaded action intelligence for as66-821a4dcad9c2: 5 effective actions
+2025-09-05 13:32:32,532 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:32,584 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:32:32,585 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:32,726 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:32:32,727 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:32,759 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:32,843 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:32:32,845 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:32,900 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:33,015 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:33,058 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:32:33,060 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:33,116 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:32:33,117 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:33,160 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:32:33,161 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:33,234 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:33,328 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:33,384 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:33,618 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:32:33,619 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:33,623 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:32:33,624 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:33,627 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:32:33,628 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:33,798 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:33,901 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:33,912 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,051 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:32:34,052 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,066 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:32:34,067 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,130 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for as66-821a4dcad9c2
+2025-09-05 13:32:34,130 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:34,214 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,311 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,355 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:34,498 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:32:34,500 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:32:34,501 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,616 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:32:34,617 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,664 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:34,676 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,782 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,869 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:32:34,870 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:34,876 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:32:34,876 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:35,038 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:35,082 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:35,109 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:32:35,110 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:35,181 - src.arc_integration.continuous_learning_loop - INFO - Action 3 successful for as66-821a4dcad9c2
+2025-09-05 13:32:35,182 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:32:35,185 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:32:35,185 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:35,286 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:35,481 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:32:35,753 - src.arc_integration.continuous_learning_loop - INFO - 💾 Saved action intelligence for ft09-f340c8e5138e: 1 effective actions
+2025-09-05 13:32:35,754 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Action Intelligence for ft09-f340c8e5138e: 1/1 effective actions, 68 coordinate patterns learned
+2025-09-05 13:32:38,035 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Loaded action intelligence for vc33-58ec4396715d: 1 effective actions
+2025-09-05 13:32:38,036 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:38,082 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Loaded action intelligence for ls20-fa137e247ce6: 4 effective actions
+2025-09-05 13:32:38,082 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:38,114 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Loaded action intelligence for sp80-5f3511b239b8: 2 effective actions
+2025-09-05 13:32:38,114 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:38,222 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:38,223 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:38,230 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:32:38,231 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:38,343 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:38,343 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:38,400 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:38,439 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:38,507 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:38,664 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:38,666 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:38,685 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:32:38,686 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:38,762 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:38,763 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:38,867 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:38,944 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:38,962 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:39,109 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:39,111 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:39,197 - src.arc_integration.continuous_learning_loop - INFO - Action 4 successful for ls20-fa137e247ce6
+2025-09-05 13:32:39,200 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:39,333 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:39,334 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:39,388 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:39,444 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:39,508 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:39,546 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:39,547 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:39,553 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for ls20-fa137e247ce6
+2025-09-05 13:32:39,554 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:39,616 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:39,616 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:39,718 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:39,760 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:39,780 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:39,881 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:39,882 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:39,888 - src.arc_integration.continuous_learning_loop - INFO - Action 3 successful for ls20-fa137e247ce6
+2025-09-05 13:32:39,889 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:40,019 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:40,020 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:40,054 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:40,097 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:40,182 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:40,197 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:32:40,197 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:40,210 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:40,210 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:40,367 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:40,383 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:40,419 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:40,420 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:40,607 - src.arc_integration.continuous_learning_loop - INFO - Action 4 successful for ls20-fa137e247ce6
+2025-09-05 13:32:40,607 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:32:40,639 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:40,640 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:40,838 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:40,839 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:40,933 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:40,934 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:41,000 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:41,097 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:41,106 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:41,231 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:41,314 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:41,399 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:41,434 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:41,435 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:41,532 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:41,533 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:41,601 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:41,699 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:41,730 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:41,731 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:41,826 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:41,826 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:41,901 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:41,997 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:42,034 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:42,035 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:42,127 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:42,128 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:42,205 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:42,303 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:42,354 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:42,355 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:42,468 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:42,469 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:42,534 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:42,632 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:42,662 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:42,663 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:42,760 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:42,761 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:42,824 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:42,933 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:42,967 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:42,968 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:43,060 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:43,061 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:43,134 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:43,222 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:43,256 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:43,256 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:43,355 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:43,356 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:43,422 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:43,533 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:43,564 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:43,565 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:43,655 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:43,655 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:43,734 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:43,833 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:43,863 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:43,864 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:43,968 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:43,969 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:44,041 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:44,159 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:44,214 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:44,214 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:44,324 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:44,324 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:44,387 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:44,485 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:44,493 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:44,616 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:44,683 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:44,783 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:44,813 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:44,814 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:44,910 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:44,910 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:44,984 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:45,082 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:45,112 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:45,112 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:45,207 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:45,208 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:45,284 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:45,384 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:45,417 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:45,418 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:45,513 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:45,514 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:45,584 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:45,682 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:45,712 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:45,713 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:45,806 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:45,807 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:45,883 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:45,988 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:46,021 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:46,021 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:46,114 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:46,114 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:46,186 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:46,288 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:46,318 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:46,318 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:46,449 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:46,450 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:46,530 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:46,707 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:46,734 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:46,859 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:46,872 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:46,991 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:47,036 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:47,153 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:47,166 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:47,168 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:47,264 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:47,264 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:47,347 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:47,434 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:47,486 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:47,486 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:47,538 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:47,539 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:47,651 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:47,700 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:47,791 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:47,791 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:47,802 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:47,803 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:47,963 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:48,005 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:48,106 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:48,107 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:48,112 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for sp80-5f3511b239b8
+2025-09-05 13:32:48,113 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:48,286 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:48,344 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:48,443 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:48,444 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:48,451 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:48,452 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:48,615 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:48,786 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:48,880 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:48,880 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:48,885 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:48,886 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:49,060 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:49,100 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:49,193 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:49,201 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:49,202 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:49,349 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:49,365 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:49,483 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:49,484 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:49,489 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:49,490 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:49,648 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:49,661 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:49,796 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:49,801 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:49,802 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:49,975 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:50,020 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:50,113 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:50,114 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:50,121 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:50,122 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:50,284 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:50,323 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:50,429 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:50,430 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:50,435 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:50,436 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:50,598 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:50,638 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:50,732 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:50,732 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:50,755 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:50,756 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:50,902 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:50,949 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:51,044 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:51,044 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:51,049 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:51,050 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:51,216 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:51,256 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:51,356 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:51,357 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:51,365 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:51,368 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:51,537 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:51,584 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:51,680 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:51,680 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:51,688 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:51,688 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:51,857 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:51,897 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:52,004 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:52,014 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:52,015 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:52,162 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:52,182 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:52,309 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:52,310 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:52,315 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:52,316 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:52,499 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:52,513 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:52,637 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:52,637 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:52,647 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:52,648 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:52,800 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:52,814 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:52,937 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:52,938 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:52,944 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:52,944 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:53,103 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:53,118 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:53,237 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:53,238 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:53,251 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:53,251 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:53,256 - core.sleep_system - INFO - Agent entering sleep mode
+2025-09-05 13:32:53,269 - core.sleep_system - INFO - 🌙 ENHANCED SLEEP CONSOLIDATION - Starting memory consolidation and strategic diversification...
+2025-09-05 13:32:53,269 - core.sleep_system - WARNING - ⚠️ Skipping memory consolidation - no predictive core available
+2025-09-05 13:32:53,270 - core.sleep_system - INFO - Integrated 3 goals, extracted 3 goal insights
+2025-09-05 13:32:53,271 - core.sleep_system - INFO - 🌅 ENHANCED SLEEP COMPLETE - Failed patterns: 0, Successful patterns: 0, Diversification strategies: 0
+2025-09-05 13:32:53,271 - core.sleep_system - INFO - Agent waking up after 0.02s sleep
+2025-09-05 13:32:53,401 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:53,442 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:53,512 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:53,512 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:53,577 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:53,578 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:53,680 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:53,749 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:53,779 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:53,779 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:53,881 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:53,882 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:53,951 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:54,049 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:54,079 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:54,080 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:54,182 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:54,182 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:54,278 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:54,425 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:54,591 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:54,592 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:54,594 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:54,595 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:54,764 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:54,789 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:54,937 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:54,938 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:54,947 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:54,948 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:55,102 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:55,116 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:55,242 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:55,243 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:55,246 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:55,247 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:55,410 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:55,426 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:55,546 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:55,546 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:55,555 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:55,555 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:55,713 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:55,733 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:55,915 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:55,915 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:55,918 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:55,918 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:56,102 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:56,116 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:56,357 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:56,358 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:56,360 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:56,361 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:56,531 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:56,545 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:32:56,796 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:32:56,802 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:56,802 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:32:57,144 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:57,596 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:57,862 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:58,114 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:58,393 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:58,662 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:58,924 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:32:59,183 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for sp80-5f3511b239b8
+2025-09-05 13:32:59,440 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for sp80-5f3511b239b8
+2025-09-05 13:32:59,712 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for sp80-5f3511b239b8
+2025-09-05 13:33:00,003 - src.arc_integration.continuous_learning_loop - INFO - 💾 Saved action intelligence for sp80-5f3511b239b8: 3 effective actions
+2025-09-05 13:33:00,006 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Action Intelligence for sp80-5f3511b239b8: 3/6 effective actions, 8 coordinate patterns learned
+2025-09-05 13:33:02,046 - arc_integration.arc_meta_learning - INFO - ARC meta-learning state saved to continuous_learning_data\meta_learning_session_1757097151.json
+2025-09-05 13:33:02,047 - src.arc_integration.continuous_learning_loop - INFO - Completed training session session_1757097151 - Win rate: 0.0%
+2025-09-05 13:33:02,049 - src.core.meta_cognitive_governor.Governor - INFO - Started outcome measurement outcome_1757097182_4296 for governor_parameter_adjustment
+2025-09-05 13:33:02,050 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.60)
+2025-09-05 13:33:02,052 - __main__ - INFO - No games specified, fetching from ARC-AGI-3 API...
+2025-09-05 13:33:02,136 - src.arc_integration.continuous_learning_loop - INFO - Retrieved 6 available games from ARC-AGI-3 API
+2025-09-05 13:33:02,139 - __main__ - INFO - Selected 6 games from ARC API: ['lp85-2e205bbe3622', 'as66-821a4dcad9c2', 'ls20-fa137e247ce6', 'ft09-f340c8e5138e', 'vc33-58ec4396715d', 'sp80-5f3511b239b8']
+2025-09-05 13:33:02,140 - core.adaptive_energy_system - INFO - Energy parameters recalculated: threshold=60.0, interval=3.0min, rate=0.4000
+2025-09-05 13:33:02,141 - core.adaptive_energy_system - INFO - Session configured - Actions: 500, Time limit: 30 min, Sleep threshold: 60.0, Sleep interval: 3.0 min
+2025-09-05 13:33:02,142 - core.adaptive_energy_system - INFO - Sleep system threshold updated to: 60.0
+2025-09-05 13:33:02,143 - src.arc_integration.continuous_learning_loop - INFO - Adaptive energy configured: threshold=60.0, interval=3.0min
+2025-09-05 13:33:02,145 - src.arc_integration.continuous_learning_loop - INFO - Started training session session_1757097182 with 6 games using lossless mode
+2025-09-05 13:33:02,146 - src.arc_integration.continuous_learning_loop - INFO - Running continuous learning for session session_1757097182
+2025-09-05 13:33:02,414 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:02,442 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:02,601 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:33:02,721 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for as66-821a4dcad9c2
+2025-09-05 13:33:02,721 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:02,762 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:02,853 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:02,902 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:03,039 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:33:03,040 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:03,142 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:33:03,143 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:03,155 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:33:03,155 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:03,228 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:03,320 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:03,333 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:03,438 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:33:03,502 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:33:03,503 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:03,602 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:03,696 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:03,929 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:33:03,931 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:03,936 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for ls20-fa137e247ce6
+2025-09-05 13:33:03,937 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:04,060 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:33:04,061 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:04,133 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:04,152 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:04,234 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:04,293 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for ls20-fa137e247ce6
+2025-09-05 13:33:04,295 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:04,301 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for as66-821a4dcad9c2
+2025-09-05 13:33:04,302 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:04,398 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:33:04,399 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:04,469 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:04,493 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:04,564 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:04,718 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:33:04,719 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:04,721 - core.sleep_system - INFO - Agent entering sleep mode
+2025-09-05 13:33:04,723 - core.sleep_system - INFO - 🌙 ENHANCED SLEEP CONSOLIDATION - Starting memory consolidation and strategic diversification...
+2025-09-05 13:33:04,723 - core.sleep_system - WARNING - ⚠️ Skipping memory consolidation - no predictive core available
+2025-09-05 13:33:04,724 - core.sleep_system - INFO - Integrated 3 goals, extracted 3 goal insights
+2025-09-05 13:33:04,725 - core.sleep_system - INFO - 🌅 ENHANCED SLEEP COMPLETE - Failed patterns: 0, Successful patterns: 0, Diversification strategies: 0
+2025-09-05 13:33:04,725 - core.sleep_system - INFO - Agent waking up after 0.00s sleep
+2025-09-05 13:33:04,737 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for as66-821a4dcad9c2
+2025-09-05 13:33:04,738 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:04,744 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:33:04,745 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:04,914 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:04,928 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:04,939 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:05,069 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:33:05,070 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:05,073 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:33:05,073 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:05,202 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:33:05,202 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:05,234 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:05,249 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:05,357 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:33:05,358 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:33:05,375 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:05,519 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for as66-821a4dcad9c2
+2025-09-05 13:33:05,520 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:33:05,526 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:33:05,526 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:05,821 - src.arc_integration.continuous_learning_loop - INFO - 💾 Saved action intelligence for lp85-2e205bbe3622: 1 effective actions
+2025-09-05 13:33:05,822 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Action Intelligence for lp85-2e205bbe3622: 1/1 effective actions, 38 coordinate patterns learned
+2025-09-05 13:33:08,069 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:08,219 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:08,367 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:33:08,375 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:33:08,376 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:08,497 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:33:08,538 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:08,610 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:08,840 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:33:08,841 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:33:08,846 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:33:08,847 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:08,972 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:33:08,972 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:09,024 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:33:09,048 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:09,190 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:09,455 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:33:09,456 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:33:09,463 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:33:09,465 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:09,469 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:33:09,470 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:09,632 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:33:09,729 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:09,766 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:09,948 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for sp80-5f3511b239b8
+2025-09-05 13:33:09,949 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:33:09,955 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:33:09,956 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:09,960 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:33:09,961 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:33:10,130 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:33:10,246 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:33:10,519 - src.arc_integration.continuous_learning_loop - INFO - 💾 Saved action intelligence for sp80-5f3511b239b8: 2 effective actions
+2025-09-05 13:33:10,520 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Action Intelligence for sp80-5f3511b239b8: 2/6 effective actions, 8 coordinate patterns learned
+2025-09-05 13:33:12,555 - arc_integration.arc_meta_learning - INFO - ARC meta-learning state saved to continuous_learning_data\meta_learning_session_1757097182.json
+2025-09-05 13:33:12,556 - src.arc_integration.continuous_learning_loop - INFO - Completed training session session_1757097182 - Win rate: 0.0%
+2025-09-05 13:33:12,559 - src.core.meta_cognitive_governor.Governor - INFO - Started outcome measurement outcome_1757097192_8330 for governor_parameter_adjustment
+2025-09-05 13:33:12,559 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 13:33:12,562 - src.core.architect.Architect - INFO - 🧬 Starting evolution cycle 0
+2025-09-05 13:33:12,720 - src.core.architect.Architect - INFO - 🎯 Using training script: master_arc_trainer.py
+2025-09-05 13:33:12,722 - src.core.architect.Architect - INFO - 🎮 Running actual ARC training test: C:\Users\Admin\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\python.exe C:\Users\Admin\Documents\GitHub\tabula-rasa\master_arc_trainer.py --mode quick-validation --games ls20,ft09 --max-cycles 3 --session-duration 2 --no-logs --no-monitoring
+2025-09-05 13:34:42,753 - src.core.architect.Architect - WARNING - ⏰ Training test timed out, terminating process
+2025-09-05 13:34:42,800 - src.core.architect.Architect - INFO - 🧪 Mutation exploratory_1757097192 tested: overall_improvement=-14.265, duration=90.2s
+2025-09-05 13:34:42,848 - __main__ - INFO - No games specified, fetching from ARC-AGI-3 API...
+2025-09-05 13:34:43,137 - src.arc_integration.continuous_learning_loop - INFO - Retrieved 6 available games from ARC-AGI-3 API
+2025-09-05 13:34:43,138 - __main__ - INFO - Selected 6 games from ARC API: ['vc33-58ec4396715d', 'sp80-5f3511b239b8', 'ls20-fa137e247ce6', 'lp85-2e205bbe3622', 'as66-821a4dcad9c2', 'ft09-f340c8e5138e']
+2025-09-05 13:34:43,139 - core.adaptive_energy_system - INFO - Energy parameters recalculated: threshold=60.0, interval=3.0min, rate=0.4000
+2025-09-05 13:34:43,140 - core.adaptive_energy_system - INFO - Session configured - Actions: 500, Time limit: 30 min, Sleep threshold: 60.0, Sleep interval: 3.0 min
+2025-09-05 13:34:43,141 - core.adaptive_energy_system - INFO - Sleep system threshold updated to: 60.0
+2025-09-05 13:34:43,141 - src.arc_integration.continuous_learning_loop - INFO - Adaptive energy configured: threshold=60.0, interval=3.0min
+2025-09-05 13:34:43,143 - src.arc_integration.continuous_learning_loop - INFO - Started training session session_1757097283 with 6 games using lossless mode
+2025-09-05 13:34:43,144 - src.arc_integration.continuous_learning_loop - INFO - Running continuous learning for session session_1757097283
+2025-09-05 13:34:43,421 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:44,050 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:34:44,150 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:44,235 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:44,344 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:34:44,356 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:34:44,357 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:44,377 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:44,473 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:34:44,535 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:44,563 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:44,663 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:44,753 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:34:44,754 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:44,762 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for sp80-5f3511b239b8
+2025-09-05 13:34:44,763 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:44,791 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for ls20-fa137e247ce6
+2025-09-05 13:34:44,792 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:44,932 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:44,995 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:45,015 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:45,107 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:34:45,108 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:45,130 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:34:45,131 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:45,284 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:45,298 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:34:45,306 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:45,323 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:45,480 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for sp80-5f3511b239b8
+2025-09-05 13:34:45,481 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:45,539 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:45,607 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:34:45,607 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:45,653 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:45,777 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:45,835 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:34:45,840 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:45,847 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for sp80-5f3511b239b8
+2025-09-05 13:34:45,848 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:45,998 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:34:45,999 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:46,056 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:46,094 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:46,203 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:46,259 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for sp80-5f3511b239b8
+2025-09-05 13:34:46,260 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:46,263 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:34:46,264 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:46,360 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:34:46,361 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:46,441 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:46,457 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:46,537 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:46,593 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for sp80-5f3511b239b8
+2025-09-05 13:34:46,594 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 2 cached patterns)
+2025-09-05 13:34:46,598 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for ls20-fa137e247ce6
+2025-09-05 13:34:46,598 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 4 cached patterns)
+2025-09-05 13:34:46,714 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for vc33-58ec4396715d
+2025-09-05 13:34:46,715 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:47,114 - src.arc_integration.continuous_learning_loop - INFO - 💾 Saved action intelligence for vc33-58ec4396715d: 1 effective actions
+2025-09-05 13:34:47,115 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Action Intelligence for vc33-58ec4396715d: 1/1 effective actions, 44 coordinate patterns learned
+2025-09-05 13:34:49,403 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:34:49,422 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:49,663 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:49,814 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:34:49,815 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:49,890 - src.arc_integration.continuous_learning_loop - INFO - Action 2 successful for as66-821a4dcad9c2
+2025-09-05 13:34:49,891 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:34:49,954 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:34:49,954 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:49,994 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:50,180 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:34:50,226 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:50,433 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:34:50,445 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:34:50,445 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:50,512 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:34:50,512 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:34:50,605 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:50,655 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:50,747 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:34:50,928 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:34:50,929 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:50,948 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:34:50,948 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:50,953 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for as66-821a4dcad9c2
+2025-09-05 13:34:50,956 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:34:50,961 - core.sleep_system - INFO - Agent entering sleep mode
+2025-09-05 13:34:50,962 - core.sleep_system - INFO - 🌙 ENHANCED SLEEP CONSOLIDATION - Starting memory consolidation and strategic diversification...
+2025-09-05 13:34:50,963 - core.sleep_system - WARNING - ⚠️ Skipping memory consolidation - no predictive core available
+2025-09-05 13:34:50,963 - core.sleep_system - INFO - Integrated 3 goals, extracted 3 goal insights
+2025-09-05 13:34:50,964 - core.sleep_system - INFO - 🌅 ENHANCED SLEEP COMPLETE - Failed patterns: 0, Successful patterns: 0, Diversification strategies: 0
+2025-09-05 13:34:50,964 - core.sleep_system - INFO - Agent waking up after 0.00s sleep
+2025-09-05 13:34:51,086 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:51,184 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:51,233 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:34:51,330 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for ft09-f340c8e5138e
+2025-09-05 13:34:51,331 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:51,337 - src.arc_integration.continuous_learning_loop - INFO - Action 1 successful for as66-821a4dcad9c2
+2025-09-05 13:34:51,337 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 5 cached patterns)
+2025-09-05 13:34:51,340 - src.arc_integration.continuous_learning_loop - INFO - Action 6 successful for lp85-2e205bbe3622
+2025-09-05 13:34:51,340 - src.arc_integration.continuous_learning_loop - INFO - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-05 13:34:51,633 - src.arc_integration.continuous_learning_loop - INFO - 💾 Saved action intelligence for lp85-2e205bbe3622: 1 effective actions
+2025-09-05 13:34:51,634 - src.arc_integration.continuous_learning_loop - INFO - 🧠 Action Intelligence for lp85-2e205bbe3622: 1/1 effective actions, 37 coordinate patterns learned
+2025-09-05 13:34:53,746 - arc_integration.arc_meta_learning - INFO - ARC meta-learning state saved to continuous_learning_data\meta_learning_session_1757097283.json
+2025-09-05 13:34:53,748 - src.arc_integration.continuous_learning_loop - INFO - Completed training session session_1757097283 - Win rate: 0.0%
+2025-09-05 13:34:53,871 - __main__ - INFO - Results saved to: master_training_results_1757097293.json
+2025-09-05 13:34:53,881 - src.core.meta_cognitive_dashboard.Dashboard - WARNING - Invalid metric value for status: completed, using 0.0
+2025-09-05 13:34:53,882 - ContinuousTrainingRunner - INFO - Session 1 completed: success=True, duration=147.4s
