@@ -1,0 +1,95 @@
+2025-09-05 12:11:24,226 - arc_integration.arc_meta_learning - INFO - ARC Meta-Learning System initialized
+2025-09-05 12:11:24,227 - src.arc_integration.continuous_learning_loop - INFO - ✅ Enhanced sleep system initialized for memory consolidation
+2025-09-05 12:11:24,228 - core.adaptive_energy_system - INFO - AdaptiveEnergySystem initialized with config: EnergyConfig(max_energy=100.0, base_depletion_rate=0.08, action_based_depletion=0.25, sleep_trigger_threshold=60.0, min_sleep_threshold=20.0, max_sleep_threshold=60.0, time_based_sleep_interval=3.0, min_time_interval=1.0, max_time_interval=8.0, success_rate_multiplier=0.8, failure_rate_multiplier=1.2)
+2025-09-05 12:11:24,229 - src.arc_integration.continuous_learning_loop - INFO - ✅ Adaptive energy system initialized for win rate-based sleep scheduling
+2025-09-05 12:11:24,230 - goals.goal_system - INFO - Goal system initialized in survival phase
+2025-09-05 12:11:24,250 - core.agent - INFO - Predictive core initialized with lstm architecture
+2025-09-05 12:11:24,252 - core.agent - INFO - DNC memory system initialized and integrated with predictive core
+2025-09-05 12:11:24,253 - core.agent - INFO - Learning progress drive initialized
+2025-09-05 12:11:24,254 - core.agent - INFO - Energy and death management system initialized
+2025-09-05 12:11:24,255 - goals.goal_system - INFO - Goal system initialized in survival phase
+2025-09-05 12:11:24,256 - core.agent - INFO - Goal system initialized in survival phase
+2025-09-05 12:11:24,264 - core.agent - INFO - Action selection system initialized
+2025-09-05 12:11:24,265 - core.agent - INFO - Sleep and dream cycle system initialized
+2025-09-05 12:11:24,265 - core.agent - INFO - Monitoring and metrics system initialized
+2025-09-05 12:11:24,267 - core.agent - INFO - Meta-learning system initialized
+2025-09-05 12:11:24,268 - core.agent - INFO - Adaptive Learning Agent initialized successfully
+2025-09-05 12:11:24,268 - src.arc_integration.continuous_learning_loop - INFO - Demo agent initialized for monitoring
+2025-09-05 12:11:24,272 - src.arc_integration.continuous_learning_loop - INFO - Continuous Learning Loop initialized with ARC-3 API integration
+2025-09-05 12:11:24,274 - __main__ - INFO - ✅ Coordinate intelligence initialized
+2025-09-05 12:11:24,275 - src.core.meta_cognitive_governor.Governor - INFO - Outcome tracking enabled
+2025-09-05 12:11:24,277 - src.core.meta_cognitive_governor.Governor - INFO - Loaded 0 learned patterns from disk
+2025-09-05 12:11:24,279 - src.core.meta_cognitive_governor.Governor - INFO - Cross-session learning manager initialized with 0 existing patterns
+2025-09-05 12:11:24,279 - src.core.meta_cognitive_governor.Governor - INFO - Cross-session learning enabled
+2025-09-05 12:11:24,280 - src.core.meta_cognitive_governor.Governor - INFO - Meta-cognitive memory management enabled
+2025-09-05 12:11:24,281 - src.core.meta_cognitive_governor.Governor - INFO - Memory pattern optimization enabled - Phase 1 immediate wins
+2025-09-05 12:11:24,281 - src.core.hierarchical_memory_clusterer - INFO - 🗂️ HierarchicalMemoryClusterer initialized for Phase 2
+2025-09-05 12:11:24,282 - src.core.meta_cognitive_governor.Governor - INFO - Hierarchical memory clustering enabled - Phase 2 intelligent clusters
+2025-09-05 12:11:24,282 - src.core.architect_evolution_engine - INFO - 🏗️ Architect Evolution Engine initialized for Phase 3
+2025-09-05 12:11:24,283 - src.core.architect_evolution_engine - INFO -    Autonomous evolution: enabled
+2025-09-05 12:11:24,284 - src.core.architect_evolution_engine - INFO -    Loaded 0 existing insights
+2025-09-05 12:11:24,284 - src.core.architect_evolution_engine - INFO -    Loaded 0 evolution strategies
+2025-09-05 12:11:24,284 - src.core.meta_cognitive_governor.Governor - INFO - Architect Evolution Engine enabled - Phase 3 autonomous evolution
+2025-09-05 12:11:24,286 - src.core.performance_optimization_engine - INFO - ⚡ Initialized 1 adaptive configurations
+2025-09-05 12:11:24,288 - src.core.performance_optimization_engine - INFO - ⚡ Real-time optimization thread started
+2025-09-05 12:11:24,289 - src.core.performance_optimization_engine - INFO - ⚡ Performance Optimization Engine initialized for Phase 4
+2025-09-05 12:11:24,290 - src.core.performance_optimization_engine - INFO -    Real-time optimization: enabled
+2025-09-05 12:11:24,291 - src.core.performance_optimization_engine - INFO -    Optimization interval: 60.0s
+2025-09-05 12:11:24,291 - src.core.performance_optimization_engine - INFO -    Loaded 0 optimization history entries
+2025-09-05 12:11:24,292 - src.core.performance_optimization_engine - INFO -    Adaptive configurations: 1
+2025-09-05 12:11:24,292 - src.core.meta_cognitive_governor.Governor - INFO - Performance Optimization Engine enabled - Phase 4 performance maximization
+2025-09-05 12:11:24,293 - src.core.meta_cognitive_governor.Governor - INFO - 🔍 Initialized 37 cognitive system monitors
+2025-09-05 12:11:24,293 - src.core.meta_cognitive_governor.Governor - INFO - 🧠 MetaCognitiveGovernor initialized - Third Brain online
+2025-09-05 12:11:24,294 - __main__ - INFO - 🧠 Meta-cognitive Governor (Third Brain) initialized
+2025-09-05 12:11:24,295 - src.core.architect.Architect - INFO - Architect memory management enabled
+2025-09-05 12:11:24,296 - src.core.architect.Architect - WARNING - ⚠️ GitPython not available - version control disabled
+2025-09-05 12:11:24,297 - src.core.architect.Architect - INFO - 🔬 Architect initialized - Zeroth Brain online
+2025-09-05 12:11:24,298 - __main__ - INFO - 🏗️ Architect (Zeroth Brain) initialized
+2025-09-05 12:11:24,299 - __main__ - INFO - ✅ Core systems initialized successfully
+2025-09-05 12:11:24,299 - src.core.meta_cognitive_dashboard.Dashboard - WARNING - Invalid metric value for status: starting, using 0.0
+2025-09-05 12:11:24,300 - __main__ - INFO - 🚀 Starting training mode: meta-cognitive-training
+2025-09-05 12:11:24,302 - __main__ - INFO - Meta-Cognitive Training Mode - Comprehensive monitoring
+2025-09-05 12:11:24,307 - src.core.meta_cognitive_governor.Governor - INFO - Started outcome measurement outcome_1757092284_4465 for governor_mode_switch
+2025-09-05 12:11:24,309 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: mode_switch (confidence: 0.80)
+2025-09-05 12:11:24,310 - core.adaptive_energy_system - INFO - Energy parameters recalculated: threshold=60.0, interval=3.0min, rate=0.4000
+2025-09-05 12:11:24,311 - core.adaptive_energy_system - INFO - Session configured - Actions: 500, Time limit: 30 min, Sleep threshold: 60.0, Sleep interval: 3.0 min
+2025-09-05 12:11:24,311 - core.adaptive_energy_system - INFO - Sleep system threshold updated to: 60.0
+2025-09-05 12:11:24,312 - src.arc_integration.continuous_learning_loop - INFO - Adaptive energy configured: threshold=60.0, interval=3.0min
+2025-09-05 12:11:24,313 - src.arc_integration.continuous_learning_loop - INFO - Started training session session_1757092284 with 2 games using lossless mode
+2025-09-05 12:11:24,313 - src.arc_integration.continuous_learning_loop - INFO - Running continuous learning for session session_1757092284
+2025-09-05 12:11:24,316 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 12:11:24,320 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 12:11:24,343 - arc_integration.arc_meta_learning - INFO - ARC meta-learning state saved to continuous_learning_data\meta_learning_session_1757092284.json
+2025-09-05 12:11:24,344 - src.arc_integration.continuous_learning_loop - INFO - Completed training session session_1757092284 - Win rate: 0.0%
+2025-09-05 12:11:24,347 - src.core.meta_cognitive_governor.Governor - INFO - Started outcome measurement outcome_1757092284_1117 for governor_parameter_adjustment
+2025-09-05 12:11:24,347 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.60)
+2025-09-05 12:11:24,350 - core.adaptive_energy_system - INFO - Energy parameters recalculated: threshold=60.0, interval=3.0min, rate=0.4000
+2025-09-05 12:11:24,350 - core.adaptive_energy_system - INFO - Session configured - Actions: 500, Time limit: 30 min, Sleep threshold: 60.0, Sleep interval: 3.0 min
+2025-09-05 12:11:24,351 - core.adaptive_energy_system - INFO - Sleep system threshold updated to: 60.0
+2025-09-05 12:11:24,351 - src.arc_integration.continuous_learning_loop - INFO - Adaptive energy configured: threshold=60.0, interval=3.0min
+2025-09-05 12:11:24,353 - src.arc_integration.continuous_learning_loop - INFO - Started training session session_1757092284 with 2 games using lossless mode
+2025-09-05 12:11:24,354 - src.arc_integration.continuous_learning_loop - INFO - Running continuous learning for session session_1757092284
+2025-09-05 12:11:24,359 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 12:11:24,365 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 12:11:24,376 - arc_integration.arc_meta_learning - INFO - ARC meta-learning state saved to continuous_learning_data\meta_learning_session_1757092284.json
+2025-09-05 12:11:24,377 - src.arc_integration.continuous_learning_loop - INFO - Completed training session session_1757092284 - Win rate: 0.0%
+2025-09-05 12:11:24,379 - src.core.meta_cognitive_governor.Governor - INFO - Started outcome measurement outcome_1757092284_1032 for governor_parameter_adjustment
+2025-09-05 12:11:24,380 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 12:11:24,381 - src.core.architect.Architect - INFO - 🧬 Starting evolution cycle 0
+2025-09-05 12:11:24,555 - src.core.architect.Architect - INFO - 🎯 Using training script: master_arc_trainer.py
+2025-09-05 12:11:24,559 - src.core.architect.Architect - INFO - 🎮 Running actual ARC training test: C:\Users\Admin\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\python.exe C:\Users\Admin\Documents\GitHub\tabula-rasa\master_arc_trainer.py --mode quick-validation --games test1,test2 --max-cycles 3 --session-duration 2 --no-logs --no-monitoring
+2025-09-05 12:12:54,595 - src.core.architect.Architect - WARNING - ⏰ Training test timed out, terminating process
+2025-09-05 12:12:54,656 - src.core.architect.Architect - INFO - 🧪 Mutation exploratory_1757092284 tested: overall_improvement=-14.265, duration=90.3s
+2025-09-05 12:12:54,702 - core.adaptive_energy_system - INFO - Energy parameters recalculated: threshold=60.0, interval=3.0min, rate=0.4000
+2025-09-05 12:12:54,703 - core.adaptive_energy_system - INFO - Session configured - Actions: 500, Time limit: 30 min, Sleep threshold: 60.0, Sleep interval: 3.0 min
+2025-09-05 12:12:54,704 - core.adaptive_energy_system - INFO - Sleep system threshold updated to: 60.0
+2025-09-05 12:12:54,705 - src.arc_integration.continuous_learning_loop - INFO - Adaptive energy configured: threshold=60.0, interval=3.0min
+2025-09-05 12:12:54,707 - src.arc_integration.continuous_learning_loop - INFO - Started training session session_1757092374 with 2 games using lossless mode
+2025-09-05 12:12:54,708 - src.arc_integration.continuous_learning_loop - INFO - Running continuous learning for session session_1757092374
+2025-09-05 12:12:54,712 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 12:12:54,720 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 12:12:54,731 - arc_integration.arc_meta_learning - INFO - ARC meta-learning state saved to continuous_learning_data\meta_learning_session_1757092374.json
+2025-09-05 12:12:54,732 - src.arc_integration.continuous_learning_loop - INFO - Completed training session session_1757092374 - Win rate: 0.0%
+2025-09-05 12:12:54,751 - __main__ - INFO - Results saved to: master_training_results_1757092374.json
+2025-09-05 12:12:54,753 - src.core.meta_cognitive_dashboard.Dashboard - WARNING - Invalid metric value for status: completed, using 0.0
+2025-09-05 12:12:54,754 - ContinuousTrainingRunner - INFO - Session 5 completed: success=True, duration=90.5s

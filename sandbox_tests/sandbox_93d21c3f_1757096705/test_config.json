@@ -1,0 +1,10 @@
+{
+  "max_episodes": 5,
+  "max_actions_per_game": 100,
+  "test_mode": true,
+  "games": [
+    "test_game_1"
+  ],
+  "timeout_per_game": 30,
+  "salience_mode": "decay_compression"
+}

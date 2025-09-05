@@ -7,3 +7,9 @@
 2025-09-05 04:26:27,518 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in headless mode
 2025-09-05 04:26:27,519 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757064387
 2025-09-05 04:26:27,520 - ContinuousTrainingRunner - INFO - Dashboard started in headless mode
+2025-09-05 12:01:06,659 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in gui mode
+2025-09-05 12:01:06,660 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757091666
+2025-09-05 12:01:06,660 - ContinuousTrainingRunner - INFO - Dashboard started in gui mode
+2025-09-05 13:24:39,853 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in gui mode
+2025-09-05 13:24:39,854 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757096679
+2025-09-05 13:24:39,855 - ContinuousTrainingRunner - INFO - Dashboard started in gui mode

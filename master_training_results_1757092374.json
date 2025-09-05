@@ -1,0 +1,421 @@
+{
+  "success": true,
+  "mode": "meta-cognitive-training",
+  "session_results": [
+    {
+      "session": 1,
+      "performance": {
+        "win_rate": 0.2,
+        "avg_score": 30,
+        "learning_efficiency": 0.8,
+        "session": 1
+      },
+      "governor_recommendation": {
+        "type": "mode_switch",
+        "changes": {
+          "enable_systematic_search": true,
+          "increase_depth_limit": 50
+        },
+        "rationale": "Low scores with 0.20 win rate suggest systematic search needed",
+        "confidence": 0.8,
+        "urgency": 0.5
+      },
+      "training_result": {
+        "success": true,
+        "results": {
+          "session_id": "session_1757092284",
+          "start_time": 1757092284.3139226,
+          "games_played": {
+            "test1": {
+              "game_id": "test1",
+              "episodes": [],
+              "performance_metrics": {},
+              "learning_progression": [],
+              "patterns_discovered": [],
+              "final_performance": {
+                "episodes_played": 0,
+                "best_score": 0,
+                "win_rate": 0.0,
+                "scorecard_urls_generated": 0,
+                "final_grid_size": "64x64"
+              },
+              "scorecard_urls": [],
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "test2": {
+              "game_id": "test2",
+              "episodes": [],
+              "performance_metrics": {},
+              "learning_progression": [],
+              "patterns_discovered": [],
+              "final_performance": {
+                "episodes_played": 0,
+                "best_score": 0,
+                "win_rate": 0.0,
+                "scorecard_urls_generated": 0,
+                "final_grid_size": "64x64"
+              },
+              "scorecard_urls": [],
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            }
+          },
+          "overall_performance": {
+            "games_trained": 2,
+            "total_episodes": 0,
+            "overall_win_rate": 0.0,
+            "overall_average_score": 0.0,
+            "learning_efficiency": 0.0,
+            "knowledge_transfer_score": 0,
+            "lp_stability": 0.0,
+            "lp_magnitude": 0.0,
+            "memory_consolidation_rate": 0.0,
+            "memory_operations_efficiency": 0.0,
+            "sleep_quality": 0.0,
+            "sleep_efficiency": 0.0,
+            "energy_management": 1.0,
+            "boredom_detection_rate": 0.0,
+            "curriculum_progress": 0.1,
+            "goal_discovery_rate": 0.0,
+            "goal_system_phase": 0.33,
+            "tabula_rasa_health": 0.1
+          },
+          "learning_insights": [],
+          "knowledge_transfers": [],
+          "detailed_metrics": {
+            "salience_mode": "lossless",
+            "sleep_cycles": 0,
+            "memory_operations": 0,
+            "high_salience_experiences": 0,
+            "compressed_memories": 0,
+            "grid_sizes_encountered": [
+              "64x64"
+            ],
+            "consolidation_operations": 0,
+            "memories_strengthened": 0,
+            "memories_decayed": 0,
+            "reset_decisions": 0,
+            "reset_success_rate": 0.0
+          },
+          "arc3_scoreboard_url": "https://arcprize.org/leaderboard",
+          "win_highlighted": false,
+          "swarm_mode_used": false,
+          "end_time": 1757092284.3265264,
+          "duration": 0.012603759765625,
+          "grid_sizes_summary": {
+            "unique_sizes": 1,
+            "sizes_encountered": [
+              "64x64"
+            ],
+            "dynamic_sizing_verified": false
+          }
+        },
+        "config_used": {
+          "max_actions_per_game": 500,
+          "target_score": 85.0,
+          "salience_mode": "SalienceMode.DECAY_COMPRESSION",
+          "enable_all_advanced_features": true,
+          "enable_meta_cognitive_oversight": true,
+          "enable_detailed_monitoring": true,
+          "max_cycles": 1
+        }
+      }
+    },
+    {
+      "session": 2,
+      "performance": {
+        "win_rate": 0.30000000000000004,
+        "avg_score": 38,
+        "learning_efficiency": 0.75,
+        "session": 2
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.6,
+        "urgency": 0.4
+      },
+      "training_result": {
+        "success": true,
+        "results": {
+          "session_id": "session_1757092284",
+          "start_time": 1757092284.3545458,
+          "games_played": {
+            "test1": {
+              "game_id": "test1",
+              "episodes": [],
+              "performance_metrics": {},
+              "learning_progression": [],
+              "patterns_discovered": [],
+              "final_performance": {
+                "episodes_played": 0,
+                "best_score": 0,
+                "win_rate": 0.0,
+                "scorecard_urls_generated": 0,
+                "final_grid_size": "64x64"
+              },
+              "scorecard_urls": [],
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "test2": {
+              "game_id": "test2",
+              "episodes": [],
+              "performance_metrics": {},
+              "learning_progression": [],
+              "patterns_discovered": [],
+              "final_performance": {
+                "episodes_played": 0,
+                "best_score": 0,
+                "win_rate": 0.0,
+                "scorecard_urls_generated": 0,
+                "final_grid_size": "64x64"
+              },
+              "scorecard_urls": [],
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            }
+          },
+          "overall_performance": {
+            "games_trained": 2,
+            "total_episodes": 0,
+            "overall_win_rate": 0.0,
+            "overall_average_score": 0.0,
+            "learning_efficiency": 0.0,
+            "knowledge_transfer_score": 0,
+            "lp_stability": 0.0,
+            "lp_magnitude": 0.0,
+            "memory_consolidation_rate": 0.0,
+            "memory_operations_efficiency": 0.0,
+            "sleep_quality": 0.0,
+            "sleep_efficiency": 0.0,
+            "energy_management": 1.0,
+            "boredom_detection_rate": 0.0,
+            "curriculum_progress": 0.1,
+            "goal_discovery_rate": 0.0,
+            "goal_system_phase": 0.33,
+            "tabula_rasa_health": 0.1
+          },
+          "learning_insights": [],
+          "knowledge_transfers": [],
+          "detailed_metrics": {
+            "salience_mode": "lossless",
+            "sleep_cycles": 0,
+            "memory_operations": 0,
+            "high_salience_experiences": 0,
+            "compressed_memories": 0,
+            "grid_sizes_encountered": [
+              "64x64"
+            ],
+            "consolidation_operations": 0,
+            "memories_strengthened": 0,
+            "memories_decayed": 0,
+            "reset_decisions": 0,
+            "reset_success_rate": 0.0
+          },
+          "arc3_scoreboard_url": "https://arcprize.org/leaderboard",
+          "win_highlighted": false,
+          "swarm_mode_used": false,
+          "end_time": 1757092284.3682263,
+          "duration": 0.013680458068847656,
+          "grid_sizes_summary": {
+            "unique_sizes": 1,
+            "sizes_encountered": [
+              "64x64"
+            ],
+            "dynamic_sizing_verified": false
+          }
+        },
+        "config_used": {
+          "max_actions_per_game": 500,
+          "target_score": 85.0,
+          "salience_mode": "SalienceMode.DECAY_COMPRESSION",
+          "enable_all_advanced_features": true,
+          "enable_meta_cognitive_oversight": true,
+          "enable_detailed_monitoring": true,
+          "max_cycles": 1
+        }
+      }
+    },
+    {
+      "session": 3,
+      "performance": {
+        "win_rate": 0.4,
+        "avg_score": 46,
+        "learning_efficiency": 0.7000000000000001,
+        "session": 3
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.39999999999999997,
+        "urgency": 0.4
+      },
+      "training_result": {
+        "success": true,
+        "results": {
+          "session_id": "session_1757092374",
+          "start_time": 1757092374.7081532,
+          "games_played": {
+            "test1": {
+              "game_id": "test1",
+              "episodes": [],
+              "performance_metrics": {},
+              "learning_progression": [],
+              "patterns_discovered": [],
+              "final_performance": {
+                "episodes_played": 0,
+                "best_score": 0,
+                "win_rate": 0.0,
+                "scorecard_urls_generated": 0,
+                "final_grid_size": "64x64"
+              },
+              "scorecard_urls": [],
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "test2": {
+              "game_id": "test2",
+              "episodes": [],
+              "performance_metrics": {},
+              "learning_progression": [],
+              "patterns_discovered": [],
+              "final_performance": {
+                "episodes_played": 0,
+                "best_score": 0,
+                "win_rate": 0.0,
+                "scorecard_urls_generated": 0,
+                "final_grid_size": "64x64"
+              },
+              "scorecard_urls": [],
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            }
+          },
+          "overall_performance": {
+            "games_trained": 2,
+            "total_episodes": 0,
+            "overall_win_rate": 0.0,
+            "overall_average_score": 0.0,
+            "learning_efficiency": 0.0,
+            "knowledge_transfer_score": 0,
+            "lp_stability": 0.0,
+            "lp_magnitude": 0.0,
+            "memory_consolidation_rate": 0.0,
+            "memory_operations_efficiency": 0.0,
+            "sleep_quality": 0.0,
+            "sleep_efficiency": 0.0,
+            "energy_management": 1.0,
+            "boredom_detection_rate": 0.0,
+            "curriculum_progress": 0.1,
+            "goal_discovery_rate": 0.0,
+            "goal_system_phase": 0.33,
+            "tabula_rasa_health": 0.1
+          },
+          "learning_insights": [],
+          "knowledge_transfers": [],
+          "detailed_metrics": {
+            "salience_mode": "lossless",
+            "sleep_cycles": 0,
+            "memory_operations": 0,
+            "high_salience_experiences": 0,
+            "compressed_memories": 0,
+            "grid_sizes_encountered": [
+              "64x64"
+            ],
+            "consolidation_operations": 0,
+            "memories_strengthened": 0,
+            "memories_decayed": 0,
+            "reset_decisions": 0,
+            "reset_success_rate": 0.0
+          },
+          "arc3_scoreboard_url": "https://arcprize.org/leaderboard",
+          "win_highlighted": false,
+          "swarm_mode_used": false,
+          "end_time": 1757092374.7240906,
+          "duration": 0.015937328338623047,
+          "grid_sizes_summary": {
+            "unique_sizes": 1,
+            "sizes_encountered": [
+              "64x64"
+            ],
+            "dynamic_sizing_verified": false
+          }
+        },
+        "config_used": {
+          "max_actions_per_game": 500,
+          "target_score": 85.0,
+          "salience_mode": "SalienceMode.DECAY_COMPRESSION",
+          "enable_all_advanced_features": true,
+          "enable_meta_cognitive_oversight": true,
+          "enable_detailed_monitoring": true,
+          "max_cycles": 1
+        }
+      }
+    }
+  ],
+  "governor_decisions": [
+    {
+      "timestamp": "2025-09-05T12:11:24.310677",
+      "puzzle_type": "mastery_session_1",
+      "recommendation": "mode_switch",
+      "confidence": 0.8,
+      "changes": {
+        "enable_systematic_search": true,
+        "increase_depth_limit": 50
+      },
+      "rationale": "Low scores with 0.20 win rate suggest systematic search needed"
+    },
+    {
+      "timestamp": "2025-09-05T12:11:24.349814",
+      "puzzle_type": "mastery_session_2",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.6,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    },
+    {
+      "timestamp": "2025-09-05T12:11:24.381155",
+      "puzzle_type": "mastery_session_3",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.39999999999999997,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    }
+  ],
+  "architect_evolutions": [
+    {
+      "session": 3,
+      "timestamp": "2025-09-05T12:12:54.702504",
+      "trigger": "autonomous_cycle",
+      "success": false,
+      "generation": 0,
+      "improvement": -1.0
+    }
+  ],
+  "session_id": "master_training_1757092284",
+  "timestamp": "2025-09-05T12:12:54.746728"
+}
