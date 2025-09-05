@@ -11,7 +11,7 @@ import asyncio
 from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from master_arc_trainer import UnifiedARCTrainer, TrainingConfig
+from master_arc_trainer import MasterARCTrainer, TrainingConfig
 
 async def test_critical_fixes_integration():
     """Test all critical fixes with a short training session."""
@@ -58,7 +58,7 @@ async def test_critical_fixes_integration():
         print(f"   • Meta learning: {config.enable_meta_learning}")
         
         # Create trainer
-        trainer = UnifiedARCTrainer(config)
+        trainer = MasterARCTrainer(config)
         await trainer.initialize()
         
         print(f"\n🚀 Starting test training session...")
