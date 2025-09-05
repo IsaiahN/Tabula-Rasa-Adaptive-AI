@@ -372,7 +372,12 @@ class MasterARCTrainer:
                 # Initialize Governor (Third Brain - runtime supervisor)
                 if self.config.enable_meta_cognitive_governor:
                     try:
-                        self.governor = MetaCognitiveGovernor()
+                        # Enhanced Governor with outcome tracking and cross-session learning
+                        self.governor = MetaCognitiveGovernor(
+                            log_file="meta_cognitive_governor.log",
+                            outcome_tracking_dir="meta_learning_data",
+                            persistence_dir="continuous_learning_data"
+                        )
                         self.logger.info("🧠 Meta-cognitive Governor (Third Brain) initialized")
                     except Exception as e:
                         self.logger.warning(f"⚠️ Could not initialize Governor: {e}")
