@@ -2476,6 +2476,34 @@ class ContinuousLearningLoop:
                     self._last_selected_actions = self._last_selected_actions[-50:]
                 
                 return best_simple_action
+            elif best_simple_action and best_simple_score > 0.01:  # Very low score - force diversification
+                # Check if we've been using this action too much
+                recent_actions = self._last_selected_actions[-10:] if len(self._last_selected_actions) >= 10 else self._last_selected_actions
+                if recent_actions.count(best_simple_action) >= 7:  # Used 7+ times in last 10 actions
+                    print(f"🚨 FORCED DIVERSIFICATION: Action {best_simple_action} used {recent_actions.count(best_simple_action)}/10 times - trying different action")
+                    # Find least used action in recent history
+                    action_usage = {a: recent_actions.count(a) for a in simple_actions}
+                    diversification_action = min(simple_actions, key=lambda a: action_usage.get(a, 0))
+                    print(f"🔄 DIVERSIFICATION ACTION: {diversification_action} (used {action_usage.get(diversification_action, 0)}/10 times)")
+                    
+                    if not hasattr(self, '_last_selected_actions'):
+                        self._last_selected_actions = []
+                    self._last_selected_actions.append(diversification_action)
+                    if len(self._last_selected_actions) > 50:  # Keep last 50
+                        self._last_selected_actions = self._last_selected_actions[-50:]
+                    
+                    return diversification_action
+                else:
+                    # Use the low-score action for now
+                    print(f"🎮 SELECTING LOW-SCORE SIMPLE ACTION {best_simple_action} (score: {best_simple_score:.3f})")
+                    
+                    if not hasattr(self, '_last_selected_actions'):
+                        self._last_selected_actions = []
+                    self._last_selected_actions.append(best_simple_action)
+                    if len(self._last_selected_actions) > 50:  # Keep last 50
+                        self._last_selected_actions = self._last_selected_actions[-50:]
+                    
+                    return best_simple_action
             else:
                 print(f"⚠️ Simple actions available but low scores - considering ACTION6...")
         
@@ -2547,14 +2575,23 @@ class ContinuousLearningLoop:
                         self._last_selected_actions = self._last_selected_actions[-50:]
                     return fallback_action
         
-        # 🚨 EMERGENCY FALLBACK
+        # 🚨 EMERGENCY FALLBACK - Select least recently used action
         print("🚨 EMERGENCY FALLBACK - No clear action choice")
         if available_actions:
-            emergency_action = available_actions[0]
-            print(f"⚡ Emergency selection: ACTION{emergency_action}")
-            # Track selected actions for loop detection
+            # Count recent usage of each action to avoid repetition
             if not hasattr(self, '_last_selected_actions'):
                 self._last_selected_actions = []
+            
+            recent_actions = self._last_selected_actions[-10:] if len(self._last_selected_actions) >= 10 else self._last_selected_actions
+            action_usage_count = {}
+            for action in available_actions:
+                action_usage_count[action] = recent_actions.count(action)
+            
+            # Select the least used action in recent history
+            emergency_action = min(available_actions, key=lambda a: action_usage_count.get(a, 0))
+            print(f"⚡ Emergency selection: ACTION{emergency_action} (least used: {action_usage_count.get(emergency_action, 0)}/10 recent)")
+            
+            # Track selected actions for loop detection
             self._last_selected_actions.append(emergency_action)
             if len(self._last_selected_actions) > 50:
                 self._last_selected_actions = self._last_selected_actions[-50:]
@@ -3207,6 +3244,10 @@ class ContinuousLearningLoop:
                     complexity_bonus = 0.0
                 
                 total_replenishment = base_replenishment + learning_bonus + complexity_bonus
+                # Ensure current_energy is not None before arithmetic operations
+                if self.current_energy is None:
+                    print("⚠️ Warning: current_energy was None, resetting to 100.0")
+                    self.current_energy = 100.0
                 self.current_energy = min(100.0, self.current_energy + total_replenishment)
                 skill_phase = energy_params['skill_phase']
                 actions_until_next_sleep = int(self.current_energy / energy_params['action_energy_cost'])
@@ -8414,6 +8455,10 @@ class ContinuousLearningLoop:
                             
                             # Restore energy based on sleep quality
                             if sleep_result and sleep_result.get('success', False):
+                                # Ensure current_energy is not None before arithmetic operations
+                                if self.current_energy is None:
+                                    print("⚠️ Warning: current_energy was None during restoration, resetting to 60.0")
+                                    self.current_energy = 60.0
                                 energy_restoration = min(40.0, 100.0 - self.current_energy)  # Restore up to 40 energy
                                 self.current_energy += energy_restoration
                                 print(f"⚡ Energy restored: {self.current_energy - energy_restoration:.1f} → {self.current_energy:.1f}")

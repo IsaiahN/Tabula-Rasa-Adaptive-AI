@@ -919,8 +919,22 @@ class UnifiedTrainer:
                     await asyncio.sleep(10)
                     continue
             
-            # Max iterations reached
+            # Max iterations reached - ensure proper cleanup
             print(f"⚠️  REACHED MAX LEARNING CYCLES ({self.max_learning_cycles})")  # Updated reference
+            
+            # Ensure scorecard is closed before returning
+            try:
+                if hasattr(self.continuous_loop, 'current_scorecard_id') and self.continuous_loop.current_scorecard_id:
+                    print(f"🔒 Closing final scorecard {self.continuous_loop.current_scorecard_id}...")
+                    scorecard_closed = await self.continuous_loop._close_scorecard(self.continuous_loop.current_scorecard_id)
+                    if scorecard_closed:
+                        print(f"✅ Final scorecard closed successfully")
+                    else:
+                        print(f"⚠️ Final scorecard was already closed or failed to close")
+                    self.continuous_loop.current_scorecard_id = None
+            except Exception as e:
+                print(f"⚠️ Error closing final scorecard: {e}")
+            
             return {'success': False, 'best_performance': self.best_performance}
             
         except Exception as e:
