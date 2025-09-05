@@ -21,13 +21,13 @@ The MetaCognitiveGovernor has been integrated into the main training system with
 **Usage:**
 ```bash
 # Enable meta-cognitive features (default)
-python train_arc_agent.py --mode sequential --verbose
+python master_arc_trainer.py --mode sequential --verbose
 
 # Governor-only mode (runtime optimization without evolution)
-python train_arc_agent.py --governor-only --verbose
+python master_arc_trainer.py --governor-only --verbose
 
 # Disable meta-cognitive features
-python train_arc_agent.py --disable-meta-cognitive
+python master_arc_trainer.py --disable-meta-cognitive
 ```
 
 Prompt 2: The "Zeroth Brain" (The Self-Writing Blueprint)
@@ -53,7 +53,7 @@ The Architect has been implemented with:
 **Usage:**
 ```bash
 # Enable autonomous evolution
-python train_arc_agent.py --architect-autonomous-evolution --verbose
+python master_arc_trainer.py --architect-autonomous-evolution --verbose
 
 # Test meta-cognitive integration
 python test_meta_cognitive_integration.py
@@ -97,7 +97,7 @@ This is the meta-cognitive layer. It's the part of the system that can ask: "Is 
 
 ### MetaCognitiveGovernor Integration
 
-The Governor is now integrated into the main training loop in `train_arc_agent.py`:
+The Governor is now integrated into the main training loop in `master_arc_trainer.py`:
 
 ```python
 # Governor consultation during learning cycles
@@ -234,22 +234,22 @@ This validates:
 
 ### Standard Training with Meta-Cognitive Enhancement (Default)
 ```bash
-python train_arc_agent.py --mode sequential --verbose
+python master_arc_trainer.py --mode sequential --verbose
 ```
 
 ### Governor-Only Mode (Runtime Optimization)
 ```bash  
-python train_arc_agent.py --governor-only --verbose
+python master_arc_trainer.py --governor-only --verbose
 ```
 
 ### Full Meta-Cognitive with Autonomous Evolution
 ```bash
-python train_arc_agent.py --architect-autonomous-evolution --verbose
+python master_arc_trainer.py --architect-autonomous-evolution --verbose
 ```
 
 ### Disable Meta-Cognitive Features (Legacy Mode)
 ```bash
-python train_arc_agent.py --disable-meta-cognitive
+python master_arc_trainer.py --disable-meta-cognitive
 ```
 
 The meta-cognitive integration is **COMPLETE** and **OPERATIONAL**. The system now features true recursive self-improvement capabilities while maintaining full safety and human oversight.

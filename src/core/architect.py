@@ -724,7 +724,7 @@ class SandboxTester:
             (sandbox_path / "src").mkdir(parents=True)
             
         # Copy training script if available
-        for script_name in ["master_arc_trainer.py", "unified_arc_trainer.py", "train_arc_agent.py"]:
+        for script_name in ["master_arc_trainer.py"]:
             script_path = base_path.parent / script_name if base_path.name == "src" else base_path / script_name
             if script_path.exists():
                 shutil.copy2(script_path, sandbox_path)
@@ -749,8 +749,6 @@ class SandboxTester:
             # Try the new master script first, then fallback to legacy scripts
             training_scripts_to_try = [
                 "master_arc_trainer.py",  # New consolidated script
-                "unified_arc_trainer.py",
-                "train_arc_agent.py",
                 "run_meta_cognitive_arc_training.py"
             ]
             
@@ -792,25 +790,6 @@ class SandboxTester:
                     "--session-duration", "2",
                     "--no-logs",
                     "--no-monitoring"
-                ]
-            elif "unified_arc_trainer.py" in training_script:
-                # Legacy unified trainer
-                cmd = [
-                    sys.executable, training_script,
-                    "--mode", "quick-validation",
-                    "--games", "test1,test2",
-                    "--max-cycles", "3",
-                    "--session-duration", "2",
-                    "--no-logs",
-                    "--no-monitoring"
-                ]
-            elif "train_arc_agent.py" in training_script:
-                # Legacy train agent
-                cmd = [
-                    sys.executable, training_script,
-                    "--mode", "test",
-                    "--max-episodes", "3",
-                    "--games", "test1,test2"
                 ]
             else:
                 # Fallback for other scripts
@@ -1409,8 +1388,6 @@ This is an experimental change - requires review before merging.
         training_processes = []
         training_scripts = [
             'master_arc_trainer.py',  # New master script
-            'train_arc_agent.py',
-            'unified_arc_trainer.py',
             'continuous_training',
             'meta_cognitive',
             'run_meta_cognitive_arc_training.py'
@@ -1511,9 +1488,7 @@ This is an experimental change - requires review before merging.
             # Look for the best training script to start (prioritize master script)
             training_scripts = [
                 "master_arc_trainer.py",  # New consolidated script
-                "run_meta_cognitive_arc_training.py",
-                "unified_arc_trainer.py", 
-                "train_arc_agent.py"
+                "run_meta_cognitive_arc_training.py"
             ]
             
             for script in training_scripts:

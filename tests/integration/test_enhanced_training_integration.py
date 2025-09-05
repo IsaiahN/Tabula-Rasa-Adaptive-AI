@@ -246,7 +246,7 @@ async def main():
         print("🎉 All integration tests passed!")
         print("✅ Enhanced ARC training system is ready for use")
         print("\n📋 Usage Instructions:")
-        print("1. Use existing train_arc_agent.py for traditional training")
+        print("1. Use existing master_arc_trainer.py for traditional training")
         print("2. Use train_arc_agent_enhanced.py for coordinate-aware training")
         print("3. Run tests with: python -m pytest tests/integration/")
         return True

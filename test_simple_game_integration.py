@@ -57,8 +57,7 @@ def test_game_monitoring():
         
         # Check if training scripts exist
         training_scripts = [
-            "train_arc_agent.py",
-            "unified_arc_trainer.py", 
+            "master_arc_trainer.py",
             "run_meta_cognitive_arc_training.py"
         ]
         

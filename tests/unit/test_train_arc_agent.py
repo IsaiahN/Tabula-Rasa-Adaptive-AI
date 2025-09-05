@@ -1,6 +1,13 @@
 """
-Comprehensive Unit Tests for ARC Agent Training (train_arc_agent.py)
-Tests training modes, script management, and training orchestration.
+Comprehensive Unit Tests for ARC Agent Training (master_arc_trainer.py)
+Tests training modes, script management, a        assert hasattr(master_arc_trainer, 'RunScriptManager')
+        assert hasattr(master_arc_trainer, 'asyncio')
+        assert hasattr(master_arc_trainer, 'sys')
+        assert hasattr(master_arc_trainer, 'time')
+        assert hasattr(master_arc_trainer, 'os')
+        assert hasattr(master_arc_trainer, 'argparse')
+        assert hasattr(master_arc_trainer, 'logging')
+        assert hasattr(master_arc_trainer, 'Path')ing orchestration.
 """
 
 import pytest
@@ -17,8 +24,8 @@ from typing import Dict, Any, List
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 # Import the training script components
-import train_arc_agent
-from train_arc_agent import RunScriptManager
+import master_arc_trainer
+from master_arc_trainer import RunScriptManager
 from core.salience_system import SalienceMode
 
 
@@ -118,14 +125,14 @@ class TestTrainingScriptIntegration:
     def test_script_imports(self):
         """Test that all required imports are available."""
         # Test that main training script imports work
-        assert hasattr(train_arc_agent, 'RunScriptManager')
-        assert hasattr(train_arc_agent, 'asyncio')
-        assert hasattr(train_arc_agent, 'sys')
-        assert hasattr(train_arc_agent, 'time')
-        assert hasattr(train_arc_agent, 'os')
-        assert hasattr(train_arc_agent, 'argparse')
-        assert hasattr(train_arc_agent, 'logging')
-        assert hasattr(train_arc_agent, 'Path')
+        assert hasattr(master_arc_trainer, 'RunScriptManager')
+        assert hasattr(master_arc_trainer, 'asyncio')
+        assert hasattr(master_arc_trainer, 'sys')
+        assert hasattr(master_arc_trainer, 'time')
+        assert hasattr(master_arc_trainer, 'os')
+        assert hasattr(master_arc_trainer, 'argparse')
+        assert hasattr(master_arc_trainer, 'logging')
+        assert hasattr(master_arc_trainer, 'Path')
     
     def test_salience_mode_integration(self):
         """Test SalienceMode integration."""
@@ -138,7 +145,7 @@ class TestTrainingScriptIntegration:
         for mode in modes:
             assert mode is not None
     
-    @patch('train_arc_agent.ContinuousLearningLoop')
+    @patch('master_arc_trainer.ContinuousLearningLoop')
     def test_continuous_learning_loop_instantiation(self, mock_loop_class):
         """Test ContinuousLearningLoop instantiation with proper parameters."""
         mock_loop = Mock()
@@ -211,7 +218,7 @@ class TestTrainingScriptIntegration:
         """Test path resolution for src directory."""
         from pathlib import Path
         
-        # Test path resolution similar to train_arc_agent.py
+        # Test path resolution similar to master_arc_trainer.py
         script_path = Path(__file__)
         project_root = script_path.parent.parent.parent  # Go up from tests/unit/
         src_path = project_root / "src"
@@ -383,11 +390,11 @@ class TestErrorHandling:
     def test_import_error_handling(self):
         """Test handling of import errors."""
         # Test that ImportError is properly caught and handled
-        with patch('train_arc_agent.ContinuousLearningLoop', side_effect=ImportError("Mock import error")):
+        with patch('master_arc_trainer.ContinuousLearningLoop', side_effect=ImportError("Mock import error")):
             # Should handle import error gracefully
             try:
                 # This would normally cause an ImportError
-                from train_arc_agent import ContinuousLearningLoop
+                from master_arc_trainer import ContinuousLearningLoop
                 assert False, "Should have raised ImportError"
             except ImportError as e:
                 assert "Mock import error" in str(e)

@@ -11,7 +11,7 @@ import asyncio
 from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from unified_arc_trainer import UnifiedARCTrainer, TrainingConfig
+from master_arc_trainer import UnifiedARCTrainer, TrainingConfig
 
 async def test_critical_fixes_integration():
     """Test all critical fixes with a short training session."""

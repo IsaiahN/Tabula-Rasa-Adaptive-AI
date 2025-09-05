@@ -15,7 +15,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 sys.path.insert(0, str(Path(__file__).parent))
 
-from train_arc_agent import UnifiedTrainer
+from master_arc_trainer import UnifiedTrainer
 import colorama
 from colorama import Fore, Style
 colorama.init()

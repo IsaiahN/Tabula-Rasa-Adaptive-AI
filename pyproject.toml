@@ -45,7 +45,7 @@ where = ["src"]
 
 [project.scripts]
 train-arc-agent = "main_training:main"
-train-arc-enhanced = "train_arc_agent_enhanced:main"
+train-arc-enhanced = "master_arc_trainer:main"
 
 [tool.black]
 line-length = 88

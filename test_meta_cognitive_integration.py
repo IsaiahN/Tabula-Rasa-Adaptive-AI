@@ -249,7 +249,7 @@ def test_integration_with_existing_system():
                 self.architect_autonomous_evolution = False
         
         # Import and test UnifiedTrainer initialization
-        from train_arc_agent import UnifiedTrainer
+        from master_arc_trainer import UnifiedTrainer
         
         args = MockArgs()
         trainer = UnifiedTrainer(args)
@@ -330,16 +330,16 @@ async def run_all_tests():
         print()
         print("🚀 READY TO USE:")
         print("   # Enable meta-cognitive features (default)")
-        print("   python train_arc_agent.py --mode sequential --verbose")
+        print("   python master_arc_trainer.py --mode sequential --verbose")
         print()
         print("   # Governor-only mode")
-        print("   python train_arc_agent.py --governor-only --verbose")
+        print("   python master_arc_trainer.py --governor-only --verbose")
         print()
         print("   # Disable meta-cognitive features")
-        print("   python train_arc_agent.py --disable-meta-cognitive")
+        print("   python master_arc_trainer.py --disable-meta-cognitive")
         print()
         print("   # Enable autonomous evolution")
-        print("   python train_arc_agent.py --architect-autonomous-evolution --verbose")
+        print("   python master_arc_trainer.py --architect-autonomous-evolution --verbose")
     else:
         print("❌ Some tests failed. Check logs for details.")
     

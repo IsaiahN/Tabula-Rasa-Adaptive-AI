@@ -32,7 +32,7 @@ logging.basicConfig(
 try:
     from src.core.meta_cognitive_governor import MetaCognitiveGovernor, ArchitectRequest
     from src.core.architect import Architect
-    from train_arc_agent import UnifiedTrainer
+    from master_arc_trainer import UnifiedTrainer
     import argparse
     print(f"{Fore.GREEN}✓ Imports successful{Style.RESET_ALL}")
 except ImportError as e:

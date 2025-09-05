@@ -7,15 +7,14 @@
 The **Architect (Zeroth Brain)** now has **full integration** with the actual ARC game training systems:
 
 ### 1️⃣ **Real Game Activity Detection**
-- ✅ **Process Monitoring**: Detects running training processes (`train_arc_agent.py`, `unified_arc_trainer.py`, etc.)
+- ✅ **Process Monitoring**: Detects running training processes (`master_arc_trainer.py`, etc.)
 - ✅ **Log File Monitoring**: Checks for recent training activity in log files
 - ✅ **Data Activity Monitoring**: Monitors continuous learning data updates
 - ✅ **Combined Status**: Provides comprehensive activity reports
 
 ### 2️⃣ **Training Script Integration** 
 - ✅ **3 Training Scripts Available**: 
-  - `train_arc_agent.py` ⚡ Main training engine
-  - `unified_arc_trainer.py` 🎯 Unified training system
+  - `master_arc_trainer.py` ⚡ Main training engine (consolidated)
   - `run_meta_cognitive_arc_training.py` 🧠 Meta-cognitive training
 - ✅ **Script Validation**: All scripts are callable and support required modes
 - ✅ **Mode Support**: Scripts support `--mode test`, `--mode continuous`, etc.
@@ -80,14 +79,14 @@ if is_running:
 python run_meta_cognitive_arc_training.py
 ```
 
-### **Option 2: Run Unified Trainer**
+### **Option 2: Run Master Trainer**
 ```bash
-python unified_arc_trainer.py --mode continuous --salience decay
+python master_arc_trainer.py --mode continuous --salience decay
 ```
 
 ### **Option 3: Run Basic Trainer**
 ```bash
-python train_arc_agent.py --mode sequential --salience decay --verbose
+python master_arc_trainer.py --mode sequential --salience decay --verbose
 ```
 
 ---

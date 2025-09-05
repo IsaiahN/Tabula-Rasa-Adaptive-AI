@@ -55,7 +55,7 @@ response = await architect.process_governor_request(request)
 ```
 
 ### ✅ Integration with UnifiedTrainer
-**Location:** `train_arc_agent.py` (lines 738-753)
+**Location:** `master_arc_trainer.py` (lines 738-753)
 **Purpose:** Seamless integration of meta-cognitive layers with existing 37-system architecture
 **Status:** Fully implemented and tested
 
@@ -128,7 +128,7 @@ response = await architect.process_governor_request(request)
 - `test_meta_cognitive_integration_safe.py` - Comprehensive test suite
 
 ### Modified Files:
-- `train_arc_agent.py` - Integrated meta-cognitive systems
+- `master_arc_trainer.py` - Integrated meta-cognitive systems
 - `docs/adding_advanced_intelligence.md` - Updated documentation
 
 ## Next Steps

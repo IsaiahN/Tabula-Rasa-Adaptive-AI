@@ -122,7 +122,7 @@ USAGE INSTRUCTIONS
 1. Start Training with Meta-Cognitive Monitoring:
    ```python
    from src.core.meta_cognitive_dashboard import MetaCognitiveDashboard
-   from src.unified_arc_trainer import UnifiedTrainer
+   from src.master_arc_trainer import UnifiedTrainer
    
    # Create dashboard
    dashboard = MetaCognitiveDashboard(mode=DashboardMode.GUI)

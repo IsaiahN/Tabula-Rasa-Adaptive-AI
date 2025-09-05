@@ -3,10 +3,10 @@
 MASTER ARC TRAINER - Consolidated Training System
 
 This unified script combines all functionality from:
-1. train_arc_agent.py (legacy comprehensive system)
-2. unified_arc_trainer.py (modern focused system)
+1. Legacy training systems (now consolidated here)
+2. All previous trainer implementations
 
-Single entry point for all ARC training needs with backward compatibility.
+Single entry point for all ARC training needs with full functionality.
 
 Usage Examples:
     # Maximum Intelligence (default)
@@ -149,8 +149,8 @@ class MasterARCTrainer:
     Master ARC trainer that unifies all training functionality.
     
     This system consolidates:
-    1. Legacy train_arc_agent.py functionality
-    2. Modern unified_arc_trainer.py features
+    1. All legacy training functionality
+    2. Modern training system features
     3. Backward compatibility for existing workflows
     4. Enhanced error handling and monitoring
     """

@@ -77,31 +77,31 @@ Specifically, avoid long prompts when invoking the logging or context-refinement
 
 ## Main Entry Points & File Management
 
-### 🚨 CRITICAL: unified_arc_trainer.py is THE Main Training File
+### 🚨 CRITICAL: master_arc_trainer.py is THE Main Training File
 
-**ALWAYS use `unified_arc_trainer.py` for training operations - NEVER create new run files!**
+**ALWAYS use `master_arc_trainer.py` for training operations - NEVER create new run files!**
 
 **Rules:**
-- ✅ **MODIFY**: `unified_arc_trainer.py` for all training changes, improvements, fixes
-- ✅ **RUN**: `python unified_arc_trainer.py --run-mode test --test-type arc3 --arc3-mode demo`  
+- ✅ **MODIFY**: `master_arc_trainer.py` for all training changes, improvements, fixes
+- ✅ **RUN**: `python master_arc_trainer.py --mode quick-validation --games test1,test2`  
 - ❌ **NEVER CREATE**: `arc3.py`, `run_training.py`, `new_trainer.py`, or any duplicate training files
-- ❌ **NEVER USE**: Deprecated `arc3.py` (marked as deprecated, redirects to unified_arc_trainer.py)
+- ❌ **NEVER USE**: Deprecated scripts (consolidated into master_arc_trainer.py)
 
 **Why this matters:**
-- `unified_arc_trainer.py` contains ALL the latest fixes (energy system, coordinate stagnation, ACTION6 improvements)
+- `master_arc_trainer.py` contains ALL the latest fixes (energy system, coordinate stagnation, improvements)
 - Creating new files fragments the codebase and loses critical fixes
-- The continuous learning loop in `src/arc_integration/continuous_learning_loop.py` is integrated properly only through `unified_arc_trainer.py`
+- The continuous learning loop in `src/arc_integration/continuous_learning_loop.py` is integrated properly only through `master_arc_trainer.py`
 
 **Training Command Examples:**
 ```bash
-# Demo training (3 tasks, ~30 minutes)
-python unified_arc_trainer.py --run-mode test --test-type arc3 --arc3-mode demo
+# Demo training (quick validation)
+python master_arc_trainer.py --mode quick-validation --games test1,test2
 
-# Full training (all tasks)  
-python unified_arc_trainer.py --run-mode test --test-type arc3 --arc3-mode full
+# Full training (all modes)  
+python master_arc_trainer.py --mode continuous --salience decay
 
 # Status check
-python unified_arc_trainer.py --run-mode arc3-status
+python master_arc_trainer.py --help
 ```
 
 ## Code Philosophy

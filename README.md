@@ -57,39 +57,39 @@ cp .env.template .env
 ### Basic Usage
 ```bash
 # Maximum Intelligence Mode (default) - All 37 cognitive systems
-python unified_arc_trainer.py
+python master_arc_trainer.py
 
 # With custom action limit
-python unified_arc_trainer.py --max-actions 1000
+python master_arc_trainer.py --max-actions 1000
 
 # With verbose logging
-python unified_arc_trainer.py --verbose
+python master_arc_trainer.py --verbose
 
 # Quick testing mode
-python unified_arc_trainer.py --mode minimal-debug --max-actions 10
+python master_arc_trainer.py --mode minimal-debug --max-actions 10
 ```
 
 ### Advanced Usage  
 ```bash
 # Custom memory configuration
-python unified_arc_trainer.py --memory-size 1024 --memory-read-heads 8
+python master_arc_trainer.py --memory-size 1024 --memory-read-heads 8
 
 # Salience mode selection
-python unified_arc_trainer.py --salience decay_compression --salience-threshold 0.7
+python master_arc_trainer.py --salience decay_compression --salience-threshold 0.7
 
 # Research and experimentation
-python unified_arc_trainer.py --mode research-lab --compare-systems
+python master_arc_trainer.py --mode research-lab --compare-systems
 
 # Performance showcase
-python unified_arc_trainer.py --mode showcase-demo
+python master_arc_trainer.py --mode showcase-demo
 ```
 
 ## 📁 Project Structure
 
 ```
 tabula-rasa/
-├── unified_arc_trainer.py        # 🎯 Main entry point - Maximum Intelligence Mode
-├── train_arc_agent.py           # Legacy trainer (deprecated)
+├── master_arc_trainer.py        # 🎯 Main entry point - Maximum Intelligence Mode
+├── master_arc_trainer.py           # Legacy trainer (deprecated)
 ├── src/
 │   ├── core/                    # Core cognitive systems
 │   │   ├── agent.py            # Adaptive learning agent
@@ -126,32 +126,32 @@ The Unified ARC Trainer offers multiple training modes for different use cases:
 - **All 37 cognitive systems active**
 - Production-ready continuous learning
 - Best performance and capabilities
-- Default mode - just run `python unified_arc_trainer.py`
+- Default mode - just run `python master_arc_trainer.py`
 
 ### 🔧 Minimal Debug  
 - Essential features only for troubleshooting
 - Fast startup and simplified logging
-- `python unified_arc_trainer.py --mode minimal-debug`
+- `python master_arc_trainer.py --mode minimal-debug`
 
 ### 🧪 Research Lab
 - Experimentation and comparison framework
 - System analysis and optimization
-- `python unified_arc_trainer.py --mode research-lab --compare-systems`
+- `python master_arc_trainer.py --mode research-lab --compare-systems`
 
 ### ⚡ Quick Validation
 - Rapid system testing
 - Fast feedback on core functionality  
-- `python unified_arc_trainer.py --mode quick-validation`
+- `python master_arc_trainer.py --mode quick-validation`
 
 ### 🎭 Showcase Demo
 - Demonstrate system capabilities
 - Enhanced reporting and visualization
-- `python unified_arc_trainer.py --mode showcase-demo`
+- `python master_arc_trainer.py --mode showcase-demo`
 
 ### ⚖️ System Comparison
 - A/B testing different configurations
 - Performance analysis and optimization
-- `python unified_arc_trainer.py --mode system-comparison`
+- `python master_arc_trainer.py --mode system-comparison`
 
 ## ⚙️ Configuration
 
@@ -168,10 +168,10 @@ The Unified ARC Trainer offers multiple training modes for different use cases:
 Disable specific systems if needed:
 ```bash
 # Disable individual systems
-python unified_arc_trainer.py --disable-swarm --disable-energy
+python master_arc_trainer.py --disable-swarm --disable-energy
 
 # Disable all advanced features (basic mode)
-python unified_arc_trainer.py --disable-all-advanced
+python master_arc_trainer.py --disable-all-advanced
 ```
 
 ### Environment Variables (.env)
@@ -263,25 +263,25 @@ pytest tests/integration/
 ### Memory System
 ```bash
 # Large memory configuration
-python unified_arc_trainer.py --memory-size 1024 --memory-word-size 128 --memory-read-heads 8
+python master_arc_trainer.py --memory-size 1024 --memory-word-size 128 --memory-read-heads 8
 
 # Salience system tuning
-python unified_arc_trainer.py --salience-threshold 0.8 --salience-decay 0.9
+python master_arc_trainer.py --salience-threshold 0.8 --salience-decay 0.9
 ```
 
 ### Sleep and Consolidation
 ```bash
 # Sleep system configuration
-python unified_arc_trainer.py --sleep-trigger-energy 30.0 --sleep-duration 100 --consolidation-strength 0.9
+python master_arc_trainer.py --sleep-trigger-energy 30.0 --sleep-duration 100 --consolidation-strength 0.9
 ```
 
 ### Game Selection
 ```bash
 # Specific games
-python unified_arc_trainer.py --games "game1,game2,game3"
+python master_arc_trainer.py --games "game1,game2,game3"
 
 # Session duration
-python unified_arc_trainer.py --session-duration 120
+python master_arc_trainer.py --session-duration 120
 ```
 
 ## 🚀 Recent Improvements

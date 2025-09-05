@@ -37,7 +37,7 @@ We have successfully implemented a **revolutionary three-tiered cognitive hierar
 ### Basic Usage
 ```bash
 # Run with meta-cognitive systems enabled
-python train_arc_agent.py --mode sequential --salience decay --verbose
+python master_arc_trainer.py --mode sequential --salience decay --verbose
 
 # The meta-cognitive layers will automatically activate if:
 # - src/core/meta_cognitive_governor.py exists

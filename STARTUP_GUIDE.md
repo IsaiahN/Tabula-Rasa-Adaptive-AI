@@ -71,7 +71,7 @@ When you start the system, you get:
 
 **Legacy unified trainer (if you need it):**
 ```bash
-python unified_arc_trainer.py --verbose
+python master_arc_trainer.py --verbose
 ```
 
 **Direct meta-cognitive demo:**
