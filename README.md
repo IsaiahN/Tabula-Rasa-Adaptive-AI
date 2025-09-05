@@ -1277,7 +1277,7 @@ Though it took just seven days to create, it represents over a hundred rapid ite
     
 -   **Co-Pilots:** Claude Code Sonnet 4.0 & DeepSeek
     
--   **Inspiration:** Countless chats with DeepSeek about biology, anatomy, and the inadequacies of current AI, plus my own musings on true intelligence.
+-   **Inspiration:** Countless brainstorming chats with multiple llms about biology, anatomy, and the inadequacies of current AI, plus my own musings on consciousness.
     
 
 The architectural foundation is built on principles from **Piaget's theory of cognitive development**, that perfectly describes how intelligence structures itself through interaction and adaptation.
