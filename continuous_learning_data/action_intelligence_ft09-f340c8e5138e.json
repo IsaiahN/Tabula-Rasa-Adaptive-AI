@@ -6,8 +6,8 @@
   "effective_actions": {
     "6": {
       "success_rate": 1.0,
-      "attempts": 360,
-      "successes": 360
+      "attempts": 370,
+      "successes": 370
     }
   },
   "winning_sequences": [],
@@ -300,53 +300,53 @@
       },
       "31,25": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 4,
+        "successes": 4
       },
       "5,0": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 4,
+        "successes": 4
       },
       "5,63": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 4,
+        "successes": 4
       },
       "15,0": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 3,
+        "successes": 3
       },
       "15,63": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 3,
+        "successes": 3
       },
       "25,0": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 3,
+        "successes": 3
       },
       "25,63": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 3,
+        "successes": 3
       },
       "35,0": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 3,
+        "successes": 3
       },
       "35,63": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 3,
+        "successes": 3
       },
       "45,0": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 3,
+        "successes": 3
       },
       "45,63": {
         "success_rate": 1.0,
@@ -356,8 +356,8 @@
     }
   },
   "action_transitions": {
-    "((6,), 6, (6,))": 480
+    "((6,), 6, (6,))": 490
   },
-  "total_sessions_learned": 240,
-  "last_updated": 1757031358.8658392
+  "total_sessions_learned": 250,
+  "last_updated": 1757031370.544263
 }
