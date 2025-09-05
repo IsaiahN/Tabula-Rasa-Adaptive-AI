@@ -6,8 +6,8 @@
   "effective_actions": {
     "6": {
       "success_rate": 1.0,
-      "attempts": 120,
-      "successes": 120
+      "attempts": 360,
+      "successes": 360
     }
   },
   "winning_sequences": [],
@@ -15,28 +15,28 @@
     "6": {
       "2,15": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "29,26": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "33,22": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "32,29": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "36,26": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "58,0": {
         "success_rate": 1.0,
@@ -45,219 +45,319 @@
       },
       "63,4": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "63,14": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "63,24": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "63,34": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "63,44": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "63,54": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "63,61": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "27,21": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "27,29": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "35,21": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "35,29": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "2,5": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "2,25": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "2,35": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "2,45": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "2,55": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "3,61": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "5,1": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "5,11": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "5,21": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "5,31": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "5,41": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "5,51": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "59,5": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "59,15": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "59,25": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "59,35": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "59,45": {
         "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
+        "attempts": 7,
+        "successes": 7
       },
       "59,55": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 6,
+        "successes": 6
       },
       "60,61": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 6,
+        "successes": 6
       },
       "62,1": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 6,
+        "successes": 6
       },
       "62,11": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 6,
+        "successes": 6
       },
       "62,21": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 6,
+        "successes": 6
       },
       "62,31": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 6,
+        "successes": 6
       },
       "61,63": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 2,
+        "successes": 2
       },
       "0,4": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 5,
+        "successes": 5
       },
       "0,14": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 5,
+        "successes": 5
       },
       "0,24": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 5,
+        "successes": 5
       },
       "0,34": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 5,
+        "successes": 5
       },
       "0,44": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 5,
+        "successes": 5
       },
       "0,54": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 5,
+        "successes": 5
       },
       "0,61": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 5,
+        "successes": 5
+      },
+      "20,26": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "1,1": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "56,14": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "56,6": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "34,32": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "0,1": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "62,41": {
+        "success_rate": 1.0,
+        "attempts": 4,
+        "successes": 4
+      },
+      "62,51": {
+        "success_rate": 1.0,
+        "attempts": 4,
+        "successes": 4
+      },
+      "17,59": {
+        "success_rate": 1.0,
+        "attempts": 4,
+        "successes": 4
+      },
+      "31,25": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "5,0": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "5,63": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "15,0": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "15,63": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "25,0": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "25,63": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "35,0": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "35,63": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "45,0": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "45,63": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
       }
     }
   },
   "action_transitions": {
-    "((6,), 6, (6,))": 240
+    "((6,), 6, (6,))": 480
   },
-  "total_sessions_learned": 40,
-  "last_updated": 1757022426.9168534
+  "total_sessions_learned": 240,
+  "last_updated": 1757031358.8658392
 }

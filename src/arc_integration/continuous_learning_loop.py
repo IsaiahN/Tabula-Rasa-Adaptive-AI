@@ -741,6 +741,48 @@ class ContinuousLearningLoop:
         
         return False, "Continue playing"
     
+    def _enhanced_sleep_consolidation(self, experiences: List[Dict[str, Any]], sleep_reason: str = "Energy depletion") -> Dict[str, Any]:
+        """
+        Enhanced sleep consolidation with experience processing.
+        
+        Args:
+            experiences: List of experience dictionaries to consolidate
+            sleep_reason: Reason for the sleep trigger
+            
+        Returns:
+            Dictionary with consolidation results
+        """
+        try:
+            print(f"🌙 ENHANCED SLEEP CONSOLIDATION: {sleep_reason}")
+            
+            result = {
+                'success': True,
+                'experiences_processed': len(experiences),
+                'sleep_reason': sleep_reason,
+                'consolidation_score': 0.0,
+                'insights_generated': 0
+            }
+            
+            if hasattr(self, 'enhanced_sleep_system') and self.enhanced_sleep_system:
+                # Use enhanced sleep system if available
+                sleep_result = self.enhanced_sleep_system.consolidate_experiences(
+                    experiences=experiences,
+                    context={'reason': sleep_reason, 'energy_level': self.current_energy}
+                )
+                result.update(sleep_result)
+            else:
+                # Fallback consolidation
+                print(f"⚠️ Enhanced sleep system not available, using fallback consolidation")
+                result['consolidation_score'] = min(0.5, len(experiences) * 0.1)
+                result['insights_generated'] = max(1, len(experiences) // 3)
+                
+            print(f"✅ Sleep consolidation complete: {result['experiences_processed']} experiences processed")
+            return result
+            
+        except Exception as e:
+            print(f"❌ Sleep consolidation failed: {e}")
+            return {'success': False, 'error': str(e)}
+
     def _analyze_stagnation_cause(self, game_id: str, actions_history: List) -> Dict[str, Any]:
         """Analyze why the agent got stuck and provide insights."""
         analysis = {
@@ -1215,6 +1257,9 @@ class ContinuousLearningLoop:
                         result = await response.json()
                         print(f"✅ Closed scorecard: {scorecard_id}")
                         return True
+                    elif response.status == 404:
+                        print(f"⚠️ Scorecard {scorecard_id} already closed or not found - continuing")
+                        return True  # Treat as success since it's already gone
                     else:
                         error_text = await response.text()
                         print(f"❌ Failed to close scorecard: {response.status} - {error_text}")
@@ -2332,54 +2377,87 @@ class ContinuousLearningLoop:
         if simple_actions:
             print(f"✅ SIMPLE ACTIONS AVAILABLE: {simple_actions} - Prioritizing over ACTION6")
             
-            # EMERGENCY OVERRIDE: Force ACTION 6 if stuck in loop with no progress
-            # Check if we've been using the same action repeatedly without progress
+            # ENHANCED DIVERSIFICATION SYSTEM: Force systematic exploration when stuck
             actions_without_progress = getattr(self, '_actions_without_progress', 0)
             if hasattr(self, '_last_selected_actions'):
                 recent_actions = self._last_selected_actions[-20:]  # Last 20 actions
-                # More aggressive emergency override: trigger after just 10 actions without progress
-                # when stuck in simple action loops
-                if (len(recent_actions) >= 8 and 
+                
+                # Track which actions have been attempted recently
+                if not hasattr(self, '_exploration_cycle'):
+                    self._exploration_cycle = {'untried_actions': list(available_actions), 'cycle_active': False}
+                
+                # More aggressive emergency override: trigger after just 8 actions without progress
+                if (len(recent_actions) >= 6 and 
                     len(set(recent_actions)) <= 2 and  # Only 1-2 unique actions used
-                    actions_without_progress >= 10):  # No progress for 10+ actions (was 50)
+                    actions_without_progress >= 8):  # No progress for 8+ actions (reduced from 10)
                     
                     print(f"🚨 EMERGENCY OVERRIDE: Stuck in action loop {set(recent_actions)} for {actions_without_progress} actions")
-                    print(f"   Forcing ACTION6 to break the loop and engage enhanced intelligence")
                     
-                    # Clear the loop tracking
-                    if hasattr(self, '_last_selected_actions'):
-                        self._last_selected_actions.clear()
+                    # Start systematic exploration cycle
+                    if not self._exploration_cycle['cycle_active']:
+                        print(f"🔄 STARTING SYSTEMATIC EXPLORATION CYCLE")
+                        self._exploration_cycle['untried_actions'] = [a for a in available_actions if a not in set(recent_actions[-5:])]
+                        self._exploration_cycle['cycle_active'] = True
                     
-                    # Reset actions without progress counter
-                    self._actions_without_progress = 0
+                    # Try next untested action in cycle
+                    if self._exploration_cycle['untried_actions']:
+                        forced_action = self._exploration_cycle['untried_actions'].pop(0)
+                        print(f"🎯 FORCED EXPLORATION: Trying action {forced_action} (unused in recent loop)")
+                        self._actions_without_progress = 0  # Reset counter
+                        return forced_action
+                    else:
+                        # All actions tried, fall back to ACTION 6 if available
+                        print(f"⚡ EXPLORATION COMPLETE: All actions tried, forcing ACTION6")
+                        self._exploration_cycle['cycle_active'] = False
+                        self._actions_without_progress = 0
+                        if 6 in available_actions:
+                            return 6
+                else:
+                    # Reset exploration cycle if we're making progress or out of loop
+                    if actions_without_progress == 0:
+                        self._exploration_cycle = {'untried_actions': list(available_actions), 'cycle_active': False}
                     
-                    # Force ACTION 6 if available - this should override all scoring logic
-                    if 6 in available_actions:
-                        print(f"⚡ EMERGENCY: Forcing ACTION6 (ignoring all scores)")
-                        return 6
-                    
-            # Also check for simple emergency override based on actions alone
-            if actions_without_progress >= 15:  # Even more aggressive fallback
-                print(f"🚨 FALLBACK EMERGENCY: {actions_without_progress} actions without progress")
+            # Fallback emergency override for extended stagnation  
+            if actions_without_progress >= 15:  # Extended stagnation fallback
+                print(f"🚨 EXTENDED STAGNATION: {actions_without_progress} actions without progress")
                 if 6 in available_actions:
-                    print(f"⚡ FALLBACK: Forcing ACTION6 (ignoring all scores)")
+                    print(f"⚡ STAGNATION OVERRIDE: Forcing ACTION6")
                     self._actions_without_progress = 0
                     return 6
             
             # Update action relevance scores
             self._update_action_relevance_scores()
             
-            # Score simple actions with enhanced intelligence
+            # Score simple actions with enhanced intelligence AND anti-repetition
             best_simple_action = None
             best_simple_score = 0.0
+            
+            # Track recent actions for anti-repetition
+            if not hasattr(self, '_last_selected_actions'):
+                self._last_selected_actions = []
             
             for action in simple_actions:
                 try:
                     # Calculate comprehensive score for simple action
-                    score = self._calculate_comprehensive_action_score(action, game_id, frame_analysis)
+                    base_score = self._calculate_comprehensive_action_score(action, game_id, frame_analysis)
                     
-                    if score > best_simple_score:
-                        best_simple_score = score
+                    # CRITICAL: Apply anti-repetition penalty directly here
+                    final_score = base_score
+                    recent_actions = self._last_selected_actions[-8:] if len(self._last_selected_actions) >= 8 else self._last_selected_actions
+                    
+                    if len(recent_actions) >= 5:
+                        action_frequency = recent_actions.count(action) / len(recent_actions)
+                        if action_frequency > 0.6:  # Used more than 60% of the time
+                            repetition_penalty = 0.8 + (action_frequency - 0.6) * 3.0  # Very heavy penalty
+                            final_score = max(0.01, base_score - repetition_penalty)
+                            print(f"⚠️ HEAVY REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f} → {final_score:.3f})")
+                        elif action_frequency > 0.4:  # Used more than 40% of the time  
+                            repetition_penalty = 0.3 + (action_frequency - 0.4) * 1.5  # Moderate penalty
+                            final_score = max(0.01, base_score - repetition_penalty)
+                            print(f"⚠️ MODERATE REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f} → {final_score:.3f})")
+                    
+                    if final_score > best_simple_score:
+                        best_simple_score = final_score
                         best_simple_action = action
                         
                 except Exception as e:
@@ -2429,12 +2507,30 @@ class ContinuousLearningLoop:
             if not simple_actions:
                 # ACTION6 is only option
                 print(f"📱 ACTION6 ONLY OPTION - Using visual-interactive targeting")
+                # Track selected actions for loop detection
+                if not hasattr(self, '_last_selected_actions'):
+                    self._last_selected_actions = []
+                self._last_selected_actions.append(6)
+                if len(self._last_selected_actions) > 50:
+                    self._last_selected_actions = self._last_selected_actions[-50:]
                 return 6
             elif action6_final_score > 0.4:  # High threshold for choosing ACTION6 over simple actions
                 print(f"🎯 ACTION6 HIGH PRIORITY - Visual targeting score: {action6_final_score:.3f}")
+                # Track selected actions for loop detection
+                if not hasattr(self, '_last_selected_actions'):
+                    self._last_selected_actions = []
+                self._last_selected_actions.append(6)
+                if len(self._last_selected_actions) > 50:
+                    self._last_selected_actions = self._last_selected_actions[-50:]
                 return 6  
             elif progress_stagnant and action6_final_score > 0.1:
                 print(f"🔄 PROGRESS STAGNANT - Using ACTION6 as visual reset (score: {action6_final_score:.3f})")
+                # Track selected actions for loop detection
+                if not hasattr(self, '_last_selected_actions'):
+                    self._last_selected_actions = []
+                self._last_selected_actions.append(6)
+                if len(self._last_selected_actions) > 50:
+                    self._last_selected_actions = self._last_selected_actions[-50:]
                 return 6
             else:
                 print(f"⚠️ ACTION6 score too low ({action6_final_score:.3f}) - using best simple action")
@@ -2443,6 +2539,12 @@ class ContinuousLearningLoop:
                 if simple_actions:
                     fallback_action = simple_actions[0]  # Just pick first available
                     print(f"🔄 FALLBACK: Using simple action {fallback_action}")
+                    # Track selected actions for loop detection
+                    if not hasattr(self, '_last_selected_actions'):
+                        self._last_selected_actions = []
+                    self._last_selected_actions.append(fallback_action)
+                    if len(self._last_selected_actions) > 50:
+                        self._last_selected_actions = self._last_selected_actions[-50:]
                     return fallback_action
         
         # 🚨 EMERGENCY FALLBACK
@@ -2450,6 +2552,12 @@ class ContinuousLearningLoop:
         if available_actions:
             emergency_action = available_actions[0]
             print(f"⚡ Emergency selection: ACTION{emergency_action}")
+            # Track selected actions for loop detection
+            if not hasattr(self, '_last_selected_actions'):
+                self._last_selected_actions = []
+            self._last_selected_actions.append(emergency_action)
+            if len(self._last_selected_actions) > 50:
+                self._last_selected_actions = self._last_selected_actions[-50:]
             return emergency_action
         else:
             print("❌ NO AVAILABLE ACTIONS - This should not happen!")
@@ -3020,7 +3128,11 @@ class ContinuousLearningLoop:
             print(f"   Expected actions before sleep: ~{energy_params['expected_actions_before_sleep']}")
             
             # Calculate energy cost based on win rate-adaptive parameters
-            base_action_cost = energy_params['action_energy_cost']
+            base_action_cost = energy_params.get('action_energy_cost', 4.5)  # Safe default
+            if base_action_cost is None:
+                base_action_cost = 4.5  # Fallback to beginner intensive level
+                print("⚠️ Action energy cost was None, using fallback value")
+                
             effectiveness_ratio = len(effective_actions) / max(1, episode_actions)
             
             # Apply effectiveness multiplier - penalize ineffective actions more for experienced agents
@@ -3034,9 +3146,19 @@ class ContinuousLearningLoop:
                 base_action_cost *= effectiveness_bonus
                 print(f"⚡ Effectiveness bonus: {effectiveness_bonus:.1f}x (effectiveness: {effectiveness_ratio:.1%})")
             
-            # Calculate final energy cost
-            energy_cost = episode_actions * base_action_cost
+            # Calculate final energy cost with safety checks
+            if base_action_cost is None or episode_actions is None:
+                print("⚠️ Energy calculation error: base_action_cost or episode_actions is None")
+                energy_cost = 0.0  # Safe fallback
+                base_action_cost = base_action_cost or 4.5
+                episode_actions = episode_actions or 0
+            else:
+                energy_cost = episode_actions * base_action_cost
+                
             current_energy = pre_sleep_status.get('current_energy_level', self.current_energy)
+            if current_energy is None:
+                current_energy = self.current_energy or 100.0
+                
             remaining_energy = max(0.0, current_energy - energy_cost)
             
             print(f"⚡ Energy: {current_energy:.2f} -> {remaining_energy:.2f}")
@@ -3729,8 +3851,18 @@ class ContinuousLearningLoop:
         early_games = games_played[:len(games_played)//2]
         late_games = games_played[len(games_played)//2:]
         
-        early_avg = sum((game.get('performance_metrics', {}).get('average_score') or 0) for game in early_games) / max(1, len(early_games))
-        late_avg = sum((game.get('performance_metrics', {}).get('average_score') or 0) for game in late_games) / max(1, len(late_games))
+        # Enhanced null safety for performance metrics
+        def safe_score(game):
+            if not game or not isinstance(game, dict):
+                return 0
+            metrics = game.get('performance_metrics')
+            if not metrics or not isinstance(metrics, dict):
+                return 0
+            score = metrics.get('average_score')
+            return score if isinstance(score, (int, float)) else 0
+        
+        early_avg = sum(safe_score(game) for game in early_games) / max(1, len(early_games))
+        late_avg = sum(safe_score(game) for game in late_games) / max(1, len(late_games))
         
         return max(0, (late_avg - early_avg) / 100)  # Normalize
         
@@ -4294,10 +4426,22 @@ class ContinuousLearningLoop:
                 if action not in recent_actions:
                     stagnation_bonus = 0.25
             
-            # 6. NEW: Semantic intelligence bonus - use learned action behavior
+            # 6. CRITICAL: Anti-repetition penalty - heavily penalize recently overused actions
+            repetition_penalty = 0.0
+            if hasattr(self, '_last_selected_actions'):
+                recent_actions = self._last_selected_actions[-8:]  # Last 8 actions
+                if len(recent_actions) >= 5:
+                    action_frequency = recent_actions.count(action) / len(recent_actions)
+                    if action_frequency > 0.6:  # Used more than 60% of the time
+                        repetition_penalty = 0.5 + (action_frequency - 0.6) * 2.0  # Heavy penalty
+                        print(f"⚠️ REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f})")
+                    elif action_frequency > 0.4:  # Used more than 40% of the time  
+                        repetition_penalty = 0.2 + (action_frequency - 0.4) * 1.0  # Moderate penalty
+            
+            # 7. NEW: Semantic intelligence bonus - use learned action behavior
             semantic_bonus = self._calculate_semantic_action_score(action, game_context)
             
-            final_score = max(0.05, base_score + sequence_bonus + diversity_bonus + context_bonus + stagnation_bonus + semantic_bonus - pattern_penalty)
+            final_score = max(0.05, base_score + sequence_bonus + diversity_bonus + context_bonus + stagnation_bonus + semantic_bonus - pattern_penalty - repetition_penalty)
             action_scores[action] = final_score
         
         # Enhanced selection strategy with adaptive exploration

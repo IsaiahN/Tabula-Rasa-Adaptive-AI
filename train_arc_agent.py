@@ -20,6 +20,8 @@ import argparse
 import logging
 import signal
 import json
+import subprocess
+import concurrent.futures
 from pathlib import Path
 from typing import Optional
 
@@ -52,9 +54,9 @@ signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
 signal.signal(signal.SIGTERM, signal_handler)  # Termination request
 
 try:
-    from arc_integration.continuous_learning_loop import ContinuousLearningLoop
-    from arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
-    from core.salience_system import SalienceMode
+    from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop
+    from src.arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
+    from src.core.salience_system import SalienceMode
 except ImportError as e:
     print(f"❌ IMPORT ERROR: {e}")
     print(f"❌ Make sure the package is installed with: pip install -e .")
@@ -1114,7 +1116,7 @@ def check_arc3_requirements():
             sys.path.insert(0, str(tabula_rasa_src))
         
         # Test basic imports
-        from core.agent import AdaptiveLearningAgent
+        from src.core.agent import AdaptiveLearningAgent
         print("✅ Tabula-Rasa ARC integration loaded")
         
         return True, api_key, arc_agents_path
