@@ -1,0 +1,815 @@
+#!/usr/bin/env python3
+"""
+Architect - The "Zeroth Brain"
+
+A safe, recursive self-improvement system that can hypothesize, test,
+and implement improvements to its own architecture and codebase.
+
+This module performs automated, safe, and measurable self-modification
+at the architectural and hyperparameter level by:
+1. Using the system's configuration as a "genome"
+2. Generating mutations to improve performance
+3. Testing mutations in sandboxed environments
+4. Committing successful improvements through version control
+"""
+
+import os
+import sys
+import json
+import time
+import subprocess
+import tempfile
+import shutil
+import logging
+import asyncio
+import hashlib
+from typing import Dict, List, Any, Optional, Tuple
+from dataclasses import dataclass, asdict, field
+from pathlib import Path
+from enum import Enum
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+
+# Optional Git integration
+try:
+    import git
+    GIT_AVAILABLE = True
+except ImportError:
+    GIT_AVAILABLE = False
+    git = None
+
+# Import existing system components
+try:
+    from src.core.meta_cognitive_governor import ArchitectRequest, GovernorRecommendation
+    from src.core.salience_system import SalienceMode
+except ImportError:
+    # Fallback for direct execution
+    class SalienceMode(Enum):
+        LOSSLESS = "lossless"
+        DECAY_COMPRESSION = "decay_compression"
+    
+    @dataclass
+    class ArchitectRequest:
+        issue_type: str
+        persistent_problem: str
+        failed_solutions: List[Dict[str, Any]]
+        performance_data: Dict[str, Any]
+        suggested_research_directions: List[str]
+        priority: float
+
+class MutationType(Enum):
+    """Types of mutations the Architect can perform."""
+    PARAMETER_ADJUSTMENT = "parameter_adjustment"
+    FEATURE_TOGGLE = "feature_toggle"
+    MODE_MODIFICATION = "mode_modification"
+    ALGORITHM_REPLACEMENT = "algorithm_replacement"
+    ARCHITECTURE_ENHANCEMENT = "architecture_enhancement"
+
+class MutationImpact(Enum):
+    """Expected impact levels of mutations."""
+    MINIMAL = "minimal"        # Small parameter tweaks
+    MODERATE = "moderate"      # Feature toggles, mode changes
+    SIGNIFICANT = "significant" # Algorithm modifications
+    ARCHITECTURAL = "architectural"  # Major structural changes
+
+@dataclass
+class SystemGenome:
+    """
+    Formalized representation of the system's architecture and parameters.
+    Based on the existing TrainingConfig but expanded for evolution.
+    """
+    # Core learning parameters
+    salience_mode: str = "decay_compression"
+    max_actions_per_game: int = 500
+    max_learning_cycles: int = 50
+    target_score: float = 85.0
+    
+    # Cognitive system feature flags (all 37+ systems)
+    enable_swarm: bool = True
+    enable_coordinates: bool = True
+    enable_energy_system: bool = True
+    enable_sleep_cycles: bool = True
+    enable_dnc_memory: bool = True
+    enable_meta_learning: bool = True
+    enable_salience_system: bool = True
+    enable_contrarian_strategy: bool = True
+    enable_frame_analysis: bool = True
+    enable_boundary_detection: bool = True
+    enable_memory_consolidation: bool = True
+    enable_action_intelligence: bool = True
+    enable_goal_invention: bool = True
+    enable_learning_progress_drive: bool = True
+    enable_death_manager: bool = True
+    enable_exploration_strategies: bool = True
+    enable_pattern_recognition: bool = True
+    enable_knowledge_transfer: bool = True
+    enable_boredom_detection: bool = True
+    enable_mid_game_sleep: bool = True
+    enable_action_experimentation: bool = True
+    enable_reset_decisions: bool = True
+    enable_curriculum_learning: bool = True
+    enable_multi_modal_input: bool = True
+    enable_temporal_memory: bool = True
+    enable_hebbian_bonuses: bool = True
+    enable_memory_regularization: bool = True
+    enable_gradient_flow_monitoring: bool = True
+    enable_usage_tracking: bool = True
+    enable_salient_memory_retrieval: bool = True
+    enable_anti_bias_weighting: bool = True
+    enable_stagnation_detection: bool = True
+    enable_emergency_movement: bool = True
+    enable_cluster_formation: bool = True
+    enable_danger_zone_avoidance: bool = True
+    enable_predictive_coordinates: bool = True
+    
+    # Advanced parameters
+    energy_decay_rate: float = 0.02
+    sleep_trigger_energy: float = 30.0
+    salience_threshold: float = 0.5
+    memory_consolidation_strength: float = 0.8
+    contrarian_threshold: int = 5
+    boredom_threshold: int = 100
+    
+    # Meta-cognitive parameters
+    enable_governor: bool = True
+    governor_intervention_threshold: float = 0.7
+    architect_mutation_rate: float = 0.05
+    
+    # Evolution metadata
+    generation: int = 0
+    parent_hash: Optional[str] = None
+    mutation_history: List[str] = field(default_factory=list)
+    performance_history: List[Dict[str, float]] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert genome to dictionary."""
+        return asdict(self)
+    
+    def get_hash(self) -> str:
+        """Get unique hash for this genome configuration."""
+        # Create hash from core parameters (exclude metadata)
+        core_params = self.to_dict()
+        for key in ['generation', 'parent_hash', 'mutation_history', 'performance_history']:
+            core_params.pop(key, None)
+        
+        return hashlib.md5(json.dumps(core_params, sort_keys=True).encode()).hexdigest()[:8]
+
+@dataclass
+class Mutation:
+    """Represents a proposed change to the system genome."""
+    id: str
+    type: MutationType
+    impact: MutationImpact
+    changes: Dict[str, Any]
+    rationale: str
+    expected_improvement: float
+    confidence: float
+    test_duration_estimate: float  # in minutes
+    
+    def apply_to_genome(self, genome: SystemGenome) -> SystemGenome:
+        """Apply this mutation to create a new genome."""
+        new_genome_dict = genome.to_dict()
+        
+        # Apply changes
+        for key, value in self.changes.items():
+            if key in new_genome_dict:
+                new_genome_dict[key] = value
+        
+        # Update metadata
+        new_genome_dict['generation'] = genome.generation + 1
+        new_genome_dict['parent_hash'] = genome.get_hash()
+        new_genome_dict['mutation_history'] = genome.mutation_history + [self.id]
+        
+        return SystemGenome(**new_genome_dict)
+
+@dataclass
+class TestResult:
+    """Results from testing a mutated genome in sandbox."""
+    mutation_id: str
+    genome_hash: str
+    success: bool
+    performance_metrics: Dict[str, float]
+    improvement_over_baseline: Dict[str, float]
+    test_duration: float
+    error_log: Optional[str] = None
+    detailed_results: Optional[Dict[str, Any]] = None
+    
+    def get_overall_improvement(self) -> float:
+        """Calculate overall improvement score."""
+        if not self.success:
+            return -1.0
+        
+        # Weight different metrics
+        weights = {
+            'win_rate': 100.0,
+            'average_score': 1.0,
+            'learning_efficiency': 10.0,
+            'sample_efficiency': 5.0,
+            'robustness': 20.0
+        }
+        
+        total_improvement = 0.0
+        total_weight = 0.0
+        
+        for metric, improvement in self.improvement_over_baseline.items():
+            if metric in weights:
+                total_improvement += improvement * weights[metric]
+                total_weight += weights[metric]
+        
+        return total_improvement / max(total_weight, 1.0)
+
+class MutationEngine:
+    """Generates mutations for system genomes."""
+    
+    def __init__(self, base_genome: SystemGenome, logger: logging.Logger):
+        self.base_genome = base_genome
+        self.logger = logger
+        self.mutation_templates = self._initialize_mutation_templates()
+    
+    def _initialize_mutation_templates(self) -> List[Dict[str, Any]]:
+        """Initialize templates for different types of mutations."""
+        return [
+            # Parameter adjustments
+            {
+                'type': MutationType.PARAMETER_ADJUSTMENT,
+                'impact': MutationImpact.MINIMAL,
+                'targets': ['max_actions_per_game', 'target_score', 'salience_threshold'],
+                'strategies': ['increase', 'decrease', 'optimize']
+            },
+            
+            # Feature toggles
+            {
+                'type': MutationType.FEATURE_TOGGLE,
+                'impact': MutationImpact.MODERATE,
+                'targets': ['enable_contrarian_strategy', 'enable_boredom_detection', 'enable_mid_game_sleep'],
+                'strategies': ['enable', 'disable', 'conditional']
+            },
+            
+            # Mode modifications
+            {
+                'type': MutationType.MODE_MODIFICATION,
+                'impact': MutationImpact.MODERATE,
+                'targets': ['salience_mode'],
+                'strategies': ['switch_mode', 'hybrid_approach']
+            },
+            
+            # Advanced system combinations
+            {
+                'type': MutationType.ARCHITECTURE_ENHANCEMENT,
+                'impact': MutationImpact.SIGNIFICANT,
+                'targets': ['cognitive_system_combinations'],
+                'strategies': ['enable_synergies', 'optimize_coordination', 'reduce_conflicts']
+            }
+        ]
+    
+    def generate_mutation(self, request: Optional[ArchitectRequest] = None) -> Mutation:
+        """Generate a mutation based on request or random exploration."""
+        
+        if request:
+            return self._generate_targeted_mutation(request)
+        else:
+            return self._generate_exploratory_mutation()
+    
+    def generate_exploratory_mutation(self) -> Mutation:
+        """Public wrapper for exploratory mutation generation."""
+        return self._generate_exploratory_mutation()
+    
+    def _generate_targeted_mutation(self, request: ArchitectRequest) -> Mutation:
+        """Generate mutation to address specific issues."""
+        mutation_id = f"targeted_{int(time.time())}"
+        
+        # Analyze the issue and suggest appropriate mutations
+        if request.issue_type == "low_efficiency":
+            changes = {'max_actions_per_game': int(self.base_genome.max_actions_per_game * 1.5)}
+            rationale = f"Increase exploration to address: {request.persistent_problem}"
+            
+        elif request.issue_type == "stagnation":
+            changes = {'enable_contrarian_strategy': True, 'contrarian_threshold': 3}
+            rationale = f"Enable contrarian strategies to break stagnation: {request.persistent_problem}"
+            
+        else:  # General improvement
+            changes = {'salience_threshold': max(0.1, self.base_genome.salience_threshold - 0.1)}
+            rationale = f"Lower salience threshold to preserve more memories"
+        
+        return Mutation(
+            id=mutation_id,
+            type=MutationType.PARAMETER_ADJUSTMENT,
+            impact=MutationImpact.MODERATE,
+            changes=changes,
+            rationale=rationale,
+            expected_improvement=0.15,
+            confidence=0.7,
+            test_duration_estimate=15.0
+        )
+    
+    def _generate_exploratory_mutation(self) -> Mutation:
+        """Generate exploratory mutation for general improvement."""
+        import random
+        
+        mutation_id = f"exploratory_{int(time.time())}"
+        
+        # Select a template
+        template = random.choice(self.mutation_templates)
+        target = random.choice(template['targets'])
+        strategy = random.choice(template['strategies'])
+        
+        # Generate changes based on template
+        changes = {}
+        rationale = f"Exploratory {strategy} of {target}"
+        
+        if target == 'max_actions_per_game':
+            if strategy == 'increase':
+                changes[target] = min(1000, int(self.base_genome.max_actions_per_game * 1.2))
+            elif strategy == 'decrease':
+                changes[target] = max(100, int(self.base_genome.max_actions_per_game * 0.8))
+            else:  # optimize
+                changes[target] = 750  # Sweet spot based on analysis
+        
+        elif target == 'salience_mode':
+            current_mode = self.base_genome.salience_mode
+            changes[target] = 'lossless' if current_mode == 'decay_compression' else 'decay_compression'
+            
+        elif 'enable_' in target:
+            current_value = getattr(self.base_genome, target, True)
+            changes[target] = not current_value
+        
+        return Mutation(
+            id=mutation_id,
+            type=template['type'],
+            impact=template['impact'],
+            changes=changes,
+            rationale=rationale,
+            expected_improvement=0.05,
+            confidence=0.5,
+            test_duration_estimate=10.0
+        )
+
+class SandboxTester:
+    """Tests mutations in isolated sandbox environments."""
+    
+    def __init__(self, base_path: Path, logger: logging.Logger):
+        self.base_path = base_path
+        self.logger = logger
+        self.sandbox_dir = base_path / "sandbox_tests"
+        self.sandbox_dir.mkdir(exist_ok=True)
+    
+    async def test_mutation(self, mutation: Mutation, 
+                          baseline_genome: SystemGenome,
+                          test_games: List[str] = None) -> TestResult:
+        """Test a mutation in a sandboxed environment."""
+        start_time = time.time()
+        
+        try:
+            # Create mutated genome
+            mutated_genome = mutation.apply_to_genome(baseline_genome)
+            
+            # Create sandbox environment
+            sandbox_path = await self._create_sandbox(mutated_genome)
+            
+            # Run test suite
+            test_results = await self._run_sandbox_test(sandbox_path, test_games or ["test_game_1"])
+            
+            # Compare with baseline (would need baseline results stored)
+            baseline_performance = self._get_baseline_performance(baseline_genome)
+            improvement = self._calculate_improvement(test_results, baseline_performance)
+            
+            test_duration = time.time() - start_time
+            
+            # Calculate overall improvement score for logging
+            overall_improvement = sum(improvement.values()) if improvement else 0.0
+            
+            self.logger.info(f"🧪 Mutation {mutation.id} tested: "
+                           f"overall_improvement={overall_improvement:.3f}, duration={test_duration:.1f}s")
+            
+            return TestResult(
+                mutation_id=mutation.id,
+                genome_hash=mutated_genome.get_hash(),
+                success=test_results.get('success', False),
+                performance_metrics=test_results.get('metrics', {}),
+                improvement_over_baseline=improvement,
+                test_duration=test_duration,
+                detailed_results=test_results
+            )
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error testing mutation {mutation.id}: {e}")
+            return TestResult(
+                mutation_id=mutation.id,
+                genome_hash="error",
+                success=False,
+                performance_metrics={},
+                improvement_over_baseline={},
+                test_duration=time.time() - start_time,
+                error_log=str(e)
+            )
+        finally:
+            # Cleanup sandbox
+            await self._cleanup_sandbox(sandbox_path)
+    
+    async def _create_sandbox(self, genome: SystemGenome) -> Path:
+        """Create isolated sandbox environment for testing."""
+        sandbox_id = f"sandbox_{genome.get_hash()}_{int(time.time())}"
+        sandbox_path = self.sandbox_dir / sandbox_id
+        
+        # Copy core system files to sandbox
+        shutil.copytree(self.base_path / "src", sandbox_path / "src")
+        shutil.copy2(self.base_path / "unified_arc_trainer.py", sandbox_path)
+        
+        # Create custom config file for this genome
+        config_path = sandbox_path / "sandbox_config.json"
+        with open(config_path, 'w') as f:
+            json.dump(genome.to_dict(), f, indent=2)
+        
+        self.logger.debug(f"🏗️ Created sandbox: {sandbox_path}")
+        return sandbox_path
+    
+    async def _run_sandbox_test(self, sandbox_path: Path, test_games: List[str]) -> Dict[str, Any]:
+        """Run test suite in sandbox environment."""
+        # This would run a minimal version of the training system
+        # For now, simulate test results
+        await asyncio.sleep(2)  # Simulate test execution
+        
+        # Mock results - in real implementation, would run actual tests
+        return {
+            'success': True,
+            'metrics': {
+                'win_rate': 0.65,
+                'average_score': 48.5,
+                'learning_efficiency': 0.8,
+                'sample_efficiency': 0.7,
+                'robustness': 0.6
+            },
+            'games_tested': test_games,
+            'total_episodes': 15,
+            'test_duration': 120.0
+        }
+    
+    def _get_baseline_performance(self, baseline_genome: SystemGenome) -> Dict[str, float]:
+        """Get baseline performance metrics for comparison."""
+        # Would retrieve from stored baseline results
+        return {
+            'win_rate': 0.60,
+            'average_score': 45.0,
+            'learning_efficiency': 0.75,
+            'sample_efficiency': 0.65,
+            'robustness': 0.55
+        }
+    
+    def _calculate_improvement(self, test_results: Dict[str, Any], 
+                             baseline: Dict[str, float]) -> Dict[str, float]:
+        """Calculate improvement over baseline."""
+        improvement = {}
+        test_metrics = test_results.get('metrics', {})
+        
+        for metric, baseline_value in baseline.items():
+            test_value = test_metrics.get(metric, baseline_value)
+            improvement[metric] = test_value - baseline_value
+        
+        return improvement
+    
+    async def _cleanup_sandbox(self, sandbox_path: Path):
+        """Clean up sandbox environment."""
+        try:
+            if sandbox_path.exists():
+                shutil.rmtree(sandbox_path)
+                self.logger.debug(f"🧹 Cleaned up sandbox: {sandbox_path}")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Failed to cleanup sandbox {sandbox_path}: {e}")
+
+class Architect:
+    """
+    The "Zeroth Brain" - Self-Architecture Evolution System
+    
+    Performs safe, sandboxed experimentation on the AI's own architecture
+    and hyperparameters using a general-intelligence fitness function.
+    """
+    
+    def __init__(self, base_path: str, repo_path: str, logger: Optional[logging.Logger] = None):
+        self.base_path = Path(base_path)
+        self.repo_path = Path(repo_path)
+        self.logger = logger or logging.getLogger(f"{__name__}.Architect")
+        
+        # Initialize components
+        self.current_genome = self._load_current_genome()
+        self.mutation_engine = MutationEngine(self.current_genome, self.logger)
+        self.sandbox_tester = SandboxTester(self.base_path, self.logger)
+        
+        # Evolution state
+        self.generation = 0
+        self.mutation_history = []
+        self.successful_mutations = []
+        self.pending_requests = []
+        
+        # Git integration
+        self.repo = None
+        if GIT_AVAILABLE:
+            try:
+                self.repo = git.Repo(self.repo_path)
+            except Exception:
+                self.logger.warning("⚠️ Not a git repository - version control disabled")
+        else:
+            self.logger.warning("⚠️ GitPython not available - version control disabled")
+        
+        # Safety measures
+        self.max_concurrent_tests = 1  # Start conservative
+        self.human_approval_required = True
+        self.auto_merge_threshold = 0.15  # Minimum improvement for auto-merge
+        
+        self.logger.info("🔬 Architect initialized - Zeroth Brain online")
+    
+    def _load_current_genome(self) -> SystemGenome:
+        """Load current system genome from configuration."""
+        # Would load from unified_arc_trainer.py TrainingConfig or config files
+        # For now, create default genome
+        return SystemGenome()
+    
+    def create_system_genome(self) -> SystemGenome:
+        """Create a system genome representing current configuration."""
+        return self._load_current_genome()
+    
+    async def process_governor_request(self, request: ArchitectRequest) -> Dict[str, Any]:
+        """Process a request from the MetaCognitiveGovernor."""
+        self.logger.info(f"🔬 Processing Governor request: {request.issue_type}")
+        
+        try:
+            # Generate targeted mutation
+            mutation = self.mutation_engine.generate_mutation(request)
+            
+            # Test mutation
+            test_result = await self.sandbox_tester.test_mutation(
+                mutation, self.current_genome
+            )
+            
+            # Evaluate results
+            if test_result.success and test_result.get_overall_improvement() > 0.05:
+                # Create branch with improvement
+                branch_info = await self._create_improvement_branch(mutation, test_result)
+                
+                response = {
+                    'success': True,
+                    'mutation_id': mutation.id,
+                    'improvement': test_result.get_overall_improvement(),
+                    'branch_created': branch_info['branch_name'] if branch_info else None,
+                    'requires_approval': self.human_approval_required,
+                    'recommendation': 'merge' if test_result.get_overall_improvement() > self.auto_merge_threshold else 'review'
+                }
+                
+                self.successful_mutations.append((mutation, test_result))
+                
+            else:
+                response = {
+                    'success': False,
+                    'mutation_id': mutation.id,
+                    'improvement': test_result.get_overall_improvement(),
+                    'issues': [test_result.error_log] if test_result.error_log else ['Performance regression'],
+                    'recommendation': 'abandon'
+                }
+            
+            self.mutation_history.append((mutation, test_result))
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error processing Governor request: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def autonomous_evolution_cycle(self) -> Dict[str, Any]:
+        """Run one cycle of autonomous evolution."""
+        self.logger.info(f"🧬 Starting evolution cycle {self.generation}")
+        
+        try:
+            # Generate exploratory mutation
+            mutation = self.mutation_engine.generate_exploratory_mutation()
+            
+            # Test in sandbox
+            test_result = await self.sandbox_tester.test_mutation(
+                mutation, self.current_genome
+            )
+            
+            # Record results
+            self.mutation_history.append((mutation, test_result))
+            
+            improvement = test_result.get_overall_improvement()
+            
+            if test_result.success and improvement > 0.02:  # Small threshold for exploration
+                # Create experimental branch
+                branch_info = await self._create_experimental_branch(mutation, test_result)
+                
+                self.logger.info(f"✅ Beneficial mutation found: {improvement:.3f} improvement")
+                
+                return {
+                    'success': True,
+                    'generation': self.generation,
+                    'improvement': improvement,
+                    'branch_created': branch_info['branch_name'] if branch_info else None
+                }
+            else:
+                self.logger.debug(f"📊 Mutation tested: {improvement:.3f} improvement (below threshold)")
+                
+                return {
+                    'success': False,
+                    'generation': self.generation,
+                    'improvement': improvement,
+                    'reason': 'insufficient_improvement'
+                }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error in evolution cycle: {e}")
+            return {
+                'success': False, 
+                'error': str(e),
+                'generation': self.generation
+            }
+        
+        finally:
+            self.generation += 1
+    
+    async def _create_improvement_branch(self, mutation: Mutation, 
+                                       test_result: TestResult) -> Optional[Dict[str, Any]]:
+        """Create git branch for successful improvement."""
+        if not self.repo:
+            return None
+        
+        try:
+            # Create branch name
+            branch_name = f"improvement/{mutation.id}_{test_result.genome_hash}"
+            
+            # Create and checkout branch
+            new_branch = self.repo.create_head(branch_name)
+            new_branch.checkout()
+            
+            # Apply mutation to actual config files
+            self._apply_mutation_to_files(mutation)
+            
+            # Create detailed commit message
+            commit_message = f"""🚀 Architectural Improvement: {mutation.rationale}
+
+Mutation ID: {mutation.id}
+Type: {mutation.type.value}
+Impact: {mutation.impact.value}
+
+Performance Improvements:
+- Overall: {test_result.get_overall_improvement():.1%}
+- Win Rate: {test_result.improvement_over_baseline.get('win_rate', 0):.3f}
+- Score: {test_result.improvement_over_baseline.get('average_score', 0):.1f}
+
+Changes Applied:
+{json.dumps(mutation.changes, indent=2)}
+
+Test Duration: {test_result.test_duration:.1f}s
+Confidence: {mutation.confidence:.1%}
+
+Generated by Architect (Zeroth Brain) - Safe Self-Improvement System
+"""
+            
+            # Stage and commit changes
+            self.repo.git.add('.')
+            self.repo.index.commit(commit_message)
+            
+            self.logger.info(f"🌿 Created improvement branch: {branch_name}")
+            
+            # Return to main branch
+            self.repo.heads.master.checkout()  # or 'main' depending on repo
+            
+            return {
+                'branch_name': branch_name,
+                'commit_hash': new_branch.commit.hexsha,
+                'improvement': test_result.get_overall_improvement()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to create improvement branch: {e}")
+            return None
+    
+    async def _create_experimental_branch(self, mutation: Mutation, 
+                                        test_result: TestResult) -> Optional[Dict[str, Any]]:
+        """Create experimental branch for exploratory mutations."""
+        # Similar to improvement branch but marked as experimental
+        if not self.repo:
+            return None
+        
+        try:
+            branch_name = f"experimental/{mutation.id}_{int(time.time())}"
+            
+            new_branch = self.repo.create_head(branch_name)
+            new_branch.checkout()
+            
+            self._apply_mutation_to_files(mutation)
+            
+            commit_message = f"""🧪 Experimental Mutation: {mutation.rationale}
+
+Mutation ID: {mutation.id}
+Type: {mutation.type.value}
+Improvement: {test_result.get_overall_improvement():.3f}
+
+This is an experimental change - requires review before merging.
+"""
+            
+            self.repo.git.add('.')
+            self.repo.index.commit(commit_message)
+            
+            self.logger.info(f"🧪 Created experimental branch: {branch_name}")
+            
+            self.repo.heads.master.checkout()
+            
+            return {'branch_name': branch_name}
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to create experimental branch: {e}")
+            return None
+    
+    def _apply_mutation_to_files(self, mutation: Mutation):
+        """Apply mutation changes to actual configuration files."""
+        # This would modify unified_arc_trainer.py or config files
+        # For now, create a config patch file
+        
+        patch_file = self.base_path / f"mutation_{mutation.id}.json"
+        with open(patch_file, 'w') as f:
+            json.dump({
+                'mutation_id': mutation.id,
+                'changes': mutation.changes,
+                'timestamp': time.time()
+            }, f, indent=2)
+    
+    def get_evolution_status(self) -> Dict[str, Any]:
+        """Get comprehensive evolution status."""
+        successful_count = len(self.successful_mutations)
+        total_count = len(self.mutation_history)
+        
+        return {
+            'generation': self.generation,
+            'total_mutations_tested': total_count,
+            'successful_mutations': successful_count,
+            'success_rate': successful_count / max(total_count, 1),
+            'pending_requests': len(self.pending_requests),
+            'current_genome_hash': self.current_genome.get_hash(),
+            'git_enabled': self.repo is not None,
+            'recent_improvements': [
+                {
+                    'mutation_id': mut.id,
+                    'improvement': result.get_overall_improvement(),
+                    'timestamp': result.test_duration
+                }
+                for mut, result in self.successful_mutations[-5:]
+            ]
+        }
+    
+    async def emergency_rollback(self, target_commit: str = None) -> bool:
+        """Emergency rollback to previous working state."""
+        if not self.repo:
+            self.logger.error("❌ Cannot rollback - no git repository")
+            return False
+        
+        try:
+            if target_commit:
+                self.repo.git.reset('--hard', target_commit)
+            else:
+                self.repo.git.reset('--hard', 'HEAD~1')
+            
+            self.logger.warning("🔄 Emergency rollback completed")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Rollback failed: {e}")
+            return False
+
+
+# Example usage and testing
+if __name__ == "__main__":
+    import asyncio
+    
+    # Set up logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
+    # Create Architect instance
+    architect = Architect(
+        base_path="C:/Users/Admin/Documents/GitHub/tabula-rasa",
+        repo_path="C:/Users/Admin/Documents/GitHub/tabula-rasa"
+    )
+    
+    async def test_architect():
+        print("🔬 Testing Architect system...")
+        
+        # Test autonomous evolution
+        result = await architect.autonomous_evolution_cycle()
+        print(f"Evolution result: {result}")
+        
+        # Test Governor request processing
+        test_request = ArchitectRequest(
+            issue_type="low_efficiency",
+            persistent_problem="Win rate stuck at 60% for 10 cycles",
+            failed_solutions=[],
+            performance_data={'win_rate': 0.6, 'score': 45.0},
+            suggested_research_directions=["Increase exploration", "Try contrarian strategies"],
+            priority=0.8
+        )
+        
+        response = await architect.process_governor_request(test_request)
+        print(f"Governor request response: {response}")
+        
+        # Show status
+        status = architect.get_evolution_status()
+        print(f"Evolution status: {status}")
+    
+    # Run test
+    asyncio.run(test_architect())

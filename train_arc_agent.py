@@ -57,6 +57,11 @@ try:
     from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop
     from src.arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
     from src.core.salience_system import SalienceMode
+    from src.core.meta_cognitive_governor import (
+        MetaCognitiveGovernor, CognitiveCost, CognitiveBenefit,
+        GovernorRecommendationType
+    )
+    from src.core.architect import Architect
 except ImportError as e:
     print(f"❌ IMPORT ERROR: {e}")
     print(f"❌ Make sure the package is installed with: pip install -e .")
@@ -716,6 +721,47 @@ class UnifiedTrainer:
         self.test_runner = TestRunner()
         self.demo_runner = DemoRunner()
         
+        # META-COGNITIVE INTEGRATION - Initialize Governor and Architect
+        self.enable_meta_cognitive = getattr(args, 'enable_meta_cognitive', True)
+        if getattr(args, 'disable_meta_cognitive', False):
+            self.enable_meta_cognitive = False
+        
+        self.governor_only = getattr(args, 'governor_only', False)
+        self.autonomous_evolution = getattr(args, 'architect_autonomous_evolution', False)
+        
+        self.governor = None
+        self.architect = None
+        
+        if self.enable_meta_cognitive:
+            try:
+                # Initialize MetaCognitiveGovernor
+                governor_log = f"governor_decisions_{int(time.time())}.log"
+                self.governor = MetaCognitiveGovernor(log_file=governor_log)
+                
+                # Initialize Architect (unless governor-only mode)
+                if not self.governor_only:
+                    base_path = str(Path(__file__).parent)
+                    self.architect = Architect(
+                        base_path=base_path,
+                        repo_path=base_path
+                    )
+                
+                print("🧠 META-COGNITIVE LAYERS ENABLED:")
+                print("   📊 Governor: Runtime optimization and resource allocation")
+                if self.architect:
+                    print("   🔬 Architect: Safe architectural evolution and improvement")
+                    if self.autonomous_evolution:
+                        print("   🧬 Autonomous Evolution: Enabled")
+                else:
+                    print("   🔬 Architect: Disabled (Governor-only mode)")
+                
+            except Exception as e:
+                print(f"⚠️ Meta-cognitive initialization failed: {e}")
+                print("   Continuing with standard training mode")
+                self.enable_meta_cognitive = False
+                self.governor = None
+                self.architect = None
+        
     def get_salience_mode(self) -> SalienceMode:
         """Convert string to SalienceMode enum."""
         if self.salience == 'lossless':
@@ -845,13 +891,89 @@ class UnifiedTrainer:
                 print(f"\n🚀 LEARNING CYCLE {cycle}/{self.max_learning_cycles}")  # Updated naming
                 print("="*40)
                 
+                # META-COGNITIVE GOVERNOR CONSULTATION
+                session_config_override = None
+                if self.enable_meta_cognitive and self.governor and cycle > 1:
+                    # Consult Governor for configuration optimization
+                    current_performance = {
+                        'win_rate': self.best_performance.get('win_rate', 0.0),
+                        'average_score': self.best_performance.get('avg_score', 0.0),
+                        'cycle': cycle,
+                        'games_completed': len(training_games)
+                    }
+                    
+                    current_config = {
+                        'salience_mode': salience_mode.value,
+                        'max_actions_per_session': self.max_actions_per_session,
+                        'enable_contrarian_mode': self.enable_contrarian_mode,
+                        'mastery_sessions': self.mastery_sessions,
+                        'target_win_rate': self.target_win_rate
+                    }
+                    
+                    # Get Governor recommendation
+                    recommendation = self.governor.get_recommended_configuration(
+                        puzzle_type="mixed_arc_tasks",
+                        current_performance=current_performance,
+                        current_config=current_config
+                    )
+                    
+                    if recommendation and recommendation.confidence > 0.6:
+                        print(f"🧠 GOVERNOR RECOMMENDATION:")
+                        print(f"   Type: {recommendation.type.value}")
+                        print(f"   Confidence: {recommendation.confidence:.1%}")
+                        print(f"   Rationale: {recommendation.rationale}")
+                        print(f"   Changes: {recommendation.configuration_changes}")
+                        
+                        # Apply recommended changes
+                        session_config_override = {}
+                        for key, value in recommendation.configuration_changes.items():
+                            if key == 'max_actions_per_session':
+                                session_config_override['max_actions_per_session'] = value
+                                print(f"   📊 Adjusted max actions: {self.max_actions_per_session} → {value}")
+                            elif key == 'enable_contrarian_mode':
+                                session_config_override['enable_contrarian_mode'] = value
+                                print(f"   🔄 Contrarian mode: {self.enable_contrarian_mode} → {value}")
+                            elif key == 'trigger_consolidation':
+                                print(f"   🌙 Governor triggered consolidation")
+                                # Would trigger consolidation in the learning loop
+                        
+                        # Record successful application
+                        if hasattr(self.governor, 'successful_recommendations'):
+                            self.governor.successful_recommendations += 1
+                    
+                    # Record cognitive system activations for monitoring
+                    cycle_cost = CognitiveCost(
+                        compute_units=50.0 * len(training_games),
+                        memory_operations=100,
+                        decision_complexity=3.0,
+                        coordination_overhead=2.0
+                    )
+                    
+                    cycle_benefit = CognitiveBenefit(
+                        win_rate_improvement=max(0, self.best_performance.get('win_rate', 0) - 0.5),
+                        score_improvement=max(0, self.best_performance.get('avg_score', 0) - 40),
+                        learning_efficiency=0.8,
+                        knowledge_transfer=0.1
+                    )
+                    
+                    # Record activations for major systems
+                    self.governor.record_system_activation("continuous_learning_loop", cycle_cost, cycle_benefit)
+                    if salience_mode == SalienceMode.DECAY_COMPRESSION:
+                        self.governor.record_system_activation("salience_system", cycle_cost, cycle_benefit)
+                    if self.enable_contrarian_mode:
+                        self.governor.record_system_activation("contrarian_strategy", cycle_cost, cycle_benefit)
+                
                 try:
                     # Start training session with error handling
+                    # Use Governor overrides if provided
+                    final_max_actions = (session_config_override or {}).get('max_actions_per_session', self.max_actions_per_session)
+                    final_contrarian = (session_config_override or {}).get('enable_contrarian_mode', self.enable_contrarian_mode)
+                    
                     session_id = self.continuous_loop.start_training_session(
                         games=training_games,
                         max_mastery_sessions_per_game=self.mastery_sessions,  # Updated parameter name
-                        max_actions_per_session=self.max_actions_per_session,  # New parameter
-                        enable_contrarian_mode=self.enable_contrarian_mode,  # New parameter
+                        max_actions_per_session=final_max_actions,  # Governor-optimized value
+                        enable_contrarian_mode=final_contrarian,  # Governor-optimized value
                         target_win_rate=min(0.3 + (cycle * 0.05), self.target_win_rate),  # Updated variable name
                         target_avg_score=self.target_score,
                         salience_mode=salience_mode,
@@ -1018,6 +1140,27 @@ class UnifiedTrainer:
                 print(f"   Sleep Cycles: {global_sleep_cycles}")
                 print(f"   Memory Consolidations: {global_memory_ops}")
                 print(f"   Energy Level: {sleep_info.get('current_energy_level', 1.0):.2f}")
+            
+            # META-COGNITIVE STATUS
+            if self.enable_meta_cognitive:
+                print(f"🧠 META-COGNITIVE STATUS:")
+                
+                if self.governor:
+                    gov_status = self.governor.get_system_status()
+                    print(f"   Governor Decisions: {gov_status['total_decisions']}")
+                    print(f"   Governor Success Rate: {gov_status['success_rate']:.1%}")
+                    print(f"   Top Performing Systems: {', '.join(gov_status['top_performers'][:3])}")
+                    if gov_status['underperformers']:
+                        print(f"   Underperforming Systems: {', '.join(gov_status['underperformers'][:2])}")
+                
+                if self.architect:
+                    arch_status = self.architect.get_evolution_status()
+                    print(f"   Architect Generation: {arch_status['generation']}")
+                    print(f"   Mutations Tested: {arch_status['total_mutations_tested']}")
+                    print(f"   Evolution Success Rate: {arch_status['success_rate']:.1%}")
+                    if arch_status['recent_improvements']:
+                        latest = arch_status['recent_improvements'][-1]
+                        print(f"   Latest Improvement: {latest['improvement']:.3f}")
             
             # Check for recent file activity
             recent_files = self._check_recent_file_activity()
@@ -1312,6 +1455,24 @@ Examples:
     parser.add_argument('--verbose', 
                        action='store_true',
                        help='Enable verbose logging (shows moves, memory, decay)')
+    
+    # Meta-cognitive system arguments
+    parser.add_argument('--enable-meta-cognitive',
+                       action='store_true',
+                       default=True,
+                       help='Enable meta-cognitive layers (Governor + Architect)')
+    
+    parser.add_argument('--disable-meta-cognitive',
+                       action='store_true',
+                       help='Disable meta-cognitive layers (standard training only)')
+    
+    parser.add_argument('--governor-only',
+                       action='store_true', 
+                       help='Enable Governor but disable Architect')
+    
+    parser.add_argument('--architect-autonomous-evolution',
+                       action='store_true',
+                       help='Enable autonomous evolution cycles in background')
     
     # Continuous learning mode arguments
     parser.add_argument('--continuous-mode',
