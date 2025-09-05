@@ -1,0 +1,35 @@
+2025-09-05 14:01:30,331 - src.arc_integration.continuous_learning_loop - WARNING - ⚠️ Sleep system dependencies not available: No module named 'core.sleep_cycle'
+2025-09-05 14:01:50,705 - src.core.architect.Architect - ERROR - ❌ Training process failed with code 1
+2025-09-05 14:01:50,705 - src.core.architect.Architect - ERROR - STDERR: \u26a0\ufe0f Sleep system dependencies not available: No module named 'core.sleep_cycle'
+INFO:src.core.meta_cognitive_governor.Governor:Memory pattern optimization enabled - Phase 1 immediate wins
+INFO:src.core.hierarchical_memory_clusterer:\U0001f5c2\ufe0f HierarchicalMemoryClusterer initialized for Phase 2
+INFO:src.core.meta_cognitive_governor.Governor:Hierarchical memory clustering enabled - Phase 2 intelligent clusters
+INFO:src.core.architect_evolution_engine:\U0001f3d7\ufe0f Architect Evolution Engine initialized for Phase 3
+INFO:src.core.architect_evolution_engine:   Autonomous evolution: enabled
+INFO:src.core.architect_evolution_engine:   Loaded 0 existing insights
+INFO:src.core.architect_evolution_engine:   Loaded 0 evolution strategies
+INFO:src.core.meta_cognitive_governor.Governor:Architect Evolution Engine enabled - Phase 3 autonomous evolution
+INFO:src.core.performance_optimization_engine:\u26a1 Initialized 1 adaptive configurations
+INFO:src.core.performance_optimization_engine:\u26a1 Real-time optimization thread started
+INFO:src.core.performance_optimization_engine:\u26a1 Performance Optimization Engine initialized for Phase 4
+INFO:src.core.performance_optimization_engine:   Real-time optimization: enabled
+INFO:src.core.performance_optimization_engine:   Optimization interval: 60.0s
+INFO:src.core.performance_optimization_engine:   Loaded 0 optimization history entries
+INFO:src.core.performance_optimization_engine:   Adaptive configurations: 1
+INFO:src.core.meta_cognitive_governor.Governor:Performance Optimization Engine enabled - Phase 4 performance maximization
+INFO:src.core.meta_cognitive_governor.Governor:\U0001f50d Initialized 37 cognitive system monitors
+INFO:src.core.meta_cognitive_governor.Governor:\U0001f9e0 MetaCognitiveGovernor initialized - Third Brain online
+INFO:__main__:\U0001f9e0 Meta-cognitive Governor (Third Brain) initialized
+INFO:src.core.architect.Architect:Architect memory management enabled
+INFO:src.core.architect.Architect:\u2705 Already on correct branch: Tabula-Rasa-v3
+INFO:src.core.architect.Architect:\u2705 GitIgnore already configured for Architect control
+INFO:src.core.architect.Architect:\U0001f52c Architect initialized - Zeroth Brain online
+INFO:__main__:\U0001f3d7\ufe0f Architect (Zeroth Brain) initialized
+INFO:__main__:\u2705 Core systems initialized successfully
+INFO:__main__:\U0001f680 Starting training mode: quick-validation
+INFO:__main__:\u26a1 Quick Validation Mode - Rapid testing
+INFO:core.adaptive_energy_system:Energy parameters recalculated: threshold=40.0, interval=5.0min, rate=0.6000
+INFO:core.adaptive_energy_system:Session configured - Actions: 500, Time limit: 30 min, Sleep threshold: 40.0, Sleep interval: 5.0 min
+ERROR:__main__:\u274c Continuous learning failed: 'NoneType' object has no attribute 'sleep_trigger_energy' and no __dict__ for setting new attributes
+
+2025-09-05 14:01:51,079 - __main__ - ERROR - ❌ Continuous learning failed: 'NoneType' object has no attribute 'sleep_trigger_energy' and no __dict__ for setting new attributes

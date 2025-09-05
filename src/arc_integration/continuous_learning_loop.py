@@ -43,7 +43,8 @@ from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeigh
 from core.sleep_system import SleepCycle
 from core.agent import AdaptiveLearningAgent
 from core.predictive_core import PredictiveCore
-from core.adaptive_energy_system import AdaptiveEnergySystem, EnergyConfig, EnergySystemIntegration
+# 🔧 CONSOLIDATED: Adaptive energy system now integrated into unified energy system
+# from core.adaptive_energy_system import AdaptiveEnergySystem, EnergyConfig, EnergySystemIntegration
 from goals.goal_system import GoalInventionSystem, GoalPhase
 from core.energy_system import EnergySystem
 from memory.dnc import DNCMemory
@@ -277,7 +278,7 @@ class ContinuousLearningLoop:
         # 🔧 CRITICAL FIX: Enhanced sleep system initialization with better error handling
         try:
             from core.predictive_core import PredictiveCore
-            from core.sleep_cycle import SleepCycle
+            from core.sleep_system import SleepCycle
             
             # Create a minimal predictive core for sleep system (if needed)
             self.sleep_system = SleepCycle(
@@ -304,29 +305,11 @@ class ContinuousLearningLoop:
             logger.info("💡 Will use enhanced fallback sleep system with memory consolidation")
             self.sleep_system = None
         
-        # 🔧 CRITICAL FIX: Optional adaptive energy system (for advanced features only)
-        # WIN RATE-BASED SLEEP FREQUENCY: Sleep more when learning, less when skilled
-        try:
-            energy_config = EnergyConfig(
-                max_energy=100.0,
-                base_depletion_rate=0.05,  # Standardized depletion rate
-                action_based_depletion=0.5,  # Matches primary system action costs
-                sleep_trigger_threshold=40.0,  # Consistent with primary system
-                time_based_sleep_interval=5.0,  # Standardized intervals
-                min_time_interval=2.0,
-                max_time_interval=10.0
-            )
-            
-            self.adaptive_energy = AdaptiveEnergySystem(energy_config)
-            self.energy_integration = EnergySystemIntegration(self, self.adaptive_energy)
-            
-            # IMPORTANT: Use primary energy system as source of truth
-            # Adaptive system provides recommendations only
-            logger.info("✅ Adaptive energy system initialized (advisory mode)")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not initialize adaptive energy system: {e}")
-            self.adaptive_energy = None
-            self.energy_integration = None
+        # 🔧 CONSOLIDATED: Adaptive energy system disabled - using unified energy system instead
+        # The main energy system now handles all adaptive behaviors directly
+        logger.info("✅ Using unified energy system (adaptive features integrated)")
+        self.adaptive_energy = None
+        self.energy_integration = None
         
         # Training state
         self.current_session: Optional[TrainingSession] = None
@@ -653,9 +636,8 @@ class ContinuousLearningLoop:
         # Consume energy from primary system
         self.current_energy = max(0.0, self.current_energy - total_cost)
         
-        # Update primary energy system
-        if hasattr(self.energy_system, 'consume_energy'):
-            self.energy_system.consume_energy(action_cost=base_cost, computation_cost=self.ENERGY_COSTS['computation_base'])
+        # 🔧 CONSOLIDATED: Only use unified energy tracking
+        # self.current_energy is the single source of truth
         
         print(f"⚡ Energy consumed: {total_cost:.2f} (effective={action_effective}, exploration={is_exploration}, repetitive={is_repetitive}) -> {self.current_energy:.1f}/100")
         
@@ -6051,20 +6033,9 @@ class ContinuousLearningLoop:
             compression_threshold=0.15
         )
         
-        # Configure adaptive energy system for this session
-        if self.energy_integration:
-            session_config = {
-                'max_actions_per_session': max_actions_per_session,
-                'estimated_duration_minutes': 30 if max_actions_per_session < 10000 else 60,  # Estimate based on actions
-                'games_count': len(games),
-                'salience_mode': salience_mode,
-                'enable_contrarian_mode': enable_contrarian_mode
-            }
-            
-            # Integrate adaptive energy with session
-            updated_config = self.energy_integration.integrate_with_training_session(session_config)
-            logger.info(f"Adaptive energy configured: threshold={updated_config.get('adaptive_sleep_threshold', 40):.1f}, "
-                       f"interval={updated_config.get('adaptive_sleep_interval', 5):.1f}min")
+        # 🔧 CONSOLIDATED: Using unified energy system configuration
+        logger.info(f"✅ Unified energy system configured: current={self.current_energy:.1f}/100, "
+                   f"sleep_threshold=40.0, energy_costs=standardized")
         
         # Display session startup information
         self._display_session_startup_info(session_id, games, salience_mode)
@@ -6351,10 +6322,10 @@ class ContinuousLearningLoop:
         
         # Partial energy restoration (not full like post-episode)
         if hasattr(self, 'energy_system'):
-            current_energy = getattr(self.energy_system, 'current_energy', 100.0)
-            restored_energy = min(100.0, current_energy + 20.0)  # Small restoration
-            self.energy_system.current_energy = restored_energy
-            logger.info(f"⚡ Energy restored: {current_energy:.2f} → {restored_energy:.2f}")
+            # 🔧 CONSOLIDATED: Use unified energy system
+            restored_energy = min(100.0, self.current_energy + 20.0)  # Small restoration
+            self.current_energy = restored_energy
+            logger.info(f"⚡ Energy restored: {self.current_energy - 20.0:.2f} → {restored_energy:.2f}")
 
     async def _simulate_mid_game_consolidation(self, effective_actions: List[Dict], total_actions: int) -> None:
         """Simulate mid-game consolidation points as if sleep occurred during gameplay.
@@ -6526,20 +6497,24 @@ class ContinuousLearningLoop:
         # Apply success multiplier for memory prioritization
         final_effectiveness = base_effectiveness * success_multiplier
         
-        # Update adaptive energy system with session performance
-        if self.energy_integration:
-            success = session_result.get('success', False)
-            score_improvement = current_score - session_result.get('initial_score', 0)
-            
-            energy_update = self.energy_integration.update_during_training(
-                actions_taken=actions_taken,
-                success=success,
-                score_improvement=score_improvement
-            )
-            
-            # Check if adaptive energy triggered sleep
-            if energy_update.get('sleep_triggered', False):
-                logger.info(f"🌙 Adaptive energy triggered sleep: {energy_update['sleep_reason']}")
+        # 🔧 CONSOLIDATED: Update unified energy system with session performance
+        success = session_result.get('success', False)
+        score_improvement = current_score - session_result.get('initial_score', 0)
+        
+        # Use unified energy consumption system
+        action_effective = success or score_improvement > 0
+        is_exploration = actions_taken > 50  # Consider longer sessions as exploration
+        is_repetitive = actions_taken > 200  # Penalize very long sessions
+        
+        final_energy = self._unified_energy_consumption(
+            action_effective=action_effective,
+            is_exploration=is_exploration, 
+            is_repetitive=is_repetitive
+        )
+        
+        # Check if unified energy system suggests sleep
+        if self._should_trigger_sleep_cycle(actions_taken, final_effectiveness):
+            logger.info(f"🌙 Unified energy system suggests sleep: energy={final_energy:.1f}/100")
         
         return min(final_effectiveness, 5.0)  # Cap but allow high values for wins
     
@@ -8369,6 +8344,12 @@ class ContinuousLearningLoop:
             if not session_data:
                 return {"error": "Failed to start game session", "actions_taken": 0}
             
+            # 🔧 CRITICAL FIX: Initialize frame data from session start
+            initial_frame = session_data.get('frame', [])
+            if initial_frame:
+                self._last_frame = initial_frame
+                print(f"🎯 Initialized frame data: {len(initial_frame)}x{len(initial_frame[0]) if initial_frame else 0}")
+            
             guid = session_data.get('guid')
             current_state = investigation.get('state', 'NOT_STARTED')
             current_score = investigation.get('score', 0)
@@ -8481,11 +8462,25 @@ class ContinuousLearningLoop:
                 else:
                     current_frame_analysis = {}
                 
-                # 🔧 CRITICAL FIX: Get actual frame dimensions for all actions
-                actual_frame = session_data.get('frame', investigation.get('frame', []))
-                if actual_frame and len(actual_frame) > 0:
+                # 🔧 CRITICAL FIX: Get actual frame dimensions from latest action result
+                actual_frame = None
+                
+                # First try to get frame from latest action result (most current)
+                if hasattr(self, '_last_frame') and self._last_frame:
+                    actual_frame = self._last_frame
+                    print(f"🎯 Using frame from last action result")
+                # Fallback to session data if no recent frame
+                elif session_data.get('frame'):
+                    actual_frame = session_data.get('frame', [])
+                    print(f"🎯 Using frame from session data")
+                # Last resort: investigation data
+                elif investigation.get('frame'):
+                    actual_frame = investigation.get('frame', [])
+                    print(f"🎯 Using frame from investigation data")
+                
+                if actual_frame and len(actual_frame) > 0 and len(actual_frame[0]) > 0:
                     actual_height = len(actual_frame)
-                    actual_width = len(actual_frame[0]) if len(actual_frame[0]) > 0 else 64
+                    actual_width = len(actual_frame[0])
                     actual_grid_dims = (actual_width, actual_height)
                     print(f"🎯 Using actual frame dimensions: {actual_grid_dims}")
                 else:
@@ -8541,6 +8536,13 @@ class ContinuousLearningLoop:
                     # CRITICAL: Extract available actions from API response
                     new_available = action_result.get('available_actions', available_actions)
                     
+                    # 🔧 CRITICAL FIX: Update frame data from action result
+                    new_frame = action_result.get('frame') or action_result.get('grid', [])
+                    if new_frame:
+                        session_data['frame'] = new_frame
+                        self._last_frame = new_frame  # Keep latest frame for dimension extraction
+                        print(f"🎯 Updated frame data: {len(new_frame)}x{len(new_frame[0]) if new_frame else 0}")
+                    
                     # Track effectiveness
                     score_improvement = new_score - current_score
                     was_effective = (score_improvement > 0 or new_state in ['WIN'])
@@ -8594,10 +8596,8 @@ class ContinuousLearningLoop:
                         energy_restoration = 25.0
                         self.current_energy = min(100.0, self.current_energy + energy_restoration)
                         print(f"⚡ Energy restored: +{energy_restoration:.1f} → {self.current_energy:.1f}/100")
-                            self.energy_system.current_energy = restored_energy
-                            print(f"⚡ Energy restored to: {restored_energy:.1f}/100")
-                            print(f"⚡ Energy restored: {remaining_energy:.2f} → {restored_energy:.2f}")
                     
+                    # Track effectiveness for analysis
                     if was_effective:
                         effective_actions.append({
                             'action_number': selected_action,
@@ -8833,7 +8833,7 @@ class ContinuousLearningLoop:
                 if not hasattr(self.sleep_system, 'is_sleeping'):
                     logger.warning("Sleep system not properly initialized, using fallback")
                     await asyncio.sleep(0.5)
-                    return self._fallback_sleep_result()
+                    return await self._fallback_sleep_result()
                 
                 # Enter sleep mode
                 fake_agent_state = type('AgentState', (), {'energy': self.current_energy})()
@@ -8895,7 +8895,7 @@ class ContinuousLearningLoop:
                     'diversification_strategies_created': sleep_result.get('diversification_strategies_created', 0)
                 }
             else:
-                return self._fallback_sleep_result()
+                return await self._fallback_sleep_result()
                 
         except Exception as e:
             logger.error(f"Enhanced sleep cycle error: {e}")
@@ -8905,7 +8905,7 @@ class ContinuousLearningLoop:
                 'fallback_executed': True
             }
     
-    def _fallback_sleep_result(self) -> Dict[str, Any]:
+    async def _fallback_sleep_result(self) -> Dict[str, Any]:
         """🔧 CRITICAL FIX: Enhanced fallback sleep with memory consolidation when advanced system is unavailable."""
         
         print(f"🌙 ENHANCED FALLBACK SLEEP STARTING...")

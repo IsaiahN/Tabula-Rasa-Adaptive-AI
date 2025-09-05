@@ -375,11 +375,13 @@ class EnergySystemIntegration:
         )
         
         # Override sleep system parameters if available
-        if hasattr(self.training_loop, 'sleep_system'):
+        if hasattr(self.training_loop, 'sleep_system') and self.training_loop.sleep_system is not None:
             sleep_system = self.training_loop.sleep_system
             sleep_system.sleep_trigger_energy = self.adaptive_energy.current_sleep_threshold
             
             logger.info(f"Sleep system threshold updated to: {sleep_system.sleep_trigger_energy}")
+        else:
+            logger.info("Sleep system not available, skipping threshold update")
         
         self.integration_active = True
         
@@ -410,7 +412,7 @@ class EnergySystemIntegration:
         # Check if sleep should be triggered
         should_sleep, reason = self.adaptive_energy.should_sleep()
         
-        if should_sleep and hasattr(self.training_loop, 'sleep_system'):
+        if should_sleep and hasattr(self.training_loop, 'sleep_system') and self.training_loop.sleep_system is not None:
             logger.info(f"Adaptive energy system triggering sleep: {reason}")
             sleep_info = self.adaptive_energy.trigger_sleep()
             

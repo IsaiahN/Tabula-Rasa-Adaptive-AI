@@ -1,0 +1,2 @@
+2025-09-05 14:05:16,337 - src.arc_integration.continuous_learning_loop - WARNING - ⚠️ Sleep system dependencies not available: No module named 'core.sleep_cycle'
+2025-09-05 14:06:52,929 - src.core.architect.Architect - WARNING - ⏰ Training test timed out, terminating process
