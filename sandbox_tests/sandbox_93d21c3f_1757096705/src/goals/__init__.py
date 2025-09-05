@@ -1,1 +1,0 @@
-# Goal invention and management systems
