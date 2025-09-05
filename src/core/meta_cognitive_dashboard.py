@@ -200,9 +200,27 @@ class MetaCognitiveDashboard:
         timestamp = time.time()
         
         for metric_name, value in metrics.items():
-            # Ensure value is a float to prevent type errors
+            # Enhanced value processing to handle different data types
             try:
-                float_value = float(value) if value is not None else 0.0
+                # Handle string status values specially
+                if isinstance(value, str):
+                    if value.lower() in ['starting', 'started', 'begin']:
+                        float_value = 1.0  # Starting state
+                    elif value.lower() in ['completed', 'finished', 'done', 'success']:
+                        float_value = 100.0  # Completed state
+                    elif value.lower() in ['failed', 'error', 'failed']:
+                        float_value = -1.0  # Error state
+                    elif value.lower() in ['running', 'active', 'in_progress']:
+                        float_value = 50.0  # Active state
+                    else:
+                        # Try to extract numeric value from string
+                        import re
+                        numbers = re.findall(r'-?\d+\.?\d*', str(value))
+                        float_value = float(numbers[0]) if numbers else 0.0
+                elif isinstance(value, bool):
+                    float_value = 1.0 if value else 0.0
+                else:
+                    float_value = float(value) if value is not None else 0.0
             except (ValueError, TypeError):
                 self.logger.warning(f"Invalid metric value for {metric_name}: {value}, using 0.0")
                 float_value = 0.0
@@ -376,37 +394,54 @@ class MetaCognitiveDashboard:
         print("="*80)
     
     def _initialize_gui(self):
-        """Initialize GUI-based display."""
-        self.gui_root = tk.Tk()
-        self.gui_root.title("Meta-Cognitive Dashboard")
-        self.gui_root.geometry("1200x800")
-        
-        # Create notebook for tabs
-        notebook = ttk.Notebook(self.gui_root)
-        notebook.pack(fill='both', expand=True, padx=10, pady=10)
-        
-        # Overview tab
-        overview_frame = ttk.Frame(notebook)
-        notebook.add(overview_frame, text="Overview")
-        self._create_overview_tab(overview_frame)
-        
-        # Decisions tab  
-        decisions_frame = ttk.Frame(notebook)
-        notebook.add(decisions_frame, text="Decisions")
-        self._create_decisions_tab(decisions_frame)
-        
-        # Performance tab
-        performance_frame = ttk.Frame(notebook)
-        notebook.add(performance_frame, text="Performance")
-        self._create_performance_tab(performance_frame)
-        
-        # Events tab
-        events_frame = ttk.Frame(notebook)
-        notebook.add(events_frame, text="Events")
-        self._create_events_tab(events_frame)
-        
-        # Start GUI update loop
-        self.gui_root.after(1000, self._update_gui)
+        """Initialize GUI-based display with enhanced error handling."""
+        try:
+            self.gui_root = tk.Tk()
+            self.gui_root.title("Meta-Cognitive Dashboard")
+            self.gui_root.geometry("1200x800")
+            
+            # Set up proper encoding for Windows
+            if os.name == 'nt':  # Windows
+                try:
+                    self.gui_root.tk.call('encoding', 'system', 'utf-8')
+                except:
+                    pass  # Ignore if encoding setting fails
+            
+            # Create notebook for tabs
+            notebook = ttk.Notebook(self.gui_root)
+            notebook.pack(fill='both', expand=True, padx=10, pady=10)
+            
+            # Overview tab
+            overview_frame = ttk.Frame(notebook)
+            notebook.add(overview_frame, text="Overview")
+            self._create_overview_tab(overview_frame)
+            
+            # Decisions tab  
+            decisions_frame = ttk.Frame(notebook)
+            notebook.add(decisions_frame, text="Decisions")
+            self._create_decisions_tab(decisions_frame)
+            
+            # Performance tab
+            performance_frame = ttk.Frame(notebook)
+            notebook.add(performance_frame, text="Performance")
+            self._create_performance_tab(performance_frame)
+            
+            # Events tab
+            events_frame = ttk.Frame(notebook)
+            notebook.add(events_frame, text="Events")
+            self._create_events_tab(events_frame)
+            
+            # Start GUI update loop
+            self.gui_root.after(1000, self._update_gui)
+            
+            self.logger.info("GUI dashboard initialized successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to initialize GUI: {e}")
+            # Fallback to console mode
+            self.mode = DashboardMode.CONSOLE
+            self._initialize_console()
+            raise
     
     def _create_overview_tab(self, parent):
         """Create overview tab content."""
@@ -517,125 +552,180 @@ class MetaCognitiveDashboard:
         self.last_update = time.time()
     
     def _update_console(self):
-        """Update console display."""
-        # Clear screen (works on Windows and Unix)
-        os.system('cls' if os.name == 'nt' else 'clear')
-        
-        print("\n" + "="*80)
-        print("🧠 META-COGNITIVE DASHBOARD")
-        print("="*80)
-        
-        # Session info
-        if self.current_session_id:
-            duration = time.time() - self.session_start_time if self.session_start_time else 0
-            print(f"📊 Session: {self.current_session_id}")
-            print(f"⏱️  Duration: {duration:.1f}s")
-            print()
-        
-        # Quick statistics
-        summary = self.get_performance_summary(hours=1)
-        
-        print("📈 QUICK STATISTICS (Last Hour)")
-        print("-" * 40)
-        print(f"Governor Decisions: {summary['decisions']['governor']}")
-        print(f"Architect Evolutions: {summary['decisions']['architect']}")
-        print(f"Average Confidence: {summary['decisions']['average_confidence']:.2f}")
-        print(f"Total Events: {summary['events']['total']}")
-        print()
-        
-        # Recent events
-        print("📋 RECENT EVENTS")
-        print("-" * 40)
-        recent_events = list(self.events)[-5:]  # Last 5 events
-        
-        if recent_events:
-            for event in reversed(recent_events):
-                timestamp = datetime.fromtimestamp(event.timestamp).strftime("%H:%M:%S")
-                importance_indicator = "🔥" if event.importance > 0.7 else "⚡" if event.importance > 0.4 else "📌"
-                print(f"{timestamp} {importance_indicator} {event.source}: {event.title}")
-                if len(event.description) < 60:
-                    print(f"         {event.description}")
-                else:
-                    print(f"         {event.description[:57]}...")
-                print()
-        else:
-            print("No events recorded yet")
-        
-        print("-" * 80)
-        print(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
+        """Update console display with enhanced Windows compatibility."""
+        try:
+            # Clear screen (works on Windows and Unix)
+            os.system('cls' if os.name == 'nt' else 'clear')
+            
+            # Use safe printing for Windows compatibility
+            def safe_console_print(text):
+                try:
+                    print(text, flush=False)
+                except (UnicodeEncodeError, OSError):
+                    # Fallback for Windows encoding issues
+                    safe_text = text.encode('ascii', errors='replace').decode('ascii')
+                    print(safe_text, flush=False)
+            
+            safe_console_print("\n" + "="*80)
+            safe_console_print("🧠 META-COGNITIVE DASHBOARD")
+            safe_console_print("="*80)
+            
+            # Session info
+            if self.current_session_id:
+                duration = time.time() - self.session_start_time if self.session_start_time else 0
+                safe_console_print(f"📊 Session: {self.current_session_id}")
+                safe_console_print(f"⏱️  Duration: {duration:.1f}s")
+                safe_console_print("")
+            
+            # Quick statistics
+            summary = self.get_performance_summary(hours=1)
+            
+            safe_console_print("📈 QUICK STATISTICS (Last Hour)")
+            safe_console_print("-" * 40)
+            safe_console_print(f"Governor Decisions: {summary['decisions']['governor']}")
+            safe_console_print(f"Architect Evolutions: {summary['decisions']['architect']}")
+            safe_console_print(f"Average Confidence: {summary['decisions']['average_confidence']:.2f}")
+            safe_console_print(f"Total Events: {summary['events']['total']}")
+            safe_console_print("")
+            
+            # Recent events
+            safe_console_print("📋 RECENT EVENTS")
+            safe_console_print("-" * 40)
+            recent_events = list(self.events)[-5:]  # Last 5 events
+            
+            if recent_events:
+                for event in reversed(recent_events):
+                    timestamp = datetime.fromtimestamp(event.timestamp).strftime("%H:%M:%S")
+                    importance_indicator = "🔥" if event.importance > 0.7 else "⚡" if event.importance > 0.4 else "📌"
+                    
+                    # Safe title and description handling
+                    safe_title = str(event.title).encode('ascii', errors='replace').decode('ascii')
+                    safe_desc = str(event.description).encode('ascii', errors='replace').decode('ascii')
+                    
+                    safe_console_print(f"{timestamp} {importance_indicator} {event.source}: {safe_title}")
+                    if len(safe_desc) < 60:
+                        safe_console_print(f"         {safe_desc}")
+                    else:
+                        safe_console_print(f"         {safe_desc[:57]}...")
+                    safe_console_print("")
+            else:
+                safe_console_print("No events recorded yet")
+            
+            safe_console_print("-" * 80)
+            safe_console_print(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
+            
+        except Exception as e:
+            # Ultimate fallback for any console update issues
+            try:
+                print(f"Dashboard update error: {e}")
+                print("Meta-Cognitive Dashboard is running...")
+                print(f"Session: {self.current_session_id or 'None'}")
+                print(f"Time: {datetime.now().strftime('%H:%M:%S')}")
+            except:
+                pass  # Silent fallback if even basic printing fails
     
     def _update_gui(self):
-        """Update GUI components."""
+        """Update GUI components with enhanced error handling."""
         if not self.gui_root:
             return
         
         try:
             # Update session info
             if self.current_session_id:
-                self.gui_components['session_id'].config(text=f"Session: {self.current_session_id}")
+                safe_session_id = str(self.current_session_id).encode('ascii', errors='replace').decode('ascii')
+                self.gui_components['session_id'].config(text=f"Session: {safe_session_id}")
                 
                 if self.session_start_time:
                     duration = time.time() - self.session_start_time
                     self.gui_components['session_duration'].config(text=f"Duration: {duration:.1f}s")
             
-            # Update quick stats
-            summary = self.get_performance_summary(hours=1)
-            stats = [
-                summary['decisions']['governor'],
-                summary['decisions']['architect'], 
-                len([m for m in self.metrics if m.metric_type == MetricType.PERFORMANCE]),
-                len([e for e in self.events if 'LEARNING' in e.event_type])
-            ]
+            # Update quick stats with safe value handling
+            try:
+                summary = self.get_performance_summary(hours=1)
+                stats = [
+                    summary['decisions']['governor'],
+                    summary['decisions']['architect'], 
+                    len([m for m in self.metrics if m.metric_type == MetricType.PERFORMANCE]),
+                    len([e for e in self.events if 'LEARNING' in e.event_type])
+                ]
+                
+                for i, stat in enumerate(stats):
+                    if f'stat_{i}' in self.gui_components:
+                        # Ensure stat is safely displayable
+                        safe_stat = str(stat) if stat is not None else "0"
+                        self.gui_components[f'stat_{i}'].config(text=safe_stat)
+            except Exception as stats_error:
+                self.logger.warning(f"Failed to update stats: {stats_error}")
             
-            for i, stat in enumerate(stats):
-                if f'stat_{i}' in self.gui_components:
-                    self.gui_components[f'stat_{i}'].config(text=str(stat))
-            
-            # Update activity log
+            # Update activity log with safe text handling
             if 'activity_log' in self.gui_components:
-                log_widget = self.gui_components['activity_log']
-                
-                # Add recent events
-                recent_events = list(self.events)[-3:]  # Last 3 events
-                current_content = log_widget.get('1.0', tk.END)
-                
-                for event in recent_events:
-                    timestamp = datetime.fromtimestamp(event.timestamp).strftime("%H:%M:%S")
-                    log_line = f"[{timestamp}] {event.source}: {event.title}\n"
+                try:
+                    log_widget = self.gui_components['activity_log']
                     
-                    if log_line not in current_content:
-                        log_widget.insert(tk.END, log_line)
-                        log_widget.see(tk.END)
-                
-                # Keep log manageable
-                lines = log_widget.get('1.0', tk.END).split('\n')
-                if len(lines) > 100:
-                    log_widget.delete('1.0', f'{len(lines)-50}.0')
+                    # Add recent events safely
+                    recent_events = list(self.events)[-3:]  # Last 3 events
+                    current_content = log_widget.get('1.0', tk.END)
+                    
+                    for event in recent_events:
+                        timestamp = datetime.fromtimestamp(event.timestamp).strftime("%H:%M:%S")
+                        
+                        # Safe text handling for GUI
+                        safe_source = str(event.source).encode('ascii', errors='replace').decode('ascii')
+                        safe_title = str(event.title).encode('ascii', errors='replace').decode('ascii')
+                        log_line = f"[{timestamp}] {safe_source}: {safe_title}\n"
+                        
+                        if log_line not in current_content:
+                            log_widget.insert(tk.END, log_line)
+                            log_widget.see(tk.END)
+                    
+                    # Keep log manageable
+                    lines = log_widget.get('1.0', tk.END).split('\n')
+                    if len(lines) > 100:
+                        log_widget.delete('1.0', f'{len(lines)-50}.0')
+                except Exception as log_error:
+                    self.logger.warning(f"Failed to update activity log: {log_error}")
             
-            # Update decision tree
+            # Update decision tree with safe data handling
             if 'decision_tree' in self.gui_components:
-                tree = self.gui_components['decision_tree']
-                
-                # Clear and repopulate with recent decisions
-                for item in tree.get_children():
-                    tree.delete(item)
-                
-                recent_decisions = list(self.decision_history)[-20:]  # Last 20 decisions
-                for decision in reversed(recent_decisions):
-                    timestamp = datetime.fromtimestamp(decision['timestamp']).strftime("%H:%M:%S")
-                    tree.insert('', 0, values=(
-                        timestamp,
-                        decision['source'],
-                        decision['type'],
-                        f"{decision['confidence']:.2f}",
-                        str(decision.get('context', {}))[:30] + "..."
-                    ))
+                try:
+                    tree = self.gui_components['decision_tree']
+                    
+                    # Clear and repopulate with recent decisions
+                    for item in tree.get_children():
+                        tree.delete(item)
+                    
+                    recent_decisions = list(self.decision_history)[-20:]  # Last 20 decisions
+                    for decision in reversed(recent_decisions):
+                        timestamp = datetime.fromtimestamp(decision['timestamp']).strftime("%H:%M:%S")
+                        
+                        # Safe value extraction and display
+                        safe_source = str(decision.get('source', 'Unknown')).encode('ascii', errors='replace').decode('ascii')
+                        safe_type = str(decision.get('type', 'Unknown')).encode('ascii', errors='replace').decode('ascii')
+                        safe_confidence = f"{decision.get('confidence', 0.0):.2f}"
+                        safe_context = str(decision.get('context', {}))[:30] + "..."
+                        
+                        tree.insert('', 0, values=(
+                            timestamp,
+                            safe_source,
+                            safe_type,
+                            safe_confidence,
+                            safe_context
+                        ))
+                except Exception as tree_error:
+                    self.logger.warning(f"Failed to update decision tree: {tree_error}")
             
             # Schedule next update
-            self.gui_root.after(2000, self._update_gui)
+            if self.gui_root:
+                self.gui_root.after(2000, self._update_gui)
             
         except Exception as e:
             self.logger.error(f"Error updating GUI: {e}")
+            # Try to continue with basic functionality
+            try:
+                if self.gui_root:
+                    self.gui_root.after(5000, self._update_gui)  # Retry in 5 seconds
+            except:
+                pass  # Silent failure for scheduling
     
     def _notify_metric_update(self, metric: DashboardMetric):
         """Notify about metric updates."""
@@ -652,11 +742,25 @@ class MetaCognitiveDashboard:
                 self.logger.error(f"Error notifying event subscriber: {e}")
     
     def run_gui(self):
-        """Run the GUI main loop (blocking)."""
+        """Run the GUI main loop (blocking) with enhanced error handling."""
         if self.mode == DashboardMode.GUI and self.gui_root:
-            self.gui_root.mainloop()
+            try:
+                self.logger.info("Starting GUI main loop...")
+                self.gui_root.mainloop()
+            except Exception as e:
+                self.logger.error(f"GUI main loop error: {e}")
+                # Try to recover or fallback to console mode
+                try:
+                    self.mode = DashboardMode.CONSOLE
+                    self._initialize_console()
+                    self.logger.info("Fell back to console mode after GUI error")
+                except Exception as fallback_error:
+                    self.logger.error(f"Fallback to console failed: {fallback_error}")
         else:
-            self.logger.warning("GUI mode not available or not initialized")
+            self.logger.warning("GUI mode not available or not initialized - use console mode instead")
+            if self.mode != DashboardMode.CONSOLE:
+                self.mode = DashboardMode.CONSOLE
+                self._initialize_console()
     
     def shutdown(self):
         """Gracefully shutdown the dashboard."""
