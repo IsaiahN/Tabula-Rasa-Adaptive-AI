@@ -1927,11 +1927,23 @@ class ContinuousLearningLoop:
                                         
                                         if frame_valid:
                                             try:
-                                                # Handle nested list format
-                                                if isinstance(current_frame[y], list):
-                                                    clicked_color = current_frame[y][x]
+                                                # Handle nested list format and ensure we get an integer color value
+                                                raw_color = current_frame[y][x]
+                                                
+                                                # 🔧 CRITICAL FIX: Ensure clicked_color is always an integer
+                                                if isinstance(raw_color, list):
+                                                    # If it's a list, take the first element or convert appropriately
+                                                    clicked_color = raw_color[0] if raw_color else 0
+                                                elif isinstance(raw_color, (int, float)):
+                                                    clicked_color = int(raw_color)
                                                 else:
-                                                    clicked_color = current_frame[y][x]
+                                                    # Fallback: convert to string then to int, or use 0
+                                                    try:
+                                                        clicked_color = int(str(raw_color))
+                                                    except (ValueError, TypeError):
+                                                        clicked_color = 0
+                                                        
+                                                print(f"🔍 COLOR EXTRACTION: raw_color={raw_color} (type={type(raw_color)}) -> clicked_color={clicked_color} (type={type(clicked_color)})")
                                                 
                                                 # Calculate frame changes for exploration record
                                                 frame_changes = {}
@@ -2409,8 +2421,58 @@ class ContinuousLearningLoop:
         return explore_x, explore_y
     
     def _generate_exploration_coordinates(self, grid_dimensions: Tuple[int, int], game_id: str) -> Tuple[int, int]:
-        """Generate systematic exploration coordinates for ACTION6 when no visual targets found."""
+        """🔧 ENHANCED: Generate systematic exploration coordinates with stuck coordinate avoidance."""
         grid_width, grid_height = grid_dimensions
+        
+        # 🔧 CRITICAL FIX: Integrate stuck coordinate avoidance from frame analyzer
+        # Check if frame analyzer has coordinate avoidance data
+        if hasattr(self.frame_analyzer, 'should_avoid_coordinate'):
+            print(f"🛡️ Using coordinate avoidance system for exploration")
+            
+            # Try to get coordinates that avoid stuck areas
+            max_attempts = 20
+            attempt = 0
+            
+            while attempt < max_attempts:
+                # Generate candidate coordinates using various strategies
+                if attempt < 4:
+                    # Try corners first (often contain important elements)
+                    corners = [(5, 5), (grid_width-6, 5), (5, grid_height-6), (grid_width-6, grid_height-6)]
+                    if attempt < len(corners):
+                        candidate_x, candidate_y = corners[attempt]
+                    else:
+                        candidate_x, candidate_y = grid_width // 2, grid_height // 2
+                elif attempt < 8:
+                    # Try edges (often contain controls)
+                    edges = [(grid_width//4, 2), (grid_width*3//4, 2), 
+                            (2, grid_height//2), (grid_width-3, grid_height//2)]
+                    edge_idx = (attempt - 4) % len(edges)
+                    candidate_x, candidate_y = edges[edge_idx]
+                else:
+                    # Random exploration avoiding stuck areas
+                    import random
+                    candidate_x = random.randint(1, grid_width - 2)
+                    candidate_y = random.randint(1, grid_height - 2)
+                
+                # Check if this coordinate should be avoided
+                if not self.frame_analyzer.should_avoid_coordinate(candidate_x, candidate_y):
+                    print(f"✅ Selected non-stuck coordinate: ({candidate_x},{candidate_y}) after {attempt + 1} attempts")
+                    return (candidate_x, candidate_y)
+                else:
+                    print(f"⚠️ Avoiding stuck coordinate: ({candidate_x},{candidate_y}) - attempt {attempt + 1}")
+                
+                attempt += 1
+            
+            # If all attempts failed, use emergency diversification
+            if hasattr(self.frame_analyzer, 'get_emergency_diversification_target'):
+                emergency_coord = self.frame_analyzer.get_emergency_diversification_target(
+                    [], grid_dimensions  # Empty frame for now, focus on coordinate avoidance
+                )
+                print(f"🚨 Using emergency diversification target: {emergency_coord}")
+                return emergency_coord
+        
+        # Fallback to original systematic exploration if no avoidance system available
+        print(f"⚠️ No coordinate avoidance available, using basic systematic exploration")
         
         # Get exploration history for this game
         if not hasattr(self, 'action6_exploration_history'):
@@ -2691,7 +2753,7 @@ class ContinuousLearningLoop:
                 if len(self._last_selected_actions) > 50:
                     self._last_selected_actions = self._last_selected_actions[-50:]
                 return 6
-            elif action6_final_score > 0.4:  # High threshold for choosing ACTION6 over simple actions
+            elif action6_final_score > 0.15:  # 🔧 REDUCED THRESHOLD: Lower barrier for ACTION6 selection
                 print(f"🎯 ACTION6 HIGH PRIORITY - Visual targeting score: {action6_final_score:.3f}")
                 # Track selected actions for loop detection
                 if not hasattr(self, '_last_selected_actions'):
@@ -2700,7 +2762,7 @@ class ContinuousLearningLoop:
                 if len(self._last_selected_actions) > 50:
                     self._last_selected_actions = self._last_selected_actions[-50:]
                 return 6  
-            elif progress_stagnant and action6_final_score > 0.1:
+            elif progress_stagnant and action6_final_score > 0.05:  # 🔧 LOWER STAGNATION THRESHOLD
                 print(f"🔄 PROGRESS STAGNANT - Using ACTION6 as visual reset (score: {action6_final_score:.3f})")
                 # Track selected actions for loop detection
                 if not hasattr(self, '_last_selected_actions'):
@@ -2887,34 +2949,36 @@ class ContinuousLearningLoop:
 
     def _calculate_action6_strategic_score(self, current_action_count: int, progress_stagnant: bool) -> float:
         """
-        Calculate strategic score for ACTION 6 based on your insights.
+        🔧 ENHANCED: Calculate strategic score for ACTION 6 with more balanced usage.
         
-        ACTION 6 should only be used when:
-        1. Progress has stagnated (no improvement for several actions)
-        2. Other actions have been tried sufficiently
-        3. Sufficient cooldown has passed since last ACTION 6
-        4. As a strategic mini-reset tool
+        ACTION 6 should be used when:
+        1. Simple actions aren't making sufficient progress
+        2. Visual targeting might be more effective 
+        3. As part of systematic exploration strategy
+        4. When game seems to require coordinate-based interaction
         """
         strategy = self.available_actions_memory['action6_strategy']
         
-        # Base score is extremely low - ACTION 6 is strongly discouraged
-        base_score = 0.01  # Reduced from 0.1
+        # 🔧 CRITICAL FIX: More balanced base score for ACTION6
+        base_score = 0.3 if progress_stagnant else 0.15  # Much higher base score
         
-        # Check if we're in emergency mode (truly stuck)
+        # Give ACTION6 a fair chance even when progress is being made
         if not progress_stagnant:
-            return 0.001  # Almost never use if progress is being made
+            base_score = 0.1  # Still allow ACTION6 during normal gameplay
         
-        # Check minimum actions before considering ACTION 6
+        # 🔧 REDUCED RESTRICTIONS: More lenient usage requirements
         actions_since_start = current_action_count
-        if actions_since_start < strategy['min_actions_before_use']:
-            return 0.001  # Too early to use ACTION 6
+        min_actions_threshold = max(5, strategy['min_actions_before_use'] // 3)  # Reduced from 15 to 5
+        if actions_since_start < min_actions_threshold:
+            return 0.05  # Still available but with lower priority
         
-        # Check cooldown period
+        # 🔧 REDUCED COOLDOWN: More frequent ACTION6 usage
         actions_since_last_action6 = current_action_count - strategy['last_action6_used']
-        if actions_since_last_action6 < strategy['action6_cooldown']:
-            return 0.001  # Still in cooldown
+        cooldown_threshold = max(2, strategy['action6_cooldown'] // 2)  # Reduced cooldown
+        if actions_since_last_action6 < cooldown_threshold:
+            return 0.1  # Available but with penalty, not completely blocked
         
-        # Check stagnation duration
+        # Stagnation analysis - bonus for trying ACTION6 when stuck
         actions_since_progress = current_action_count - strategy['last_progress_action']
         if actions_since_progress < strategy['progress_stagnation_threshold']:
             return 0.001  # Not stuck long enough
@@ -2935,12 +2999,25 @@ class ContinuousLearningLoop:
 
     def _is_progress_stagnant(self, current_action_count: int) -> bool:
         """
-        Determine if progress has stagnated based on recent action effectiveness.
+        🔧 ENHANCED: Determine if progress has stagnated with better detection.
         """
         strategy = self.available_actions_memory['action6_strategy']
         actions_since_progress = current_action_count - strategy['last_progress_action']
         
-        return actions_since_progress >= strategy['progress_stagnation_threshold']
+        # 🔧 SMARTER STAGNATION DETECTION: Consider both time and action diversity
+        basic_stagnation = actions_since_progress >= strategy['progress_stagnation_threshold']
+        
+        # Also check if we're repeating the same actions without progress
+        if hasattr(self, '_last_selected_actions') and len(self._last_selected_actions) >= 6:
+            recent_actions = self._last_selected_actions[-6:]
+            unique_actions = len(set(recent_actions))
+            action_diversity_low = unique_actions <= 2  # Only 1-2 different actions used
+            
+            # If low diversity AND no recent progress, consider stagnant even if time threshold not met
+            if action_diversity_low and actions_since_progress >= (strategy['progress_stagnation_threshold'] // 2):
+                return True
+        
+        return basic_stagnation
 
     def _update_action_relevance_scores(self):
         """
@@ -8462,7 +8539,7 @@ class ContinuousLearningLoop:
                 else:
                     current_frame_analysis = {}
                 
-                # 🔧 CRITICAL FIX: Get actual frame dimensions from latest action result
+                # 🔧 CRITICAL FIX: Get actual frame dimensions from latest action result with proper structure handling
                 actual_frame = None
                 
                 # First try to get frame from latest action result (most current)
@@ -8478,11 +8555,29 @@ class ContinuousLearningLoop:
                     actual_frame = investigation.get('frame', [])
                     print(f"🎯 Using frame from investigation data")
                 
-                if actual_frame and len(actual_frame) > 0 and len(actual_frame[0]) > 0:
-                    actual_height = len(actual_frame)
-                    actual_width = len(actual_frame[0])
-                    actual_grid_dims = (actual_width, actual_height)
-                    print(f"🎯 Using actual frame dimensions: {actual_grid_dims}")
+                # 🔧 CRITICAL FIX: Proper frame dimension extraction that handles 2D grid structure
+                if actual_frame and isinstance(actual_frame, list) and len(actual_frame) > 0:
+                    if isinstance(actual_frame[0], list) and len(actual_frame[0]) > 0:
+                        # Standard 2D grid: [[row1], [row2], ...]
+                        actual_height = len(actual_frame)
+                        actual_width = len(actual_frame[0])
+                        actual_grid_dims = (actual_width, actual_height)  # (width, height) format
+                        print(f"🎯 Using actual frame dimensions: {actual_grid_dims} (W×H)")
+                    elif isinstance(actual_frame[0], (int, float)):
+                        # Flat list structure - try to determine dimensions
+                        total_elements = len(actual_frame)
+                        # Assume square-ish grid
+                        side_length = int(total_elements ** 0.5)
+                        if side_length * side_length == total_elements:
+                            actual_grid_dims = (side_length, side_length)
+                            print(f"🎯 Reconstructed square frame dimensions: {actual_grid_dims} (W×H) from {total_elements} elements")
+                        else:
+                            # Fallback for non-square flat structure
+                            actual_grid_dims = (64, total_elements // 64) if total_elements >= 64 else (total_elements, 1)
+                            print(f"🎯 Estimated frame dimensions: {actual_grid_dims} (W×H) from {total_elements} elements")
+                    else:
+                        actual_grid_dims = (64, 64)  # Fallback for unknown structure
+                        print(f"⚠️ Unknown frame structure, using fallback dimensions: {actual_grid_dims}")
                 else:
                     actual_grid_dims = (64, 64)  # Fallback only if no frame data
                     print(f"⚠️ No frame data available, using fallback dimensions: {actual_grid_dims}")
@@ -8536,12 +8631,19 @@ class ContinuousLearningLoop:
                     # CRITICAL: Extract available actions from API response
                     new_available = action_result.get('available_actions', available_actions)
                     
-                    # 🔧 CRITICAL FIX: Update frame data from action result
+                    # 🔧 CRITICAL FIX: Update frame data from action result with proper dimension handling
                     new_frame = action_result.get('frame') or action_result.get('grid', [])
                     if new_frame:
                         session_data['frame'] = new_frame
                         self._last_frame = new_frame  # Keep latest frame for dimension extraction
-                        print(f"🎯 Updated frame data: {len(new_frame)}x{len(new_frame[0]) if new_frame else 0}")
+                        
+                        # 🔧 CRITICAL FIX: Proper frame dimension calculation and display
+                        if isinstance(new_frame, list) and len(new_frame) > 0:
+                            frame_height = len(new_frame)
+                            frame_width = len(new_frame[0]) if isinstance(new_frame[0], list) else 1
+                            print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H)")
+                        else:
+                            print(f"🎯 Updated frame data: Invalid frame structure")
                     
                     # Track effectiveness
                     score_improvement = new_score - current_score

@@ -9,18 +9,18 @@
   "effective_actions": {
     "1": {
       "success_rate": 1.0,
-      "attempts": 13,
-      "successes": 13
+      "attempts": 61,
+      "successes": 61
     },
     "2": {
       "success_rate": 1.0,
-      "attempts": 3,
-      "successes": 3
+      "attempts": 46,
+      "successes": 46
     },
     "4": {
       "success_rate": 1.0,
-      "attempts": 11,
-      "successes": 11
+      "attempts": 25,
+      "successes": 25
     }
   },
   "winning_sequences": [],
@@ -31,11 +31,11 @@
     "4": {}
   },
   "action_transitions": {
-    "((1, 2, 3, 4), 2, (1, 2, 3, 4))": 29,
-    "((1, 2, 3, 4), 3, (1, 2, 3, 4))": 57,
-    "((1, 2, 3, 4), 4, (1, 2, 3, 4))": 22,
-    "((1, 2, 3, 4), 1, (1, 2, 3, 4))": 199
+    "((1, 2, 3, 4), 2, (1, 2, 3, 4))": 82,
+    "((1, 2, 3, 4), 3, (1, 2, 3, 4))": 67,
+    "((1, 2, 3, 4), 4, (1, 2, 3, 4))": 45,
+    "((1, 2, 3, 4), 1, (1, 2, 3, 4))": 341
   },
   "total_sessions_learned": 0,
-  "last_updated": 1757101183.5628362
+  "last_updated": 1757102317.7718904
 }
