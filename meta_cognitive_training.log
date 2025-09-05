@@ -1,0 +1,20 @@
+2025-09-05 02:00:42,046 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in console mode
+2025-09-05 02:00:42,047 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757055642
+2025-09-05 02:00:42,049 - ContinuousMetaCognitiveRunner - INFO - Dashboard started in console mode
+2025-09-05 02:00:42,058 - src.core.meta_cognitive_governor.Governor - INFO - 🔍 Initialized 37 cognitive system monitors
+2025-09-05 02:00:42,058 - src.core.meta_cognitive_governor.Governor - INFO - 🧠 MetaCognitiveGovernor initialized - Third Brain online
+2025-09-05 02:00:42,065 - src.core.architect.Architect - INFO - 🔬 Architect initialized - Zeroth Brain online
+2025-09-05 02:00:42,082 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: mode_switch (confidence: 0.80)
+2025-09-05 02:00:44,091 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.60)
+2025-09-05 02:00:46,095 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:00:48,109 - src.core.architect.Architect - INFO - 🧬 Starting evolution cycle 0
+2025-09-05 02:00:50,272 - src.core.architect.Architect - INFO - 🧪 Mutation exploratory_1757055648 tested: overall_improvement=3.700, duration=2.2s
+2025-09-05 02:00:51,068 - src.core.architect.Architect - INFO - 🧪 Created experimental branch: experimental/exploratory_1757055648_1757055650
+2025-09-05 02:00:52,090 - src.core.architect.Architect - INFO - ✅ Beneficial mutation found: 0.075 improvement
+2025-09-05 02:00:52,771 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:00:55,018 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:00:57,375 - ContinuousMetaCognitiveRunner - INFO - Session 1 completed: success=True, duration=15.3s
+2025-09-05 02:00:57,853 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring stopped
+2025-09-05 02:00:57,857 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Session data exported to continuous_session_1757055657.json
+2025-09-05 02:00:57,859 - ContinuousMetaCognitiveRunner - INFO - Session data exported to continuous_session_1757055657.json
+2025-09-05 02:00:57,869 - ContinuousMetaCognitiveRunner - INFO - Training completed: 1 sessions, 0.3 minutes
