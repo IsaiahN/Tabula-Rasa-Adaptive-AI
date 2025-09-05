@@ -8637,11 +8637,30 @@ class ContinuousLearningLoop:
                         session_data['frame'] = new_frame
                         self._last_frame = new_frame  # Keep latest frame for dimension extraction
                         
-                        # 🔧 CRITICAL FIX: Proper frame dimension calculation and display
+                        # 🔧 CRITICAL FIX: Proper frame dimension calculation for both 2D and flat list frames
                         if isinstance(new_frame, list) and len(new_frame) > 0:
-                            frame_height = len(new_frame)
-                            frame_width = len(new_frame[0]) if isinstance(new_frame[0], list) else 1
-                            print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H)")
+                            if isinstance(new_frame[0], list):
+                                # 2D grid structure: [[row1], [row2], ...]
+                                frame_height = len(new_frame)
+                                frame_width = len(new_frame[0])
+                                print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - 2D structure")
+                            else:
+                                # Flat list structure - need to determine actual grid dimensions
+                                total_elements = len(new_frame)
+                                if total_elements == 64:
+                                    # Most common ARC grid size is 8x8 = 64 elements
+                                    frame_width, frame_height = 8, 8
+                                    print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - Reconstructed from {total_elements} elements")
+                                else:
+                                    # Try to infer square dimensions
+                                    side_length = int(total_elements ** 0.5)
+                                    if side_length * side_length == total_elements:
+                                        frame_width, frame_height = side_length, side_length
+                                        print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - Square from {total_elements} elements")
+                                    else:
+                                        # Use actual grid dimensions from earlier calculation
+                                        frame_width, frame_height = actual_grid_dims
+                                        print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - Using calculated dimensions")
                         else:
                             print(f"🎯 Updated frame data: Invalid frame structure")
                     
