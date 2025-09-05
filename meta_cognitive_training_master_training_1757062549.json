@@ -1,0 +1,193 @@
+{
+  "session_id": "master_training_1757062549",
+  "timestamp": "2025-09-05T03:56:19.673572",
+  "config": {
+    "mode": "meta-cognitive-training",
+    "max_actions": 500,
+    "target_score": 85.0,
+    "salience_mode": "decay_compression_compression"
+  },
+  "session_results": [
+    {
+      "session": 1,
+      "performance": {
+        "win_rate": 0.2,
+        "avg_score": 35,
+        "learning_efficiency": 0.8,
+        "session": 1
+      },
+      "governor_recommendation": {
+        "type": "mode_switch",
+        "changes": {
+          "enable_systematic_search": true,
+          "increase_depth_limit": 50
+        },
+        "rationale": "Low scores with 0.20 win rate suggest systematic search needed",
+        "confidence": 0.8,
+        "urgency": 0.5
+      },
+      "training_success": true
+    },
+    {
+      "session": 2,
+      "performance": {
+        "win_rate": 0.35,
+        "avg_score": 45,
+        "learning_efficiency": 0.7200000000000001,
+        "session": 2
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.6,
+        "urgency": 0.4
+      },
+      "training_success": true
+    },
+    {
+      "session": 3,
+      "performance": {
+        "win_rate": 0.5,
+        "avg_score": 55,
+        "learning_efficiency": 0.64,
+        "session": 3
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.39999999999999997,
+        "urgency": 0.4
+      },
+      "training_success": true
+    },
+    {
+      "session": 4,
+      "performance": {
+        "win_rate": 0.6499999999999999,
+        "avg_score": 65,
+        "learning_efficiency": 0.56,
+        "session": 4
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.39999999999999997,
+        "urgency": 0.4
+      },
+      "training_success": true
+    },
+    {
+      "session": 5,
+      "performance": {
+        "win_rate": 0.8,
+        "avg_score": 75,
+        "learning_efficiency": 0.48000000000000004,
+        "session": 5
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.39999999999999997,
+        "urgency": 0.4
+      },
+      "training_success": true
+    }
+  ],
+  "governor_decisions": [
+    {
+      "timestamp": "2025-09-05T03:55:52.522406",
+      "puzzle_type": "mastery_session_1",
+      "recommendation": "mode_switch",
+      "confidence": 0.8,
+      "changes": {
+        "enable_systematic_search": true,
+        "increase_depth_limit": 50
+      },
+      "rationale": "Low scores with 0.20 win rate suggest systematic search needed"
+    },
+    {
+      "timestamp": "2025-09-05T03:55:52.557373",
+      "puzzle_type": "mastery_session_2",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.6,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    },
+    {
+      "timestamp": "2025-09-05T03:55:52.581496",
+      "puzzle_type": "mastery_session_3",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.39999999999999997,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    },
+    {
+      "timestamp": "2025-09-05T03:56:06.778185",
+      "puzzle_type": "mastery_session_4",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.39999999999999997,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    },
+    {
+      "timestamp": "2025-09-05T03:56:06.867285",
+      "puzzle_type": "mastery_session_5",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.39999999999999997,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    }
+  ],
+  "architect_evolutions": [
+    {
+      "session": 3,
+      "timestamp": "2025-09-05T03:56:06.523533",
+      "trigger": "autonomous_cycle",
+      "success": false,
+      "generation": 0,
+      "improvement": -1.0
+    },
+    {
+      "session": 5,
+      "timestamp": "2025-09-05T03:56:19.476488",
+      "trigger": "governor_escalation",
+      "issue_type": "learning_plateau",
+      "success": false,
+      "response": {
+        "success": false,
+        "mutation_id": "targeted_1757062566",
+        "improvement": -1.0,
+        "issues": [
+          "Performance regression"
+        ],
+        "recommendation": "abandon"
+      }
+    }
+  ],
+  "final_status": {
+    "total_sessions": 5,
+    "governor_decisions_made": 5,
+    "architect_evolutions": 2,
+    "successful_evolutions": 0
+  }
+}

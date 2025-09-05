@@ -14,38 +14,46 @@ import logging
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 sys.path.insert(0, str(Path(__file__).parent))
 
-from master_arc_trainer import UnifiedTrainer
+from master_arc_trainer import MasterARCTrainer, MasterTrainingConfig
 
-def create_production_args():
-    """Create production training arguments with meta-cognitive systems."""
-    class Args:
-        def __init__(self):
-            # Core training parameters
-            self.mode = "sequential"
-            self.salience = "decay"
-            self.verbose = True
-            
-            # Training scale
-            self.mastery_sessions = 100  # Full training sessions
-            self.games = 50  # More games per session
-            self.max_learning_cycles = 20  # Extended learning
-            
-            # Performance targets
-            self.target_win_rate = 0.80  # Ambitious target
-            self.target_score = 85
-            
-            # System parameters
-            self.max_actions_per_session = 2000  # Generous action budget
-            self.enable_contrarian_mode = True
-            
-            # 🧠 META-COGNITIVE SYSTEMS ENABLED
-            self.meta_cognitive_enabled = True
-            
-            # Logging and monitoring
-            self.enable_detailed_logging = True
-            self.performance_tracking = True
-    
-    return Args()
+def create_production_config():
+    """Create production training configuration with meta-cognitive systems."""
+    return MasterTrainingConfig(
+        mode="maximum-intelligence",  # Use the full intelligence mode
+        verbose=True,
+        
+        # Training scale
+        max_cycles=100,  # Full training sessions
+        max_actions=2000,  # Generous action budget
+        target_score=85.0,  # Ambitious target
+        session_duration=180,  # 3 hours for production run
+        
+        # System parameters
+        salience_mode="decay_compression",
+        enable_contrarian_strategy=True,
+        
+        # 🧠 META-COGNITIVE SYSTEMS ENABLED
+        enable_meta_cognitive_governor=True,
+        enable_architect_evolution=True,
+        
+        # All advanced systems enabled
+        enable_swarm=True,
+        enable_coordinates=True,
+        enable_energy_system=True,
+        enable_sleep_cycles=True,
+        enable_dnc_memory=True,
+        enable_meta_learning=True,
+        enable_salience_system=True,
+        enable_frame_analysis=True,
+        enable_boundary_detection=True,
+        enable_memory_consolidation=True,
+        enable_action_intelligence=True,
+        
+        # Logging and monitoring
+        debug_mode=False,  # Production mode
+        no_logs=False,  # Keep detailed logs
+        no_monitoring=False  # Keep monitoring active
+    )
 
 async def run_meta_cognitive_arc_training():
     """Run full ARC training with meta-cognitive optimization."""
@@ -54,8 +62,8 @@ async def run_meta_cognitive_arc_training():
     print("=" * 60)
     
     # Initialize the enhanced trainer
-    args = create_production_args()
-    trainer = UnifiedTrainer(args)
+    config = create_production_config()
+    trainer = MasterARCTrainer(config)
     
     print(f"✅ Meta-Cognitive Hierarchy Initialized:")
     print(f"   🧠 Primary Brain: 37 Cognitive Systems")
@@ -73,10 +81,10 @@ async def run_meta_cognitive_arc_training():
     )
     
     print(f"\n🎯 Training Configuration:")
-    print(f"   Target Win Rate: {trainer.target_win_rate:.1%}")
-    print(f"   Max Learning Cycles: {trainer.max_learning_cycles}")
-    print(f"   Mastery Sessions: {trainer.mastery_sessions}")
-    print(f"   Actions per Session: {trainer.max_actions_per_session}")
+    print(f"   Target Score: {config.target_score}")
+    print(f"   Max Learning Cycles: {config.max_cycles}")
+    print(f"   Max Actions per Game: {config.max_actions}")
+    print(f"   Session Duration: {config.session_duration} minutes")
     
     # Run the enhanced training loop
     try:
@@ -106,32 +114,39 @@ async def run_meta_cognitive_arc_training():
         }
         
         sample_config = {
-            'max_actions_per_game': trainer.max_actions_per_session,
-            'salience_mode': trainer.salience,
-            'contrarian_enabled': trainer.enable_contrarian_mode
+            'max_actions_per_game': config.max_actions,
+            'salience_mode': config.salience_mode,
+            'contrarian_enabled': config.enable_contrarian_strategy
         }
         
-        recommendation = trainer.governor.get_recommended_configuration(
-            puzzle_type="arc_competition",
-            current_performance=sample_performance,
-            current_config=sample_config
-        )
-        
-        if recommendation:
-            print(f"   📋 Type: {recommendation.type.value}")
-            print(f"   🎯 Confidence: {recommendation.confidence:.1%}")
-            print(f"   💡 Rationale: {recommendation.rationale}")
-            print(f"   🔄 Changes: {recommendation.configuration_changes}")
+        # Only demonstrate Governor consultation if available
+        if trainer.governor:
+            recommendation = trainer.governor.get_recommended_configuration(
+                puzzle_type="arc_competition",
+                current_performance=sample_performance,
+                current_config=sample_config
+            )
+            
+            if recommendation:
+                print(f"   📋 Type: {recommendation.type.value}")
+                print(f"   🎯 Confidence: {recommendation.confidence:.1%}")
+                print(f"   💡 Rationale: {recommendation.rationale}")
+                print(f"   🔄 Changes: {recommendation.configuration_changes}")
+            else:
+                print(f"   ✅ Current configuration optimal")
         else:
-            print(f"   ✅ Current configuration optimal")
+            print(f"   ⚠️ Governor not available in demo mode")
         
         # Show how architectural evolution would work
         print(f"\n🧬 Example Autonomous Evolution:")
-        evolution_result = await trainer.architect.autonomous_evolution_cycle()
-        print(f"   📊 Success: {evolution_result['success']}")
-        print(f"   🔄 Generation: {evolution_result['generation']}")
-        if evolution_result.get('improvement'):
-            print(f"   📈 Improvement: {evolution_result['improvement']:.3f}")
+        if trainer.architect:
+            evolution_result = await trainer.architect.autonomous_evolution_cycle()
+            print(f"   📊 Success: {evolution_result['success']}")
+            print(f"   🔄 Generation: {evolution_result.get('generation', 'N/A')}")
+            if evolution_result.get('improvement'):
+                print(f"   📈 Improvement: {evolution_result['improvement']:.3f}")
+        else:
+            print(f"   ⚠️ Architect not available in demo mode")
         
         print(f"\n✅ Meta-Cognitive Training Setup Complete!")
         print(f"   The system is now ready for production ARC training")

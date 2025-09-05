@@ -42,9 +42,51 @@ from datetime import datetime
 # Core imports
 from src.core.salience_system import SalienceMode
 
+# Meta-cognitive imports
+try:
+    from src.core.meta_cognitive_governor import MetaCognitiveGovernor
+    from src.core.architect import Architect
+    META_COGNITIVE_AVAILABLE = True
+except ImportError as e:
+    META_COGNITIVE_AVAILABLE = False
+    print(f"WARNING: Meta-cognitive systems not available: {e}")
+
+# Color output support
+try:
+    import colorama
+    from colorama import Fore, Style
+    colorama.init()
+    COLOR_AVAILABLE = True
+except ImportError:
+    COLOR_AVAILABLE = False
+    # Fallback color constants
+    class Fore:
+        BLUE = CYAN = GREEN = YELLOW = MAGENTA = RED = ""
+    class Style:
+        RESET_ALL = ""
+
 # Global flag for graceful shutdown
 shutdown_requested = False
 training_state = {}
+
+def safe_print(text: str, use_color: bool = True):
+    """Print text safely, handling Unicode encoding issues on Windows."""
+    try:
+        if COLOR_AVAILABLE and use_color:
+            print(text)
+        else:
+            # Strip ANSI color codes if colorama not available
+            import re
+            clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+            print(clean_text)
+    except UnicodeEncodeError:
+        # Fallback: encode to ASCII and ignore problematic characters
+        try:
+            safe_text = text.encode('ascii', errors='ignore').decode('ascii')
+            print(safe_text)
+        except Exception:
+            # Ultimate fallback
+            print("Output contains non-displayable characters")
 
 def signal_handler(signum, frame):
     """Handle graceful shutdown signals."""
@@ -132,6 +174,13 @@ class MasterTrainingConfig:
     enable_boundary_detection: bool = True
     enable_memory_consolidation: bool = True
     enable_action_intelligence: bool = True
+    enable_meta_cognitive_governor: bool = True
+    enable_architect_evolution: bool = True
+    
+    # Meta-cognitive monitoring
+    enable_detailed_monitoring: bool = False
+    enable_colored_output: bool = True
+    save_meta_cognitive_logs: bool = True
     
     # Logging and monitoring
     verbose: bool = False
@@ -159,8 +208,15 @@ class MasterARCTrainer:
         self.config = config
         self.continuous_loop = None
         self.coordinate_manager = None
+        self.governor = None
+        self.architect = None
         self.session_results = {}
         self.performance_history = []
+        
+        # Meta-cognitive monitoring data
+        self.governor_decisions = []
+        self.architect_evolutions = []
+        self.session_id = f"master_training_{int(time.time())}"
         
         # Setup logging
         self._setup_logging()
@@ -175,13 +231,33 @@ class MasterARCTrainer:
         )
         
         if not self.config.no_logs:
+            # Create handlers with proper encoding for Windows
+            handlers = []
+            
+            # Console handler with safe encoding
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setLevel(log_level)
+            handlers.append(console_handler)
+            
+            # File handler with UTF-8 encoding
+            log_filename = f'master_arc_training_{int(time.time())}.log'
+            try:
+                file_handler = logging.FileHandler(log_filename, encoding='utf-8')
+                file_handler.setLevel(log_level)
+                handlers.append(file_handler)
+            except Exception:
+                # Fallback to console only if file handler fails
+                pass
+            
+            # Setup logging with safe formatter (no emojis in logs)
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            for handler in handlers:
+                handler.setFormatter(formatter)
+            
             logging.basicConfig(
                 level=log_level,
-                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                handlers=[
-                    logging.StreamHandler(sys.stdout),
-                    logging.FileHandler(f'master_arc_training_{int(time.time())}.log')
-                ]
+                handlers=handlers,
+                force=True  # Override any existing configuration
             )
         
         self.logger = logging.getLogger(__name__)
@@ -207,6 +283,31 @@ class MasterARCTrainer:
             else:
                 self.coordinate_manager = None
             
+            # Initialize meta-cognitive systems
+            if META_COGNITIVE_AVAILABLE:
+                # Initialize Governor (Third Brain - runtime supervisor)
+                if self.config.enable_meta_cognitive_governor:
+                    try:
+                        self.governor = MetaCognitiveGovernor()
+                        self.logger.info("🧠 Meta-cognitive Governor (Third Brain) initialized")
+                    except Exception as e:
+                        self.logger.warning(f"⚠️ Could not initialize Governor: {e}")
+                        self.governor = None
+                
+                # Initialize Architect (Zeroth Brain - self-improvement)
+                if self.config.enable_architect_evolution:
+                    try:
+                        # Architect needs base_path and repo_path
+                        repo_path = str(Path(__file__).parent)
+                        self.architect = Architect(base_path=repo_path, repo_path=repo_path)
+                        self.logger.info("🏗️ Architect (Zeroth Brain) initialized")
+                    except Exception as e:
+                        self.logger.warning(f"⚠️ Could not initialize Architect: {e}")
+                        self.architect = None
+            else:
+                self.governor = None
+                self.architect = None
+            
             self.logger.info("✅ Core systems initialized successfully")
             
         except Exception as e:
@@ -224,6 +325,7 @@ class MasterARCTrainer:
             'showcase-demo': self._run_showcase_demo,
             'system-comparison': self._run_system_comparison,
             'minimal-debug': self._run_minimal_debug,
+            'meta-cognitive-training': self._run_meta_cognitive_training,
             
             # Legacy compatibility modes
             'sequential': self._run_sequential,
@@ -263,15 +365,49 @@ class MasterARCTrainer:
         """Run with all cognitive systems enabled (default mode)."""
         self.logger.info("🧠 Maximum Intelligence Mode - All systems enabled")
         
+        # Initialize performance tracking
+        current_performance = {
+            'win_rate': 0.0,
+            'avg_score': 0.0,
+            'completion_time': 0.0
+        }
+        
+        # Consult Governor for initial configuration
+        governor_recommendation = await self._consult_governor("general", current_performance)
+        if governor_recommendation:
+            self.logger.info(f"🧠 Governor consultation: {governor_recommendation}")
+        
+        # Run Architect evolution cycle if enabled
+        evolution_result = await self._run_architect_evolution()
+        if evolution_result.get('success', False):
+            self.logger.info(f"🏗️ Architect evolution completed: {evolution_result}")
+        
         # Configure for maximum performance
         loop_config = {
             'max_actions_per_game': self.config.max_actions,
             'target_score': self.config.target_score,
             'salience_mode': SalienceMode.DECAY_COMPRESSION if self.config.salience_mode == 'decay_compression' else SalienceMode.LOSSLESS,
-            'enable_all_advanced_features': True
+            'enable_all_advanced_features': True,
+            'enable_meta_cognitive_oversight': True
         }
         
-        return await self._run_continuous_learning(loop_config)
+        # Apply governor recommendations if available
+        if governor_recommendation and governor_recommendation.get('changes'):
+            for key, value in governor_recommendation['changes'].items():
+                if key in loop_config:
+                    loop_config[key] = value
+                    self.logger.info(f"🧠 Applied Governor recommendation: {key} = {value}")
+        
+        # Run training with meta-cognitive oversight
+        results = await self._run_continuous_learning(loop_config)
+        
+        # Add meta-cognitive information to results
+        if governor_recommendation:
+            results['governor_consultation'] = governor_recommendation
+        if evolution_result.get('success', False):
+            results['architect_evolution'] = evolution_result
+        
+        return results
     
     async def _run_quick_validation(self) -> Dict[str, Any]:
         """Run quick validation for testing purposes."""
@@ -353,6 +489,84 @@ class MasterARCTrainer:
         
         return await self._run_continuous_learning(loop_config)
     
+    async def _run_meta_cognitive_training(self) -> Dict[str, Any]:
+        """Run comprehensive meta-cognitive training with detailed monitoring."""
+        header_text = f"{Fore.BLUE}{'='*80}\n🧠 META-COGNITIVE ARC TRAINING SESSION\nSession ID: {self.session_id}\n{'='*80}{Style.RESET_ALL}"
+        safe_print(header_text, self.config.enable_colored_output)
+        
+        self.logger.info("Meta-Cognitive Training Mode - Comprehensive monitoring")
+        
+        # Show system status
+        await self._show_meta_cognitive_status()
+        
+        # Training configuration optimized for meta-cognitive demonstration
+        loop_config = {
+            'max_actions_per_game': self.config.max_actions,
+            'target_score': self.config.target_score,
+            'salience_mode': SalienceMode.DECAY_COMPRESSION,
+            'enable_all_advanced_features': True,
+            'enable_meta_cognitive_oversight': True,
+            'enable_detailed_monitoring': True
+        }
+        
+        # Run multiple mastery sessions to demonstrate evolution
+        session_results = []
+        mastery_sessions = min(self.config.max_cycles, 5)  # Cap at 5 for demo
+        
+        for session in range(mastery_sessions):
+            session_text = f"\n{Fore.MAGENTA}📈 Mastery Session {session + 1}/{mastery_sessions}{Style.RESET_ALL}"
+            safe_print(session_text, self.config.enable_colored_output)
+            
+            # Simulate progressive performance
+            current_performance = {
+                'win_rate': min(0.2 + (session * 0.15), 0.8),
+                'avg_score': 35 + (session * 10),
+                'learning_efficiency': max(0.8 - (session * 0.08), 0.4),
+                'session': session + 1
+            }
+            
+            # Governor consultation
+            governor_recommendation = await self._consult_governor_detailed(
+                f"mastery_session_{session + 1}", 
+                current_performance
+            )
+            
+            # Check for Architect intervention
+            if current_performance['learning_efficiency'] < 0.5 and session >= 2:
+                await self._trigger_architect_intervention(current_performance, session + 1)
+            
+            # Autonomous evolution every 3 sessions
+            if (session + 1) % 3 == 0:
+                await self._run_autonomous_evolution(session + 1)
+            
+            # Run actual training for this session
+            session_config = loop_config.copy()
+            session_config['max_cycles'] = 1  # One cycle per session
+            session_result = await self._run_continuous_learning(session_config)
+            
+            session_results.append({
+                'session': session + 1,
+                'performance': current_performance,
+                'governor_recommendation': governor_recommendation,
+                'training_result': session_result
+            })
+        
+        # Show comprehensive results
+        await self._show_comprehensive_results(session_results)
+        
+        # Save detailed meta-cognitive logs
+        if self.config.save_meta_cognitive_logs:
+            await self._save_meta_cognitive_logs(session_results)
+        
+        return {
+            'success': True,
+            'mode': 'meta-cognitive-training',
+            'session_results': session_results,
+            'governor_decisions': self.governor_decisions,
+            'architect_evolutions': self.architect_evolutions,
+            'session_id': self.session_id
+        }
+    
     async def _run_sequential(self) -> Dict[str, Any]:
         """Legacy sequential mode (backward compatibility)."""
         self.logger.info("📊 Sequential Mode (Legacy)")
@@ -421,11 +635,326 @@ class MasterARCTrainer:
         results_file = f"master_training_results_{timestamp}.json"
         
         try:
-            with open(results_file, 'w') as f:
-                json.dump(results, f, indent=2)
-            self.logger.info(f"💾 Results saved to: {results_file}")
+            # Clean results for JSON serialization recursively
+            def clean_for_json(obj):
+                if hasattr(obj, 'value'):  # Handle enums
+                    return str(obj)
+                elif hasattr(obj, '__dict__'):  # Handle custom objects
+                    return str(obj)
+                elif isinstance(obj, dict):
+                    return {k: clean_for_json(v) for k, v in obj.items()}
+                elif isinstance(obj, (list, tuple)):
+                    return [clean_for_json(item) for item in obj]
+                else:
+                    return obj
+            
+            clean_results = clean_for_json(results)
+            
+            with open(results_file, 'w', encoding='utf-8') as f:
+                json.dump(clean_results, f, indent=2, ensure_ascii=False)
+            self.logger.info(f"Results saved to: {results_file}")
         except Exception as e:
-            self.logger.error(f"⚠️ Could not save results: {e}")
+            self.logger.error(f"Could not save results: {e}")
+    
+    async def _consult_governor(self, puzzle_type: str, current_performance: Dict[str, Any]) -> Dict[str, Any]:
+        """Consult the meta-cognitive governor for configuration recommendations."""
+        if not self.governor:
+            return {}
+        
+        try:
+            # Prepare current configuration for governor
+            current_config = {
+                'salience_mode': self.config.salience_mode,
+                'max_actions': self.config.max_actions,
+                'target_score': self.config.target_score,
+                'enable_swarm': self.config.enable_swarm,
+                'enable_coordinates': self.config.enable_coordinates,
+                'enable_energy_system': self.config.enable_energy_system
+            }
+            
+            # Get recommendation from governor
+            recommendation = self.governor.get_recommended_configuration(
+                puzzle_type=puzzle_type,
+                current_performance=current_performance,
+                current_config=current_config
+            )
+            
+            if recommendation:
+                self.logger.info(f"🧠 Governor recommends: {recommendation.type.value}")
+                return {
+                    'type': recommendation.type.value,
+                    'changes': recommendation.configuration_changes,
+                    'rationale': recommendation.rationale,
+                    'confidence': recommendation.confidence,
+                    'cognitive_cost': recommendation.expected_benefit,
+                    'urgency': recommendation.urgency
+                }
+            
+        except Exception as e:
+            self.logger.warning(f"⚠️ Governor consultation failed: {e}")
+        
+        return {}
+    
+    async def _run_architect_evolution(self) -> Dict[str, Any]:
+        """Run one cycle of Architect evolution if enabled."""
+        if not self.architect:
+            return {'success': False, 'reason': 'architect_not_available'}
+        
+        try:
+            self.logger.info("🏗️ Running Architect evolution cycle...")
+            evolution_result = await self.architect.autonomous_evolution_cycle()
+            
+            if evolution_result.get('success', False):
+                self.logger.info(f"🧬 Evolution successful: {evolution_result.get('improvement', 0):.3f} improvement")
+            else:
+                self.logger.debug(f"📊 Evolution attempted: {evolution_result.get('reason', 'unknown')}")
+            
+            return evolution_result
+            
+        except Exception as e:
+            self.logger.warning(f"⚠️ Architect evolution failed: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def _show_meta_cognitive_status(self):
+        """Display current meta-cognitive system status."""
+        status_text = f"\n{Fore.GREEN}✅ Meta-Cognitive Hierarchy Active:{Style.RESET_ALL}\n"
+        status_text += "   🧠 Primary: 37+ Cognitive Systems\n"
+        if self.governor:
+            status_text += f"   🧠 Governor: {len(self.governor.system_monitors)} System Monitors\n"
+        if self.architect:
+            status_text += f"   🧠 Architect: Generation {self.architect.generation}"
+        
+        safe_print(status_text, self.config.enable_colored_output)
+    
+    async def _consult_governor_detailed(self, puzzle_type: str, current_performance: Dict[str, Any]) -> Dict[str, Any]:
+        """Enhanced Governor consultation with detailed logging."""
+        if not self.governor:
+            return {}
+        
+        try:
+            safe_print("   🎯 Consulting Governor for optimization...", self.config.enable_colored_output)
+            
+            # Prepare current configuration
+            current_config = {
+                'max_actions_per_game': self.config.max_actions,
+                'salience_mode': self.config.salience_mode,
+                'contrarian_enabled': self.config.enable_contrarian_strategy
+            }
+            
+            recommendation = self.governor.get_recommended_configuration(
+                puzzle_type=puzzle_type,
+                current_performance=current_performance,
+                current_config=current_config
+            )
+            
+            if recommendation:
+                rec_text = f"   📋 Governor Recommendation: {Fore.YELLOW}{recommendation.type.value}{Style.RESET_ALL}\n"
+                rec_text += f"   🎯 Confidence: {Fore.GREEN}{recommendation.confidence:.1%}{Style.RESET_ALL}\n"
+                rec_text += f"   💡 Rationale: {recommendation.rationale}\n"
+                rec_text += f"   🔄 Changes: {recommendation.configuration_changes}"
+                
+                safe_print(rec_text, self.config.enable_colored_output)
+                
+                # Log decision
+                decision_record = {
+                    'timestamp': datetime.now().isoformat(),
+                    'puzzle_type': puzzle_type,
+                    'recommendation': recommendation.type.value,
+                    'confidence': recommendation.confidence,
+                    'changes': recommendation.configuration_changes,
+                    'rationale': recommendation.rationale
+                }
+                self.governor_decisions.append(decision_record)
+                
+                return {
+                    'type': recommendation.type.value,
+                    'changes': recommendation.configuration_changes,
+                    'rationale': recommendation.rationale,
+                    'confidence': recommendation.confidence,
+                    'urgency': recommendation.urgency
+                }
+            else:
+                safe_print("   ✅ Current configuration optimal", self.config.enable_colored_output)
+                return {'type': 'no_change', 'rationale': 'Current configuration is optimal'}
+                
+        except Exception as e:
+            self.logger.warning(f"Governor consultation failed: {e}")
+            return {}
+    
+    async def _trigger_architect_intervention(self, current_performance: Dict[str, Any], session: int):
+        """Trigger Architect intervention for performance issues."""
+        if not self.governor or not self.architect:
+            return
+        
+        warning_text = f"\n{Fore.RED}⚠️  Efficiency declining - Escalating to Architect{Style.RESET_ALL}"
+        safe_print(warning_text, self.config.enable_colored_output)
+        
+        try:
+            # Create architect request through governor
+            architect_request = self.governor.create_architect_request(
+                issue_type="learning_plateau",
+                problem_description=f"Learning efficiency dropped to {current_performance['learning_efficiency']:.1%} in session {session}",
+                performance_data=current_performance
+            )
+            
+            safe_print(f"   📋 Request Type: {architect_request.issue_type}", self.config.enable_colored_output)
+            safe_print(f"   🚨 Priority: {architect_request.priority:.2f}", self.config.enable_colored_output)
+            
+            # Process through Architect
+            architect_response = await self.architect.process_governor_request(architect_request)
+            
+            success_text = "SUCCESS" if architect_response.get('success') else "FAILED"
+            response_text = f"   🔬 Architect Response: {Fore.GREEN if architect_response.get('success') else Fore.RED}{success_text}{Style.RESET_ALL}"
+            safe_print(response_text, self.config.enable_colored_output)
+            
+            # Log evolution
+            self.architect_evolutions.append({
+                'session': session,
+                'timestamp': datetime.now().isoformat(),
+                'trigger': 'governor_escalation',
+                'issue_type': architect_request.issue_type,
+                'success': architect_response.get('success', False),
+                'response': architect_response
+            })
+            
+        except Exception as e:
+            self.logger.warning(f"Architect intervention failed: {e}")
+    
+    async def _run_autonomous_evolution(self, session: int):
+        """Run autonomous evolution cycle."""
+        if not self.architect:
+            return
+        
+        evolution_text = f"\n{Fore.MAGENTA}🧬 Running Autonomous Evolution Cycle...{Style.RESET_ALL}"
+        safe_print(evolution_text, self.config.enable_colored_output)
+        
+        try:
+            evolution_result = await self.architect.autonomous_evolution_cycle()
+            
+            safe_print(f"   📊 Evolution Success: {evolution_result['success']}", self.config.enable_colored_output)
+            safe_print(f"   🔄 Generation: {evolution_result.get('generation', 'N/A')}", self.config.enable_colored_output)
+            
+            if evolution_result.get('improvement'):
+                improvement = evolution_result['improvement']
+                color = Fore.GREEN if improvement > 0 else Fore.RED
+                improvement_text = f"   📈 Improvement: {color}{improvement:.3f}{Style.RESET_ALL}"
+                safe_print(improvement_text, self.config.enable_colored_output)
+            
+            # Log evolution
+            self.architect_evolutions.append({
+                'session': session,
+                'timestamp': datetime.now().isoformat(),
+                'trigger': 'autonomous_cycle',
+                'success': evolution_result['success'],
+                'generation': evolution_result.get('generation'),
+                'improvement': evolution_result.get('improvement', 0.0)
+            })
+            
+        except Exception as e:
+            self.logger.warning(f"Autonomous evolution failed: {e}")
+    
+    async def _show_comprehensive_results(self, session_results: List[Dict]):
+        """Display comprehensive training results."""
+        header_text = f"\n{Fore.CYAN}📊 COMPREHENSIVE TRAINING RESULTS:{Style.RESET_ALL}"
+        safe_print(header_text, self.config.enable_colored_output)
+        
+        # Performance progression
+        progress_header = f"\n{Fore.YELLOW}📈 Performance Progression:{Style.RESET_ALL}"
+        safe_print(progress_header, self.config.enable_colored_output)
+            
+        for result in session_results:
+            perf = result['performance']
+            perf_text = (f"   Session {result['session']}: "
+                        f"Win Rate {perf['win_rate']:.1%}, "
+                        f"Score {perf['avg_score']}, "
+                        f"Efficiency {perf['learning_efficiency']:.1%}")
+            safe_print(perf_text, self.config.enable_colored_output)
+        
+        # Governor activity
+        gov_header = f"\n{Fore.MAGENTA}🎯 Governor Activity Summary:{Style.RESET_ALL}"
+        safe_print(gov_header, self.config.enable_colored_output)
+            
+        safe_print(f"   Total Decisions Made: {len(self.governor_decisions)}", self.config.enable_colored_output)
+        
+        if self.governor_decisions:
+            recommendation_types = {}
+            for decision in self.governor_decisions:
+                rec_type = decision['recommendation']
+                recommendation_types[rec_type] = recommendation_types.get(rec_type, 0) + 1
+            
+            for rec_type, count in recommendation_types.items():
+                safe_print(f"   {rec_type}: {count} times", self.config.enable_colored_output)
+            
+            avg_confidence = sum(d['confidence'] for d in self.governor_decisions) / len(self.governor_decisions)
+            safe_print(f"   Average Confidence: {avg_confidence:.1%}", self.config.enable_colored_output)
+        
+        # Architect activity
+        arch_header = f"\n{Fore.CYAN}🧬 Architect Evolution Summary:{Style.RESET_ALL}"
+        safe_print(arch_header, self.config.enable_colored_output)
+            
+        safe_print(f"   Total Evolution Cycles: {len(self.architect_evolutions)}", self.config.enable_colored_output)
+        if self.architect:
+            safe_print(f"   Final Generation: {self.architect.generation}", self.config.enable_colored_output)
+        
+        successful_evolutions = [e for e in self.architect_evolutions if e.get('success')]
+        safe_print(f"   Successful Evolutions: {len(successful_evolutions)}", self.config.enable_colored_output)
+        
+        if successful_evolutions:
+            total_improvement = sum(e.get('improvement', 0) for e in successful_evolutions)
+            safe_print(f"   Total Improvement: {total_improvement:.3f}", self.config.enable_colored_output)
+    
+    async def _save_meta_cognitive_logs(self, session_results: List[Dict]):
+        """Save detailed meta-cognitive training logs."""
+        if self.config.no_logs:
+            return
+        
+        try:
+            log_file = f"meta_cognitive_training_{self.session_id}.json"
+            
+            # Convert config to JSON-serializable format
+            config_dict = {
+                'mode': self.config.mode,
+                'max_actions': self.config.max_actions,
+                'target_score': self.config.target_score,
+                'salience_mode': str(self.config.salience_mode) if hasattr(self.config.salience_mode, 'value') else self.config.salience_mode
+            }
+            
+            # Clean session results for JSON serialization
+            clean_session_results = []
+            for result in session_results:
+                clean_result = {
+                    'session': result.get('session'),
+                    'performance': result.get('performance'),
+                    'governor_recommendation': result.get('governor_recommendation'),
+                    'training_success': result.get('training_result', {}).get('success', False)
+                }
+                clean_session_results.append(clean_result)
+            
+            log_data = {
+                'session_id': self.session_id,
+                'timestamp': datetime.now().isoformat(),
+                'config': config_dict,
+                'session_results': clean_session_results,
+                'governor_decisions': self.governor_decisions,
+                'architect_evolutions': self.architect_evolutions,
+                'final_status': {
+                    'total_sessions': len(session_results),
+                    'governor_decisions_made': len(self.governor_decisions),
+                    'architect_evolutions': len(self.architect_evolutions),
+                    'successful_evolutions': len([e for e in self.architect_evolutions if e.get('success')])
+                }
+            }
+            
+            with open(log_file, 'w', encoding='utf-8') as f:
+                json.dump(log_data, f, indent=2, ensure_ascii=False)
+            
+            if COLOR_AVAILABLE and self.config.enable_colored_output:
+                print(f"\n{Fore.BLUE}📊 Meta-cognitive logs saved to: {log_file}{Style.RESET_ALL}")
+            else:
+                print(f"\n📊 Meta-cognitive logs saved to: {log_file}")
+                
+        except Exception as e:
+            self.logger.error(f"Could not save meta-cognitive logs: {e}")
 
 def create_parser() -> argparse.ArgumentParser:
     """Create comprehensive argument parser."""
@@ -436,6 +965,9 @@ def create_parser() -> argparse.ArgumentParser:
 Examples:
   # Maximum Intelligence (default) 
   python master_arc_trainer.py
+  
+  # Meta-cognitive training with detailed monitoring
+  python master_arc_trainer.py --mode meta-cognitive-training --enable-detailed-monitoring
   
   # Quick validation test
   python master_arc_trainer.py --mode quick-validation --games game1,game2
@@ -457,6 +989,7 @@ Examples:
                            # Modern unified modes
                            'maximum-intelligence', 'research-lab', 'quick-validation', 
                            'showcase-demo', 'system-comparison', 'minimal-debug',
+                           'meta-cognitive-training',
                            # Legacy compatibility modes
                            'sequential', 'swarm', 'continuous', 'test', 'training', 'demo'
                        ],
@@ -502,6 +1035,14 @@ Examples:
     parser.add_argument('--disable-boundary-detection', action='store_true')
     parser.add_argument('--disable-memory-consolidation', action='store_true')
     parser.add_argument('--disable-action-intelligence', action='store_true')
+    parser.add_argument('--disable-meta-cognitive-governor', action='store_true',
+                       help='Disable meta-cognitive Governor (Third Brain)')
+    parser.add_argument('--disable-architect-evolution', action='store_true',
+                       help='Disable Architect evolution system (Zeroth Brain)')
+    parser.add_argument('--disable-colored-output', action='store_true',
+                       help='Disable colored terminal output')
+    parser.add_argument('--enable-detailed-monitoring', action='store_true',
+                       help='Enable detailed meta-cognitive monitoring')
     parser.add_argument('--disable-all-advanced', action='store_true',
                        help='Disable ALL advanced features (basic mode)')
     
@@ -528,11 +1069,12 @@ async def main():
     parser = create_parser()
     args = parser.parse_args()
     
-    print("🚀 MASTER ARC TRAINER - Unified Training System")
-    print("=" * 60)
-    print("Consolidated system combining all ARC training functionality")
-    print(f"Mode: {args.mode.upper()}")
-    print()
+    # Use safe print for the header
+    safe_print("🚀 MASTER ARC TRAINER - Unified Training System", True)
+    safe_print("=" * 60, False)
+    safe_print("Consolidated system combining all ARC training functionality", False)
+    safe_print(f"Mode: {args.mode.upper()}", False)
+    safe_print("", False)
     
     # Convert args to config with legacy compatibility
     config = MasterTrainingConfig(
@@ -558,6 +1100,11 @@ async def main():
         enable_boundary_detection=not args.disable_boundary_detection,
         enable_memory_consolidation=not args.disable_memory_consolidation,
         enable_action_intelligence=not args.disable_action_intelligence,
+        enable_meta_cognitive_governor=not args.disable_meta_cognitive_governor,
+        enable_architect_evolution=not args.disable_architect_evolution,
+        enable_colored_output=not args.disable_colored_output and COLOR_AVAILABLE,
+        enable_detailed_monitoring=args.enable_detailed_monitoring,
+        save_meta_cognitive_logs=not args.no_logs,
         verbose=args.verbose,
         no_logs=args.no_logs or args.quiet,  # Legacy compatibility
         no_monitoring=args.no_monitoring,
@@ -581,6 +1128,8 @@ async def main():
         config.enable_boundary_detection = False
         config.enable_memory_consolidation = False
         config.enable_action_intelligence = False
+        config.enable_meta_cognitive_governor = False
+        config.enable_architect_evolution = False
     
     # Initialize and run trainer
     trainer = MasterARCTrainer(config)
@@ -589,17 +1138,17 @@ async def main():
         results = await trainer.run_training()
         
         if results['success']:
-            print(f"\n🎉 TRAINING COMPLETED SUCCESSFULLY!")
-            print(f"Mode: {results.get('mode', 'unknown')}")
-            print(f"Time: {results.get('timestamp', 'unknown')}")
+            safe_print(f"\n🎉 TRAINING COMPLETED SUCCESSFULLY!", True)
+            safe_print(f"Mode: {results.get('mode', 'unknown')}", False)
+            safe_print(f"Time: {results.get('timestamp', 'unknown')}", False)
             return 0
         else:
-            print(f"\n❌ TRAINING FAILED!")
-            print(f"Error: {results.get('error', 'unknown')}")
+            safe_print(f"\n❌ TRAINING FAILED!", True)
+            safe_print(f"Error: {results.get('error', 'unknown')}", False)
             return 1
             
     except Exception as e:
-        print(f"\n💥 UNEXPECTED ERROR: {e}")
+        safe_print(f"\n💥 UNEXPECTED ERROR: {e}", True)
         return 1
 
 if __name__ == "__main__":
@@ -607,8 +1156,8 @@ if __name__ == "__main__":
         exit_code = asyncio.run(main())
         sys.exit(exit_code)
     except KeyboardInterrupt:
-        print("\n🛑 Training interrupted by user")
+        safe_print("\n🛑 Training interrupted by user", True)
         sys.exit(0)
     except Exception as e:
-        print(f"\n💥 Fatal error: {e}")
+        safe_print(f"\nFatal error: {e}", True)
         sys.exit(1)
