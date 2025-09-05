@@ -159,9 +159,30 @@ class MetaCognitiveGovernor:
     high-level decisions about resource allocation between software components.
     """
     
-    def __init__(self, log_file: Optional[str] = None):
+    def __init__(self, log_file: Optional[str] = None, outcome_tracking_dir: Optional[str] = None,
+                 persistence_dir: Optional[str] = None):
         self.logger = logging.getLogger(f"{__name__}.Governor")
         self.log_file = log_file
+        
+        # Outcome tracking integration
+        self.outcome_tracker = None
+        if outcome_tracking_dir:
+            try:
+                from src.core.outcome_tracker import OutcomeTracker, PerformanceMetrics
+                self.outcome_tracker = OutcomeTracker(Path(outcome_tracking_dir), self.logger)
+                self.logger.info("Outcome tracking enabled")
+            except ImportError:
+                self.logger.warning("Outcome tracker not available")
+        
+        # Cross-session learning integration
+        self.learning_manager = None
+        if persistence_dir:
+            try:
+                from src.core.cross_session_learning import CrossSessionLearningManager, KnowledgeType
+                self.learning_manager = CrossSessionLearningManager(Path(persistence_dir), self.logger)
+                self.logger.info("Cross-session learning enabled")
+            except ImportError:
+                self.logger.warning("Cross-session learning not available")
         
         # Cognitive system monitors
         self.system_monitors = {}
@@ -176,6 +197,9 @@ class MetaCognitiveGovernor:
         self.total_decisions_made = 0
         self.successful_recommendations = 0
         self.start_time = time.time()
+        
+        # Tracking for outcome measurement
+        self.pending_outcome_measurements = {}  # decision_id -> outcome_id
         
         # Architect communication
         self.pending_architect_requests = []
@@ -258,6 +282,31 @@ class MetaCognitiveGovernor:
             # Generate recommendations based on analysis
             recommendations = []
             
+            # First, check for learned patterns that might apply
+            learned_recs = self.get_learned_recommendations(puzzle_type, current_performance)
+            for learned_rec in learned_recs:
+                # Convert learned recommendation to GovernorRecommendation if confidence is high enough
+                if learned_rec['confidence'] >= 0.6 and learned_rec['success_rate'] >= 0.5:
+                    rec_type_str = learned_rec['type']
+                    if rec_type_str in [t.value for t in GovernorRecommendationType]:
+                        rec_type = GovernorRecommendationType(rec_type_str)
+                        
+                        learned_recommendation = GovernorRecommendation(
+                            type=rec_type,
+                            configuration_changes=learned_rec['configuration_changes'],
+                            confidence=min(0.95, learned_rec['confidence'] + 0.1),  # Boost confidence slightly
+                            expected_benefit=CognitiveBenefit(
+                                win_rate_improvement=0.1 * learned_rec['success_rate'],
+                                score_improvement=5.0 * learned_rec['success_rate'],
+                                learning_efficiency=0.05 * learned_rec['success_rate'],
+                                knowledge_transfer=0.05 * learned_rec['success_rate']
+                            ),
+                            rationale=learned_rec['rationale'],
+                            urgency=0.5
+                        )
+                        recommendations.append(learned_recommendation)
+            
+            # Then generate standard recommendations
             # Check for mode switching opportunities
             mode_rec = self._evaluate_mode_switching(puzzle_type, performance_analysis)
             if mode_rec:
@@ -283,11 +332,14 @@ class MetaCognitiveGovernor:
             
             # Record decision
             decision_time = time.time() - start_time
-            self._record_decision(best_recommendation, decision_time, system_analysis)
+            decision_id = self._record_decision(best_recommendation, decision_time, system_analysis, current_performance)
             
             self.total_decisions_made += 1
             
             if best_recommendation:
+                # Start outcome tracking for this decision
+                self.start_outcome_measurement(decision_id, best_recommendation, current_performance)
+                
                 self.logger.info(f"🎯 Governor recommendation: {best_recommendation.type.value} "
                                f"(confidence: {best_recommendation.confidence:.2f})")
                 return best_recommendation
@@ -427,40 +479,189 @@ class MetaCognitiveGovernor:
     
     def _evaluate_mode_switching(self, puzzle_type: str, performance: Dict[str, Any]) -> Optional[GovernorRecommendation]:
         """Evaluate if mode switching would be beneficial."""
-        # Example logic for mode switching
-        if performance.get('current_win_rate', 0) < 0.3:
+        current_win_rate = performance.get('current_win_rate', 0)
+        
+        # Get history of recent mode switches to avoid oscillation
+        recent_mode_switches = [
+            decision for decision in list(self.decision_history)[-5:]
+            if decision['recommendation_type'] == GovernorRecommendationType.MODE_SWITCH.value
+        ]
+        
+        # Avoid too frequent mode switching
+        if len(recent_mode_switches) >= 2:
+            return None
+            
+        # Calculate adaptive confidence based on past mode switch success
+        success_rate = self._calculate_mode_switch_success_rate(recent_mode_switches)
+        base_confidence = 0.8
+        adaptive_confidence = min(0.95, max(0.4, base_confidence + (success_rate - 0.5) * 0.3))
+        
+        # Different thresholds and strategies based on puzzle type and performance
+        if current_win_rate < 0.3:
+            strategy_config, rationale = self._select_mode_switch_strategy(
+                puzzle_type, current_win_rate, performance
+            )
+            
             return GovernorRecommendation(
                 type=GovernorRecommendationType.MODE_SWITCH,
-                configuration_changes={'enable_contrarian_strategy': True},
-                confidence=0.8,
+                configuration_changes=strategy_config,
+                confidence=adaptive_confidence,
                 expected_benefit=CognitiveBenefit(
-                    win_rate_improvement=0.2,
-                    score_improvement=10.0,
+                    win_rate_improvement=0.2 * adaptive_confidence,
+                    score_improvement=10.0 * adaptive_confidence,
                     learning_efficiency=0.1,
-                    knowledge_transfer=0.0
+                    knowledge_transfer=0.05
                 ),
-                rationale="Low win rate suggests need for contrarian strategies",
-                urgency=0.7
+                rationale=rationale,
+                urgency=0.7 if current_win_rate < 0.2 else 0.5
             )
         return None
+    
+    def _select_mode_switch_strategy(self, puzzle_type: str, win_rate: float, performance: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+        """Select appropriate mode switch strategy based on context."""
+        if win_rate < 0.1:
+            # Emergency mode - try contrarian approaches
+            return (
+                {'enable_contrarian_strategy': True, 'increase_exploration': True},
+                f"Critical win rate {win_rate:.2f} requires contrarian exploration"
+            )
+        elif win_rate < 0.2:
+            # Try different cognitive approach
+            return (
+                {'switch_to_pattern_mode': True, 'reduce_noise_threshold': 0.1},
+                f"Very low win rate {win_rate:.2f} suggests pattern recognition focus needed"
+            )
+        elif win_rate < 0.3:
+            # Moderate adjustment
+            avg_score = performance.get('average_score', 0)
+            if avg_score < 5:
+                return (
+                    {'enable_systematic_search': True, 'increase_depth_limit': 50},
+                    f"Low scores with {win_rate:.2f} win rate suggest systematic search needed"
+                )
+            else:
+                return (
+                    {'enable_intuitive_mode': True, 'reduce_analysis_time': 0.8},
+                    f"Decent scores but {win_rate:.2f} win rate suggest faster intuitive decisions"
+                )
+        
+        # Fallback
+        return (
+            {'enable_balanced_mode': True},
+            f"Balanced approach for {win_rate:.2f} win rate"
+        )
+    
+    def _calculate_mode_switch_success_rate(self, recent_switches: List[Dict]) -> float:
+        """Calculate success rate of recent mode switches."""
+        if not recent_switches:
+            return 0.5  # Neutral baseline
+        
+        successful = 0
+        for switch in recent_switches:
+            outcome = switch.get('outcome_metrics', {})
+            if outcome.get('win_rate_change', 0) > 0.05:  # Meaningful improvement
+                successful += 1
+        
+        return successful / len(recent_switches) if recent_switches else 0.5
     
     def _evaluate_parameter_adjustments(self, system_analysis: Dict[str, Any]) -> Optional[GovernorRecommendation]:
         """Evaluate if parameter adjustments would be beneficial."""
         if system_analysis['average_efficiency'] < 1.0:
-            return GovernorRecommendation(
-                type=GovernorRecommendationType.PARAMETER_ADJUSTMENT,
-                configuration_changes={'max_actions_per_game': 750},
-                confidence=0.6,
-                expected_benefit=CognitiveBenefit(
-                    win_rate_improvement=0.05,
-                    score_improvement=2.0,
-                    learning_efficiency=0.1,
-                    knowledge_transfer=0.0
-                ),
-                rationale="Low system efficiency suggests need for more exploration",
-                urgency=0.4
+            # Get history of recent parameter adjustments
+            recent_param_adjustments = [
+                decision for decision in list(self.decision_history)[-10:]
+                if decision['recommendation_type'] == GovernorRecommendationType.PARAMETER_ADJUSTMENT.value
+            ]
+            
+            # Determine which parameter to adjust based on history and system state
+            config_changes, confidence, rationale = self._select_parameter_adjustment(
+                system_analysis, recent_param_adjustments
             )
+            
+            if config_changes:
+                return GovernorRecommendation(
+                    type=GovernorRecommendationType.PARAMETER_ADJUSTMENT,
+                    configuration_changes=config_changes,
+                    confidence=confidence,
+                    expected_benefit=CognitiveBenefit(
+                        win_rate_improvement=0.05 * confidence,
+                        score_improvement=2.0 * confidence,
+                        learning_efficiency=0.1 * confidence,
+                        knowledge_transfer=0.0
+                    ),
+                    rationale=rationale,
+                    urgency=0.4
+                )
         return None
+    
+    def _select_parameter_adjustment(self, system_analysis: Dict[str, Any], recent_adjustments: List[Dict]) -> Tuple[Dict[str, Any], float, str]:
+        """Select intelligent parameter adjustment based on system state and history."""
+        efficiency = system_analysis['average_efficiency']
+        win_rate = system_analysis.get('win_rate', 0.0)
+        
+        # Calculate adaptive confidence based on recent adjustment success
+        base_confidence = 0.6
+        success_rate = self._calculate_adjustment_success_rate(recent_adjustments)
+        adaptive_confidence = min(0.95, max(0.3, base_confidence + (success_rate - 0.5) * 0.4))
+        
+        # Check what parameters were recently adjusted to avoid repetition
+        recent_param_types = set()
+        for adj in recent_adjustments[-3:]:  # Last 3 adjustments
+            config = adj.get('configuration_changes', {})
+            recent_param_types.update(config.keys())
+        
+        # Parameter adjustment strategies based on system state
+        if efficiency < 0.7 and 'max_actions_per_game' not in recent_param_types:
+            return (
+                {'max_actions_per_game': 750},
+                adaptive_confidence,
+                "Low efficiency suggests need for more exploration actions"
+            )
+        elif efficiency < 0.8 and win_rate < 0.4 and 'learning_rate' not in recent_param_types:
+            return (
+                {'learning_rate': 0.001},
+                adaptive_confidence * 0.9,
+                "Poor win rate indicates learning rate adjustment needed"
+            )
+        elif efficiency > 0.6 and efficiency < 0.9 and 'batch_size' not in recent_param_types:
+            return (
+                {'batch_size': 64},
+                adaptive_confidence * 0.8,
+                "Moderate efficiency suggests batch size optimization"
+            )
+        elif 'temperature' not in recent_param_types:
+            # Exploration vs exploitation balance
+            temp_value = 0.8 if win_rate < 0.5 else 0.3
+            return (
+                {'temperature': temp_value},
+                adaptive_confidence * 0.7,
+                f"Adjusting exploration temperature based on win rate {win_rate:.2f}"
+            )
+        else:
+            # All main parameters recently adjusted, suggest multi-parameter fine-tuning
+            return (
+                {
+                    'max_actions_per_game': min(1000, int(750 * (1 + (1 - efficiency)))),
+                    'exploration_bonus': 0.1 if efficiency < 0.8 else 0.05
+                },
+                adaptive_confidence * 0.6,
+                "Multi-parameter fine-tuning after recent individual adjustments"
+            )
+    
+    def _calculate_adjustment_success_rate(self, recent_adjustments: List[Dict]) -> float:
+        """Calculate success rate of recent parameter adjustments."""
+        if not recent_adjustments:
+            return 0.5  # Neutral baseline
+        
+        successful = 0
+        for adj in recent_adjustments:
+            # Consider adjustment successful if it led to improvement
+            # This is a simplified heuristic - in practice would track actual outcomes
+            outcome = adj.get('outcome_metrics', {})
+            if outcome.get('win_rate_change', 0) > 0 or outcome.get('efficiency_change', 0) > 0:
+                successful += 1
+        
+        return successful / len(recent_adjustments) if recent_adjustments else 0.5
     
     def _evaluate_consolidation_trigger(self, resource_analysis: Dict[str, Any]) -> Optional[GovernorRecommendation]:
         """Evaluate if consolidation should be triggered."""
@@ -514,14 +715,19 @@ class MetaCognitiveGovernor:
         return max(recommendations, key=score_recommendation)
     
     def _record_decision(self, recommendation: Optional[GovernorRecommendation], 
-                        decision_time: float, system_analysis: Dict[str, Any]):
+                        decision_time: float, system_analysis: Dict[str, Any],
+                        current_performance: Dict[str, Any] = None) -> str:
         """Record a decision for future analysis."""
+        decision_id = f"decision_{self.total_decisions_made}_{int(time.time())}"
+        
         decision_record = {
             'timestamp': time.time(),
             'recommendation': recommendation.to_dict() if recommendation else None,
+            'recommendation_type': recommendation.type.value if recommendation else 'no_action',
             'decision_time_ms': decision_time * 1000,
             'system_state': system_analysis,
-            'decision_id': self.total_decisions_made
+            'decision_id': decision_id,
+            'current_performance': current_performance or {}
         }
         
         self.decision_history.append(decision_record)
@@ -533,6 +739,259 @@ class MetaCognitiveGovernor:
                     f.write(json.dumps(decision_record) + '\n')
             except Exception as e:
                 self.logger.error(f"Failed to log decision: {e}")
+        
+        return decision_id
+    
+    def start_outcome_measurement(self, decision_id: str, recommendation: GovernorRecommendation,
+                                 current_performance: Dict[str, Any]) -> Optional[str]:
+        """Start tracking outcomes for a recommendation."""
+        if not self.outcome_tracker:
+            return None
+        
+        try:
+            from src.core.outcome_tracker import PerformanceMetrics
+            
+            # Convert current performance to PerformanceMetrics
+            baseline_metrics = PerformanceMetrics(
+                win_rate=current_performance.get('win_rate', 0.0),
+                average_score=current_performance.get('average_score', 0.0),
+                learning_efficiency=current_performance.get('learning_efficiency', 0.0),
+                knowledge_transfer=current_performance.get('knowledge_transfer', 0.0),
+                computational_efficiency=current_performance.get('computational_efficiency', 1.0),
+                memory_usage=current_performance.get('memory_usage', 0.5),
+                inference_speed=current_performance.get('inference_speed', 1.0)
+            )
+            
+            outcome_id = self.outcome_tracker.start_outcome_measurement(
+                decision_id=decision_id,
+                intervention_type=f"governor_{recommendation.type.value}",
+                intervention_details=recommendation.configuration_changes,
+                baseline_metrics=baseline_metrics
+            )
+            
+            self.pending_outcome_measurements[decision_id] = outcome_id
+            return outcome_id
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start outcome measurement: {e}")
+            return None
+    
+    def complete_outcome_measurement(self, decision_id: str, 
+                                   post_performance: Dict[str, Any],
+                                   sample_size: int = 1,
+                                   notes: str = ""):
+        """Complete outcome measurement for a decision."""
+        if not self.outcome_tracker or decision_id not in self.pending_outcome_measurements:
+            return
+        
+        try:
+            from src.core.outcome_tracker import PerformanceMetrics
+            
+            # Convert post performance to PerformanceMetrics
+            post_metrics = PerformanceMetrics(
+                win_rate=post_performance.get('win_rate', 0.0),
+                average_score=post_performance.get('average_score', 0.0),
+                learning_efficiency=post_performance.get('learning_efficiency', 0.0),
+                knowledge_transfer=post_performance.get('knowledge_transfer', 0.0),
+                computational_efficiency=post_performance.get('computational_efficiency', 1.0),
+                memory_usage=post_performance.get('memory_usage', 0.5),
+                inference_speed=post_performance.get('inference_speed', 1.0)
+            )
+            
+            outcome_id = self.pending_outcome_measurements[decision_id]
+            outcome_record = self.outcome_tracker.complete_outcome_measurement(
+                outcome_id=outcome_id,
+                post_metrics=post_metrics,
+                sample_size=sample_size,
+                notes=notes
+            )
+            
+            # Update decision history with outcome
+            for decision in reversed(self.decision_history):
+                if decision.get('decision_id') == decision_id:
+                    decision['outcome_metrics'] = {
+                        'success_score': outcome_record.success_score,
+                        'status': outcome_record.status.value,
+                        'win_rate_change': outcome_record.performance_deltas.get('win_rate_delta', 0),
+                        'score_change': outcome_record.performance_deltas.get('score_delta', 0),
+                        'efficiency_change': outcome_record.performance_deltas.get('learning_efficiency_delta', 0)
+                    }
+                    break
+            
+            # Update success counter
+            if outcome_record.success_score >= 0.4:
+                self.successful_recommendations += 1
+            
+            # Clean up pending measurements
+            del self.pending_outcome_measurements[decision_id]
+            
+        except Exception as e:
+            self.logger.error(f"Failed to complete outcome measurement: {e}")
+    
+    def get_effectiveness_insights(self) -> Dict[str, Any]:
+        """Get insights about Governor effectiveness from outcome tracking."""
+        if not self.outcome_tracker:
+            return {'insights_available': False}
+        
+        insights = self.outcome_tracker.get_learning_insights()
+        
+        # Add Governor-specific insights
+        governor_insights = {
+            'total_decisions': self.total_decisions_made,
+            'tracked_outcomes': len(self.outcome_tracker.outcome_history),
+            'pending_measurements': len(self.pending_outcome_measurements),
+            'estimated_success_rate': self.successful_recommendations / max(self.total_decisions_made, 1)
+        }
+        
+        # Get effectiveness by recommendation type
+        recommendation_types = [
+            'governor_mode_switch',
+            'governor_parameter_adjustment', 
+            'governor_consolidation_trigger'
+        ]
+        
+        for rec_type in recommendation_types:
+            stats = self.outcome_tracker.get_intervention_effectiveness(rec_type)
+            governor_insights[f'{rec_type}_effectiveness'] = stats
+        
+        insights['governor_specific'] = governor_insights
+        insights['insights_available'] = True
+        
+        return insights
+    
+    def start_learning_session(self, session_context: Dict[str, Any] = None) -> Optional[str]:
+        """Start a cross-session learning session."""
+        if not self.learning_manager:
+            return None
+        
+        session_id = self.learning_manager.start_session(session_context)
+        self.logger.info(f"Started cross-session learning: {session_id}")
+        return session_id
+    
+    def end_learning_session(self, performance_summary: Dict[str, Any] = None):
+        """End the current learning session."""
+        if not self.learning_manager:
+            return
+        
+        if not performance_summary:
+            performance_summary = {
+                'total_decisions': self.total_decisions_made,
+                'successful_decisions': self.successful_recommendations,
+                'avg_improvement': 0.1 if self.successful_recommendations > 0 else 0.0
+            }
+        
+        self.learning_manager.end_session(performance_summary)
+    
+    def learn_from_recommendation_outcome(self, recommendation: GovernorRecommendation,
+                                        context: Dict[str, Any], success_metrics: Dict[str, float]):
+        """Learn from the outcome of a recommendation."""
+        if not self.learning_manager:
+            return
+        
+        from src.core.cross_session_learning import KnowledgeType, PersistenceLevel
+        
+        # Learn strategy pattern
+        strategy_data = {
+            'recommendation_type': recommendation.type.value,
+            'configuration_changes': recommendation.configuration_changes,
+            'original_confidence': recommendation.confidence,
+            'expected_benefit': asdict(recommendation.expected_benefit)
+        }
+        
+        # Determine success score
+        success_score = (
+            success_metrics.get('win_rate_improvement', 0) * 0.4 +
+            success_metrics.get('score_improvement', 0) / 20.0 * 0.3 +
+            success_metrics.get('efficiency_improvement', 0) * 0.3
+        )
+        
+        # Determine persistence level based on success
+        persistence_level = PersistenceLevel.PERMANENT if success_score > 0.6 else PersistenceLevel.SESSION
+        
+        pattern_id = self.learning_manager.learn_pattern(
+            KnowledgeType.STRATEGY_PATTERN,
+            strategy_data,
+            context,
+            success_score,
+            persistence_level
+        )
+        
+        self.logger.debug(f"Learned strategy pattern {pattern_id} with success score {success_score:.3f}")
+        
+        # Also learn parameter optimization patterns
+        if recommendation.type.value == 'parameter_adjustment':
+            param_data = {
+                'parameter_changes': recommendation.configuration_changes,
+                'system_state': context.get('system_state', {}),
+                'performance_improvement': success_score
+            }
+            
+            self.learning_manager.learn_pattern(
+                KnowledgeType.PARAMETER_OPTIMIZATION,
+                param_data,
+                context,
+                success_score,
+                PersistenceLevel.PERMANENT if success_score > 0.7 else PersistenceLevel.SESSION
+            )
+    
+    def get_learned_recommendations(self, puzzle_type: str, current_performance: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get recommendations based on learned patterns."""
+        if not self.learning_manager:
+            return []
+        
+        from src.core.cross_session_learning import KnowledgeType
+        
+        context = {
+            'puzzle_type': puzzle_type,
+            'current_performance': current_performance
+        }
+        
+        # Get applicable strategy patterns
+        strategy_patterns = self.learning_manager.retrieve_applicable_patterns(
+            KnowledgeType.STRATEGY_PATTERN,
+            context,
+            min_confidence=0.4,
+            max_results=3
+        )
+        
+        recommendations = []
+        for pattern in strategy_patterns:
+            pattern_data = pattern.pattern_data
+            
+            rec_data = {
+                'type': pattern_data.get('recommendation_type', 'unknown'),
+                'configuration_changes': pattern_data.get('configuration_changes', {}),
+                'confidence': pattern.confidence,
+                'success_rate': pattern.success_rate,
+                'applications': pattern.total_applications,
+                'rationale': f"Learned strategy (success rate: {pattern.success_rate:.1%})"
+            }
+            
+            recommendations.append(rec_data)
+        
+        return recommendations
+    
+    def get_best_configuration_for_context(self, puzzle_type: str, current_performance: Dict[str, Any]) -> Dict[str, Any]:
+        """Get the best known configuration for the current context."""
+        if not self.learning_manager:
+            return {}
+        
+        context = {
+            'puzzle_type': puzzle_type,
+            'current_performance': current_performance
+        }
+        
+        return self.learning_manager.get_best_configuration_for_context(context)
+    
+    def get_cross_session_insights(self) -> Dict[str, Any]:
+        """Get insights from cross-session learning."""
+        if not self.learning_manager:
+            return {'learning_available': False}
+        
+        insights = self.learning_manager.get_performance_insights()
+        insights['learning_available'] = True
+        
+        return insights
     
     def _get_failed_solutions_history(self, issue_type: str) -> List[Dict[str, Any]]:
         """Get history of failed solutions for this issue type."""
