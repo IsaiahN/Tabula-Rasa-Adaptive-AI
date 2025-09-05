@@ -1260,7 +1260,7 @@ This project was **100% vibe-coded**. Thank god.
 -   **Completed:** Friday, September 5, 2025
     
 
-Though it took just seven days to compile, it represents over a hundred rapid iterations. I watched its "brain" form in real-time—an exhilarating but draining process of vibe-debugging and constant refinement. Had a team attempted this manually, it would have taken years.
+Though it took just seven days to create, it represents over a hundred rapid iterations. I watched its "brain" form in real-time—an exhilarating but draining process of vibe-debugging and constant refinement. Had a team attempted this manually, it would have taken years.
 
 **My entire setup:**
 
@@ -1273,34 +1273,5 @@ Though it took just seven days to compile, it represents over a hundred rapid it
 -   **Inspiration:** Countless chats with DeepSeek about biology, anatomy, and the inadequacies of current AI, plus my own musings on true intelligence.
     
 
-The architectural foundation is built on principles from **Piaget's theory of cognitive development**, a concept I discovered in an elective class that perfectly describes how intelligence structures itself through interaction and adaptation.### **Why I Built This**
+The architectural foundation is built on principles from **Piaget's theory of cognitive development**, that perfectly describes how intelligence structures itself through interaction and adaptation.
 
-In 2019, I wrote a blog post outlining a theory for AGI based on consciousness emerging from scarcity and resource constraints. It was just a thought experiment, but the idea never left me.
-
-[Artificial General Intelligence — The Beginnings of Consciousness](https://medium.com/@IsaiahNwukor/artificial-general-intelligence-and-the-beginnings-of-consciousness-thesis-rant-75ecdaf6770a)
-
-Over time, I grew tired of watching the field hit the same walls. I recognized the limitations immediately—they were the very problems I had theorized about years prior. I decided to stop waiting and start building.
-
-### **How I Built This**
-
-This project was **100% vibe-coded**. Thank god.
-
--   **Created:** Friday, August 29, 2025, 1:38:48 PM
-    
--   **Completed:** Friday, September 5, 2025
-    
-
-Though it took just seven days to compile, it represents over a hundred rapid iterations. I watched its "brain" form in real-time—an exhilarating but draining process of vibe-debugging and constant refinement. If a developmenta team attempted to code this project manually, it would have taken years. ᕙ(⇀__↼‶) ᕗ
-
-**My entire setup:**
-
--   **Hardware:** My old laptop (incapable of running LLMs locally, API-only)
-    
--   **IDE:** A free trial of Visual Studio Code (the time limit was a great motivator)
-    
--   **Co-Pilots:** Claude Code Sonnet 4.0 & DeepSeek
-    
--   **Inspiration:** Countless chats with DeepSeek about biology, anatomy, and the inadequacies of current AI, plus my own musings on true intelligence.
-    
-
-The architectural foundation is built on principles from **Piaget's theory of cognitive development**, a concept I discovered in an elective class that perfectly describes how intelligence structures itself through interaction and adaptation.
