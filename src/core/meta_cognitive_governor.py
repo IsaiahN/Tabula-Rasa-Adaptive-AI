@@ -224,6 +224,18 @@ class MetaCognitiveGovernor:
         except ImportError:
             self.logger.warning("Architect Evolution Engine not available")
         
+        # Performance Optimization Engine (Phase 4 enhancement)
+        self.performance_engine = None
+        try:
+            from src.core.performance_optimization_engine import PerformanceOptimizationEngine
+            self.performance_engine = PerformanceOptimizationEngine(
+                persistence_dir=persistence_dir or ".",
+                enable_real_time_optimization=True
+            )
+            self.logger.info("Performance Optimization Engine enabled - Phase 4 performance maximization")
+        except ImportError:
+            self.logger.warning("Performance Optimization Engine not available")
+        
         # Cognitive system monitors
         self.system_monitors = {}
         self.initialize_system_monitors()
@@ -1976,6 +1988,330 @@ class MetaCognitiveGovernor:
         clusters_sufficient = cluster_data.get("clusters_created", 0) >= 5
         
         return patterns_sufficient and clusters_sufficient
+
+    # ==========================================
+    # Phase 4: Performance Optimization Integration
+    # ==========================================
+    
+    def trigger_comprehensive_performance_analysis(self) -> Dict[str, Any]:
+        """
+        Trigger comprehensive performance analysis using all Phase 1-4 intelligence.
+        
+        Phase 4: Leverage pattern recognition, clustering, architectural insights,
+        and performance optimization for maximum system performance.
+        """
+        if not self.performance_engine:
+            return {
+                "status": "unavailable",
+                "message": "Performance Optimization Engine not available"
+            }
+        
+        try:
+            self.logger.info("⚡ Triggering comprehensive performance analysis (Phase 1-4)")
+            
+            # Gather all intelligence data for performance analysis
+            governor_patterns = self._get_pattern_intelligence_data()
+            governor_clusters = self._get_cluster_intelligence_data()
+            architect_insights = self._get_architect_insights_data()
+            
+            # Trigger comprehensive performance analysis
+            performance_analysis = self.performance_engine.analyze_performance_with_intelligence(
+                governor_patterns, governor_clusters, architect_insights
+            )
+            
+            # Log the comprehensive analysis decision
+            self.log_governor_decision({
+                "decision_type": "comprehensive_performance_analysis",
+                "analysis_status": performance_analysis.get("status", "unknown"),
+                "optimization_opportunities": performance_analysis.get("optimization_opportunities", 0),
+                "optimization_strategies": performance_analysis.get("optimization_strategies", 0),
+                "enhancement_phase": "Phase 4 - Performance Optimization"
+            })
+            
+            result = {
+                "status": "success",
+                "performance_analysis": performance_analysis,
+                "intelligence_integration": "phases_1_2_3_4_complete",
+                "message": f"Comprehensive performance analysis complete using all phases"
+            }
+            
+            self.logger.info(f"⚡ Comprehensive Performance Analysis Complete: {performance_analysis.get('optimization_opportunities', 0)} opportunities")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Failed to trigger comprehensive performance analysis: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "message": f"Comprehensive performance analysis failed: {e}"
+            }
+    
+    def execute_performance_optimization(self, optimization_id: str) -> Dict[str, Any]:
+        """
+        Execute a specific performance optimization strategy.
+        
+        Phase 4: Execute performance optimizations identified through
+        comprehensive Phase 1-4 intelligence analysis.
+        """
+        if not self.performance_engine:
+            return {
+                "status": "unavailable",
+                "message": "Performance Optimization Engine not available"
+            }
+        
+        try:
+            self.logger.info(f"⚡ Executing performance optimization: {optimization_id}")
+            
+            # Execute the optimization
+            optimization_result = self.performance_engine.execute_performance_optimization(optimization_id)
+            
+            # Log the optimization execution
+            self.log_governor_decision({
+                "decision_type": "performance_optimization_execution",
+                "optimization_id": optimization_id,
+                "execution_success": optimization_result.get("success", False),
+                "execution_time": optimization_result.get("execution_time", 0),
+                "expected_improvements": optimization_result.get("expected_improvements", {}),
+                "enhancement_phase": "Phase 4 - Performance Optimization"
+            })
+            
+            if optimization_result.get("success"):
+                self.logger.info(f"⚡ Performance optimization successful: {optimization_result.get('message', 'No details')}")
+            else:
+                self.logger.warning(f"⚡ Performance optimization failed: {optimization_result.get('message', 'No details')}")
+            
+            return optimization_result
+            
+        except Exception as e:
+            self.logger.error(f"Failed to execute performance optimization: {e}")
+            return {
+                "status": "error", 
+                "error": str(e),
+                "success": False,
+                "message": f"Performance optimization execution failed: {e}"
+            }
+    
+    def record_system_performance_metrics(
+        self,
+        component: str,
+        throughput: float, 
+        latency: float,
+        resource_utilization: float,
+        **kwargs
+    ) -> str:
+        """
+        Record performance metrics for Governor-monitored system components.
+        
+        Phase 4: Integrate performance monitoring with Governor decision-making
+        to enable real-time performance optimization.
+        """
+        if not self.performance_engine:
+            self.logger.warning("Performance Engine not available - metrics not recorded")
+            return "performance_engine_unavailable"
+        
+        try:
+            # Record performance metrics
+            metric_id = self.performance_engine.record_performance_metrics(
+                component=component,
+                throughput=throughput,
+                latency=latency,
+                resource_utilization=resource_utilization,
+                **kwargs
+            )
+            
+            # Log performance metrics recording
+            self.log_governor_decision({
+                "decision_type": "performance_metrics_recorded",
+                "component": component,
+                "metric_id": metric_id,
+                "throughput": throughput,
+                "latency": latency,
+                "resource_utilization": resource_utilization,
+                "enhancement_phase": "Phase 4 - Performance Monitoring"
+            })
+            
+            self.logger.debug(f"⚡ Performance metrics recorded for {component}: {metric_id}")
+            return metric_id
+            
+        except Exception as e:
+            self.logger.error(f"Failed to record performance metrics: {e}")
+            return f"error_{int(time.time())}"
+    
+    def get_comprehensive_system_status(self) -> Dict[str, Any]:
+        """
+        Get comprehensive system status integrating all Phase 1-4 capabilities.
+        
+        Phase 4: Unified status view incorporating pattern recognition, clustering,
+        architectural evolution, and performance optimization.
+        """
+        base_status = self.get_system_status()
+        current_time = time.time()
+        
+        # Add Phase 1-4 integration status
+        comprehensive_status = {
+            **base_status,
+            "meta_cognitive_integration": {
+                "phase_1_patterns": {
+                    "available": self.pattern_optimizer is not None,
+                    "status": "operational" if self.pattern_optimizer else "unavailable"
+                },
+                "phase_2_clustering": {
+                    "available": self.memory_clusterer is not None,
+                    "status": "operational" if self.memory_clusterer else "unavailable"
+                },
+                "phase_3_architect": {
+                    "available": self.architect_engine is not None,
+                    "status": "operational" if self.architect_engine else "unavailable"
+                },
+                "phase_4_performance": {
+                    "available": self.performance_engine is not None,
+                    "status": "operational" if self.performance_engine else "unavailable"
+                }
+            }
+        }
+        
+        # Add performance status if available
+        if self.performance_engine:
+            try:
+                performance_status = self.performance_engine.get_performance_status()
+                comprehensive_status["performance_optimization"] = performance_status
+            except Exception as e:
+                self.logger.warning(f"Failed to get performance status: {e}")
+                comprehensive_status["performance_optimization"] = {"status": "error", "error": str(e)}
+        
+        # Add architect status if available
+        if self.architect_engine:
+            try:
+                architect_status = self.get_architect_status()
+                comprehensive_status["architect_evolution"] = architect_status
+            except Exception as e:
+                self.logger.warning(f"Failed to get architect status: {e}")
+                comprehensive_status["architect_evolution"] = {"status": "error", "error": str(e)}
+        
+        return comprehensive_status
+    
+    def _get_architect_insights_data(self) -> List[Dict[str, Any]]:
+        """Get Architect's insights data for performance analysis."""
+        if not self.architect_engine:
+            return []
+        
+        try:
+            # Get recent architectural insights
+            recommendations = self.architect_engine.get_architect_recommendations()
+            
+            return [
+                {
+                    "insight_type": rec.get("title", "unknown").replace(" ", "_").lower(),
+                    "priority": rec.get("priority", 0.0),
+                    "confidence": rec.get("confidence", 0.0),
+                    "expected_impact": rec.get("expected_benefits", {}),
+                    "description": rec.get("description", "")
+                }
+                for rec in recommendations
+            ]
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to get architect insights data: {e}")
+            return []
+    
+    def should_trigger_performance_optimization(self) -> bool:
+        """
+        Check if performance optimization should be triggered.
+        
+        Phase 4: Intelligent triggering of performance optimization when
+        sufficient intelligence data is available from all phases.
+        """
+        if not self.performance_engine:
+            return False
+        
+        # Check if we have sufficient intelligence data
+        pattern_data = self._get_pattern_intelligence_data()
+        cluster_data = self._get_cluster_intelligence_data()
+        architect_insights = self._get_architect_insights_data()
+        
+        # Trigger if we have rich data from multiple phases
+        patterns_available = pattern_data.get("patterns_detected", 0) >= 5
+        clusters_available = cluster_data.get("clusters_created", 0) >= 3
+        insights_available = len(architect_insights) >= 1
+        
+        # At least 2 of 3 phases should have good data
+        phases_ready = sum([patterns_available, clusters_available, insights_available])
+        
+        return phases_ready >= 2
+    
+    def optimize_system_performance(self) -> Dict[str, Any]:
+        """
+        Execute comprehensive system performance optimization using all phases.
+        
+        Phase 4: Master method that coordinates all Phase 1-4 capabilities
+        for maximum system performance optimization.
+        """
+        self.logger.info("🚀 Executing comprehensive system performance optimization")
+        
+        results = {
+            "optimization_type": "comprehensive_phase_1_2_3_4",
+            "timestamp": time.time(),
+            "phases_executed": [],
+            "total_optimizations": 0,
+            "performance_improvements": {},
+            "status": "in_progress"
+        }
+        
+        try:
+            # Phase 1: Pattern-based optimization
+            if self.pattern_optimizer:
+                pattern_result = self.optimize_memory_patterns()
+                results["phases_executed"].append("phase_1_patterns")
+                results["total_optimizations"] += pattern_result.get("optimizations_applied", 0)
+                self.logger.info("✅ Phase 1 pattern optimization complete")
+            
+            # Phase 2: Cluster-based optimization  
+            if self.memory_clusterer:
+                cluster_result = self.create_intelligent_memory_clusters()
+                results["phases_executed"].append("phase_2_clustering")
+                results["total_optimizations"] += cluster_result.get("clusters_created", 0)
+                self.logger.info("✅ Phase 2 cluster optimization complete")
+            
+            # Phase 3: Architectural evolution
+            if self.architect_engine:
+                architect_result = self.execute_autonomous_evolution()
+                results["phases_executed"].append("phase_3_architect")
+                if architect_result.get("success"):
+                    results["total_optimizations"] += 1
+                self.logger.info("✅ Phase 3 architectural evolution complete")
+            
+            # Phase 4: Performance optimization
+            if self.performance_engine:
+                performance_result = self.trigger_comprehensive_performance_analysis()
+                results["phases_executed"].append("phase_4_performance")
+                if performance_result.get("status") == "success":
+                    perf_analysis = performance_result.get("performance_analysis", {})
+                    results["total_optimizations"] += perf_analysis.get("optimization_opportunities", 0)
+                self.logger.info("✅ Phase 4 performance optimization complete")
+            
+            # Log comprehensive optimization
+            self.log_governor_decision({
+                "decision_type": "comprehensive_system_optimization",
+                "phases_executed": results["phases_executed"],
+                "total_optimizations": results["total_optimizations"],
+                "optimization_success": True,
+                "enhancement_phase": "Phase 1+2+3+4 Comprehensive"
+            })
+            
+            results["status"] = "success"
+            results["message"] = f"Comprehensive optimization complete: {len(results['phases_executed'])} phases, {results['total_optimizations']} optimizations"
+            
+            self.logger.info(f"🚀 Comprehensive System Optimization Complete: {results['total_optimizations']} optimizations across {len(results['phases_executed'])} phases")
+            
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"Comprehensive system optimization failed: {e}")
+            results["status"] = "error"
+            results["error"] = str(e)
+            results["message"] = f"Optimization failed: {e}"
+            
+            return results
 
 
 # Example usage and testing

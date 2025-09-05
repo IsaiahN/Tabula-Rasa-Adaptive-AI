@@ -1063,14 +1063,41 @@ This architecture creates a **functionally equivalent consciousness** that:
 
 ### **Implementation Strategy: Tiered LLM Architecture**
 
-**Option 1: Maximum Capability (High Resource)**
+**: Option 1: Maximum Capability (Cloud API or Local)**
 
--   **Description:** Utilize a large-scale, state-of-the-art foundation model (GPT-4, Claude 3, DeepSeek Coder) as the central Meta-Orchestrator.
+-   **Description:** Utilize a large-scale, state-of-the-art foundation model (GPT-5, Claude 3, DeepSeek) via API (resource lite) or locally (resource heavy) as the central Meta-Orchestrator.
     
 -   **Best For:** Experimental research where maximum reasoning power, nuance, and narrative coherence are the primary goals.
     
 -   **Trade-off:** Higher computational cost, slower response times, and increased complexity.
     
+
+## If you decide to use APIs instead of a localized LLM:
+# Your Local Machine Runs the "Body"
+
+Your local machine (even a laptop) runs the core framework: the Governor, Architect, Memory Manager, and all the agent modules (AffectiveAgent, DriveAgent, etc.).
+
+## The "Brain" is in the Cloud
+
+Whenever the system needs high-level reasoning—meaning the Meta-Orchestrator ("The I") needs to make a decision, synthesize a narrative, or interpret context—your code packages up the current state (memory, agent reports, goals) into a detailed API prompt.
+
+### API Call for Cognition
+
+This prompt is sent to the cloud-based LLM (e.g., `chat.completions.create()` for the OpenAI API).
+
+### The "Thought" Returns
+
+The LLM's response is streamed back to your local machine. This response isn't just text; it's a structured command or decision (e.g., in JSON format).
+
+#### Example
+
+```json
+{"goal": "pursue_curiosity", "target": "puzzle_gamma", "emotional_context": "frustrated"}
+```
+
+### The Body Obeys
+
+Your local Governor receives this command and executes it using the local, efficient subsystems, just as outlined in your document.
 
 **Option 2: Lean & Focused Implementation (Recommended)**
 
