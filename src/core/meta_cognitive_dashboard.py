@@ -200,12 +200,19 @@ class MetaCognitiveDashboard:
         timestamp = time.time()
         
         for metric_name, value in metrics.items():
-            self.add_metric(MetricType.PERFORMANCE, source, metric_name, value, {})
+            # Ensure value is a float to prevent type errors
+            try:
+                float_value = float(value) if value is not None else 0.0
+            except (ValueError, TypeError):
+                self.logger.warning(f"Invalid metric value for {metric_name}: {value}, using 0.0")
+                float_value = 0.0
+                
+            self.add_metric(MetricType.PERFORMANCE, source, metric_name, float_value, {})
             
             # Store in performance history
             self.performance_history[metric_name].append({
                 'timestamp': timestamp,
-                'value': value,
+                'value': float_value,
                 'source': source
             })
     
@@ -224,12 +231,19 @@ class MetaCognitiveDashboard:
     def add_metric(self, metric_type: MetricType, source: str, name: str, 
                   value: float, metadata: Dict[str, Any] = None):
         """Add a metric data point."""
+        # Ensure value is a float to prevent arithmetic errors
+        try:
+            float_value = float(value) if value is not None else 0.0
+        except (ValueError, TypeError):
+            self.logger.warning(f"Invalid metric value for {name}: {value}, using 0.0")
+            float_value = 0.0
+            
         metric = DashboardMetric(
             timestamp=time.time(),
             metric_type=metric_type,
             source=source,
             name=name,
-            value=value,
+            value=float_value,
             metadata=metadata or {}
         )
         
@@ -288,10 +302,18 @@ class MetaCognitiveDashboard:
             
             stats = summary['metrics'][key]
             stats['count'] += 1
-            stats['average'] = (stats['average'] * (stats['count'] - 1) + metric.value) / stats['count']
-            stats['min'] = min(stats['min'], metric.value)
-            stats['max'] = max(stats['max'], metric.value)
-            stats['latest'] = metric.value
+            
+            # Safe averaging calculation with type checking
+            try:
+                metric_value = float(metric.value) if metric.value is not None else 0.0
+                current_average = float(stats['average']) if stats['average'] is not None else 0.0
+                stats['average'] = (current_average * (stats['count'] - 1) + metric_value) / stats['count']
+                stats['min'] = min(stats['min'], metric_value)
+                stats['max'] = max(stats['max'], metric_value)
+                stats['latest'] = metric_value
+            except (ValueError, TypeError, ZeroDivisionError) as e:
+                self.logger.warning(f"Error calculating metric stats for {key}: {e}")
+                stats['latest'] = 0.0
         
         # Analyze events
         recent_events = [e for e in self.events if e.timestamp > cutoff_time]
@@ -311,8 +333,24 @@ class MetaCognitiveDashboard:
         summary['decisions']['architect'] = len(arch_decisions)
         
         if recent_decisions:
-            avg_confidence = statistics.mean([d['confidence'] for d in recent_decisions])
-            summary['decisions']['average_confidence'] = avg_confidence
+            try:
+                # Safe confidence averaging with type checking
+                confidence_values = []
+                for d in recent_decisions:
+                    try:
+                        conf = float(d.get('confidence', 0.0)) if d.get('confidence') is not None else 0.0
+                        confidence_values.append(conf)
+                    except (ValueError, TypeError):
+                        confidence_values.append(0.0)
+                
+                if confidence_values:
+                    avg_confidence = statistics.mean(confidence_values)
+                    summary['decisions']['average_confidence'] = avg_confidence
+                else:
+                    summary['decisions']['average_confidence'] = 0.0
+            except Exception as e:
+                self.logger.warning(f"Error calculating average confidence: {e}")
+                summary['decisions']['average_confidence'] = 0.0
         
         return summary
     

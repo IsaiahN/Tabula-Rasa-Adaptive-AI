@@ -69,24 +69,108 @@ except ImportError:
 shutdown_requested = False
 training_state = {}
 
+def setup_windows_logging():
+    """Set up logging that works properly on Windows."""
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    
+    # Create handlers with UTF-8 encoding
+    handlers = []
+    
+    # Console handler with UTF-8 - handle Windows encoding issues
+    try:
+        import sys
+        import codecs
+        
+        # Try to set console to UTF-8
+        if hasattr(sys.stdout, 'reconfigure'):
+            try:
+                sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+                sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+            except:
+                pass
+        
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        
+        # Use a formatter that handles Unicode gracefully
+        class SafeFormatter(logging.Formatter):
+            def format(self, record):
+                try:
+                    return super().format(record)
+                except UnicodeEncodeError:
+                    # Strip problematic characters and retry
+                    record.msg = str(record.msg).encode('ascii', errors='replace').decode('ascii')
+                    return super().format(record)
+        
+        console_handler.setFormatter(SafeFormatter(log_format))
+        handlers.append(console_handler)
+        
+    except Exception:
+        # Fallback: basic console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter(log_format))
+        handlers.append(console_handler)
+    
+    # File handler with UTF-8 encoding
+    try:
+        file_handler = logging.FileHandler('master_arc_trainer.log', encoding='utf-8')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(logging.Formatter(log_format))
+        handlers.append(file_handler)
+    except Exception:
+        pass  # Skip file logging if it fails
+    
+    # Configure root logger
+    try:
+        logging.basicConfig(
+            level=logging.INFO,
+            format=log_format,
+            handlers=handlers,
+            force=True  # Override existing config
+        )
+    except Exception:
+        # Minimal fallback
+        logging.basicConfig(level=logging.INFO, format=log_format)
+    
+    # Disable some noisy loggers
+    try:
+        logging.getLogger('matplotlib').setLevel(logging.WARNING)
+        logging.getLogger('git').setLevel(logging.WARNING)
+    except Exception:
+        pass
+
 def safe_print(text: str, use_color: bool = True):
     """Print text safely, handling Unicode encoding issues on Windows."""
     try:
+        # On Windows, handle encoding issues more gracefully
+        if os.name == 'nt':  # Windows
+            try:
+                # Try to configure stdout encoding if possible
+                if hasattr(sys.stdout, 'reconfigure'):
+                    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            except:
+                pass
+        
         if COLOR_AVAILABLE and use_color:
-            print(text)
+            print(text, flush=False)  # Don't force flush to avoid Windows issues
         else:
             # Strip ANSI color codes if colorama not available
             import re
             clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-            print(clean_text)
-    except UnicodeEncodeError:
+            print(clean_text, flush=False)
+    except (UnicodeEncodeError, OSError) as e:
         # Fallback: encode to ASCII and ignore problematic characters
         try:
-            safe_text = text.encode('ascii', errors='ignore').decode('ascii')
+            clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text) if '\x1b[' in text else text
+            safe_text = clean_text.encode('ascii', errors='ignore').decode('ascii')
             print(safe_text)
         except Exception:
-            # Ultimate fallback
+            # Ultimate fallback - just print a safe message
             print("Output contains non-displayable characters")
+    except Exception:
+        # Any other exception - print safe message
+        print("Output contains non-displayable characters")
 
 def signal_handler(signum, frame):
     """Handle graceful shutdown signals."""
@@ -326,6 +410,7 @@ class MasterARCTrainer:
             'system-comparison': self._run_system_comparison,
             'minimal-debug': self._run_minimal_debug,
             'meta-cognitive-training': self._run_meta_cognitive_training,
+            'continuous-training': self._run_continuous_training,
             
             # Legacy compatibility modes
             'sequential': self._run_sequential,
@@ -582,6 +667,43 @@ class MasterARCTrainer:
         """Legacy continuous mode (backward compatibility)."""
         self.logger.info("🔄 Continuous Mode (Legacy)")
         return await self._run_maximum_intelligence()
+    
+    async def _run_continuous_training(self) -> Dict[str, Any]:
+        """Windows-compatible continuous training mode."""
+        self.logger.info("🔄 Continuous Training Mode (Windows Compatible)")
+        
+        # Setup Windows logging
+        setup_windows_logging()
+        
+        # Create and start continuous runner
+        runner = ContinuousTrainingRunner(dashboard_mode='console', config=self.config)
+        
+        try:
+            await runner.start_continuous_training()
+            return {
+                'success': True,
+                'mode': 'continuous-training',
+                'sessions_completed': runner.session_count,
+                'runtime_minutes': (time.time() - runner.start_time) / 60,
+                'timestamp': datetime.now().isoformat()
+            }
+        except KeyboardInterrupt:
+            safe_print(f"\n{Fore.YELLOW}INTERRUPTED: Continuous training stopped by user{Style.RESET_ALL}")
+            return {
+                'success': True,
+                'mode': 'continuous-training',
+                'sessions_completed': runner.session_count,
+                'interrupted': True,
+                'timestamp': datetime.now().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Continuous training failed: {e}")
+            return {
+                'success': False,
+                'mode': 'continuous-training',
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
     
     async def _run_continuous_learning(self, config_overrides: Dict = None) -> Dict[str, Any]:
         """Core continuous learning execution."""
@@ -1032,6 +1154,259 @@ class MasterARCTrainer:
         except Exception as e:
             self.logger.error(f"Could not save meta-cognitive logs: {e}")
 
+
+class ContinuousTrainingRunner:
+    """Windows-compatible continuous runner for meta-cognitive ARC training."""
+    
+    def __init__(self, dashboard_mode='console', config=None):
+        self.dashboard_mode = dashboard_mode
+        self.running = True
+        self.session_count = 0
+        self.dashboard = None
+        self.config = config or MasterTrainingConfig(mode="meta-cognitive-training")
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.start_time = time.time()
+        
+        # Set up signal handling for continuous mode
+        original_handler = signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
+        
+    def _signal_handler(self, signum, frame):
+        """Handle shutdown signals gracefully."""
+        safe_print(f"\n{Fore.YELLOW}SHUTDOWN: Gracefully stopping...{Style.RESET_ALL}")
+        self.running = False
+        
+    async def start_continuous_training(self):
+        """Start continuous training with meta-cognitive monitoring."""
+        
+        safe_print(f"{Fore.CYAN}CONTINUOUS META-COGNITIVE ARC TRAINING")
+        safe_print(f"=" * 60)
+        safe_print(f"Dashboard Mode: {self.dashboard_mode}")
+        safe_print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        safe_print(f"=" * 60 + Style.RESET_ALL)
+        
+        # Initialize dashboard
+        await self._setup_dashboard()
+        
+        # Run continuous training loop
+        await self._run_continuous_loop()
+        
+    async def _setup_dashboard(self):
+        """Set up the meta-cognitive dashboard."""
+        safe_print(f"\n{Fore.BLUE}DASHBOARD: Initializing ({self.dashboard_mode} mode)...{Style.RESET_ALL}")
+        
+        try:
+            from src.core.meta_cognitive_dashboard import MetaCognitiveDashboard, DashboardMode
+            
+            # Map dashboard modes
+            mode_map = {
+                'gui': DashboardMode.GUI,
+                'console': DashboardMode.CONSOLE, 
+                'headless': DashboardMode.HEADLESS,
+                'web': DashboardMode.WEB
+            }
+            
+            dashboard_mode = mode_map.get(self.dashboard_mode, DashboardMode.CONSOLE)
+            
+            self.dashboard = MetaCognitiveDashboard(
+                mode=dashboard_mode,
+                update_interval=3.0  # Update every 3 seconds for continuous mode
+            )
+            
+            # Start monitoring
+            session_id = f"continuous_training_{int(time.time())}"
+            self.dashboard.start(session_id)
+            
+            safe_print(f"{Fore.GREEN}SUCCESS: Dashboard initialized and running{Style.RESET_ALL}")
+            self.logger.info(f"Dashboard started in {self.dashboard_mode} mode")
+            
+        except UnicodeEncodeError as e:
+            safe_print(f"{Fore.YELLOW}WARNING: Dashboard failed due to Unicode encoding issues")
+            safe_print(f"Continuing without dashboard...{Style.RESET_ALL}")
+            self.dashboard = None
+            print("Dashboard initialization failed due to Windows Unicode issues")
+            
+        except Exception as e:
+            safe_print(f"{Fore.YELLOW}WARNING: Dashboard failed to initialize: {e}")
+            safe_print(f"Continuing without dashboard...{Style.RESET_ALL}")
+            self.dashboard = None
+            print(f"Dashboard initialization failed: {e}")
+            
+    async def _run_continuous_loop(self):
+        """Run the continuous training loop."""
+        safe_print(f"\n{Fore.YELLOW}TRAINING: Starting Continuous Loop...")
+        safe_print(f"Press Ctrl+C to stop gracefully{Style.RESET_ALL}\n")
+        
+        total_start = time.time()
+        
+        while self.running:
+            self.session_count += 1
+            session_start = time.time()
+            
+            safe_print(f"\n{Fore.CYAN}{'='*60}")
+            safe_print(f"TRAINING SESSION #{self.session_count}")
+            safe_print(f"Time: {datetime.now().strftime('%H:%M:%S')}")
+            safe_print(f"{'='*60}{Style.RESET_ALL}")
+            
+            try:
+                # Create and run training session using master trainer
+                session_config = MasterTrainingConfig(
+                    mode="meta-cognitive-training",
+                    verbose=True,
+                    max_cycles=3,  # Shorter cycles for continuous operation
+                    enable_meta_cognitive_governor=True,
+                    enable_architect_evolution=True
+                )
+                training_session = MasterARCTrainer(session_config)
+                
+                # If we have a dashboard, log session start
+                if self.dashboard:
+                    self.dashboard.log_performance_update({
+                        'session_number': self.session_count,
+                        'status': 'starting'
+                    }, 'continuous_runner')
+                
+                # Run the actual training
+                safe_print(f"{Fore.BLUE}META-COGNITIVE: Running ARC training...{Style.RESET_ALL}")
+                results = await training_session.run_training()
+                success = results.get('success', False)
+                
+                session_time = time.time() - session_start
+                
+                # Log results
+                if success:
+                    safe_print(f"\n{Fore.GREEN}SUCCESS: Session #{self.session_count} completed!")
+                    safe_print(f"   Duration: {session_time:.1f} seconds{Style.RESET_ALL}")
+                    
+                    if self.dashboard:
+                        self.dashboard.log_performance_update({
+                            'session_number': self.session_count,
+                            'duration': session_time,
+                            'status': 'completed',
+                            'success': True
+                        }, 'continuous_runner')
+                        
+                else:
+                    safe_print(f"\n{Fore.YELLOW}WARNING: Session #{self.session_count} completed with issues")
+                    safe_print(f"   Duration: {session_time:.1f} seconds{Style.RESET_ALL}")
+                    
+                    if self.dashboard:
+                        self.dashboard.log_performance_update({
+                            'session_number': self.session_count,
+                            'duration': session_time,
+                            'status': 'completed',
+                            'success': False
+                        }, 'continuous_runner')
+                
+                self.logger.info(f"Session {self.session_count} completed: success={success}, duration={session_time:.1f}s")
+                
+                # Show progress every 3 sessions
+                if self.session_count % 3 == 0:
+                    await self._show_progress()
+                
+                # Wait between sessions (adaptive timing)
+                wait_time = self._calculate_wait_time(session_time, success)
+                if wait_time > 0 and self.running:
+                    safe_print(f"\n{Fore.BLUE}WAIT: {wait_time:.0f}s before next session...{Style.RESET_ALL}")
+                    
+                    # Wait in chunks so we can respond to shutdown signals
+                    for _ in range(int(wait_time)):
+                        if not self.running:
+                            break
+                        await asyncio.sleep(1)
+                
+            except Exception as e:
+                safe_print(f"\n{Fore.RED}ERROR: Session #{self.session_count} failed: {e}{Style.RESET_ALL}")
+                self.logger.error(f"Session {self.session_count} failed: {e}")
+                
+                # Log error to dashboard
+                if self.dashboard:
+                    self.dashboard.log_performance_update({
+                        'session_number': self.session_count,
+                        'status': 'failed',
+                        'error': str(e)
+                    }, 'continuous_runner')
+                
+                # Wait longer after errors
+                if self.running:
+                    safe_print(f"{Fore.BLUE}WAIT: 120s after error...{Style.RESET_ALL}")
+                    for _ in range(120):
+                        if not self.running:
+                            break
+                        await asyncio.sleep(1)
+        
+        # Shutdown
+        await self._shutdown_gracefully(total_start)
+        
+    def _calculate_wait_time(self, session_duration, success):
+        """Calculate wait time between sessions."""
+        base_wait = 60  # Base 1 minute wait
+        
+        # Adjust based on session duration
+        if session_duration < 30:  # Very short session
+            return base_wait * 2
+        elif session_duration > 300:  # Long session (5+ minutes)
+            return base_wait * 0.5
+        
+        # Adjust based on success
+        if not success:
+            return base_wait * 1.5
+            
+        return base_wait
+        
+    async def _show_progress(self):
+        """Show progress summary."""
+        total_runtime = time.time() - self.start_time
+        
+        safe_print(f"\n{Fore.CYAN}PROGRESS SUMMARY")
+        safe_print(f"{'='*40}")
+        safe_print(f"Sessions Completed: {self.session_count}")
+        safe_print(f"Total Runtime: {total_runtime/60:.1f} minutes")
+        
+        if self.dashboard:
+            try:
+                summary = self.dashboard.get_performance_summary(hours=1)
+                safe_print(f"Governor Decisions: {summary.get('decisions', {}).get('governor', 0)}")
+                safe_print(f"Architect Evolutions: {summary.get('decisions', {}).get('architect', 0)}")
+            except Exception as e:
+                safe_print("Dashboard summary unavailable")
+                self.logger.warning(f"Dashboard summary failed: {e}")
+                
+        safe_print(f"{'='*40}{Style.RESET_ALL}")
+        
+    async def _shutdown_gracefully(self, total_start):
+        """Graceful shutdown procedure."""
+        total_runtime = time.time() - total_start
+        
+        safe_print(f"\n{Fore.YELLOW}SHUTDOWN: Graceful shutdown in progress")
+        safe_print(f"{'='*50}")
+        
+        # Stop dashboard
+        if self.dashboard:
+            safe_print(f"DASHBOARD: Stopping...")
+            self.dashboard.stop()
+            
+            # Export session data
+            export_path = Path(f"continuous_session_{int(time.time())}.json")
+            try:
+                if self.dashboard.export_session_data(export_path):
+                    safe_print(f"EXPORT: Session data saved to {export_path}")
+                    self.logger.info(f"Session data exported to {export_path}")
+            except Exception as e:
+                safe_print(f"EXPORT: Failed to save session data: {e}")
+                self.logger.error(f"Export failed: {e}")
+        
+        # Final summary
+        safe_print(f"\n{Fore.GREEN}COMPLETE: CONTINUOUS TRAINING FINISHED")
+        safe_print(f"Sessions: {self.session_count}")
+        safe_print(f"Runtime: {total_runtime/60:.1f} minutes")
+        safe_print(f"Avg per session: {total_runtime/max(self.session_count,1):.1f}s")
+        safe_print(f"{'='*50}{Style.RESET_ALL}")
+        
+        self.logger.info(f"Training completed: {self.session_count} sessions, {total_runtime/60:.1f} minutes")
+        safe_print("Thank you for using the Meta-Cognitive ARC Training System!")
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create comprehensive argument parser."""
     parser = argparse.ArgumentParser(
@@ -1065,7 +1440,7 @@ Examples:
                            # Modern unified modes
                            'maximum-intelligence', 'research-lab', 'quick-validation', 
                            'showcase-demo', 'system-comparison', 'minimal-debug',
-                           'meta-cognitive-training',
+                           'meta-cognitive-training', 'continuous-training',
                            # Legacy compatibility modes
                            'sequential', 'swarm', 'continuous', 'test', 'training', 'demo'
                        ],
@@ -1132,6 +1507,12 @@ Examples:
     parser.add_argument('--debug-mode', action='store_true')
     parser.add_argument('--no-logs', action='store_true')
     parser.add_argument('--no-monitoring', action='store_true')
+    
+    # Continuous training options
+    parser.add_argument('--continuous-training', action='store_true',
+                       help='Enable Windows-compatible continuous training mode')
+    parser.add_argument('--dashboard', choices=['console', 'gui', 'headless', 'web'], 
+                       default='console', help='Dashboard mode for continuous training')
     
     # Legacy compatibility aliases
     parser.add_argument('--quiet', action='store_true', help='Legacy: same as --no-logs')
@@ -1206,6 +1587,27 @@ async def main():
         config.enable_action_intelligence = False
         config.enable_meta_cognitive_governor = False
         config.enable_architect_evolution = False
+    
+    # Handle continuous training mode
+    if args.continuous_training or args.mode == 'continuous-training':
+        # Setup Windows logging for continuous mode
+        setup_windows_logging()
+        
+        safe_print(f"{Fore.CYAN}TABULA RASA - CONTINUOUS META-COGNITIVE TRAINING")
+        safe_print(f"Windows-compatible version with enhanced error handling{Style.RESET_ALL}")
+        
+        runner = ContinuousTrainingRunner(dashboard_mode=args.dashboard, config=config)
+        
+        try:
+            await runner.start_continuous_training()
+            return 0
+        except KeyboardInterrupt:
+            safe_print(f"\n{Fore.YELLOW}INTERRUPTED: Stopped by user{Style.RESET_ALL}")
+            return 0
+        except Exception as e:
+            safe_print(f"\n{Fore.RED}SYSTEM ERROR: {e}{Style.RESET_ALL}")
+            logging.error(f"System error: {e}", exc_info=True)
+            return 1
     
     # Initialize and run trainer
     trainer = MasterARCTrainer(config)
@@ -1347,3 +1749,4 @@ class UnifiedTrainer:
     async def initialize_with_error_handling(self):
         """Legacy compatibility method."""
         return True
+
