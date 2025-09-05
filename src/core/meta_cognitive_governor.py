@@ -159,7 +159,8 @@ class MetaCognitiveGovernor:
     high-level decisions about resource allocation between software components.
     """
     
-    def __init__(self, log_file: Optional[str] = None, outcome_tracking_dir: Optional[str] = None):
+    def __init__(self, log_file: Optional[str] = None, outcome_tracking_dir: Optional[str] = None,
+                 persistence_dir: Optional[str] = None):
         self.logger = logging.getLogger(f"{__name__}.Governor")
         self.log_file = log_file
         
@@ -172,6 +173,16 @@ class MetaCognitiveGovernor:
                 self.logger.info("Outcome tracking enabled")
             except ImportError:
                 self.logger.warning("Outcome tracker not available")
+        
+        # Cross-session learning integration
+        self.learning_manager = None
+        if persistence_dir:
+            try:
+                from src.core.cross_session_learning import CrossSessionLearningManager, KnowledgeType
+                self.learning_manager = CrossSessionLearningManager(Path(persistence_dir), self.logger)
+                self.logger.info("Cross-session learning enabled")
+            except ImportError:
+                self.logger.warning("Cross-session learning not available")
         
         # Cognitive system monitors
         self.system_monitors = {}
@@ -271,6 +282,31 @@ class MetaCognitiveGovernor:
             # Generate recommendations based on analysis
             recommendations = []
             
+            # First, check for learned patterns that might apply
+            learned_recs = self.get_learned_recommendations(puzzle_type, current_performance)
+            for learned_rec in learned_recs:
+                # Convert learned recommendation to GovernorRecommendation if confidence is high enough
+                if learned_rec['confidence'] >= 0.6 and learned_rec['success_rate'] >= 0.5:
+                    rec_type_str = learned_rec['type']
+                    if rec_type_str in [t.value for t in GovernorRecommendationType]:
+                        rec_type = GovernorRecommendationType(rec_type_str)
+                        
+                        learned_recommendation = GovernorRecommendation(
+                            type=rec_type,
+                            configuration_changes=learned_rec['configuration_changes'],
+                            confidence=min(0.95, learned_rec['confidence'] + 0.1),  # Boost confidence slightly
+                            expected_benefit=CognitiveBenefit(
+                                win_rate_improvement=0.1 * learned_rec['success_rate'],
+                                score_improvement=5.0 * learned_rec['success_rate'],
+                                learning_efficiency=0.05 * learned_rec['success_rate'],
+                                knowledge_transfer=0.05 * learned_rec['success_rate']
+                            ),
+                            rationale=learned_rec['rationale'],
+                            urgency=0.5
+                        )
+                        recommendations.append(learned_recommendation)
+            
+            # Then generate standard recommendations
             # Check for mode switching opportunities
             mode_rec = self._evaluate_mode_switching(puzzle_type, performance_analysis)
             if mode_rec:
@@ -820,6 +856,140 @@ class MetaCognitiveGovernor:
         
         insights['governor_specific'] = governor_insights
         insights['insights_available'] = True
+        
+        return insights
+    
+    def start_learning_session(self, session_context: Dict[str, Any] = None) -> Optional[str]:
+        """Start a cross-session learning session."""
+        if not self.learning_manager:
+            return None
+        
+        session_id = self.learning_manager.start_session(session_context)
+        self.logger.info(f"Started cross-session learning: {session_id}")
+        return session_id
+    
+    def end_learning_session(self, performance_summary: Dict[str, Any] = None):
+        """End the current learning session."""
+        if not self.learning_manager:
+            return
+        
+        if not performance_summary:
+            performance_summary = {
+                'total_decisions': self.total_decisions_made,
+                'successful_decisions': self.successful_recommendations,
+                'avg_improvement': 0.1 if self.successful_recommendations > 0 else 0.0
+            }
+        
+        self.learning_manager.end_session(performance_summary)
+    
+    def learn_from_recommendation_outcome(self, recommendation: GovernorRecommendation,
+                                        context: Dict[str, Any], success_metrics: Dict[str, float]):
+        """Learn from the outcome of a recommendation."""
+        if not self.learning_manager:
+            return
+        
+        from src.core.cross_session_learning import KnowledgeType, PersistenceLevel
+        
+        # Learn strategy pattern
+        strategy_data = {
+            'recommendation_type': recommendation.type.value,
+            'configuration_changes': recommendation.configuration_changes,
+            'original_confidence': recommendation.confidence,
+            'expected_benefit': asdict(recommendation.expected_benefit)
+        }
+        
+        # Determine success score
+        success_score = (
+            success_metrics.get('win_rate_improvement', 0) * 0.4 +
+            success_metrics.get('score_improvement', 0) / 20.0 * 0.3 +
+            success_metrics.get('efficiency_improvement', 0) * 0.3
+        )
+        
+        # Determine persistence level based on success
+        persistence_level = PersistenceLevel.PERMANENT if success_score > 0.6 else PersistenceLevel.SESSION
+        
+        pattern_id = self.learning_manager.learn_pattern(
+            KnowledgeType.STRATEGY_PATTERN,
+            strategy_data,
+            context,
+            success_score,
+            persistence_level
+        )
+        
+        self.logger.debug(f"Learned strategy pattern {pattern_id} with success score {success_score:.3f}")
+        
+        # Also learn parameter optimization patterns
+        if recommendation.type.value == 'parameter_adjustment':
+            param_data = {
+                'parameter_changes': recommendation.configuration_changes,
+                'system_state': context.get('system_state', {}),
+                'performance_improvement': success_score
+            }
+            
+            self.learning_manager.learn_pattern(
+                KnowledgeType.PARAMETER_OPTIMIZATION,
+                param_data,
+                context,
+                success_score,
+                PersistenceLevel.PERMANENT if success_score > 0.7 else PersistenceLevel.SESSION
+            )
+    
+    def get_learned_recommendations(self, puzzle_type: str, current_performance: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get recommendations based on learned patterns."""
+        if not self.learning_manager:
+            return []
+        
+        from src.core.cross_session_learning import KnowledgeType
+        
+        context = {
+            'puzzle_type': puzzle_type,
+            'current_performance': current_performance
+        }
+        
+        # Get applicable strategy patterns
+        strategy_patterns = self.learning_manager.retrieve_applicable_patterns(
+            KnowledgeType.STRATEGY_PATTERN,
+            context,
+            min_confidence=0.4,
+            max_results=3
+        )
+        
+        recommendations = []
+        for pattern in strategy_patterns:
+            pattern_data = pattern.pattern_data
+            
+            rec_data = {
+                'type': pattern_data.get('recommendation_type', 'unknown'),
+                'configuration_changes': pattern_data.get('configuration_changes', {}),
+                'confidence': pattern.confidence,
+                'success_rate': pattern.success_rate,
+                'applications': pattern.total_applications,
+                'rationale': f"Learned strategy (success rate: {pattern.success_rate:.1%})"
+            }
+            
+            recommendations.append(rec_data)
+        
+        return recommendations
+    
+    def get_best_configuration_for_context(self, puzzle_type: str, current_performance: Dict[str, Any]) -> Dict[str, Any]:
+        """Get the best known configuration for the current context."""
+        if not self.learning_manager:
+            return {}
+        
+        context = {
+            'puzzle_type': puzzle_type,
+            'current_performance': current_performance
+        }
+        
+        return self.learning_manager.get_best_configuration_for_context(context)
+    
+    def get_cross_session_insights(self) -> Dict[str, Any]:
+        """Get insights from cross-session learning."""
+        if not self.learning_manager:
+            return {'learning_available': False}
+        
+        insights = self.learning_manager.get_performance_insights()
+        insights['learning_available'] = True
         
         return insights
     
