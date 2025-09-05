@@ -1,4 +1,12 @@
-# Tabula Rasa: Master ARC Trainer
+# Tabula Rasa (Blank Slate)
+
+### Meta-Cognitive Supervision
+- **🎯 Governor System** - Third Brain runtime supervisor with 37 system monitors
+- **🏗️ Architect System** - Zeroth Brain self-improvement with autonomous evolution
+- **📊 Outcome Tracking** - Cross-session learning with performance persistence
+- **🔄 Autonomous Evolution** - Self-modifying architecture with Git integration
+- **🧠 Cognitive Monitoring** - Real-time system health and performance tracking
+- **🗂️ Memory Management** - Intelligent 4-tier memory classification and garbage collectionTrainer
 
 A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehensive neural architecture that combines advanced cognitive systems with meta-cognitive supervision for adaptive reasoning, learning, and autonomous evolution. Built specifically for tackling the ARC-AGI-3 challenge with unified parameter management and intelligent self-improvement.
 
@@ -74,6 +82,7 @@ tabula-rasa/
 │   ├── core/                        # Core cognitive systems
 │   │   ├── meta_cognitive_governor.py   # Third Brain runtime supervisor
 │   │   ├── architect.py                 # Zeroth Brain self-improvement
+│   │   ├── meta_cognitive_memory_manager.py  # Intelligent memory management
 │   │   ├── agent.py                     # Adaptive learning agent
 │   │   ├── predictive_core.py           # World model prediction
 │   │   ├── meta_learning.py             # Meta-learning system
@@ -100,6 +109,7 @@ tabula-rasa/
 │   ├── phase1_config.yaml          # Phase 1 survival config
 │   └── training_config.yaml        # Advanced training config
 ├── docs/                            # Documentation
+│   └── meta_cognitive_memory_solutions.md  # Memory management solutions
 ├── examples/                        # Demo scripts
 ├── continuous_learning_data/        # Training data and logs
 │   ├── base_meta_learning/          # Base meta-learning data
@@ -182,13 +192,15 @@ The **Meta-Cognitive Governor** provides runtime supervision with:
 - **Outcome Tracking**: Cross-session learning and performance persistence
 - **Adaptive Configuration**: Dynamic parameter optimization based on performance
 - **Cross-Session Intelligence**: Learns from past training sessions
+- **Intelligent Memory Management**: 4-tier classification with LOSSLESS protection for critical files
 
 ### Architect System (Zeroth Brain)
 The **Architect** enables autonomous evolution through:
 - **Self-Improvement Cycles**: Autonomous architecture modification
-- **Git Integration**: Version control for evolutionary changes
+- **Git Integration**: Version control for evolutionary changes with selective .gitignore
 - **Mutation Testing**: Safe experimentation with system modifications
 - **Performance-Driven Evolution**: Data-driven architectural improvements
+- **Memory-Aware Evolution**: Considers memory constraints during architectural changes
 
 ### Unified Parameter Management
 **Consolidated System**: Single source of truth for all parameters:
@@ -196,6 +208,38 @@ The **Architect** enables autonomous evolution through:
 - **Unified configuration**: No parameter confusion or duplication
 - **Meta-cognitive optimization**: Governor can adjust parameters dynamically
 - **Cross-session persistence**: Settings learned and maintained across sessions
+
+## 🗂️ Meta-Cognitive Memory Management
+
+### 4-Tier Classification System
+The system intelligently manages memory with tiered protection levels:
+
+1. **CRITICAL_LOSSLESS** (10 files, 0.05 MB):
+   - Governor decisions, Architect evolution data
+   - **NO decay, always backed up, never deleted**
+   - Files: `governor_decisions_*.log`, `architect_evolution_*.json`, `persistent_learning_state.json`
+
+2. **IMPORTANT_DECAY** (172 files, 7.55 MB):
+   - Learning sessions, action intelligence data
+   - **Slow decay (0.02 rate), strong protection (0.3 floor), 1 year retention**
+   - Files: `meta_learning_session_*.json`, `action_intelligence_*.json`
+
+3. **REGULAR_DECAY** (1 file, <0.01 MB):
+   - Standard session data
+   - **Normal decay (0.05 rate), basic protection (0.1 floor), 90 day retention**
+   - Files: `continuous_session_*.json`, `training_episode_*.json`
+
+4. **TEMPORARY_PURGE** (24 files, <0.01 MB):
+   - Debug and temporary files
+   - **Fast decay (0.2 rate), no protection, 7 day retention**
+   - Files: `temp_*.json`, `debug_*.log`, `sandbox_*.json`
+
+### Intelligent Features
+- **Automatic Classification**: Pattern and content-based file classification
+- **Selective GitIgnore**: Version control access for critical meta-cognitive files
+- **Backup Protection**: Important files backed up before deletion
+- **Emergency Cleanup**: Space-constrained cleanup while protecting critical data
+- **Governor Analysis**: Real-time memory health monitoring and recommendations
 
 ## 🏆 Key Features
 
@@ -212,10 +256,12 @@ The **Architect** enables autonomous evolution through:
 - **Progressive mastery** with adaptive curriculum learning
 
 ### 📊 Intelligent Memory Management  
-- **Salience-based prioritization** of breakthrough experiences
+- **4-tier classification system** with LOSSLESS protection for critical files
+- **Selective version control** - meta-cognitive files tracked, temporary files ignored
 - **Automatic consolidation** during sleep cycles with Governor oversight
 - **Cross-session persistence** with learning state management
 - **Knowledge transfer** with Architect-guided optimization
+- **Emergency cleanup** with backup protection for important data
 
 ### ⚡ Advanced Performance Systems
 - **Action intelligence** with semantic understanding of all 7 action types
@@ -238,6 +284,9 @@ python test_energy_status.py
 python test_frame_analysis_fix.py
 python test_learning_feedback_fix.py
 
+# Test memory management
+python test_memory_solutions.py
+
 # Unit and integration tests
 pytest tests/unit/
 pytest tests/integration/
@@ -248,6 +297,7 @@ pytest tests/integration/
 - **Integration Tests**: Component interaction testing
 - **Performance Tests**: Speed and resource usage analysis
 - **Meta-Cognitive Tests**: Governor and Architect system validation
+- **Memory Management Tests**: 4-tier classification and garbage collection validation
 
 ## 📈 Performance Monitoring
 
@@ -297,6 +347,8 @@ python master_arc_trainer.py --session-duration 120
 - **Unified Training Interface**: Single `master_arc_trainer.py` entry point
 - **Cross-Session Learning**: Persistent state management with outcome tracking
 - **File Consolidation**: 8+ training files consolidated into single master system
+- **Memory Management System**: 4-tier intelligent classification with LOSSLESS protection (NEW)
+- **Version Control Integration**: Selective .gitignore for meta-cognitive file tracking (NEW)
 
 ### ✅ Enhanced Cognitive Architecture
 - **Real-Time Action Learning**: Semantic understanding of all 7 action types
@@ -315,15 +367,17 @@ python master_arc_trainer.py --session-duration 120
 
 ### Core Documentation
 - **README.md**: This comprehensive guide
+- **docs/meta_cognitive_memory_solutions.md**: Memory management solutions and implementation
 - **docs/**: Technical documentation and research notes
 - **configs/**: Training configuration files with phase-based setup
 - **examples/**: Demo scripts and salience system examples
 
 ### Getting Help
 1. **Check the examples**: `examples/` directory has salience mode demos
-2. **Review tests**: Comprehensive test suite validates all features
+2. **Review tests**: Comprehensive test suite validates all features including memory management
 3. **Enable verbose logging**: `--verbose` flag for detailed meta-cognitive output
 4. **Configuration files**: `configs/` folder has phase-based training setups
+5. **Memory management**: `test_memory_solutions.py` demonstrates intelligent file management
 
 ## 🔮 Future Roadmap
 
@@ -332,6 +386,7 @@ python master_arc_trainer.py --session-duration 120
 - **Cross-session intelligence**: Advanced persistent learning capabilities
 - **Performance analytics**: Detailed outcome tracking and analysis
 - **Autonomous evolution**: Enhanced Architect self-improvement capabilities
+- **Memory optimization**: Advanced salience decay algorithms and emergency cleanup procedures
 
 ### Long Term  
 - **Multi-agent meta-cognition**: Collaborative Governor networks
@@ -344,8 +399,10 @@ python master_arc_trainer.py --session-duration 120
 This project represents cutting-edge research in meta-cognitive intelligence and autonomous evolution. Contributions welcome in:
 
 - **Meta-cognitive systems**: Governor and Architect enhancements
+- **Memory management**: Intelligent classification algorithms and garbage collection optimization
 - **Cross-session learning**: Persistent state and outcome tracking improvements
 - **Autonomous evolution**: Architect system optimization and safety
+- **Version control integration**: Enhanced selective tracking for meta-cognitive files
 - **Testing framework**: Meta-cognitive validation and monitoring
 - **Documentation**: Meta-cognitive system guides and examples
 
@@ -357,7 +414,31 @@ MIT License - See LICENSE file for details.
 
 **🧠 Meta-Cognitive Intelligence: Where Governor supervision meets Architect evolution for truly adaptive AI.**
 
-### Advanced Features 
+## 🎯 Quick Start Examples
+
+### Memory Management
+```bash
+# Check memory status
+python -c "
+from src.core.meta_cognitive_governor import MetaCognitiveGovernor
+governor = MetaCognitiveGovernor(persistence_dir='.')
+status = governor.get_memory_status()
+print(f'Memory Health: {status[\"governor_analysis\"][\"health_status\"]}')
+print(f'Critical Files Protected: {status[\"governor_analysis\"][\"critical_files_count\"]}')
+"
+
+# Test memory management system
+python test_memory_solutions.py
+```
+
+### Governor & Architect Training
+```bash
+# Full meta-cognitive training with memory management
+python master_arc_trainer.py --enable-governor --enable-architect
+
+# Monitor meta-cognitive decisions
+tail -f governor_decisions_*.log
+``` 
 - **Meta-Learning System**: Learns from learning experiences, extracts insights, and applies knowledge across contexts
 - **Enhanced Sleep System**: Automatic object encoding and memory consolidation during offline periods
 - **🧠 Intelligent Action Learning System**: Revolutionary semantic action understanding with real-time learning capabilities
