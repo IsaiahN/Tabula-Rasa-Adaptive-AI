@@ -59,7 +59,7 @@ setup_windows_logging()
 try:
     # Import the working systems
     from src.core.meta_cognitive_dashboard import MetaCognitiveDashboard, DashboardMode
-    from real_arc_training_with_metacognition import MetaCognitiveARCTraining
+    from master_arc_trainer import MasterARCTrainer, MasterTrainingConfig
     
     # Color support (fallback if not available)
     try:
@@ -161,8 +161,15 @@ class ContinuousMetaCognitiveRunner:
             print(f"{'='*60}{Style.RESET_ALL}")
             
             try:
-                # Create and run training session
-                training_session = MetaCognitiveARCTraining()
+                # Create and run training session using master trainer
+                config = MasterTrainingConfig(
+                    mode="meta-cognitive-training",
+                    verbose=True,
+                    max_cycles=3,  # Shorter cycles for continuous operation
+                    enable_meta_cognitive_governor=True,
+                    enable_architect_evolution=True
+                )
+                training_session = MasterARCTrainer(config)
                 
                 # If we have a dashboard, log session start
                 if self.dashboard:
@@ -173,7 +180,8 @@ class ContinuousMetaCognitiveRunner:
                 
                 # Run the actual training
                 print(f"{Fore.BLUE}META-COGNITIVE: Running ARC training...{Style.RESET_ALL}")
-                success = await training_session.run_training_with_monitoring()
+                results = await training_session.run_training()
+                success = results.get('success', False)
                 
                 session_time = time.time() - session_start
                 

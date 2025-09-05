@@ -749,7 +749,6 @@ class SandboxTester:
             # Try the new master script first, then fallback to legacy scripts
             training_scripts_to_try = [
                 "master_arc_trainer.py",  # New consolidated script
-                "run_meta_cognitive_arc_training.py"
             ]
             
             training_script = None
@@ -1390,7 +1389,7 @@ This is an experimental change - requires review before merging.
             'master_arc_trainer.py',  # New master script
             'continuous_training',
             'meta_cognitive',
-            'run_meta_cognitive_arc_training.py'
+            'master_arc_trainer.py'
         ]
         
         try:
@@ -1488,7 +1487,7 @@ This is an experimental change - requires review before merging.
             # Look for the best training script to start (prioritize master script)
             training_scripts = [
                 "master_arc_trainer.py",  # New consolidated script
-                "run_meta_cognitive_arc_training.py"
+                "master_arc_trainer.py"
             ]
             
             for script in training_scripts:

@@ -1237,3 +1237,113 @@ if __name__ == "__main__":
     except Exception as e:
         safe_print(f"\nFatal error: {e}", True)
         sys.exit(1)
+
+class UnifiedTrainer:
+    """
+    Legacy compatibility wrapper for MasterARCTrainer.
+    
+    This class maintains backward compatibility with existing code
+    that expects the old UnifiedTrainer interface.
+    """
+    
+    def __init__(self, args):
+        """Initialize with legacy args format."""
+        # Convert old args format to new config format
+        config = MasterTrainingConfig()
+        
+        # Map old attributes to new config
+        if hasattr(args, 'mode'):
+            config.mode = args.mode
+        if hasattr(args, 'verbose'):
+            config.verbose = args.verbose
+        if hasattr(args, 'mastery_sessions'):
+            config.max_cycles = args.mastery_sessions
+        if hasattr(args, 'games'):
+            config.games = str(args.games) if args.games else None
+        if hasattr(args, 'target_win_rate'):
+            config.target_score = args.target_win_rate * 100  # Convert to score
+        if hasattr(args, 'target_score'):
+            config.target_score = args.target_score
+        if hasattr(args, 'max_learning_cycles'):
+            config.max_cycles = args.max_learning_cycles
+        if hasattr(args, 'max_actions_per_session'):
+            config.max_actions = args.max_actions_per_session
+        if hasattr(args, 'salience'):
+            if args.salience == 'lossless':
+                config.salience_mode = SalienceMode.LOSSLESS
+            elif args.salience == 'decay':
+                config.salience_mode = SalienceMode.DECAY_COMPRESSION
+            elif args.salience == 'decay_compression':
+                config.salience_mode = SalienceMode.DECAY_COMPRESSION
+        
+        # Enable meta-cognitive features if requested
+        if hasattr(args, 'enable_meta_cognitive') and args.enable_meta_cognitive:
+            config.enable_meta_cognitive_governor = True
+            config.enable_architect_evolution = True
+        if hasattr(args, 'disable_meta_cognitive') and args.disable_meta_cognitive:
+            config.enable_meta_cognitive_governor = False
+            config.enable_architect_evolution = False
+        if hasattr(args, 'meta_cognitive_enabled') and args.meta_cognitive_enabled:
+            config.enable_meta_cognitive_governor = True
+            config.enable_architect_evolution = True
+            
+        # Initialize the master trainer
+        self._master_trainer = MasterARCTrainer(config)
+        
+        # Expose legacy attributes for compatibility
+        self.mode = getattr(args, 'mode', 'sequential')
+        self.salience = getattr(args, 'salience', 'decay')
+        self.verbose = getattr(args, 'verbose', False)
+        self.mastery_sessions = getattr(args, 'mastery_sessions', 5)
+        self.games = getattr(args, 'games', 10)
+        self.target_win_rate = getattr(args, 'target_win_rate', 0.70)
+        self.target_score = getattr(args, 'target_score', 75)
+        self.max_learning_cycles = getattr(args, 'max_learning_cycles', 5)
+        self.max_actions_per_session = getattr(args, 'max_actions_per_session', 1500)
+        self.enable_contrarian_mode = getattr(args, 'enable_contrarian_mode', True)
+        
+        # Legacy compatibility attributes
+        self.continuous_loop = None
+        self.training_cycles = 0
+        self.best_performance = {'win_rate': 0.0, 'avg_score': 0.0}
+        self.scorecard_id = None
+        
+        # Expose meta-cognitive components
+        self.governor = self._master_trainer.governor
+        self.architect = self._master_trainer.architect
+        self.enable_meta_cognitive = config.enable_meta_cognitive_governor
+    
+    def get_salience_mode(self) -> SalienceMode:
+        """Convert string to SalienceMode enum for compatibility."""
+        if self.salience == 'lossless':
+            return SalienceMode.LOSSLESS
+        elif self.salience in ('decay', 'decay_compression'):
+            return SalienceMode.DECAY_COMPRESSION
+        else:
+            return SalienceMode.DECAY_COMPRESSION
+    
+    def display_config(self):
+        """Display training configuration for compatibility."""
+        print("🎯 UNIFIED TRAINING CONFIGURATION (Legacy Mode)")
+        print("="*50)
+        print(f"Mode: {self.mode.upper()}")
+        print(f"Salience: {self.salience.upper()}")
+        print(f"Target Win Rate: {self.target_win_rate:.1%}")
+        print(f"Target Score: {self.target_score}")
+        print(f"Mastery Sessions: {self.mastery_sessions}")
+        print(f"Games: {self.games}")
+        print(f"Max Learning Cycles: {self.max_learning_cycles}")
+        print(f"Max Actions per Session: {self.max_actions_per_session:,}")
+        print(f"Contrarian Mode: {'ENABLED' if self.enable_contrarian_mode else 'DISABLED'}")
+        print(f"Verbose: {'YES' if self.verbose else 'NO'}")
+        print(f"Meta-Cognitive: {'ENABLED' if self.enable_meta_cognitive else 'DISABLED'}")
+        print()
+    
+    async def run_training(self):
+        """Run training using the master trainer."""
+        return await self._master_trainer._run_sequential_training()
+    
+    # Add other legacy methods as needed for full compatibility
+    async def initialize_with_error_handling(self):
+        """Legacy compatibility method."""
+        return True
