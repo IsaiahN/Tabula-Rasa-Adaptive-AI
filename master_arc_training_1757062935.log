@@ -1,0 +1,13 @@
+2025-09-05 04:02:17,197 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:17,201 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:17,220 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:17,225 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:24,949 - src.core.architect.Architect - ERROR - ❌ Training process failed with code 1
+2025-09-05 04:02:24,950 - src.core.architect.Architect - ERROR - STDERR: \u274c System initialization failed: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>
+
+2025-09-05 04:02:24,995 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:24,999 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:25,031 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:25,042 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:25,066 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-05 04:02:25,072 - src.arc_integration.continuous_learning_loop - WARNING - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.

@@ -14,36 +14,31 @@ venv/
 env/
 ENV/
 
-# Memory and training data
-meta_learning_data/
-continuous_learning_data/
-test_meta_learning_data/
-checkpoints/
-research_results/
+# SELECTIVE MEMORY MANAGEMENT - Allow meta-cognitive control
+# Only ignore raw/temporary training data, preserve important states
+continuous_learning_data/temp/
+continuous_learning_data/raw_sessions/
+checkpoints/temp/
+research_results/temp/
 
-# Training session files
-meta_learning_session*.json
-session_session*.json
-combined_score*.json
+# Ignore only temporary/high-volume session files
 continuous_session_*.json
-mutation_exploratory_*.json
-meta_cognitive_results_*.json
+mutation_exploratory_temp_*.json
+temp_meta_learning_session*.json
 
-# Log files
-*.log
-governor_decisions_*.log
-arc3_competition.log
-meta_cognitive_test.log
-meta_cognitive_training.log
-meta_cognitive_training_*.log
-unified_trainer.log
+# PRESERVE CRITICAL META-COGNITIVE FILES FOR VERSION CONTROL
+# These are needed for Architect/Governor evolution tracking:
+# - meta_learning_data/         (PRESERVED - contains cross-session intelligence)
+# - persistent_learning_state.json (PRESERVED - critical for continuity)
+# - governor_decisions_*.log    (PRESERVED - meta-cognitive audit trail)
+# - meta_cognitive_results_*.json (PRESERVED - evolution tracking)
+# - unified_trainer_results.json  (PRESERVED - performance tracking)
 
-# Training state and performance data
-persistent_learning_state.json
-task_performance.json
-training_state_backup.json
-unified_trainer_results.json
+# Only ignore high-volume debug logs, preserve important logs
+arc3_competition_debug.log
+temp_*.log
+debug_*.log
 
-# Temporary experiment and sandbox files
-experiments/
-sandbox_tests/
+# Temporary experiment sandboxes only
+experiments/temp/
+sandbox_tests/temp/

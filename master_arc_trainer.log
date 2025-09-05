@@ -1,0 +1,9 @@
+2025-09-05 04:22:30,938 - ContinuousTrainingRunner - WARNING - Dashboard initialization failed: 'charmap' codec can't encode character '\U0001f9e0' in position 0: character maps to <undefined>
+2025-09-05 04:23:47,509 - src.core.meta_cognitive_dashboard.Dashboard - WARNING - Display mode headless not available, using console
+2025-09-05 04:23:47,511 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in headless mode
+2025-09-05 04:23:47,512 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757064227
+2025-09-05 04:23:47,515 - ContinuousTrainingRunner - INFO - Dashboard started in headless mode
+2025-09-05 04:26:27,515 - src.core.meta_cognitive_dashboard.Dashboard - WARNING - Display mode headless not available, using console
+2025-09-05 04:26:27,518 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in headless mode
+2025-09-05 04:26:27,519 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757064387
+2025-09-05 04:26:27,520 - ContinuousTrainingRunner - INFO - Dashboard started in headless mode

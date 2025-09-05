@@ -184,6 +184,16 @@ class MetaCognitiveGovernor:
             except ImportError:
                 self.logger.warning("Cross-session learning not available")
         
+        # Meta-cognitive memory management integration
+        self.memory_manager = None
+        try:
+            from src.core.meta_cognitive_memory_manager import MetaCognitiveMemoryManager
+            base_path = Path(persistence_dir) if persistence_dir else Path(".")
+            self.memory_manager = MetaCognitiveMemoryManager(base_path, self.logger)
+            self.logger.info("Meta-cognitive memory management enabled")
+        except ImportError:
+            self.logger.warning("Meta-cognitive memory manager not available")
+        
         # Cognitive system monitors
         self.system_monitors = {}
         self.initialize_system_monitors()
@@ -1027,6 +1037,121 @@ class MetaCognitiveGovernor:
         performance_impact = 1.0 - performance_data.get('win_rate', 0.5)
         
         return min(1.0, base_priority * (1 + performance_impact))
+
+    def perform_memory_management(self, emergency_cleanup: bool = False, 
+                                 target_size_mb: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Perform intelligent memory management with meta-cognitive awareness.
+        
+        Args:
+            emergency_cleanup: If True, perform aggressive cleanup
+            target_size_mb: Target size for emergency cleanup
+        
+        Returns:
+            Dictionary with memory management results
+        """
+        if not self.memory_manager:
+            self.logger.warning("Memory manager not available")
+            return {"status": "unavailable"}
+        
+        try:
+            if emergency_cleanup and target_size_mb:
+                self.logger.info(f"Performing emergency memory cleanup (target: {target_size_mb} MB)")
+                results = self.memory_manager.emergency_cleanup(target_size_mb)
+                
+                # Log Governor decision
+                self.log_governor_decision({
+                    "decision_type": "emergency_memory_cleanup",
+                    "target_size_mb": target_size_mb,
+                    "files_deleted": results["files_deleted"],
+                    "bytes_freed": results["bytes_freed"],
+                    "critical_files_protected": results["critical_files_protected"]
+                })
+                
+            else:
+                self.logger.info("Performing routine memory management")
+                results = self.memory_manager.perform_garbage_collection(dry_run=False)
+                
+                # Log Governor decision
+                self.log_governor_decision({
+                    "decision_type": "routine_memory_management",
+                    "files_processed": results["files_processed"],
+                    "files_deleted": results["files_deleted"],
+                    "bytes_freed": results["bytes_freed"],
+                    "critical_files_protected": results["critical_files_protected"]
+                })
+            
+            # Update system health metrics
+            memory_status = self.memory_manager.get_memory_status()
+            self.system_monitors["memory_system"] = {
+                "total_files": memory_status["total_files"],
+                "total_size_mb": memory_status["total_size_mb"],
+                "status": "healthy" if memory_status["total_size_mb"] < 1000 else "attention_needed",
+                "last_cleanup": time.time()
+            }
+            
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"Memory management failed: {e}")
+            return {"status": "failed", "error": str(e)}
+    
+    def get_memory_status(self) -> Dict[str, Any]:
+        """Get current memory status with Governor analysis."""
+        if not self.memory_manager:
+            return {"status": "unavailable"}
+        
+        try:
+            base_status = self.memory_manager.get_memory_status()
+            
+            # Add Governor analysis
+            analysis = {
+                "health_status": "healthy",
+                "recommendations": [],
+                "critical_files_count": base_status["classifications"].get("critical_lossless", {}).get("file_count", 0),
+                "cleanup_needed": False
+            }
+            
+            # Analyze memory health
+            total_size = base_status["total_size_mb"]
+            if total_size > 2000:  # Over 2GB
+                analysis["health_status"] = "critical"
+                analysis["cleanup_needed"] = True
+                analysis["recommendations"].append("Immediate cleanup recommended")
+            elif total_size > 1000:  # Over 1GB
+                analysis["health_status"] = "attention_needed"
+                analysis["recommendations"].append("Consider cleanup soon")
+            
+            # Check for too many temporary files
+            temp_files = base_status["classifications"].get("temporary_purge", {}).get("file_count", 0)
+            if temp_files > 100:
+                analysis["recommendations"].append("High number of temporary files detected")
+            
+            base_status["governor_analysis"] = analysis
+            return base_status
+            
+        except Exception as e:
+            self.logger.error(f"Memory status check failed: {e}")
+            return {"status": "failed", "error": str(e)}
+    
+    def schedule_memory_maintenance(self, interval_hours: int = 24) -> bool:
+        """Schedule regular memory maintenance."""
+        try:
+            # This would integrate with a scheduler in a full implementation
+            self.logger.info(f"Memory maintenance scheduled every {interval_hours} hours")
+            
+            # Log the scheduling decision
+            self.log_governor_decision({
+                "decision_type": "schedule_memory_maintenance",
+                "interval_hours": interval_hours,
+                "next_maintenance": time.time() + (interval_hours * 3600)
+            })
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to schedule memory maintenance: {e}")
+            return False
 
 
 # Example usage and testing

@@ -1,0 +1,16 @@
+2025-09-05 03:43:20,765 - arc_integration.arc_meta_learning - INFO - ARC Meta-Learning System initialized
+2025-09-05 03:43:20,789 - core.adaptive_energy_system - INFO - AdaptiveEnergySystem initialized with config: EnergyConfig(max_energy=100.0, base_depletion_rate=0.08, action_based_depletion=0.25, sleep_trigger_threshold=60.0, min_sleep_threshold=20.0, max_sleep_threshold=60.0, time_based_sleep_interval=3.0, min_time_interval=1.0, max_time_interval=8.0, success_rate_multiplier=0.8, failure_rate_multiplier=1.2)
+2025-09-05 03:43:20,800 - goals.goal_system - INFO - Goal system initialized in survival phase
+2025-09-05 03:43:20,824 - core.agent - INFO - Predictive core initialized with lstm architecture
+2025-09-05 03:43:20,827 - core.agent - INFO - DNC memory system initialized and integrated with predictive core
+2025-09-05 03:43:20,828 - core.agent - INFO - Learning progress drive initialized
+2025-09-05 03:43:20,828 - core.agent - INFO - Energy and death management system initialized
+2025-09-05 03:43:20,829 - goals.goal_system - INFO - Goal system initialized in survival phase
+2025-09-05 03:43:20,829 - core.agent - INFO - Goal system initialized in survival phase
+2025-09-05 03:43:23,245 - core.agent - INFO - Action selection system initialized
+2025-09-05 03:43:23,245 - core.agent - INFO - Sleep and dream cycle system initialized
+2025-09-05 03:43:23,246 - core.agent - INFO - Monitoring and metrics system initialized
+2025-09-05 03:43:23,248 - core.agent - INFO - Meta-learning system initialized
+2025-09-05 03:43:23,249 - core.agent - INFO - Adaptive Learning Agent initialized successfully
+2025-09-05 03:43:23,249 - src.arc_integration.continuous_learning_loop - INFO - Demo agent initialized for monitoring
+2025-09-05 03:43:23,250 - src.arc_integration.continuous_learning_loop - INFO - Continuous Learning Loop initialized with ARC-3 API integration

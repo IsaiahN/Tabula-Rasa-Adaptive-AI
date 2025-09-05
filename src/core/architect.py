@@ -1003,6 +1003,15 @@ class Architect:
         self.training_active = False
         self.game_activity_log = []
         
+        # Meta-cognitive memory management integration
+        self.memory_manager = None
+        try:
+            from src.core.meta_cognitive_memory_manager import MetaCognitiveMemoryManager
+            self.memory_manager = MetaCognitiveMemoryManager(self.base_path, self.logger)
+            self.logger.info("Architect memory management enabled")
+        except ImportError:
+            self.logger.warning("Meta-cognitive memory manager not available for Architect")
+        
         # Git integration
         self.repo = None
         self.default_branch = "Tabula-Rasa-v3"  # Our working branch
@@ -1010,6 +1019,7 @@ class Architect:
             try:
                 self.repo = git.Repo(self.repo_path)
                 self._ensure_correct_branch()
+                self._setup_architect_gitignore()
             except Exception as e:
                 self.logger.warning(f"⚠️ Git repository error: {e} - version control disabled")
         else:
@@ -1467,6 +1477,118 @@ This is an experimental change - requires review before merging.
         except Exception as e:
             self.logger.warning(f"⚠️ Error checking continuous learning data: {e}")
             return False
+    
+    def _setup_architect_gitignore(self) -> None:
+        """Setup git configuration to allow Architect version control access."""
+        if not self.repo:
+            return
+            
+        try:
+            gitignore_path = self.repo_path / ".gitignore"
+            
+            # Read current gitignore
+            if gitignore_path.exists():
+                with open(gitignore_path, 'r') as f:
+                    current_content = f.read()
+                
+                # Check if our memory management comment exists
+                if "SELECTIVE MEMORY MANAGEMENT" in current_content:
+                    self.logger.info("✅ GitIgnore already configured for Architect control")
+                    return
+                
+                self.logger.info("🔧 GitIgnore configuration needs Architect access - already updated")
+            else:
+                self.logger.warning("⚠️ No .gitignore found - Architect has full access")
+                
+        except Exception as e:
+            self.logger.warning(f"⚠️ Error checking gitignore: {e}")
+    
+    def perform_memory_maintenance(self, force_cleanup: bool = False) -> Dict[str, Any]:
+        """Perform memory maintenance from Architect perspective."""
+        if not self.memory_manager:
+            self.logger.warning("Memory manager not available for Architect")
+            return {"status": "unavailable"}
+        
+        try:
+            # Get current memory status
+            memory_status = self.memory_manager.get_memory_status()
+            
+            # Architect-specific analysis
+            architect_files_mb = 0
+            for classification, stats in memory_status["classifications"].items():
+                if classification == "critical_lossless":
+                    architect_files_mb += stats["total_size_mb"]
+            
+            results = {
+                "architect_critical_files_mb": architect_files_mb,
+                "memory_maintenance_performed": False
+            }
+            
+            # Determine if cleanup is needed
+            total_size = memory_status["total_size_mb"]
+            needs_cleanup = force_cleanup or total_size > 1500  # 1.5GB threshold
+            
+            if needs_cleanup:
+                self.logger.info(f"🧠 Architect performing memory maintenance (total: {total_size:.2f} MB)")
+                
+                # Perform cleanup but protect critical evolution data
+                cleanup_results = self.memory_manager.perform_garbage_collection(dry_run=False)
+                results.update(cleanup_results)
+                results["memory_maintenance_performed"] = True
+                
+                # Log evolution decision
+                evolution_log = {
+                    "timestamp": time.time(),
+                    "decision": "memory_maintenance",
+                    "reason": "Architect initiated memory cleanup",
+                    "files_deleted": cleanup_results["files_deleted"],
+                    "bytes_freed": cleanup_results["bytes_freed"],
+                    "critical_files_protected": cleanup_results["critical_files_protected"]
+                }
+                
+                self._log_evolution_decision(evolution_log)
+            
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"Architect memory maintenance failed: {e}")
+            return {"status": "failed", "error": str(e)}
+    
+    def _log_evolution_decision(self, decision_data: Dict[str, Any]) -> None:
+        """Log an evolution decision with version control."""
+        try:
+            # Create evolution log file
+            log_file = self.base_path / "architect_evolution_log.json"
+            
+            # Load existing log or create new
+            if log_file.exists():
+                with open(log_file, 'r') as f:
+                    evolution_log = json.load(f)
+            else:
+                evolution_log = {"decisions": [], "created": time.time()}
+            
+            # Add new decision
+            evolution_log["decisions"].append(decision_data)
+            
+            # Keep only last 1000 decisions to prevent bloat
+            if len(evolution_log["decisions"]) > 1000:
+                evolution_log["decisions"] = evolution_log["decisions"][-1000:]
+            
+            # Write back
+            with open(log_file, 'w') as f:
+                json.dump(evolution_log, f, indent=2)
+            
+            # Commit to version control if available
+            if self.repo:
+                try:
+                    self.repo.git.add(str(log_file))
+                    self.repo.git.commit('-m', f"Architect decision: {decision_data.get('decision', 'unknown')}")
+                    self.logger.info("✅ Evolution decision committed to version control")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Could not commit evolution decision: {e}")
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to log evolution decision: {e}")
     
     def ensure_game_is_running(self) -> bool:
         """Ensure the game/training system is running, start if needed."""
