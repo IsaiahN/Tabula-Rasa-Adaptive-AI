@@ -18,3 +18,52 @@
 2025-09-05 02:00:57,857 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Session data exported to continuous_session_1757055657.json
 2025-09-05 02:00:57,859 - ContinuousMetaCognitiveRunner - INFO - Session data exported to continuous_session_1757055657.json
 2025-09-05 02:00:57,869 - ContinuousMetaCognitiveRunner - INFO - Training completed: 1 sessions, 0.3 minutes
+2025-09-05 02:29:38,592 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in gui mode
+2025-09-05 02:29:38,594 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757057378
+2025-09-05 02:29:38,595 - ContinuousMetaCognitiveRunner - INFO - Dashboard started in gui mode
+2025-09-05 02:29:38,600 - src.core.meta_cognitive_governor.Governor - INFO - 🔍 Initialized 37 cognitive system monitors
+2025-09-05 02:29:38,601 - src.core.meta_cognitive_governor.Governor - INFO - 🧠 MetaCognitiveGovernor initialized - Third Brain online
+2025-09-05 02:29:38,604 - src.core.architect.Architect - INFO - ✅ Already on correct branch: Tabula-Rasa-v3
+2025-09-05 02:29:38,605 - src.core.architect.Architect - INFO - 🔬 Architect initialized - Zeroth Brain online
+2025-09-05 02:29:38,616 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: mode_switch (confidence: 0.80)
+2025-09-05 02:29:40,627 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.60)
+2025-09-05 02:29:42,642 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:29:44,660 - src.core.architect.Architect - INFO - 🧬 Starting evolution cycle 0
+2025-09-05 02:29:46,846 - src.core.architect.Architect - INFO - 🧪 Mutation exploratory_1757057384 tested: overall_improvement=3.700, duration=2.2s
+2025-09-05 02:29:47,837 - src.core.architect.Architect - INFO - 🧪 Created experimental branch: experimental/exploratory_1757057384_1757057386
+2025-09-05 02:29:48,031 - src.core.architect.Architect - INFO - ✅ Returned to Tabula-Rasa-v3 branch
+2025-09-05 02:29:48,032 - src.core.architect.Architect - INFO - ✅ Beneficial mutation found: 0.075 improvement
+2025-09-05 02:29:48,035 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:29:50,162 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:29:52,232 - ContinuousMetaCognitiveRunner - INFO - Session 1 completed: success=True, duration=13.6s
+2025-09-05 02:31:53,173 - src.core.meta_cognitive_governor.Governor - INFO - 🔍 Initialized 37 cognitive system monitors
+2025-09-05 02:31:53,174 - src.core.meta_cognitive_governor.Governor - INFO - 🧠 MetaCognitiveGovernor initialized - Third Brain online
+2025-09-05 02:31:53,177 - src.core.architect.Architect - INFO - ✅ Already on correct branch: Tabula-Rasa-v3
+2025-09-05 02:31:53,178 - src.core.architect.Architect - INFO - 🔬 Architect initialized - Zeroth Brain online
+2025-09-05 02:31:53,191 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: mode_switch (confidence: 0.80)
+2025-09-05 02:31:55,204 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.60)
+2025-09-05 02:31:57,220 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:31:59,224 - src.core.architect.Architect - INFO - 🧬 Starting evolution cycle 0
+2025-09-05 02:32:01,416 - src.core.architect.Architect - INFO - 🧪 Mutation exploratory_1757057519 tested: overall_improvement=3.700, duration=2.2s
+2025-09-05 02:32:02,055 - src.core.architect.Architect - INFO - 🧪 Created experimental branch: experimental/exploratory_1757057519_1757057521
+2025-09-05 02:32:02,298 - src.core.architect.Architect - INFO - ✅ Returned to Tabula-Rasa-v3 branch
+2025-09-05 02:32:02,299 - src.core.architect.Architect - INFO - ✅ Beneficial mutation found: 0.075 improvement
+2025-09-05 02:32:02,310 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:32:04,332 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:32:06,416 - ContinuousMetaCognitiveRunner - INFO - Session 2 completed: success=True, duration=13.2s
+2025-09-05 02:34:07,434 - src.core.meta_cognitive_governor.Governor - INFO - 🔍 Initialized 37 cognitive system monitors
+2025-09-05 02:34:07,434 - src.core.meta_cognitive_governor.Governor - INFO - 🧠 MetaCognitiveGovernor initialized - Third Brain online
+2025-09-05 02:34:07,437 - src.core.architect.Architect - INFO - ✅ Already on correct branch: Tabula-Rasa-v3
+2025-09-05 02:34:07,437 - src.core.architect.Architect - INFO - 🔬 Architect initialized - Zeroth Brain online
+2025-09-05 02:34:07,444 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: mode_switch (confidence: 0.80)
+2025-09-05 02:34:09,466 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.60)
+2025-09-05 02:34:11,474 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:34:13,494 - src.core.architect.Architect - INFO - 🧬 Starting evolution cycle 0
+2025-09-05 02:34:15,649 - src.core.architect.Architect - INFO - 🧪 Mutation exploratory_1757057653 tested: overall_improvement=3.700, duration=2.2s
+2025-09-05 02:34:16,211 - src.core.architect.Architect - INFO - 🧪 Created experimental branch: experimental/exploratory_1757057653_1757057655
+2025-09-05 02:34:16,448 - src.core.architect.Architect - INFO - ✅ Returned to Tabula-Rasa-v3 branch
+2025-09-05 02:34:16,456 - src.core.architect.Architect - INFO - ✅ Beneficial mutation found: 0.075 improvement
+2025-09-05 02:34:16,466 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:34:18,487 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-05 02:34:20,657 - ContinuousMetaCognitiveRunner - INFO - Session 3 completed: success=True, duration=13.2s
+2025-09-05 02:34:20,659 - ContinuousMetaCognitiveRunner - WARNING - Dashboard summary failed: unsupported operand type(s) for +: 'float' and 'str'
