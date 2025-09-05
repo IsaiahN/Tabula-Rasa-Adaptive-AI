@@ -194,6 +194,15 @@ class MetaCognitiveGovernor:
         except ImportError:
             self.logger.warning("Meta-cognitive memory manager not available")
         
+        # Memory pattern optimization (Phase 1 enhancement)
+        self.pattern_optimizer = None
+        try:
+            from src.core.memory_pattern_optimizer import MemoryPatternOptimizer
+            self.pattern_optimizer = MemoryPatternOptimizer()
+            self.logger.info("Memory pattern optimization enabled - Phase 1 immediate wins")
+        except ImportError:
+            self.logger.warning("Memory pattern optimizer not available")
+        
         # Cognitive system monitors
         self.system_monitors = {}
         self.initialize_system_monitors()
@@ -1097,7 +1106,7 @@ class MetaCognitiveGovernor:
             return {"status": "failed", "error": str(e)}
     
     def get_memory_status(self) -> Dict[str, Any]:
-        """Get current memory status with Governor analysis."""
+        """Get current memory status with Governor analysis and pattern optimization."""
         if not self.memory_manager:
             return {"status": "unavailable"}
         
@@ -1112,7 +1121,30 @@ class MetaCognitiveGovernor:
                 "cleanup_needed": False
             }
             
-            # Analyze memory health
+            # Phase 1 Enhancement: Add pattern-based analysis
+            pattern_recommendations = []
+            if self.pattern_optimizer:
+                try:
+                    # Get pattern-based recommendations for immediate optimization
+                    governor_recommendations = self.pattern_optimizer.get_governor_recommendations()
+                    analysis["pattern_analysis"] = governor_recommendations
+                    
+                    # Extract immediate actions for Governor recommendations
+                    for action in governor_recommendations.get('immediate_actions', []):
+                        pattern_recommendations.append(f"Pattern Analysis: {action['reason']}")
+                    
+                    # Add efficiency status
+                    efficiency_status = governor_recommendations.get('efficiency_status', {})
+                    if efficiency_status.get('trend') == 'declining':
+                        analysis["health_status"] = "attention_needed"
+                        pattern_recommendations.append("Memory access efficiency declining - optimization needed")
+                    elif efficiency_status.get('success_rate', 1.0) < 0.8:
+                        pattern_recommendations.append(f"Memory success rate low: {efficiency_status['success_rate']:.1%}")
+                    
+                except Exception as e:
+                    self.logger.warning(f"Pattern analysis failed: {e}")
+            
+            # Traditional memory health analysis
             total_size = base_status["total_size_mb"]
             if total_size > 2000:  # Over 2GB
                 analysis["health_status"] = "critical"
@@ -1127,31 +1159,306 @@ class MetaCognitiveGovernor:
             if temp_files > 100:
                 analysis["recommendations"].append("High number of temporary files detected")
             
+            # Combine traditional and pattern-based recommendations
+            analysis["recommendations"].extend(pattern_recommendations)
+            
             base_status["governor_analysis"] = analysis
             return base_status
             
         except Exception as e:
             self.logger.error(f"Memory status check failed: {e}")
             return {"status": "failed", "error": str(e)}
+
+    def record_memory_access(self, access_info: Dict[str, Any]) -> None:
+        """
+        Record memory access for pattern analysis (Phase 1 enhancement).
+        
+        This enables the Governor to learn from memory access patterns
+        and provide immediate optimization recommendations.
+        """
+        if self.pattern_optimizer:
+            try:
+                # Add timing information if not present
+                if 'timestamp' not in access_info:
+                    access_info['timestamp'] = time.time()
+                
+                self.pattern_optimizer.record_memory_access(access_info)
+                
+                # Log significant pattern changes
+                pattern_summary = self.pattern_optimizer.get_pattern_summary()
+                if pattern_summary['total_patterns'] > 0:
+                    self.logger.debug(f"Memory patterns detected: {pattern_summary['total_patterns']}")
+                
+            except Exception as e:
+                self.logger.warning(f"Failed to record memory access pattern: {e}")
+
+    def optimize_memory_patterns(self) -> Dict[str, Any]:
+        """
+        Phase 1 Enhanced Memory Pattern Optimization
+        
+        Provides immediate Governor recommendations based on detected
+        memory access patterns. This is the first phase enhancement
+        that delivers immediate value.
+        """
+        if not self.pattern_optimizer:
+            return {"status": "optimizer_unavailable", "optimizations": []}
+        
+        try:
+            # Get comprehensive pattern analysis and recommendations
+            recommendations = self.pattern_optimizer.get_governor_recommendations()
+            
+            # Apply high-priority optimizations immediately
+            applied_optimizations = []
+            for action in recommendations.get('immediate_actions', []):
+                if action.get('urgency') == 'high':
+                    # In Phase 1, we log and recommend rather than auto-apply
+                    optimization_result = {
+                        'action': action['action'],
+                        'reason': action['reason'],
+                        'status': 'recommended',
+                        'priority': action['urgency']
+                    }
+                    applied_optimizations.append(optimization_result)
+                    
+                    self.logger.info(f"🧠 Pattern Optimization Recommended: {action['action']} - {action['reason']}")
+            
+            # Get pattern summary for decision logging
+            pattern_summary = self.pattern_optimizer.get_pattern_summary()
+            
+            # Log Governor decision with pattern analysis
+            governor_decision = {
+                "decision_type": "memory_pattern_optimization",
+                "patterns_detected": pattern_summary['total_patterns'],
+                "optimization_potential": pattern_summary['top_optimization_potential'],
+                "efficiency_status": pattern_summary['efficiency_status'],
+                "immediate_recommendations": len(applied_optimizations),
+                "applied_optimizations": applied_optimizations,
+                "timestamp": time.time()
+            }
+            
+            self.log_governor_decision(governor_decision)
+            
+            # Return comprehensive optimization status
+            optimization_status = {
+                "status": "analysis_complete",
+                "patterns_analyzed": pattern_summary,
+                "recommendations": recommendations,
+                "applied_optimizations": applied_optimizations,
+                "next_analysis_recommended": time.time() + 3600,  # 1 hour
+                "governor_decision": governor_decision
+            }
+            
+            self.logger.info(f"🎯 Governor Memory Pattern Analysis Complete: "
+                           f"{pattern_summary['total_patterns']} patterns, "
+                           f"{len(applied_optimizations)} recommendations")
+            
+            return optimization_status
+            
+        except Exception as e:
+            error_msg = f"Memory pattern optimization failed: {e}"
+            self.logger.error(error_msg)
+            
+            # Log failed attempt
+            self.log_governor_decision({
+                "decision_type": "memory_pattern_optimization_failed",
+                "error": str(e),
+                "timestamp": time.time()
+            })
+            
+            return {"status": "failed", "error": error_msg}
     
     def schedule_memory_maintenance(self, interval_hours: int = 24) -> bool:
-        """Schedule regular memory maintenance."""
+        """Schedule regular memory maintenance with pattern optimization."""
         try:
-            # This would integrate with a scheduler in a full implementation
+            # Phase 1 Enhancement: Include pattern optimization in scheduled maintenance
             self.logger.info(f"Memory maintenance scheduled every {interval_hours} hours")
             
-            # Log the scheduling decision
+            # Trigger immediate pattern optimization analysis
+            if self.pattern_optimizer:
+                pattern_optimization_result = self.optimize_memory_patterns()
+                self.logger.info(f"Pattern optimization integrated into maintenance schedule")
+            
+            # Log the enhanced scheduling decision
             self.log_governor_decision({
-                "decision_type": "schedule_memory_maintenance",
+                "decision_type": "enhanced_memory_maintenance_schedule",
                 "interval_hours": interval_hours,
-                "next_maintenance": time.time() + (interval_hours * 3600)
+                "pattern_optimization_enabled": self.pattern_optimizer is not None,
+                "next_maintenance": time.time() + (interval_hours * 3600),
+                "enhancement_phase": "Phase 1 - Pattern Recognition"
             })
             
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to schedule memory maintenance: {e}")
+            self.logger.error(f"Failed to schedule enhanced memory maintenance: {e}")
             return False
+
+    def trigger_intelligent_memory_analysis(self) -> Dict[str, Any]:
+        """
+        Trigger comprehensive memory analysis with pattern optimization.
+        
+        This method combines traditional memory analysis with Phase 1
+        pattern recognition for immediate Governor decision enhancement.
+        """
+        analysis_results = {
+            "timestamp": time.time(),
+            "analysis_type": "comprehensive_with_patterns",
+            "results": {}
+        }
+        
+        try:
+            # 1. Traditional memory status
+            memory_status = self.get_memory_status()
+            analysis_results["results"]["memory_status"] = memory_status
+            
+            # 2. Pattern optimization analysis (Phase 1)
+            if self.pattern_optimizer:
+                pattern_analysis = self.optimize_memory_patterns()
+                analysis_results["results"]["pattern_optimization"] = pattern_analysis
+                
+                # Extract key insights for Governor decisions
+                if pattern_analysis.get("status") == "analysis_complete":
+                    patterns = pattern_analysis.get("patterns_analyzed", {})
+                    recommendations = pattern_analysis.get("recommendations", {})
+                    
+                    # Combine insights
+                    analysis_results["key_insights"] = {
+                        "total_patterns_detected": patterns.get("total_patterns", 0),
+                        "optimization_potential": patterns.get("top_optimization_potential", 0.0),
+                        "immediate_actions_needed": len(recommendations.get("immediate_actions", [])),
+                        "efficiency_trend": recommendations.get("efficiency_status", {}).get("trend", "unknown"),
+                        "governor_confidence": 0.8 if patterns.get("total_patterns", 0) > 5 else 0.5
+                    }
+            else:
+                analysis_results["results"]["pattern_optimization"] = {
+                    "status": "pattern_optimizer_unavailable"
+                }
+            
+            # 3. Generate Governor recommendations based on combined analysis
+            governor_recommendations = self._generate_integrated_recommendations(analysis_results)
+            analysis_results["governor_recommendations"] = governor_recommendations
+            
+            # Log comprehensive decision
+            self.log_governor_decision({
+                "decision_type": "intelligent_memory_analysis",
+                "analysis_results": analysis_results,
+                "recommendations_generated": len(governor_recommendations),
+                "enhancement_level": "Phase 1 - Immediate Pattern Recognition"
+            })
+            
+            self.logger.info(f"🧠 Intelligent Memory Analysis Complete - "
+                           f"{analysis_results['key_insights']['total_patterns_detected']} patterns detected, "
+                           f"{len(governor_recommendations)} recommendations generated")
+            
+            return analysis_results
+            
+        except Exception as e:
+            error_msg = f"Intelligent memory analysis failed: {e}"
+            self.logger.error(error_msg)
+            analysis_results["status"] = "failed"
+            analysis_results["error"] = error_msg
+            return analysis_results
+
+    def _generate_integrated_recommendations(self, analysis_results: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate integrated recommendations from memory and pattern analysis"""
+        recommendations = []
+        
+        try:
+            # Extract data from analysis results
+            memory_status = analysis_results.get("results", {}).get("memory_status", {})
+            pattern_analysis = analysis_results.get("results", {}).get("pattern_optimization", {})
+            key_insights = analysis_results.get("key_insights", {})
+            
+            # Memory-based recommendations
+            governor_analysis = memory_status.get("governor_analysis", {})
+            if governor_analysis.get("cleanup_needed"):
+                recommendations.append({
+                    "type": "memory_cleanup",
+                    "priority": "high",
+                    "action": "trigger_memory_cleanup",
+                    "reason": "Memory usage exceeds threshold",
+                    "source": "traditional_analysis"
+                })
+            
+            # Pattern-based recommendations (Phase 1)
+            if pattern_analysis.get("status") == "analysis_complete":
+                pattern_recommendations = pattern_analysis.get("recommendations", {})
+                
+                for immediate_action in pattern_recommendations.get("immediate_actions", []):
+                    recommendations.append({
+                        "type": "pattern_optimization",
+                        "priority": immediate_action.get("urgency", "medium"),
+                        "action": immediate_action["action"],
+                        "reason": immediate_action["reason"],
+                        "source": "pattern_analysis_phase1"
+                    })
+                
+                # High-potential pattern optimizations
+                for optimization in pattern_recommendations.get("priority_optimizations", []):
+                    if optimization.get("potential", 0) > 0.6:
+                        recommendations.append({
+                            "type": "high_potential_optimization",
+                            "priority": "medium",
+                            "action": optimization["action"],
+                            "reason": f"High optimization potential: {optimization['expected_improvement']}",
+                            "source": "pattern_analysis_phase1"
+                        })
+            
+            # Efficiency-based recommendations
+            if key_insights.get("efficiency_trend") == "declining":
+                recommendations.append({
+                    "type": "efficiency_intervention",
+                    "priority": "high",
+                    "action": "investigate_performance_degradation",
+                    "reason": f"Memory efficiency declining - {key_insights.get('total_patterns_detected', 0)} patterns analyzed",
+                    "source": "integrated_analysis"
+                })
+            
+            # Sort by priority
+            priority_order = {"high": 0, "medium": 1, "low": 2}
+            recommendations.sort(key=lambda x: priority_order.get(x.get("priority", "medium"), 1))
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to generate integrated recommendations: {e}")
+        
+        return recommendations
+
+    def log_governor_decision(self, decision_data: Dict[str, Any]) -> None:
+        """
+        Log a Governor decision for tracking and analysis.
+        
+        This method records all Governor decisions for pattern analysis,
+        performance tracking, and cross-session learning.
+        """
+        try:
+            # Add timestamp and decision ID if not present
+            if 'timestamp' not in decision_data:
+                decision_data['timestamp'] = time.time()
+            
+            if 'decision_id' not in decision_data:
+                decision_data['decision_id'] = f"gov_{int(time.time() * 1000)}"
+            
+            # Add to decision history
+            self.decision_history.append(decision_data)
+            
+            # Log to file if configured
+            if self.log_file:
+                try:
+                    with open(self.log_file, 'a') as f:
+                        f.write(json.dumps(decision_data) + '\n')
+                except Exception as e:
+                    self.logger.warning(f"Failed to write decision to log file: {e}")
+            
+            # Log to system logger with appropriate level
+            decision_type = decision_data.get('decision_type', 'unknown')
+            if decision_data.get('priority') == 'high' or 'failed' in decision_type:
+                self.logger.warning(f"Governor Decision: {decision_type} - {decision_data}")
+            else:
+                self.logger.info(f"Governor Decision: {decision_type}")
+                self.logger.debug(f"Decision details: {decision_data}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to log Governor decision: {e}")
 
 
 # Example usage and testing
