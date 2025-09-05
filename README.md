@@ -1,46 +1,29 @@
-# Tabula Rasa: Unified ARC Trainer
+# Tabula Rasa: Master ARC Trainer
 
-A revolutionary AI system featuring **Maximum Intelligence Mode** - a comprehensive neural architecture that combines 37 cognitive systems for advanced reasoning, learning, and adaptation. Built specifically for tackling the ARC-AGI-3 challenge with unified parameter management and streamlined training.
+A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehensive neural architecture that combines advanced cognitive systems with meta-cognitive supervision for adaptive reasoning, learning, and autonomous evolution. Built specifically for tackling the ARC-AGI-3 challenge with unified parameter management and intelligent self-improvement.
 
-## 🧠 Maximum Intelligence Architecture
+## 🧠 Meta-Cognitive Architecture
 
-**The Unified ARC Trainer operates in Maximum Intelligence Mode by default**, activating all available cognitive systems:
+**The Master ARC Trainer features unified intelligence with meta-cognitive supervision:**
 
-- **🚀 SWARM Intelligence** - Parallel processing capabilities
-- **🧠 Differentiable Neural Computer** - Advanced memory architecture  
-- **🎓 Meta-Learning System** - Learn from learning experiences
-- **⚡ Energy Management** - Resource allocation and survival mechanics
-- **😴 Sleep Cycles** - Memory consolidation and dream generation
-- **🎯 Coordinate Intelligence** - Strategic spatial reasoning
+### Core Intelligence Systems
+- **🧠 Differentiable Neural Computer** - Advanced memory architecture with meta-cognitive monitoring
+- **🎓 Meta-Learning System** - Cross-session learning with 37 cognitive subsystems
+- **⚡ Energy Management** - Resource allocation with survival mechanics (0-100 scale)
+- **😴 Sleep Cycles** - Memory consolidation with breakthrough detection
+- **🎯 Coordinate Intelligence** - Strategic spatial reasoning with success zone mapping
 - **🔍 Frame Analysis** - Advanced visual pattern recognition
-- **🚧 Boundary Detection** - Environmental awareness and navigation
-- **📝 Memory Consolidation** - Intelligent memory management
-- **🎮 Action Intelligence** - Semantic action understanding
-- **🎪 Goal Invention** - Dynamic objective generation
-- **📈 Learning Progress Drive** - Intrinsic motivation system
-- **💀 Death Manager** - Survival pressure mechanics
-- **🗺️ Exploration Strategies** - Intelligent search and discovery
-- **🔤 Pattern Recognition** - Advanced pattern learning
-- **🔄 Knowledge Transfer** - Cross-domain learning
-- **😴 Boredom Detection** - Adaptive strategy switching
-- **🌙 Mid-Game Sleep** - Real-time consolidation
-- **🔬 Action Experimentation** - Behavioral exploration
-- **🔄 Reset Decisions** - Strategic restart capabilities
-- **📚 Curriculum Learning** - Progressive difficulty
-- **🎭 Multi-Modal Input** - Visual + proprioceptive processing
-- **⏰ Temporal Memory** - Sequence learning and prediction
-- **🧩 Hebbian Bonuses** - Neural co-activation rewards
-- **📊 Memory Regularization** - Optimal memory utilization
-- **🌊 Gradient Flow Monitoring** - Training stability
-- **📈 Usage Tracking** - Memory system analytics
-- **🎯 Salient Memory Retrieval** - Context-aware recall
-- **⚖️ Anti-Bias Weighting** - Balanced action selection
-- **🔍 Stagnation Detection** - Progress monitoring
-- **🚨 Emergency Movement** - Deadlock resolution
-- **🎯 Cluster Formation** - Success zone mapping
-- **⚠️ Danger Zone Avoidance** - Failure pattern recognition
-- **🔮 Predictive Coordinates** - Intelligent positioning
-- **⚡ Rate Limiting Management** - API optimization
+- **🎮 Action Intelligence** - Real-time semantic action learning for all 7 action types
+- **📈 Learning Progress Drive** - Intrinsic motivation with outcome tracking
+- **🗺️ Exploration Strategies** - Intelligent search with boredom detection
+- **🔄 Knowledge Transfer** - Cross-task learning with persistent state
+
+### Meta-Cognitive Supervision
+- **🎯 Governor System** - Third Brain runtime supervisor with 37 system monitors
+- **�️ Architect System** - Zeroth Brain self-improvement with autonomous evolution
+- **� Outcome Tracking** - Cross-session learning with performance persistence
+- **🔄 Autonomous Evolution** - Self-modifying architecture with Git integration
+- **🧠 Cognitive Monitoring** - Real-time system health and performance tracking
 
 ## 🚀 Quick Start
 
@@ -56,122 +39,127 @@ cp .env.template .env
 
 ### Basic Usage
 ```bash
-# Maximum Intelligence Mode (default) - All 37 cognitive systems
+# Meta-Cognitive Training (default) - Governor + Architect + All systems
 python master_arc_trainer.py
 
 # With custom action limit
 python master_arc_trainer.py --max-actions 1000
 
-# With verbose logging
-python master_arc_trainer.py --verbose
+# Continuous training mode
+python master_arc_trainer.py --continuous-training
 
-# Quick testing mode
-python master_arc_trainer.py --mode minimal-debug --max-actions 10
+# Meta-cognitive mode with verbose logging
+python master_arc_trainer.py --mode meta-cognitive-training --verbose
 ```
 
 ### Advanced Usage  
 ```bash
-# Custom memory configuration
-python master_arc_trainer.py --memory-size 1024 --memory-read-heads 8
+# Custom memory and cognitive configuration
+python master_arc_trainer.py --memory-size 1024 --memory-read-heads 8 --enable-governor
 
-# Salience mode selection
-python master_arc_trainer.py --salience decay_compression --salience-threshold 0.7
+# Specific training modes
+python master_arc_trainer.py --mode meta-cognitive-training --salience decay_compression
+python master_arc_trainer.py --mode continuous-training --target-score 90.0
 
-# Research and experimentation
-python master_arc_trainer.py --mode research-lab --compare-systems
-
-# Performance showcase
-python master_arc_trainer.py --mode showcase-demo
+# Research and analysis
+python master_arc_trainer.py --mode analysis --compare-performance
 ```
 
 ## 📁 Project Structure
 
 ```
 tabula-rasa/
-├── master_arc_trainer.py        # 🎯 Main entry point - Maximum Intelligence Mode
-├── master_arc_trainer.py           # Legacy trainer (deprecated)
+├── master_arc_trainer.py           # 🎯 Main entry point - Meta-Cognitive Intelligence
 ├── src/
-│   ├── core/                    # Core cognitive systems
-│   │   ├── agent.py            # Adaptive learning agent
-│   │   ├── predictive_core.py  # World model prediction
-│   │   ├── meta_learning.py    # Meta-learning system
-│   │   ├── energy_system.py    # Energy and survival
-│   │   ├── salience_system.py  # Experience prioritization
-│   │   └── sleep_system.py     # Memory consolidation
-│   ├── arc_integration/         # ARC-AGI-3 integration
+│   ├── core/                        # Core cognitive systems
+│   │   ├── meta_cognitive_governor.py   # Third Brain runtime supervisor
+│   │   ├── architect.py                 # Zeroth Brain self-improvement
+│   │   ├── agent.py                     # Adaptive learning agent
+│   │   ├── predictive_core.py           # World model prediction
+│   │   ├── meta_learning.py             # Meta-learning system
+│   │   ├── energy_system.py             # Energy and survival
+│   │   ├── salience_system.py           # Experience prioritization
+│   │   └── sleep_system.py              # Memory consolidation
+│   ├── arc_integration/             # ARC-AGI-3 integration
 │   │   ├── continuous_learning_loop.py  # Main training loop
 │   │   ├── arc_agent_adapter.py         # ARC API adapter
 │   │   └── arc_meta_learning.py         # ARC-specific learning
-│   ├── memory/                  # Memory systems
-│   │   └── dnc.py              # Differentiable Neural Computer
-│   ├── goals/                   # Goal system
-│   ├── environment/             # Training environments
-│   ├── monitoring/              # Performance tracking
-│   └── utils/                   # Utilities
-├── tests/                       # Comprehensive test suite
-│   ├── unit/                   # Unit tests
-│   ├── integration/            # Integration tests
-│   └── system/                 # System tests
-├── configs/                     # Configuration files
-├── docs/                        # Documentation
-├── examples/                    # Demo scripts
-└── continuous_learning_data/    # Training data and logs
+│   ├── memory/                      # Memory systems
+│   │   └── dnc.py                   # Differentiable Neural Computer
+│   ├── goals/                       # Goal system
+│   ├── environment/                 # Training environments
+│   ├── monitoring/                  # Performance tracking
+│   └── utils/                       # Utilities
+├── tests/                           # Comprehensive test suite
+│   ├── unit/                       # Unit tests
+│   ├── integration/                # Integration tests
+│   └── system/                     # System tests
+├── configs/                         # Configuration files
+│   ├── base_config.yaml            # Base training configuration
+│   ├── phase0_config.yaml          # Phase 0 bootstrap config
+│   ├── phase1_config.yaml          # Phase 1 survival config
+│   └── training_config.yaml        # Advanced training config
+├── docs/                            # Documentation
+├── examples/                        # Demo scripts
+├── continuous_learning_data/        # Training data and logs
+│   ├── base_meta_learning/          # Base meta-learning data
+│   └── *.json                       # Session and performance logs
+├── checkpoints/                     # Model checkpoints
+└── meta_learning_data/              # Meta-learning session data
 ```
 
 ## 🎮 Training Modes
 
-The Unified ARC Trainer offers multiple training modes for different use cases:
+The Master ARC Trainer offers multiple training modes optimized for different use cases:
 
-### 🧠 Maximum Intelligence (Default)
-- **All 37 cognitive systems active**
-- Production-ready continuous learning
-- Best performance and capabilities
+### 🧠 Meta-Cognitive Training (Default)
+- **Governor + Architect supervision** with 37 cognitive subsystems
+- **Autonomous evolution** with self-improvement capabilities
+- **Cross-session learning** with persistent state management
 - Default mode - just run `python master_arc_trainer.py`
 
-### 🔧 Minimal Debug  
-- Essential features only for troubleshooting
-- Fast startup and simplified logging
-- `python master_arc_trainer.py --mode minimal-debug`
+### � Continuous Training
+- **Extended training sessions** with persistent state
+- **Progressive difficulty** with adaptive curriculum
+- **Cross-task knowledge transfer** and meta-learning
+- `python master_arc_trainer.py --continuous-training`
 
-### 🧪 Research Lab
-- Experimentation and comparison framework
-- System analysis and optimization
-- `python master_arc_trainer.py --mode research-lab --compare-systems`
+### 🔧 Analysis Mode
+- **Performance analysis** and system comparison
+- **Cognitive system monitoring** and optimization
+- **Meta-cognitive effectiveness** measurement
+- `python master_arc_trainer.py --mode analysis --compare-performance`
 
 ### ⚡ Quick Validation
-- Rapid system testing
-- Fast feedback on core functionality  
-- `python master_arc_trainer.py --mode quick-validation`
-
-### 🎭 Showcase Demo
-- Demonstrate system capabilities
-- Enhanced reporting and visualization
-- `python master_arc_trainer.py --mode showcase-demo`
-
-### ⚖️ System Comparison
-- A/B testing different configurations
-- Performance analysis and optimization
-- `python master_arc_trainer.py --mode system-comparison`
+- **Rapid system testing** with essential features
+- **Fast feedback** on core functionality
+- **Integration validation** and health checks
+- `python master_arc_trainer.py --mode validation --max-actions 100`
 
 ## ⚙️ Configuration
 
 ### Key Parameters
 
 - **`--max-actions`**: Maximum actions per game attempt (default: 500)
+- **`--mode`**: Training mode - `meta-cognitive-training` (default), `continuous-training`, `analysis`
 - **`--salience`**: Memory mode - `decay_compression` (default) or `lossless`
 - **`--memory-size`**: DNC memory slots (default: 512)
 - **`--target-score`**: Target score threshold (default: 85.0)
-- **`--max-cycles`**: Maximum learning cycles (default: 50)
+- **`--enable-governor`**: Enable meta-cognitive Governor system (default: True)
+- **`--enable-architect`**: Enable Architect self-improvement (default: True)
 
-### Feature Control
+### Meta-Cognitive Control
 
-Disable specific systems if needed:
+Configure meta-cognitive systems:
 ```bash
-# Disable individual systems
-python master_arc_trainer.py --disable-swarm --disable-energy
+# Enable/disable meta-cognitive supervision
+python master_arc_trainer.py --enable-governor --enable-architect
 
-# Disable all advanced features (basic mode)
-python master_arc_trainer.py --disable-all-advanced
+# Configure outcome tracking
+python master_arc_trainer.py --outcome-tracking-dir ./outcomes
+
+# Meta-cognitive training with analysis
+python master_arc_trainer.py --mode meta-cognitive-training --compare-performance
 ```
 
 ### Environment Variables (.env)
@@ -186,63 +174,80 @@ TARGET_AVG_SCORE=85.0                               # Target average score
 MAX_EPISODES_PER_GAME=50                            # Maximum episodes per task
 ```
 
-## 🎯 Parameter Consolidation
+## 🧠 Meta-Cognitive Systems
 
-**Major Improvement**: The system now uses unified parameter naming throughout:
+### Governor System (Third Brain)
+The **Meta-Cognitive Governor** provides runtime supervision with:
+- **37 System Monitors**: Real-time cognitive system health tracking
+- **Outcome Tracking**: Cross-session learning and performance persistence
+- **Adaptive Configuration**: Dynamic parameter optimization based on performance
+- **Cross-Session Intelligence**: Learns from past training sessions
 
-- **`max_actions_per_game`**: Consistent parameter across all components
-- **Single source of truth**: No more confusion between different action limit parameters
-- **Command line simplicity**: `--max-actions` controls the entire system
-- **Proper defaults**: Reasonable limits (500) instead of excessive (500000)
+### Architect System (Zeroth Brain)
+The **Architect** enables autonomous evolution through:
+- **Self-Improvement Cycles**: Autonomous architecture modification
+- **Git Integration**: Version control for evolutionary changes
+- **Mutation Testing**: Safe experimentation with system modifications
+- **Performance-Driven Evolution**: Data-driven architectural improvements
+
+### Unified Parameter Management
+**Consolidated System**: Single source of truth for all parameters:
+- **`max_actions_per_game`**: Consistent across all components (default: 500)
+- **Unified configuration**: No parameter confusion or duplication
+- **Meta-cognitive optimization**: Governor can adjust parameters dynamically
+- **Cross-session persistence**: Settings learned and maintained across sessions
 
 ## 🏆 Key Features
 
-### 🧠 Advanced Cognitive Architecture
-- **37 integrated cognitive systems** working in harmony
-- **Differentiable Neural Computer** for sophisticated memory
-- **Meta-learning capabilities** that improve learning efficiency
-- **Energy-based survival mechanics** creating learning pressure
+### 🧠 Meta-Cognitive Architecture
+- **Governor System** with 37 cognitive monitors and runtime supervision
+- **Architect System** for autonomous evolution and self-improvement
+- **Cross-session learning** with persistent state and outcome tracking
+- **Unified parameter management** with consolidated action limits
 
 ### 🎮 ARC-AGI-3 Integration
 - **Direct API integration** with official ARC servers
-- **Real-time training** and performance tracking  
+- **Real-time training** with meta-cognitive supervision
 - **Scorecard generation** for competition submission
-- **Progressive difficulty** and mastery-based learning
+- **Progressive mastery** with adaptive curriculum learning
 
 ### 📊 Intelligent Memory Management  
-- **Salience-based prioritization** of important experiences
-- **Automatic consolidation** during sleep cycles
-- **Breakthrough detection** and preservation
-- **Cross-game knowledge transfer**
+- **Salience-based prioritization** of breakthrough experiences
+- **Automatic consolidation** during sleep cycles with Governor oversight
+- **Cross-session persistence** with learning state management
+- **Knowledge transfer** with Architect-guided optimization
 
-### ⚡ Performance Optimizations
-- **Unlimited action capability** (500,000+ actions)
-- **Mid-game consolidation** for continuous learning
+### ⚡ Advanced Performance Systems
+- **Action intelligence** with semantic understanding of all 7 action types
 - **Strategic coordinate selection** with 7-region optimization
-- **Action intelligence** with semantic understanding
+- **Adaptive exploration** with boredom detection and strategy switching
+- **Energy management** on proper 0-100 scale with survival mechanics
 
-## 🔬 Testing
+## � Testing
 
 ### Run Tests
 ```bash
-# Run all tests
-python run_tests.py
+# Run comprehensive test suite
+python test_all_critical_fixes.py
 
-# Comprehensive test suite
-python run_comprehensive_tests.py
+# Test critical systems
+python test_critical_fixes.py
 
-# Unit tests only
+# Test specific components
+python test_energy_status.py
+python test_frame_analysis_fix.py
+python test_learning_feedback_fix.py
+
+# Unit and integration tests
 pytest tests/unit/
-
-# Integration tests
 pytest tests/integration/
 ```
 
 ### Test Categories
-- **Unit Tests**: Individual component validation
-- **Integration Tests**: System interaction testing
-- **Performance Tests**: Speed and resource usage
-- **ARC Integration Tests**: API connectivity and training loops
+- **Critical System Tests**: Core functionality validation
+- **Integration Tests**: Component interaction testing
+- **Performance Tests**: Speed and resource usage analysis
+- **Meta-Cognitive Tests**: Governor and Architect system validation
 
 ## 📈 Performance Monitoring
 
@@ -284,62 +289,65 @@ python master_arc_trainer.py --games "game1,game2,game3"
 python master_arc_trainer.py --session-duration 120
 ```
 
-## 🚀 Recent Improvements
+## 🚀 Recent Achievements
 
-### ✅ Parameter Consolidation
-- **Unified action limits**: Single `max_actions_per_game` parameter throughout system
-- **Consistent defaults**: Reasonable 500 action limit instead of 500,000
-- **Command line clarity**: `--max-actions` controls entire system
-- **No more confusion**: Eliminated dual parameter names
+### ✅ Meta-Cognitive Integration (NEW)
+- **Governor System Integration**: Third Brain runtime supervision with 37 system monitors
+- **Architect System Integration**: Zeroth Brain self-improvement with autonomous evolution
+- **Unified Training Interface**: Single `master_arc_trainer.py` entry point
+- **Cross-Session Learning**: Persistent state management with outcome tracking
+- **File Consolidation**: 8+ training files consolidated into single master system
 
-### ✅ Mode Simplification  
-- **Removed redundant modes**: `adaptive-learning` was identical to `maximum-intelligence`
-- **Clear defaults**: `maximum-intelligence` is the default (all systems enabled)
-- **Streamlined interface**: Cleaner mode selection without duplication
+### ✅ Enhanced Cognitive Architecture
+- **Real-Time Action Learning**: Semantic understanding of all 7 action types
+- **Strategic Coordinate System**: 7-region exploration with dynamic randomization
+- **Progressive Memory Hierarchy**: Breakthrough-only preservation with 5-tier protection
+- **Energy System Optimization**: Proper 0-100 scale consistency throughout
+- **Adaptive Exploration**: Boredom detection with strategy switching
 
-### ✅ Enhanced Training
-- **Proper action counting**: Fixed display showing correct limits (e.g., "ACTION 1/3")
-- **Scorecard management**: Automatic closure and result saving
-- **Error handling**: Robust API error recovery
-- **Session termination**: Clean stops at action limits
+### ✅ System Consolidation
+- **Parameter Unification**: Single `max_actions_per_game` parameter across all systems
+- **Mode Simplification**: Clear training modes without redundancy
+- **Backward Compatibility**: UnifiedTrainer wrapper for legacy support
+- **Clean Architecture**: Eliminated code duplication and confusion
 
 ## 📚 Documentation
 
 ### Core Documentation
 - **README.md**: This comprehensive guide
-- **docs/**: Detailed technical documentation
-- **examples/**: Demo scripts and usage examples
-- **FEATURE_INTEGRATION_ANALYSIS.md**: System integration details
+- **docs/**: Technical documentation and research notes
+- **configs/**: Training configuration files with phase-based setup
+- **examples/**: Demo scripts and salience system examples
 
 ### Getting Help
-1. **Check the examples**: `examples/` directory has usage demos
-2. **Review tests**: `tests/` directory shows expected behavior
-3. **Enable verbose logging**: `--verbose` flag for detailed output
-4. **Read the docs**: `docs/` folder has technical details
+1. **Check the examples**: `examples/` directory has salience mode demos
+2. **Review tests**: Comprehensive test suite validates all features
+3. **Enable verbose logging**: `--verbose` flag for detailed meta-cognitive output
+4. **Configuration files**: `configs/` folder has phase-based training setups
 
 ## 🔮 Future Roadmap
 
 ### Near Term
-- **Performance optimization**: Further speed improvements
-- **Memory efficiency**: Reduced resource usage
-- **API resilience**: Enhanced error handling
-- **Result analysis**: Improved performance tracking
+- **Meta-cognitive optimization**: Enhanced Governor and Architect coordination
+- **Cross-session intelligence**: Advanced persistent learning capabilities
+- **Performance analytics**: Detailed outcome tracking and analysis
+- **Autonomous evolution**: Enhanced Architect self-improvement capabilities
 
 ### Long Term  
-- **Multi-agent coordination**: Collaborative learning
-- **Advanced meta-learning**: Cross-domain transfer
-- **Emergent behaviors**: Spontaneous capability development
-- **Community features**: Shared learning and benchmarks
+- **Multi-agent meta-cognition**: Collaborative Governor networks
+- **Emergent architecture**: Self-designing cognitive systems
+- **Universal intelligence**: Cross-domain meta-cognitive transfer
+- **Community meta-learning**: Shared cognitive evolution
 
 ## 🤝 Contributing
 
-This project represents cutting-edge research in unified intelligence systems. Contributions welcome in:
+This project represents cutting-edge research in meta-cognitive intelligence and autonomous evolution. Contributions welcome in:
 
-- **System integration**: Improving cognitive system coordination
-- **Performance optimization**: Speed and efficiency improvements  
-- **Testing framework**: Enhanced validation and testing
-- **Documentation**: Guides, examples, and technical docs
-- **ARC integration**: API improvements and feature additions
+- **Meta-cognitive systems**: Governor and Architect enhancements
+- **Cross-session learning**: Persistent state and outcome tracking improvements
+- **Autonomous evolution**: Architect system optimization and safety
+- **Testing framework**: Meta-cognitive validation and monitoring
+- **Documentation**: Meta-cognitive system guides and examples
 
 ## 📄 License
 
@@ -347,18 +355,7 @@ MIT License - See LICENSE file for details.
 
 ---
 
-**🧠 Maximum Intelligence Mode: Where 37 cognitive systems work as one unified intelligence.**
-
-## Key Features
-
-### Core Systems 
-- **Robust Learning Progress Drive** with stability validation
-- **Differentiable Neural Computer** for embedded memory
-- **Bootstrap protection** for newborn agents
-- **Comprehensive monitoring** and introspection tools
-- **Phased development** with validation at each stage
-- **Phase 1 Survival Environment** with adaptive complexity
-- **Integrated Goal System** with survival objectives
+**🧠 Meta-Cognitive Intelligence: Where Governor supervision meets Architect evolution for truly adaptive AI.**
 
 ### Advanced Features 
 - **Meta-Learning System**: Learns from learning experiences, extracts insights, and applies knowledge across contexts
