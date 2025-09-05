@@ -203,6 +203,27 @@ class MetaCognitiveGovernor:
         except ImportError:
             self.logger.warning("Memory pattern optimizer not available")
         
+        # Hierarchical memory clustering (Phase 2 enhancement)
+        self.memory_clusterer = None
+        try:
+            from src.core.hierarchical_memory_clusterer import HierarchicalMemoryClusterer
+            self.memory_clusterer = HierarchicalMemoryClusterer()
+            self.logger.info("Hierarchical memory clustering enabled - Phase 2 intelligent clusters")
+        except ImportError:
+            self.logger.warning("Hierarchical memory clusterer not available")
+        
+        # Architect Evolution Engine (Phase 3 enhancement)
+        self.architect_engine = None
+        try:
+            from src.core.architect_evolution_engine import ArchitectEvolutionEngine
+            self.architect_engine = ArchitectEvolutionEngine(
+                persistence_dir=persistence_dir or ".",
+                enable_autonomous_evolution=True
+            )
+            self.logger.info("Architect Evolution Engine enabled - Phase 3 autonomous evolution")
+        except ImportError:
+            self.logger.warning("Architect Evolution Engine not available")
+        
         # Cognitive system monitors
         self.system_monitors = {}
         self.initialize_system_monitors()
@@ -1144,6 +1165,26 @@ class MetaCognitiveGovernor:
                 except Exception as e:
                     self.logger.warning(f"Pattern analysis failed: {e}")
             
+            # Phase 2 Enhancement: Add cluster-based analysis
+            cluster_recommendations = []
+            if self.memory_clusterer:
+                try:
+                    # Get cluster-based optimization recommendations
+                    cluster_opts = self.memory_clusterer.get_cluster_optimization_recommendations()
+                    analysis["cluster_analysis"] = {
+                        "total_recommendations": len(cluster_opts),
+                        "high_priority_count": len([r for r in cluster_opts if r.get('priority') == 'high']),
+                        "cluster_summary": self.memory_clusterer.get_clustering_summary()
+                    }
+                    
+                    # Extract high-priority cluster recommendations
+                    for rec in cluster_opts[:3]:  # Top 3 recommendations
+                        if rec.get('priority') in ['high', 'medium']:
+                            cluster_recommendations.append(f"Cluster Analysis: {rec['reason']}")
+                    
+                except Exception as e:
+                    self.logger.warning(f"Cluster analysis failed: {e}")
+            
             # Traditional memory health analysis
             total_size = base_status["total_size_mb"]
             if total_size > 2000:  # Over 2GB
@@ -1159,8 +1200,9 @@ class MetaCognitiveGovernor:
             if temp_files > 100:
                 analysis["recommendations"].append("High number of temporary files detected")
             
-            # Combine traditional and pattern-based recommendations
+            # Combine traditional, pattern-based, and cluster-based recommendations
             analysis["recommendations"].extend(pattern_recommendations)
+            analysis["recommendations"].extend(cluster_recommendations)
             
             base_status["governor_analysis"] = analysis
             return base_status
@@ -1266,6 +1308,161 @@ class MetaCognitiveGovernor:
             })
             
             return {"status": "failed", "error": error_msg}
+
+    def create_intelligent_memory_clusters(self) -> Dict[str, Any]:
+        """
+        Phase 2 Enhanced Memory Clustering
+        
+        Creates intelligent, dynamic memory clusters that replace static 4-tier
+        system with relationship-based, adaptive clustering that improves
+        Governor decision-making with cluster intelligence.
+        """
+        if not self.memory_clusterer:
+            return {"status": "clusterer_unavailable", "clusters": {}}
+        
+        try:
+            # Get current memory data for clustering
+            memory_status = self.get_memory_status()
+            if memory_status.get("status") == "failed":
+                return {"status": "memory_data_unavailable", "error": "Could not get memory status"}
+            
+            # Prepare memory data for clustering
+            memories = []
+            for classification, class_data in memory_status.get("classifications", {}).items():
+                # Convert classification data to memory records
+                # This is a simplified version - full implementation would have detailed file data
+                for i in range(class_data.get("file_count", 0)):
+                    memories.append({
+                        "file_path": f"{classification}_file_{i}",
+                        "memory_type": classification.upper(),
+                        "classification": classification,
+                        "size_mb": class_data.get("total_size_mb", 0) / max(class_data.get("file_count", 1), 1)
+                    })
+            
+            # Get access patterns from pattern optimizer
+            access_patterns = []
+            if self.pattern_optimizer and hasattr(self.pattern_optimizer, 'access_history'):
+                access_patterns = list(self.pattern_optimizer.access_history)
+            
+            # Create intelligent clusters
+            clusters = self.memory_clusterer.create_intelligent_clusters(memories, access_patterns)
+            cluster_summary = self.memory_clusterer.get_clustering_summary()
+            cluster_recommendations = self.memory_clusterer.get_cluster_optimization_recommendations()
+            
+            # Log Governor decision with cluster analysis
+            governor_decision = {
+                "decision_type": "intelligent_memory_clustering",
+                "clusters_created": len(clusters),
+                "cluster_types": cluster_summary.get("cluster_types", {}),
+                "total_clustered_memories": cluster_summary.get("total_clustered_memories", 0),
+                "avg_cluster_health": cluster_summary.get("cluster_health", {}).get("avg_health_score", 0),
+                "optimization_recommendations": len(cluster_recommendations),
+                "timestamp": time.time()
+            }
+            
+            self.log_governor_decision(governor_decision)
+            
+            # Return comprehensive clustering status
+            clustering_status = {
+                "status": "clustering_complete",
+                "clusters_created": clusters,
+                "cluster_summary": cluster_summary,
+                "optimization_recommendations": cluster_recommendations,
+                "governor_decision": governor_decision,
+                "next_clustering_recommended": time.time() + 7200,  # 2 hours
+                "enhancement_level": "Phase 2 - Intelligent Hierarchical Clustering"
+            }
+            
+            self.logger.info(f"🗂️ Governor Intelligent Clustering Complete: "
+                           f"{len(clusters)} clusters created, "
+                           f"{len(cluster_recommendations)} optimizations identified")
+            
+            return clustering_status
+            
+        except Exception as e:
+            error_msg = f"Intelligent memory clustering failed: {e}"
+            self.logger.error(error_msg)
+            
+            # Log failed attempt
+            self.log_governor_decision({
+                "decision_type": "intelligent_clustering_failed",
+                "error": str(e),
+                "timestamp": time.time()
+            })
+            
+            return {"status": "failed", "error": error_msg}
+
+    def get_cluster_based_retention_policy(self, memory_id: str) -> Dict[str, Any]:
+        """
+        Get cluster-based retention policy for a memory (Phase 2 enhancement)
+        
+        This replaces static 4-tier thresholds with dynamic, cluster-aware
+        retention decisions based on relationships and cluster health.
+        """
+        if not self.memory_clusterer:
+            return {
+                "policy": "fallback_static",
+                "retention_priority": 0.5,
+                "reason": "No cluster information available"
+            }
+        
+        try:
+            # Get cluster information for this memory
+            cluster_info = self.memory_clusterer.get_memory_cluster_info(memory_id)
+            
+            if cluster_info.get("status") == "unclustered":
+                # Unclustered memories get default policy
+                return {
+                    "policy": "unclustered_default",
+                    "retention_priority": 0.4,
+                    "reason": "Memory not part of any cluster"
+                }
+            
+            # Use cluster-based retention priority
+            max_retention = cluster_info.get("max_retention_priority", 0.5)
+            avg_relationship = cluster_info.get("avg_relationship_strength", 0.5)
+            cluster_count = cluster_info.get("cluster_count", 0)
+            
+            # Calculate dynamic retention priority
+            dynamic_priority = max_retention
+            
+            # Bonus for being in multiple clusters (important connections)
+            if cluster_count > 1:
+                dynamic_priority = min(dynamic_priority + 0.1, 0.99)
+            
+            # Bonus for strong relationships
+            if avg_relationship > 0.7:
+                dynamic_priority = min(dynamic_priority + 0.05, 0.99)
+            
+            # Get cluster-specific policies
+            policies = []
+            for cluster_data in cluster_info.get("clusters", []):
+                cluster_type = cluster_data.get("cluster_type", "unknown")
+                health_score = cluster_data.get("health_score", 0.5)
+                
+                if cluster_type == "causal_chain":
+                    policies.append("causal_chain_protection")
+                elif cluster_type == "performance_cluster" and health_score > 0.7:
+                    policies.append("performance_optimization_priority")
+                elif cluster_type == "cross_session":
+                    policies.append("cross_session_preservation")
+            
+            return {
+                "policy": "cluster_based_dynamic",
+                "retention_priority": dynamic_priority,
+                "cluster_count": cluster_count,
+                "relationship_strength": avg_relationship,
+                "cluster_policies": policies,
+                "reason": f"Cluster-based priority from {cluster_count} clusters"
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to get cluster-based retention policy: {e}")
+            return {
+                "policy": "error_fallback", 
+                "retention_priority": 0.5,
+                "reason": f"Error in cluster analysis: {e}"
+            }
     
     def schedule_memory_maintenance(self, interval_hours: int = 24) -> bool:
         """Schedule regular memory maintenance with pattern optimization."""
@@ -1295,14 +1492,15 @@ class MetaCognitiveGovernor:
 
     def trigger_intelligent_memory_analysis(self) -> Dict[str, Any]:
         """
-        Trigger comprehensive memory analysis with pattern optimization.
+        Trigger comprehensive memory analysis with pattern optimization and clustering.
         
         This method combines traditional memory analysis with Phase 1
-        pattern recognition for immediate Governor decision enhancement.
+        pattern recognition and Phase 2 hierarchical clustering for
+        maximum Governor decision enhancement.
         """
         analysis_results = {
             "timestamp": time.time(),
-            "analysis_type": "comprehensive_with_patterns",
+            "analysis_type": "comprehensive_with_patterns_and_clusters",
             "results": {}
         }
         
@@ -1315,40 +1513,40 @@ class MetaCognitiveGovernor:
             if self.pattern_optimizer:
                 pattern_analysis = self.optimize_memory_patterns()
                 analysis_results["results"]["pattern_optimization"] = pattern_analysis
-                
-                # Extract key insights for Governor decisions
-                if pattern_analysis.get("status") == "analysis_complete":
-                    patterns = pattern_analysis.get("patterns_analyzed", {})
-                    recommendations = pattern_analysis.get("recommendations", {})
-                    
-                    # Combine insights
-                    analysis_results["key_insights"] = {
-                        "total_patterns_detected": patterns.get("total_patterns", 0),
-                        "optimization_potential": patterns.get("top_optimization_potential", 0.0),
-                        "immediate_actions_needed": len(recommendations.get("immediate_actions", [])),
-                        "efficiency_trend": recommendations.get("efficiency_status", {}).get("trend", "unknown"),
-                        "governor_confidence": 0.8 if patterns.get("total_patterns", 0) > 5 else 0.5
-                    }
             else:
                 analysis_results["results"]["pattern_optimization"] = {
                     "status": "pattern_optimizer_unavailable"
                 }
             
-            # 3. Generate Governor recommendations based on combined analysis
+            # 3. Hierarchical clustering analysis (Phase 2)  
+            if self.memory_clusterer:
+                cluster_analysis = self.create_intelligent_memory_clusters()
+                analysis_results["results"]["cluster_analysis"] = cluster_analysis
+            else:
+                analysis_results["results"]["cluster_analysis"] = {
+                    "status": "clusterer_unavailable"
+                }
+            
+            # 4. Extract key insights from combined analysis
+            analysis_results["key_insights"] = self._extract_combined_insights(analysis_results)
+            
+            # 5. Generate Governor recommendations based on combined analysis
             governor_recommendations = self._generate_integrated_recommendations(analysis_results)
             analysis_results["governor_recommendations"] = governor_recommendations
             
             # Log comprehensive decision
             self.log_governor_decision({
-                "decision_type": "intelligent_memory_analysis",
+                "decision_type": "intelligent_memory_analysis_phase2",
                 "analysis_results": analysis_results,
                 "recommendations_generated": len(governor_recommendations),
-                "enhancement_level": "Phase 1 - Immediate Pattern Recognition"
+                "enhancement_level": "Phase 2 - Pattern + Cluster Intelligence"
             })
             
-            self.logger.info(f"🧠 Intelligent Memory Analysis Complete - "
-                           f"{analysis_results['key_insights']['total_patterns_detected']} patterns detected, "
-                           f"{len(governor_recommendations)} recommendations generated")
+            insights = analysis_results["key_insights"]
+            self.logger.info(f"🧠 Enhanced Memory Analysis Complete - "
+                           f"{insights.get('total_patterns_detected', 0)} patterns, "
+                           f"{insights.get('total_clusters_created', 0)} clusters, "
+                           f"{len(governor_recommendations)} recommendations")
             
             return analysis_results
             
@@ -1359,17 +1557,75 @@ class MetaCognitiveGovernor:
             analysis_results["error"] = error_msg
             return analysis_results
 
+    def _extract_combined_insights(self, analysis_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract key insights from pattern + cluster analysis"""
+        insights = {
+            "total_patterns_detected": 0,
+            "total_clusters_created": 0,
+            "optimization_potential": 0.0,
+            "immediate_actions_needed": 0,
+            "efficiency_trend": "unknown",
+            "cluster_health": 0.0,
+            "governor_confidence": 0.5
+        }
+        
+        try:
+            # Extract pattern insights
+            pattern_data = analysis_results.get("results", {}).get("pattern_optimization", {})
+            if pattern_data.get("status") == "analysis_complete":
+                patterns_analyzed = pattern_data.get("patterns_analyzed", {})
+                insights["total_patterns_detected"] = patterns_analyzed.get("total_patterns", 0)
+                insights["optimization_potential"] = patterns_analyzed.get("top_optimization_potential", 0.0)
+                
+                recommendations = pattern_data.get("recommendations", {})
+                insights["immediate_actions_needed"] = len(recommendations.get("immediate_actions", []))
+                insights["efficiency_trend"] = recommendations.get("efficiency_status", {}).get("trend", "unknown")
+            
+            # Extract cluster insights
+            cluster_data = analysis_results.get("results", {}).get("cluster_analysis", {})
+            if cluster_data.get("status") == "clustering_complete":
+                cluster_summary = cluster_data.get("cluster_summary", {})
+                insights["total_clusters_created"] = cluster_summary.get("total_clusters", 0)
+                insights["cluster_health"] = cluster_summary.get("cluster_health", {}).get("avg_health_score", 0.0)
+                
+                # Add cluster-based optimization count
+                cluster_recommendations = cluster_data.get("optimization_recommendations", [])
+                insights["cluster_optimizations_available"] = len(cluster_recommendations)
+            
+            # Calculate enhanced Governor confidence
+            confidence = 0.5  # Base confidence
+            
+            if insights["total_patterns_detected"] > 10:
+                confidence += 0.2  # Pattern recognition bonus
+            
+            if insights["total_clusters_created"] > 3:
+                confidence += 0.2  # Clustering bonus
+            
+            if insights["cluster_health"] > 0.7:
+                confidence += 0.1  # Healthy clusters bonus
+            
+            if insights["optimization_potential"] > 0.5:
+                confidence += 0.1  # High optimization potential bonus
+            
+            insights["governor_confidence"] = min(confidence, 0.95)
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to extract combined insights: {e}")
+        
+        return insights
+
     def _generate_integrated_recommendations(self, analysis_results: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate integrated recommendations from memory and pattern analysis"""
+        """Generate integrated recommendations from memory, pattern, and cluster analysis"""
         recommendations = []
         
         try:
             # Extract data from analysis results
             memory_status = analysis_results.get("results", {}).get("memory_status", {})
             pattern_analysis = analysis_results.get("results", {}).get("pattern_optimization", {})
+            cluster_analysis = analysis_results.get("results", {}).get("cluster_analysis", {})
             key_insights = analysis_results.get("key_insights", {})
             
-            # Memory-based recommendations
+            # Memory-based recommendations (traditional)
             governor_analysis = memory_status.get("governor_analysis", {})
             if governor_analysis.get("cleanup_needed"):
                 recommendations.append({
@@ -1404,14 +1660,56 @@ class MetaCognitiveGovernor:
                             "source": "pattern_analysis_phase1"
                         })
             
-            # Efficiency-based recommendations
+            # Cluster-based recommendations (Phase 2)
+            if cluster_analysis.get("status") == "clustering_complete":
+                cluster_recommendations = cluster_analysis.get("optimization_recommendations", [])
+                
+                for cluster_rec in cluster_recommendations[:5]:  # Top 5 cluster recommendations
+                    recommendations.append({
+                        "type": "cluster_optimization",
+                        "priority": cluster_rec.get("priority", "medium"),
+                        "action": cluster_rec["action"],
+                        "reason": cluster_rec["reason"],
+                        "source": "hierarchical_clustering_phase2",
+                        "cluster_id": cluster_rec.get("cluster_id", "unknown"),
+                        "expected_improvement": cluster_rec.get("expected_improvement", "Performance improvement")
+                    })
+            
+            # Combined insights recommendations
             if key_insights.get("efficiency_trend") == "declining":
                 recommendations.append({
                     "type": "efficiency_intervention",
                     "priority": "high",
                     "action": "investigate_performance_degradation",
-                    "reason": f"Memory efficiency declining - {key_insights.get('total_patterns_detected', 0)} patterns analyzed",
-                    "source": "integrated_analysis"
+                    "reason": (f"Memory efficiency declining - "
+                             f"{key_insights.get('total_patterns_detected', 0)} patterns, "
+                             f"{key_insights.get('total_clusters_created', 0)} clusters analyzed"),
+                    "source": "integrated_analysis_phase2"
+                })
+            
+            # High confidence enhancement opportunities
+            if key_insights.get("governor_confidence", 0) > 0.8:
+                total_optimizations = (key_insights.get("immediate_actions_needed", 0) + 
+                                     key_insights.get("cluster_optimizations_available", 0))
+                
+                if total_optimizations >= 3:
+                    recommendations.append({
+                        "type": "comprehensive_optimization",
+                        "priority": "medium",
+                        "action": "implement_comprehensive_memory_optimization",
+                        "reason": (f"High confidence ({key_insights['governor_confidence']:.2f}) "
+                                 f"with {total_optimizations} optimization opportunities"),
+                        "source": "integrated_analysis_phase2"
+                    })
+            
+            # Cluster health interventions
+            if key_insights.get("cluster_health", 0) < 0.5:
+                recommendations.append({
+                    "type": "cluster_health_intervention",
+                    "priority": "medium",
+                    "action": "improve_cluster_health",
+                    "reason": f"Low cluster health: {key_insights['cluster_health']:.2f}",
+                    "source": "hierarchical_clustering_phase2"
                 })
             
             # Sort by priority
@@ -1459,6 +1757,225 @@ class MetaCognitiveGovernor:
             
         except Exception as e:
             self.logger.error(f"Failed to log Governor decision: {e}")
+    
+    # ==========================================
+    # Phase 3: Architect Evolution Integration
+    # ==========================================
+    
+    def trigger_architect_analysis(self) -> Dict[str, Any]:
+        """
+        Trigger Architect Evolution Engine analysis of Governor intelligence.
+        
+        Phase 3: Enable Architect to analyze Governor pattern/cluster data
+        for autonomous system evolution and architectural improvements.
+        """
+        if not self.architect_engine:
+            return {
+                "status": "unavailable",
+                "message": "Architect Evolution Engine not available"
+            }
+        
+        try:
+            self.logger.info("🏗️ Triggering Architect analysis of Governor intelligence")
+            
+            # Gather Governor intelligence data for Architect analysis
+            governor_patterns = self._get_pattern_intelligence_data()
+            governor_clusters = self._get_cluster_intelligence_data() 
+            memory_status = self.get_memory_status()
+            
+            # Trigger Architect analysis
+            architectural_insights = self.architect_engine.analyze_governor_intelligence(
+                governor_patterns, governor_clusters, memory_status
+            )
+            
+            # Log the Governor decision to trigger Architect analysis
+            self.log_governor_decision({
+                "decision_type": "architect_intelligence_analysis",
+                "insights_generated": len(architectural_insights),
+                "architect_status": "analysis_complete",
+                "enhancement_phase": "Phase 3 - Architect Evolution"
+            })
+            
+            result = {
+                "status": "success",
+                "insights_generated": len(architectural_insights),
+                "architectural_insights": [
+                    {
+                        "insight_type": insight.insight_type,
+                        "priority": insight.priority,
+                        "confidence": insight.confidence,
+                        "description": insight.description[:100] + "..." if len(insight.description) > 100 else insight.description
+                    }
+                    for insight in architectural_insights
+                ],
+                "message": f"Architect analysis complete: {len(architectural_insights)} insights generated"
+            }
+            
+            self.logger.info(f"🏗️ Architect Analysis Complete: {len(architectural_insights)} insights generated")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Failed to trigger Architect analysis: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "message": f"Architect analysis failed: {e}"
+            }
+    
+    def execute_autonomous_evolution(self) -> Dict[str, Any]:
+        """
+        Execute autonomous evolution based on Architect's analysis.
+        
+        Phase 3: Allow Architect to autonomously evolve system architecture
+        based on Governor intelligence analysis.
+        """
+        if not self.architect_engine:
+            return {
+                "status": "unavailable", 
+                "message": "Architect Evolution Engine not available"
+            }
+        
+        try:
+            self.logger.info("🚀 Executing autonomous architecture evolution")
+            
+            # Execute Architect's autonomous evolution
+            evolution_result = self.architect_engine.execute_autonomous_evolution()
+            
+            # Log the evolution attempt
+            self.log_governor_decision({
+                "decision_type": "autonomous_evolution_execution",
+                "evolution_status": evolution_result.get("status", "unknown"),
+                "evolution_success": evolution_result.get("success", False),
+                "strategy_executed": evolution_result.get("strategy_id"),
+                "enhancement_phase": "Phase 3 - Autonomous Evolution"
+            })
+            
+            if evolution_result.get("success"):
+                self.logger.info(f"🚀 Evolution Success: {evolution_result.get('message', 'No details')}")
+            else:
+                self.logger.info(f"🚀 Evolution Status: {evolution_result.get('message', 'No details')}")
+            
+            return evolution_result
+            
+        except Exception as e:
+            self.logger.error(f"Failed to execute autonomous evolution: {e}")
+            return {
+                "status": "error",
+                "error": str(e), 
+                "success": False,
+                "message": f"Evolution execution failed: {e}"
+            }
+    
+    def get_architect_status(self) -> Dict[str, Any]:
+        """
+        Get comprehensive status of Architect Evolution Engine.
+        
+        Phase 3: Monitor Architect's autonomous evolution capabilities
+        and architectural insight generation.
+        """
+        if not self.architect_engine:
+            return {
+                "status": "unavailable",
+                "message": "Architect Evolution Engine not available"
+            }
+        
+        try:
+            # Get detailed Architect status
+            architect_status = self.architect_engine.get_evolution_status()
+            
+            # Check if Architect should analyze Governor data
+            should_analyze = self.architect_engine.should_analyze_governor_data()
+            
+            # Get Architect recommendations
+            recommendations = self.architect_engine.get_architect_recommendations()
+            
+            return {
+                "status": "operational",
+                "architect_engine_status": architect_status,
+                "analysis_needed": should_analyze,
+                "recommendations_count": len(recommendations),
+                "top_recommendations": recommendations[:3],  # Top 3 recommendations
+                "autonomous_evolution_enabled": architect_status.get("autonomous_evolution", False),
+                "recent_evolutions": architect_status.get("recent_evolution_history", [])
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get Architect status: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "message": f"Architect status check failed: {e}"
+            }
+    
+    def _get_pattern_intelligence_data(self) -> Dict[str, Any]:
+        """Get Governor's pattern intelligence data for Architect analysis."""
+        if not self.pattern_optimizer:
+            return {}
+        
+        try:
+            # Analyze current memory patterns
+            pattern_analysis = self.pattern_optimizer.analyze_patterns()
+            recommendations = self.pattern_optimizer.generate_governor_recommendations()
+            
+            return {
+                "patterns_detected": len(pattern_analysis.get("patterns", [])),
+                "optimization_potential": pattern_analysis.get("optimization_potential", 0.0),
+                "confidence": pattern_analysis.get("confidence", 0.0),
+                "pattern_types": pattern_analysis.get("pattern_summary", {}),
+                "governor_recommendations": len(recommendations),
+                "analysis_timestamp": time.time()
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to get pattern intelligence data: {e}")
+            return {}
+    
+    def _get_cluster_intelligence_data(self) -> Dict[str, Any]:
+        """Get Governor's cluster intelligence data for Architect analysis."""
+        if not self.memory_clusterer:
+            return {}
+        
+        try:
+            # Get current cluster state
+            cluster_analysis = self.memory_clusterer.analyze_cluster_health()
+            optimization_recommendations = self.memory_clusterer.generate_optimization_recommendations()
+            
+            return {
+                "clusters_created": len(cluster_analysis.get("clusters", {})),
+                "average_health": cluster_analysis.get("average_health", 0.0),
+                "optimization_recommendations": optimization_recommendations,
+                "cluster_types": cluster_analysis.get("cluster_type_distribution", {}),
+                "total_clustered_memories": cluster_analysis.get("total_memories", 0),
+                "analysis_timestamp": time.time()
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to get cluster intelligence data: {e}")
+            return {}
+    
+    def should_trigger_architect_analysis(self) -> bool:
+        """
+        Check if Architect analysis should be triggered based on Governor state.
+        
+        Phase 3: Intelligent triggering of Architect analysis when Governor
+        has sufficient intelligence data for meaningful architectural insights.
+        """
+        if not self.architect_engine:
+            return False
+        
+        # Check if Architect thinks it's time to analyze
+        if self.architect_engine.should_analyze_governor_data():
+            return True
+        
+        # Additional Governor-specific triggers
+        pattern_data = self._get_pattern_intelligence_data()
+        cluster_data = self._get_cluster_intelligence_data()
+        
+        # Trigger if we have rich pattern and cluster data
+        patterns_sufficient = pattern_data.get("patterns_detected", 0) >= 10
+        clusters_sufficient = cluster_data.get("clusters_created", 0) >= 5
+        
+        return patterns_sufficient and clusters_sufficient
 
 
 # Example usage and testing
