@@ -64,6 +64,12 @@ class MutationType(Enum):
     MODE_MODIFICATION = "mode_modification"
     ALGORITHM_REPLACEMENT = "algorithm_replacement"
     ARCHITECTURE_ENHANCEMENT = "architecture_enhancement"
+    NEURAL_ARCHITECTURE_SEARCH = "neural_architecture_search"
+    ATTENTION_MODIFICATION = "attention_modification"
+    MULTI_OBJECTIVE_OPTIMIZATION = "multi_objective_optimization"
+    LEARNING_SCHEDULE_OPTIMIZATION = "learning_schedule_optimization"
+    MEMORY_OPTIMIZATION = "memory_optimization"
+    ENSEMBLE_FUSION = "ensemble_fusion"
 
 class MutationImpact(Enum):
     """Expected impact levels of mutations."""
@@ -259,6 +265,54 @@ class MutationEngine:
                 'impact': MutationImpact.SIGNIFICANT,
                 'targets': ['cognitive_system_combinations'],
                 'strategies': ['enable_synergies', 'optimize_coordination', 'reduce_conflicts']
+            },
+            
+            # Neural Architecture Search (NAS) patterns
+            {
+                'type': MutationType.NEURAL_ARCHITECTURE_SEARCH,
+                'impact': MutationImpact.SIGNIFICANT,
+                'targets': ['hidden_dimensions', 'layer_depths', 'activation_functions', 'normalization_schemes'],
+                'strategies': ['progressive_search', 'skip_connections', 'attention_heads', 'layer_scaling']
+            },
+            
+            # Attention mechanism modifications
+            {
+                'type': MutationType.ATTENTION_MODIFICATION,
+                'impact': MutationImpact.MODERATE,
+                'targets': ['attention_span', 'focus_patterns', 'multi_head_attention', 'self_attention_depth'],
+                'strategies': ['enhance_locality', 'global_attention', 'sparse_attention', 'dynamic_attention']
+            },
+            
+            # Multi-objective optimization
+            {
+                'type': MutationType.MULTI_OBJECTIVE_OPTIMIZATION,
+                'impact': MutationImpact.SIGNIFICANT,
+                'targets': ['objective_weights', 'pareto_optimization', 'constraint_handling'],
+                'strategies': ['balance_objectives', 'priority_weighting', 'adaptive_constraints', 'evolutionary_pareto']
+            },
+            
+            # Learning rate scheduling
+            {
+                'type': MutationType.LEARNING_SCHEDULE_OPTIMIZATION,
+                'impact': MutationImpact.MODERATE,
+                'targets': ['learning_rate_schedule', 'warmup_steps', 'decay_strategy', 'adaptive_lr'],
+                'strategies': ['cosine_annealing', 'exponential_decay', 'plateau_reduction', 'cyclic_learning']
+            },
+            
+            # Memory and caching optimizations
+            {
+                'type': MutationType.MEMORY_OPTIMIZATION,
+                'impact': MutationImpact.MINIMAL,
+                'targets': ['cache_size', 'memory_patterns', 'garbage_collection', 'buffer_strategies'],
+                'strategies': ['increase_cache', 'optimize_patterns', 'smart_gc', 'streaming_buffers']
+            },
+            
+            # Ensemble and model fusion
+            {
+                'type': MutationType.ENSEMBLE_FUSION,
+                'impact': MutationImpact.SIGNIFICANT,
+                'targets': ['model_ensemble', 'voting_strategies', 'fusion_weights', 'diversity_metrics'],
+                'strategies': ['weighted_voting', 'stacking_ensemble', 'dynamic_selection', 'adversarial_fusion']
             }
         ]
     
@@ -313,9 +367,61 @@ class MutationEngine:
         target = random.choice(template['targets'])
         strategy = random.choice(template['strategies'])
         
-        # Generate changes based on template
+        # Generate changes based on template type
         changes = {}
         rationale = f"Exploratory {strategy} of {target}"
+        expected_improvement = 0.05
+        confidence = 0.5
+        test_duration = 10.0
+        
+        # Handle different mutation types
+        if template['type'] == MutationType.PARAMETER_ADJUSTMENT:
+            changes, rationale, expected_improvement, confidence = self._generate_parameter_changes(target, strategy)
+            
+        elif template['type'] == MutationType.NEURAL_ARCHITECTURE_SEARCH:
+            changes, rationale, expected_improvement, confidence = self._generate_nas_changes(target, strategy)
+            test_duration = 25.0  # NAS changes need more testing time
+            
+        elif template['type'] == MutationType.ATTENTION_MODIFICATION:
+            changes, rationale, expected_improvement, confidence = self._generate_attention_changes(target, strategy)
+            test_duration = 20.0
+            
+        elif template['type'] == MutationType.MULTI_OBJECTIVE_OPTIMIZATION:
+            changes, rationale, expected_improvement, confidence = self._generate_moo_changes(target, strategy)
+            test_duration = 30.0  # Complex optimization needs thorough testing
+            
+        elif template['type'] == MutationType.LEARNING_SCHEDULE_OPTIMIZATION:
+            changes, rationale, expected_improvement, confidence = self._generate_schedule_changes(target, strategy)
+            test_duration = 15.0
+            
+        elif template['type'] == MutationType.MEMORY_OPTIMIZATION:
+            changes, rationale, expected_improvement, confidence = self._generate_memory_changes(target, strategy)
+            test_duration = 8.0  # Memory optimizations are quick to test
+            
+        elif template['type'] == MutationType.ENSEMBLE_FUSION:
+            changes, rationale, expected_improvement, confidence = self._generate_ensemble_changes(target, strategy)
+            test_duration = 35.0  # Ensemble methods are complex
+            
+        else:
+            # Fallback to legacy mutation generation
+            changes, rationale = self._generate_legacy_changes(target, strategy)
+        
+        return Mutation(
+            id=mutation_id,
+            type=template['type'],
+            impact=template['impact'],
+            changes=changes,
+            rationale=rationale,
+            expected_improvement=expected_improvement,
+            confidence=confidence,
+            test_duration_estimate=test_duration
+        )
+    
+    def _generate_parameter_changes(self, target: str, strategy: str) -> tuple:
+        """Generate parameter adjustment changes."""
+        import random
+        
+        changes = {}
         
         if target == 'max_actions_per_game':
             if strategy == 'increase':
@@ -324,7 +430,7 @@ class MutationEngine:
                 changes[target] = max(100, int(self.base_genome.max_actions_per_game * 0.8))
             else:  # optimize
                 changes[target] = 750  # Sweet spot based on analysis
-        
+                
         elif target == 'salience_mode':
             current_mode = self.base_genome.salience_mode
             changes[target] = 'lossless' if current_mode == 'decay_compression' else 'decay_compression'
@@ -332,17 +438,210 @@ class MutationEngine:
         elif 'enable_' in target:
             current_value = getattr(self.base_genome, target, True)
             changes[target] = not current_value
+            
+        elif target == 'salience_threshold':
+            if strategy == 'increase':
+                changes[target] = min(1.0, self.base_genome.salience_threshold + 0.1)
+            elif strategy == 'decrease':
+                changes[target] = max(0.1, self.base_genome.salience_threshold - 0.1)
+            else:  # optimize
+                changes[target] = 0.7  # Balanced threshold
         
-        return Mutation(
-            id=mutation_id,
-            type=template['type'],
-            impact=template['impact'],
-            changes=changes,
-            rationale=rationale,
-            expected_improvement=0.05,
-            confidence=0.5,
-            test_duration_estimate=10.0
-        )
+        rationale = f"Parameter {strategy} for {target} optimization"
+        return changes, rationale, 0.05, 0.6
+    
+    def _generate_nas_changes(self, target: str, strategy: str) -> tuple:
+        """Generate Neural Architecture Search changes."""
+        import random
+        
+        changes = {}
+        
+        if target == 'hidden_dimensions':
+            base_dim = 512
+            if strategy == 'progressive_search':
+                changes['hidden_dims'] = [256, 512, 1024, 512]
+                changes['progressive_scaling'] = True
+            elif strategy == 'layer_scaling':
+                changes['hidden_dims'] = [base_dim * (2 ** i) for i in range(4)]
+                
+        elif target == 'layer_depths':
+            if strategy == 'skip_connections':
+                changes['enable_skip_connections'] = True
+                changes['skip_interval'] = random.choice([2, 3, 4])
+            elif strategy == 'progressive_search':
+                changes['depth_schedule'] = [4, 6, 8, 6]  # Progressive depth
+                
+        elif target == 'activation_functions':
+            activations = ['relu', 'gelu', 'swish', 'mish']
+            if strategy == 'progressive_search':
+                changes['activation_sequence'] = random.sample(activations, 3)
+            else:
+                changes['primary_activation'] = random.choice(activations)
+                
+        elif target == 'attention_heads':
+            if strategy == 'attention_heads':
+                changes['num_attention_heads'] = random.choice([4, 8, 12, 16])
+                changes['head_dimension'] = random.choice([32, 64, 128])
+        
+        rationale = f"Neural architecture search: {strategy} for {target}"
+        return changes, rationale, 0.15, 0.4  # Higher potential, lower confidence
+    
+    def _generate_attention_changes(self, target: str, strategy: str) -> tuple:
+        """Generate attention mechanism modifications."""
+        import random
+        
+        changes = {}
+        
+        if target == 'attention_span':
+            if strategy == 'enhance_locality':
+                changes['local_attention_window'] = random.choice([16, 32, 64])
+                changes['enable_local_attention'] = True
+            elif strategy == 'global_attention':
+                changes['global_attention_layers'] = random.choice([2, 4, 6])
+                changes['attention_pooling'] = 'global'
+                
+        elif target == 'focus_patterns':
+            if strategy == 'sparse_attention':
+                changes['attention_sparsity'] = random.uniform(0.1, 0.3)
+                changes['sparse_pattern'] = random.choice(['strided', 'random', 'block'])
+            elif strategy == 'dynamic_attention':
+                changes['dynamic_attention_threshold'] = random.uniform(0.5, 0.9)
+                changes['attention_adaptation_rate'] = 0.1
+                
+        elif target == 'self_attention_depth':
+            changes['self_attention_layers'] = random.choice([3, 6, 9, 12])
+            changes['cross_attention_layers'] = random.choice([1, 2, 3])
+        
+        rationale = f"Attention mechanism optimization: {strategy} for {target}"
+        return changes, rationale, 0.12, 0.5
+    
+    def _generate_moo_changes(self, target: str, strategy: str) -> tuple:
+        """Generate multi-objective optimization changes."""
+        import random
+        
+        changes = {}
+        
+        if target == 'objective_weights':
+            if strategy == 'balance_objectives':
+                changes['win_rate_weight'] = random.uniform(0.3, 0.5)
+                changes['score_weight'] = random.uniform(0.2, 0.4)
+                changes['efficiency_weight'] = random.uniform(0.2, 0.4)
+                changes['learning_weight'] = random.uniform(0.1, 0.2)
+            elif strategy == 'priority_weighting':
+                primary_objective = random.choice(['win_rate', 'score', 'efficiency'])
+                changes[f'{primary_objective}_weight'] = random.uniform(0.6, 0.8)
+                
+        elif target == 'pareto_optimization':
+            if strategy == 'evolutionary_pareto':
+                changes['pareto_front_size'] = random.choice([10, 20, 30])
+                changes['pareto_selection_pressure'] = random.uniform(0.7, 0.9)
+                
+        elif target == 'constraint_handling':
+            if strategy == 'adaptive_constraints':
+                changes['constraint_adaptation_rate'] = random.uniform(0.05, 0.15)
+                changes['constraint_violation_penalty'] = random.uniform(0.1, 0.3)
+        
+        rationale = f"Multi-objective optimization: {strategy} for {target}"
+        return changes, rationale, 0.18, 0.35  # High potential, moderate confidence
+    
+    def _generate_schedule_changes(self, target: str, strategy: str) -> tuple:
+        """Generate learning rate schedule changes."""
+        import random
+        
+        changes = {}
+        
+        if target == 'learning_rate_schedule':
+            if strategy == 'cosine_annealing':
+                changes['lr_schedule'] = 'cosine'
+                changes['min_lr_factor'] = random.uniform(0.01, 0.1)
+                changes['restart_period'] = random.choice([100, 200, 500])
+            elif strategy == 'exponential_decay':
+                changes['lr_schedule'] = 'exponential'
+                changes['decay_rate'] = random.uniform(0.9, 0.99)
+                changes['decay_steps'] = random.choice([50, 100, 200])
+                
+        elif target == 'warmup_steps':
+            changes['warmup_steps'] = random.choice([100, 500, 1000])
+            changes['warmup_factor'] = random.uniform(0.1, 0.5)
+            
+        elif target == 'adaptive_lr':
+            if strategy == 'plateau_reduction':
+                changes['lr_patience'] = random.choice([5, 10, 20])
+                changes['lr_reduction_factor'] = random.uniform(0.5, 0.8)
+            elif strategy == 'cyclic_learning':
+                changes['lr_cycle_length'] = random.choice([20, 50, 100])
+                changes['lr_cycle_amplitude'] = random.uniform(0.1, 0.5)
+        
+        rationale = f"Learning rate schedule optimization: {strategy} for {target}"
+        return changes, rationale, 0.10, 0.7
+    
+    def _generate_memory_changes(self, target: str, strategy: str) -> tuple:
+        """Generate memory optimization changes."""
+        import random
+        
+        changes = {}
+        
+        if target == 'cache_size':
+            if strategy == 'increase_cache':
+                changes['pattern_cache_size'] = random.choice([1000, 2000, 5000])
+                changes['solution_cache_size'] = random.choice([500, 1000, 2000])
+            elif strategy == 'smart_gc':
+                changes['gc_threshold'] = random.uniform(0.7, 0.9)
+                changes['gc_strategy'] = random.choice(['lru', 'lfu', 'adaptive'])
+                
+        elif target == 'memory_patterns':
+            if strategy == 'optimize_patterns':
+                changes['memory_pattern_limit'] = random.choice([100, 200, 500])
+                changes['pattern_similarity_threshold'] = random.uniform(0.8, 0.95)
+                
+        elif target == 'buffer_strategies':
+            if strategy == 'streaming_buffers':
+                changes['enable_streaming'] = True
+                changes['buffer_size'] = random.choice([64, 128, 256])
+        
+        rationale = f"Memory optimization: {strategy} for {target}"
+        return changes, rationale, 0.08, 0.8  # Lower impact, high confidence
+    
+    def _generate_ensemble_changes(self, target: str, strategy: str) -> tuple:
+        """Generate ensemble and model fusion changes."""
+        import random
+        
+        changes = {}
+        
+        if target == 'model_ensemble':
+            if strategy == 'weighted_voting':
+                changes['ensemble_size'] = random.choice([3, 5, 7])
+                changes['voting_weights'] = 'performance_based'
+            elif strategy == 'stacking_ensemble':
+                changes['stacking_layers'] = random.choice([1, 2, 3])
+                changes['meta_learner'] = random.choice(['linear', 'tree', 'neural'])
+                
+        elif target == 'voting_strategies':
+            if strategy == 'dynamic_selection':
+                changes['selection_criteria'] = random.choice(['confidence', 'diversity', 'hybrid'])
+                changes['selection_threshold'] = random.uniform(0.6, 0.9)
+                
+        elif target == 'fusion_weights':
+            if strategy == 'adversarial_fusion':
+                changes['adversarial_weight_learning'] = True
+                changes['fusion_learning_rate'] = random.uniform(0.001, 0.01)
+        
+        rationale = f"Ensemble and fusion optimization: {strategy} for {target}"
+        return changes, rationale, 0.20, 0.3  # High potential, lower confidence (complex)
+    
+    def _generate_legacy_changes(self, target: str, strategy: str) -> tuple:
+        """Generate changes for legacy mutation types."""
+        changes = {}
+        
+        if target == 'salience_mode':
+            current_mode = self.base_genome.salience_mode
+            changes[target] = 'lossless' if current_mode == 'decay_compression' else 'decay_compression'
+        elif 'enable_' in target:
+            current_value = getattr(self.base_genome, target, True)
+            changes[target] = not current_value
+        
+        rationale = f"Legacy {strategy} of {target}"
+        return changes, rationale
 
 class SandboxTester:
     """Tests mutations in isolated sandbox environments."""
