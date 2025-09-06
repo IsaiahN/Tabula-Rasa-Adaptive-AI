@@ -1,3 +1,7 @@
+import os
+from git import Repo
+import glob
+import json
 #!/usr/bin/env python3
 """
 MetaCognitiveGovernor - The "Third Brain"
@@ -152,6 +156,91 @@ class CognitiveSystemMonitor:
             return "stable"
 
 class MetaCognitiveGovernor:
+
+    def archive_and_cleanup_logs(self, log_dir, results_dir, keep_per_game=1, keep_recent=10):
+        """
+        Archive and clean up training logs and results using GitPython.
+        Prioritize by effectiveness, recency, and game coverage.
+        """
+        repo = Repo(os.path.abspath(os.path.join(log_dir, '..')))
+        logs = self._parse_logs(log_dir)
+        results = self._parse_results(results_dir)
+        to_keep = set()
+        # 1. Keep best per game (logs)
+        for game_id, group in self._group_by(logs, 'game_id').items():
+            best = max(group, key=lambda x: x['score'])
+            to_keep.add(best['filename'])
+        # 2. Keep most recent overall (logs)
+        recent = sorted(logs, key=lambda x: x['timestamp'], reverse=True)[:keep_recent]
+        to_keep.update(log['filename'] for log in recent)
+        # 3. Repeat for results
+        for game_id, group in self._group_by(results, 'game_id').items():
+            best = max(group, key=lambda x: x['score'])
+            to_keep.add(best['filename'])
+        recent_results = sorted(results, key=lambda x: x['timestamp'], reverse=True)[:keep_recent]
+        to_keep.update(r['filename'] for r in recent_results)
+        # 4. Archive and delete the rest
+        for file in logs + results:
+            if file['filename'] not in to_keep:
+                abs_path = os.path.join(log_dir if file in logs else results_dir, file['filename'])
+                repo.index.add([abs_path])
+                repo.index.commit(f"Archive log: {file['filename']} (score={file['score']}, game={file['game_id']})")
+                os.remove(abs_path)
+
+    def _parse_logs(self, log_dir):
+        files = glob.glob(os.path.join(log_dir, '*.log'))
+        parsed = []
+        for f in files:
+            try:
+                with open(f, 'r', encoding='utf-8', errors='ignore') as fh:
+                    content = fh.read()
+                # Extract game_id, score, timestamp (customize as needed)
+                game_id = self._extract_game_id(content)
+                score = self._extract_score(content)
+                timestamp = os.path.getmtime(f)
+                parsed.append({'filename': os.path.basename(f), 'game_id': game_id, 'score': score, 'timestamp': timestamp})
+            except Exception:
+                continue
+        return parsed
+
+    def _parse_results(self, results_dir):
+        files = glob.glob(os.path.join(results_dir, '*.json'))
+        parsed = []
+        for f in files:
+            try:
+                with open(f, 'r', encoding='utf-8', errors='ignore') as fh:
+                    data = json.load(fh)
+                game_id = data.get('game_id', 'unknown')
+                score = data.get('score', 0)
+                timestamp = os.path.getmtime(f)
+                parsed.append({'filename': os.path.basename(f), 'game_id': game_id, 'score': score, 'timestamp': timestamp})
+            except Exception:
+                continue
+        return parsed
+
+    def _group_by(self, items, key):
+        grouped = {}
+        for item in items:
+            grouped.setdefault(item[key], []).append(item)
+        return grouped
+
+    def _extract_game_id(self, content):
+        # Implement logic to extract game_id from log content
+        # Placeholder: look for 'Game: <id>'
+        import re
+        m = re.search(r'Game[s]?: ([\w\-, ]+)', content)
+        if m:
+            return m.group(1).split(',')[0].strip()
+        return 'unknown'
+
+    def _extract_score(self, content):
+        # Implement logic to extract score from log content
+        # Placeholder: look for 'Score: <number>'
+        import re
+        m = re.search(r'Score: (\d+)', content)
+        if m:
+            return int(m.group(1))
+        return 0
     """
     The "Third Brain" - Meta-Cognitive Resource Allocator
     

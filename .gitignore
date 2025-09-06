@@ -1,3 +1,5 @@
+# Ignore master_trainer.log
+master_trainer.log
 # Environment files
 .env
 .env.local

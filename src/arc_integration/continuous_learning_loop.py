@@ -582,7 +582,11 @@ class ContinuousLearningLoop:
             'exploration_bonus_used': False  # Track if exploration bonus was applied
         }
         
-        logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
+    logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
+    print("\n================ ARC TRAINING SESSION INITIALIZED ================")
+    print(f"Session ID: {getattr(self, 'session_id', 'N/A')}")
+    print(f"Games: {getattr(self, 'games', 'N/A')}")
+    print("===============================================================\n")
 
     def _unified_energy_consumption(self, action_effective: bool = False, is_exploration: bool = False, is_repetitive: bool = False) -> float:
         """🔧 CRITICAL FIX: Unified energy consumption method for consistency across all systems."""
@@ -611,7 +615,8 @@ class ContinuousLearningLoop:
         # 🔧 CONSOLIDATED: Only use unified energy tracking
         # self.current_energy is the single source of truth
         
-        print(f"⚡ Energy consumed: {total_cost:.2f} (effective={action_effective}, exploration={is_exploration}, repetitive={is_repetitive}) -> {self.current_energy:.1f}/100")
+    print(f"⚡ Energy consumed: {total_cost:.2f} (effective={action_effective}, exploration={is_exploration}, repetitive={is_repetitive}) -> {self.current_energy:.1f}/100")
+    print(f"[PROGRESS] Actions taken: {self._progress_tracker['actions_taken']} | Last score: {self._progress_tracker['last_score']} | Actions w/o progress: {self._progress_tracker['actions_without_progress']}")
         
         return self.current_energy
     
@@ -625,17 +630,20 @@ class ContinuousLearningLoop:
         # Sleep after long ineffective sequences for consolidation
         if actions_taken > 100 and recent_effectiveness < 0.3:
             print(f"🌙 Sleep trigger: Long ineffective sequence ({actions_taken} actions, {recent_effectiveness:.1%} effective)")
+            print(f"[SLEEP] Triggered by ineffective sequence. Progress tracker: {self._progress_tracker}")
             return True
         
         # Periodic consolidation sleep every 200 actions regardless
         if actions_taken % 200 == 0 and actions_taken > 0:
             print(f"🌙 Sleep trigger: Periodic consolidation at {actions_taken} actions")
+            print(f"[SLEEP] Periodic consolidation. Progress tracker: {self._progress_tracker}")
             return True
         
         # Energy-based trigger with sliding scale
         energy_threshold = 50.0 - (recent_effectiveness * 20)  # Lower threshold if ineffective
         if self.current_energy <= energy_threshold:
             print(f"🌙 Sleep trigger: Adaptive energy threshold ({energy_threshold:.1f}) reached")
+            print(f"[SLEEP] Adaptive energy threshold. Progress tracker: {self._progress_tracker}")
             return True
         
         return False

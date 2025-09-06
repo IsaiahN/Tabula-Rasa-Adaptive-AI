@@ -117,7 +117,7 @@ response = await architect.process_governor_request(architect_request)
 ```
 
 ### 3. Enhanced UnifiedTrainer
-**File:** `train_arc_agent.py` (lines 738-753)
+**File:** `master_arc_trainer.py` (lines 738-753)
 **Purpose:** Seamless integration with existing 37-cognitive-system architecture
 
 #### Integration Points:
@@ -200,7 +200,7 @@ recommendations = [
 ### Scenario 1: Standard ARC Training
 ```bash
 # Start training - meta-cognitive systems activate automatically
-python train_arc_agent.py --mode sequential --games 100
+python master_arc_trainer.py --mode sequential --games 100
 
 # Governor will:
 # - Monitor performance across all 37 systems
