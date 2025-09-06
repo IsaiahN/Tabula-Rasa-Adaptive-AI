@@ -82,8 +82,7 @@ Specifically, avoid long prompts when invoking the logging or context-refinement
 **ALWAYS use `master_arc_trainer.py` for training operations - NEVER create new run files!**
 
 **Rules:**
-- ✅ **MODIFY**: `master_arc_trainer.py` for all training changes, improvements, fixes
-- ✅ **RUN**: `python master_arc_trainer.py --mode quick-validation --games test1,test2`  
+- ✅ **MODIFY**: `master_arc_trainer.py` for all training changes, improvements, fixes  
 - ❌ **NEVER CREATE**: `arc3.py`, `run_training.py`, `new_trainer.py`, or any duplicate training files
 - ❌ **NEVER USE**: Deprecated scripts (consolidated into master_arc_trainer.py)
 
