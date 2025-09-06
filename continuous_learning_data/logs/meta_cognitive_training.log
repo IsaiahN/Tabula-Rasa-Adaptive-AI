@@ -67,3 +67,6 @@
 2025-09-05 02:34:18,487 - src.core.meta_cognitive_governor.Governor - INFO - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
 2025-09-05 02:34:20,657 - ContinuousMetaCognitiveRunner - INFO - Session 3 completed: success=True, duration=13.2s
 2025-09-05 02:34:20,659 - ContinuousMetaCognitiveRunner - WARNING - Dashboard summary failed: unsupported operand type(s) for +: 'float' and 'str'
+2025-09-06 12:43:13,406 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in console mode
+2025-09-06 12:43:13,407 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757180593
+2025-09-06 12:43:13,409 - ContinuousMetaCognitiveRunner - INFO - Dashboard started in console mode

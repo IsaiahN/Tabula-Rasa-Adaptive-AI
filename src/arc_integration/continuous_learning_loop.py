@@ -173,16 +173,9 @@ class TrainingSession:
 
 
 class ContinuousLearningLoop:
-    # Update any logic that creates or references phase0 experiment results to use the new continuous_learning_data directory
-    self.phase0_experiment_results_dir = Path("continuous_learning_data/phase0_experiment_results")
-    self.phase0_experiment_results_dir.mkdir(parents=True, exist_ok=True)
-    self.lp_validation_results_path = self.phase0_experiment_results_dir / "lp_validation_results.yaml"
-    self.survival_test_results_path = self.phase0_experiment_results_dir / "survival_test_results.yaml"
-    self.phase0_logs_dir = self.phase0_experiment_results_dir / "logs"
-    self.phase0_logs_dir.mkdir(parents=True, exist_ok=True)
     """
     Manages continuous learning sessions for the Adaptive Learning Agent on ARC tasks.
-    
+
     This system:
     1. Uses the official ARC-3 API for game management
     2. Creates scorecards to track performance across sessions
@@ -192,7 +185,7 @@ class ContinuousLearningLoop:
     6. Transfers knowledge between different games
     7. Tracks long-term learning progress
     """
-    
+
     def __init__(
         self,
         arc_agents_path: str,
@@ -202,7 +195,7 @@ class ContinuousLearningLoop:
     ):
         self.arc_agents_path = Path(arc_agents_path)
         self.tabula_rasa_path = Path(tabula_rasa_path)
-        
+
         # Get API key from environment or parameter
         self.api_key = api_key or os.getenv('ARC_API_KEY')
         if not self.api_key:
@@ -210,15 +203,25 @@ class ContinuousLearningLoop:
                 "ARC_API_KEY not found. Please set ARC_API_KEY environment variable "
                 "or copy .env.template to .env and add your API key."
             )
-        
-    # Use continuous_learning_data for adaptive learning evaluation results and architect evolution data
-    self.save_directory = Path(save_directory)
-    self.save_directory.mkdir(exist_ok=True)
-    self.adaptive_learning_eval_dir = Path("continuous_learning_data/adaptive_learning_agi_evaluation_1756519407")
-    self.adaptive_learning_eval_dir.mkdir(parents=True, exist_ok=True)
-    self.architect_evolution_data_dir = Path("continuous_learning_data/architect_evolution_data")
-    self.architect_evolution_data_dir.mkdir(parents=True, exist_ok=True)
-        
+
+        # Use continuous_learning_data for adaptive learning evaluation results and architect evolution data
+        self.save_directory = Path(save_directory)
+        self.save_directory.mkdir(parents=True, exist_ok=True)
+
+        # Phase0 experiment directories
+        self.phase0_experiment_results_dir = self.save_directory / "phase0_experiment_results"
+        self.phase0_experiment_results_dir.mkdir(parents=True, exist_ok=True)
+        self.lp_validation_results_path = self.phase0_experiment_results_dir / "lp_validation_results.yaml"
+        self.survival_test_results_path = self.phase0_experiment_results_dir / "survival_test_results.yaml"
+        self.phase0_logs_dir = self.phase0_experiment_results_dir / "logs"
+        self.phase0_logs_dir.mkdir(parents=True, exist_ok=True)
+
+        # Adaptive learning evaluation and architect evolution directories
+        self.adaptive_learning_eval_dir = self.save_directory / "adaptive_learning_agi_evaluation_1756519407"
+        self.adaptive_learning_eval_dir.mkdir(parents=True, exist_ok=True)
+        self.architect_evolution_data_dir = self.save_directory / "architect_evolution_data"
+        self.architect_evolution_data_dir.mkdir(parents=True, exist_ok=True)
+
         # Initialize meta-learning systems
         base_meta_learning = MetaLearningSystem(
             memory_capacity=2000,
@@ -227,13 +230,13 @@ class ContinuousLearningLoop:
             save_directory=str(self.save_directory / "base_meta_learning")
         )
 
-    # Update any logic that creates adaptive learning evaluation results to use the new continuous_learning_data directory
-    self.adaptive_learning_eval_path = self.adaptive_learning_eval_dir / "research_results.json"
-    # Update any logic that creates architect evolution data to use the new continuous_learning_data directory
-    self.architectural_insights_path = self.architect_evolution_data_dir / "architectural_insights.json"
-    self.evolution_history_path = self.architect_evolution_data_dir / "evolution_history.json"
-    self.evolution_strategies_path = self.architect_evolution_data_dir / "evolution_strategies.json"
-        
+        # Update any logic that creates adaptive learning evaluation results to use the new continuous_learning_data directory
+        self.adaptive_learning_eval_path = self.adaptive_learning_eval_dir / "research_results.json"
+        # Update any logic that creates architect evolution data to use the new continuous_learning_data directory
+        self.architectural_insights_path = self.architect_evolution_data_dir / "architectural_insights.json"
+        self.evolution_history_path = self.architect_evolution_data_dir / "evolution_history.json"
+        self.evolution_strategies_path = self.architect_evolution_data_dir / "evolution_strategies.json"
+
         self.arc_meta_learning = ARCMetaLearningSystem(
             base_meta_learning=base_meta_learning,
             pattern_memory_size=1500,
@@ -600,43 +603,40 @@ class ContinuousLearningLoop:
             'recent_improvements': [],  # Track recent score improvements
             'exploration_bonus_used': False  # Track if exploration bonus was applied
         }
-        
-    logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
-    print("\n================ ARC TRAINING SESSION INITIALIZED ================")
-    print(f"Session ID: {getattr(self, 'session_id', 'N/A')}")
-    print(f"Games: {getattr(self, 'games', 'N/A')}")
-    print("===============================================================\n")
+
+        logger.info("Continuous Learning Loop initialized with ARC-3 API integration")
+        print("\n================ ARC TRAINING SESSION INITIALIZED ================")
+        print(f"Session ID: {getattr(self, 'session_id', 'N/A')}")
+        print(f"Games: {getattr(self, 'games', 'N/A')}")
+        print("===============================================================\n")
 
     def _unified_energy_consumption(self, action_effective: bool = False, is_exploration: bool = False, is_repetitive: bool = False) -> float:
-        """🔧 CRITICAL FIX: Unified energy consumption method for consistency across all systems."""
-        
-        # Calculate base energy cost
-        # Calculate base energy cost
-        if action_effective:
-            base_cost = self.ENERGY_COSTS['action_effective']
-        else:
-            base_cost = self.ENERGY_COSTS['action_ineffective']
+        """🔧 CRITICAL FIX: Unified energy consumption method for consistency across all systems.
 
-        # Apply modifiers
+        Returns the updated current energy level after applying costs and modifiers.
+        """
+
+        # Determine base cost depending on action effectiveness
+        base_cost = self.ENERGY_COSTS['action_effective'] if action_effective else self.ENERGY_COSTS['action_ineffective']
+
+        # Apply constant computation cost
         total_cost = base_cost + self.ENERGY_COSTS['computation_base']
-        
+
         # Exploration bonus (slight energy gain)
         if is_exploration:
             total_cost += self.ENERGY_COSTS['exploration_bonus']
-        
+
         # Repetitive action penalty
         if is_repetitive:
             total_cost *= self.ENERGY_COSTS['repetitive_penalty']
-        
-        # Consume energy from primary system
+
+        # Consume energy from primary system (clamp to [0, 100])
         self.current_energy = max(0.0, self.current_energy - total_cost)
-        
-        # 🔧 CONSOLIDATED: Only use unified energy tracking
-        # self.current_energy is the single source of truth
-        
-    print(f"⚡ Energy consumed: {total_cost:.2f} (effective={action_effective}, exploration={is_exploration}, repetitive={is_repetitive}) -> {self.current_energy:.1f}/100")
-    print(f"[PROGRESS] Actions taken: {self._progress_tracker['actions_taken']} | Last score: {self._progress_tracker['last_score']} | Actions w/o progress: {self._progress_tracker['actions_without_progress']}")
-        
+
+        # Logging for debugging
+        print(f"⚡ Energy consumed: {total_cost:.2f} (effective={action_effective}, exploration={is_exploration}, repetitive={is_repetitive}) -> {self.current_energy:.1f}/100")
+        print(f"[PROGRESS] Actions taken: {self._progress_tracker.get('actions_taken', 0)} | Last score: {self._progress_tracker.get('last_score', 0)} | Actions w/o progress: {self._progress_tracker.get('actions_without_progress', 0)}")
+
         return self.current_energy
     
     def _should_trigger_sleep_cycle(self, actions_taken: int, recent_effectiveness: float = 0.0) -> bool:
