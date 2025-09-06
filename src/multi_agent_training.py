@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class MultiAgentTrainer:
     """Manages training of multiple agents in shared environment."""
     
-    def __init__(self, config_path: str = "configs/base_config.yaml"):
+    def __init__(self, config_path: str = "src/config/base_config.yaml"):
         """Initialize multi-agent trainer."""
         self.config = self._load_config(config_path)
         self.device = torch.device(self.config.get('device', 'cpu'))
