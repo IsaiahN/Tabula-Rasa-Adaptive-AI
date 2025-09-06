@@ -1647,16 +1647,9 @@ class ContinuousLearningLoop:
                     result['actions_taken'] = max(result.get('actions_taken', 0), val)
                 except Exception:
                     continue
-        x_valid = 0 <= x < grid_width
-        y_valid = 0 <= y < grid_height
-        
-        if not (x_valid and y_valid):
-            print(f"⚠️ BOUNDS CHECK FAILED: ({x},{y}) not in bounds [0-{grid_width-1}, 0-{grid_height-1}]")
-            print(f"   X valid: {x_valid} (0 <= {x} < {grid_width})")
-            print(f"   Y valid: {y_valid} (0 <= {y} < {grid_height})")
-            return False
-        
-        return True
+
+        # Return the parsed result dictionary
+        return result
     
     def _safe_coordinate_fallback(self, grid_width: int, grid_height: int, reason: str = "bounds check failed") -> Tuple[int, int]:
         """🔧 CRITICAL FIX: Generate safe fallback coordinates that are guaranteed to be in bounds."""

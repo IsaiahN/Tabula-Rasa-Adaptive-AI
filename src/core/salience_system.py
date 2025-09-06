@@ -123,10 +123,8 @@ class SalienceCalculator:
             'total_merged': 0,
             'memory_saved': 0.0
         }
-
-    # Note: The public API is `calculate_salience`, `create_salient_experience`, and replay buffer helpers.
-    # Legacy `process_memory` helpers were removed to simplify the API surface. Use `calculate_salience` or
-    # `create_salient_experience` and then feed results into `SalienceWeightedReplayBuffer` as needed.
+# Note: `SalienceCalculator` is the canonical API. Deprecated compatibility wrappers
+# were intentionally removed to keep the API surface small.
         
     def calculate_salience(
         self,

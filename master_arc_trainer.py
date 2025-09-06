@@ -41,6 +41,7 @@ from datetime import datetime
 
 # Core imports
 from src.core.salience_system import SalienceMode
+from src.core.logging_setup import setup_logging
 
 # Meta-cognitive imports
 try:
@@ -313,37 +314,12 @@ class MasterARCTrainer:
         log_level = logging.DEBUG if self.config.debug_mode else (
             logging.INFO if self.config.verbose else logging.WARNING
         )
-        
+
         if not self.config.no_logs:
-            # Create handlers with proper encoding for Windows
-            handlers = []
-            
-            # Console handler with safe encoding
-            console_handler = logging.StreamHandler(sys.stdout)
-            console_handler.setLevel(log_level)
-            handlers.append(console_handler)
-            
-            # File handler with UTF-8 encoding
+            # Use centralized setup to ensure UTF-8 encoding and rotation
             log_filename = f'master_arc_training_{int(time.time())}.log'
-            try:
-                file_handler = logging.FileHandler(log_filename, encoding='utf-8')
-                file_handler.setLevel(log_level)
-                handlers.append(file_handler)
-            except Exception:
-                # Fallback to console only if file handler fails
-                pass
-            
-            # Setup logging with safe formatter (no emojis in logs)
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            for handler in handlers:
-                handler.setFormatter(formatter)
-            
-            logging.basicConfig(
-                level=log_level,
-                handlers=handlers,
-                force=True  # Override any existing configuration
-            )
-        
+            setup_logging(log_path=log_filename, level=log_level)
+
         self.logger = logging.getLogger(__name__)
     
     def _initialize_systems(self):

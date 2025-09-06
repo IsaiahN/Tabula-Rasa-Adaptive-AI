@@ -9,13 +9,18 @@
   "effective_actions": {
     "1": {
       "success_rate": 1.0,
-      "attempts": 61,
-      "successes": 61
+      "attempts": 127,
+      "successes": 127
     },
     "2": {
       "success_rate": 1.0,
-      "attempts": 47,
-      "successes": 47
+      "attempts": 115,
+      "successes": 115
+    },
+    "3": {
+      "success_rate": 1.0,
+      "attempts": 17,
+      "successes": 17
     },
     "4": {
       "success_rate": 1.0,
@@ -31,11 +36,11 @@
     "4": {}
   },
   "action_transitions": {
-    "((1, 2, 3, 4), 2, (1, 2, 3, 4))": 120,
-    "((1, 2, 3, 4), 3, (1, 2, 3, 4))": 67,
-    "((1, 2, 3, 4), 4, (1, 2, 3, 4))": 46,
-    "((1, 2, 3, 4), 1, (1, 2, 3, 4))": 350
+    "((1, 2, 3, 4), 2, (1, 2, 3, 4))": 211,
+    "((1, 2, 3, 4), 3, (1, 2, 3, 4))": 92,
+    "((1, 2, 3, 4), 4, (1, 2, 3, 4))": 49,
+    "((1, 2, 3, 4), 1, (1, 2, 3, 4))": 438
   },
-  "total_sessions_learned": 0,
-  "last_updated": 1757102896.3028796
+  "total_sessions_learned": 151,
+  "last_updated": 1757127612.094086
 }
