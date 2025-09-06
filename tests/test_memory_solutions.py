@@ -13,7 +13,7 @@ import logging
 logging.basicConfig(level=logging.ERROR)  # Reduce noise
 
 try:
-    manager = MetaCognitiveMemoryManager(Path('.'))
+    manager = MetaCognitiveMemoryManager(Path('tests/tmp'))
     status = manager.get_memory_status()
 
     print('📊 Memory Classifications:')

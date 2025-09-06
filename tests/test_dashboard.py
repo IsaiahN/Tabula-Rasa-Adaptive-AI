@@ -41,7 +41,7 @@ def test_console_dashboard():
     dashboard.stop()
     
     # Export session data
-    export_path = Path("test_dashboard_session.json")
+    export_path = Path("tests/tmp/test_dashboard_session.json")
     if dashboard.export_session_data(export_path):
         print(f"📁 Session data exported to {export_path}")
         
@@ -171,8 +171,8 @@ def test_integrated_dashboard():
     print("🔗 Testing Integrated Dashboard with Governor...")
     
     # Create test directories
-    test_dir = Path("test_integrated_dashboard")
-    test_dir.mkdir(exist_ok=True)
+    test_dir = Path("tests/tmp/test_integrated_dashboard")
+    test_dir.mkdir(parents=True, exist_ok=True)
     
     try:
         # Create dashboard

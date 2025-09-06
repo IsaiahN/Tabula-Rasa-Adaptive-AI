@@ -19,12 +19,12 @@ def test_outcome_tracking_system():
     print("📊 Testing Comprehensive Outcome Tracking System...")
     
     # Create test directories
-    test_dir = Path("test_outcome_data")
-    test_dir.mkdir(exist_ok=True)
+    test_dir = Path("tests/tmp/test_outcome_data")
+    test_dir.mkdir(parents=True, exist_ok=True)
     
     # Initialize Governor with outcome tracking
     governor = MetaCognitiveGovernor(
-    log_file="tests/test_governor.log",
+        log_file="tests/tmp/test_governor.log",
         outcome_tracking_dir=str(test_dir)
     )
     
@@ -204,8 +204,8 @@ def test_outcome_tracking_system():
     import shutil
     if test_dir.exists():
         shutil.rmtree(test_dir)
-    if Path("tests/test_governor.log").exists():
-        Path("tests/test_governor.log").unlink()
+    if Path("tests/tmp/test_governor.log").exists():
+        Path("tests/tmp/test_governor.log").unlink()
 
 if __name__ == "__main__":
     test_outcome_tracking_system()
