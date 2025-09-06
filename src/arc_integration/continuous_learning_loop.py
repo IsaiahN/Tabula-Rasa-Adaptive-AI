@@ -502,7 +502,12 @@ class ContinuousLearningLoop:
                 'max_direction_distance': 8     # DEPRECATED: Use universal_boundary_detection instead
             }
         }
-        
+
+    # Note: Removed legacy `success_multiplier` and `_calculate_episode_effectiveness` stub.
+    # Use `SalienceCalculator` or explicit episode metrics (wins/actions) to derive episode
+    # effectiveness. Keeping `success_weighted_memories` was a compatibility shim; rely on
+    # explicit replay buffer weighting via `SalienceWeightedReplayBuffer` instead.
+
         # Salience system components
         self.salience_calculator: Optional[SalienceCalculator] = None
         self.salience_comparator: Optional[SalienceModeComparator] = None
@@ -2399,11 +2404,9 @@ class ContinuousLearningLoop:
             
             if current_frame is not None:
                 # Use advanced frame analysis for ACTION6 targeting
-                targeting_analysis = self.frame_analyzer.analyze_frame_for_action6_targets(
-                    current_frame, game_id
-                )
-                
-                if targeting_analysis['recommended_action6_coord']:
+                targeting_analysis = self.frame_analyzer.analyze_frame_for_action6_targets(current_frame, game_id)
+
+                if targeting_analysis and targeting_analysis.get('recommended_action6_coord'):
                     target_x, target_y = targeting_analysis['recommended_action6_coord']
                     reason = targeting_analysis['targeting_reason']
                     confidence = targeting_analysis['confidence']

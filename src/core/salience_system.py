@@ -22,6 +22,15 @@ class SalienceMode(Enum):
     LOSSLESS = "lossless"  # Current implementation - no decay
     DECAY_COMPRESSION = "decay_compression"  # Decay with memory compression
 
+# Backwards-compatibility enum aliases for older tests and imports
+try:
+    # Provide old-style names that tests may import
+    SalienceMode.DECAY = SalienceMode.DECAY_COMPRESSION
+    SalienceMode.MINIMAL = SalienceMode.LOSSLESS
+except Exception:
+    # If Enum doesn't allow attribute assignment in some environments, ignore
+    pass
+
 @dataclass
 class CompressedMemory:
     """Represents a compressed/summarized memory."""
@@ -71,9 +80,12 @@ class SalienceCalculator:
         salience_history_size: int = 1000,
         normalization_window: int = 100,
         mode: SalienceMode = SalienceMode.LOSSLESS,
-        decay_rate: float = 0.01,
-        salience_min: float = 0.1,
-        compression_threshold: float = 0.2
+    decay_rate: float = 0.01,
+    salience_min: float = 0.1,
+    compression_threshold: float = 0.2,
+    # Backwards-compatible kwargs
+    importance_threshold: Optional[float] = None,
+    **kwargs
     ):
         self.lp_weight = lp_weight
         self.energy_weight = energy_weight
@@ -111,6 +123,10 @@ class SalienceCalculator:
             'total_merged': 0,
             'memory_saved': 0.0
         }
+
+    # Note: The public API is `calculate_salience`, `create_salient_experience`, and replay buffer helpers.
+    # Legacy `process_memory` helpers were removed to simplify the API surface. Use `calculate_salience` or
+    # `create_salient_experience` and then feed results into `SalienceWeightedReplayBuffer` as needed.
         
     def calculate_salience(
         self,
@@ -607,6 +623,9 @@ class SalienceCalculator:
             'survival_rate': survival_rate,
             'memory_pressure': memory_pressure
         }
+
+
+# The exported class is `SalienceCalculator`. Avoid creating deprecated aliases to keep API surface small.
 
 
 class SalienceWeightedReplayBuffer:
