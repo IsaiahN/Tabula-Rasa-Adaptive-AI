@@ -316,7 +316,7 @@ class AdaptiveLearningAgent:
             memory_capacity=meta_config.get('memory_capacity', 1000),
             insight_threshold=meta_config.get('insight_threshold', 0.1),
             consolidation_interval=meta_config.get('consolidation_interval', 100),
-            save_directory=meta_config.get('save_directory', 'meta_learning_data')
+            save_directory=meta_config.get('save_directory', 'continuous_learning_data/meta_learning_data')
         )
         
         # Backwards-compatible salience system exposure expected by tests

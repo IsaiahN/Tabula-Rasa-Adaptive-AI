@@ -3653,7 +3653,7 @@ class ContinuousLearningLoop:
         try:
             memory_paths = [
                 Path("checkpoints"),
-                Path("meta_learning_data"),
+                Path("continuous_learning_data/meta_learning_data"),
                 Path("continuous_learning_data"),
                 Path("test_meta_learning_data")
             ]
@@ -7745,7 +7745,7 @@ class ContinuousLearningLoop:
             # Look for memory files in the continuous learning data directory
             memory_dirs = [
                 Path("continuous_learning_data"),
-                Path("meta_learning_data"), 
+                Path("continuous_learning_data/meta_learning_data"), 
                 Path("test_meta_learning_data")
             ]
             
@@ -7789,7 +7789,7 @@ class ContinuousLearningLoop:
             
             memory_dirs = [
                 Path("continuous_learning_data"),
-                Path("meta_learning_data"),
+                Path("continuous_learning_data/meta_learning_data"),
                 Path("test_meta_learning_data") 
             ]
             

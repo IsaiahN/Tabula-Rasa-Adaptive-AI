@@ -92,7 +92,7 @@ tabula-rasa/
 │   ├── mutations/                  # Mutation and experimental files
 │   └── ...                         # Other learning data
 ├── checkpoints/                    # Model checkpoints
-├── meta_learning_data/             # Meta-learning session data
+├── continuous_learning_data/meta_learning_data/             # Meta-learning session data
 ├── configs/                        # Configuration files
 ├── docs/                           # Documentation
 ├── examples/                       # Demo scripts

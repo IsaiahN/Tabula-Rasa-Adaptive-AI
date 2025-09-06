@@ -172,7 +172,7 @@ class MetaCognitiveMemoryManager:
         
         # Scan all relevant directories
         scan_dirs = [
-            self.base_path / "meta_learning_data",
+            self.base_path / "continuous_learning_data" / "meta_learning_data",
             self.base_path / "continuous_learning_data", 
             self.base_path / "checkpoints",
             self.base_path / "research_results",

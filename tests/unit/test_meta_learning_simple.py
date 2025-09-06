@@ -19,7 +19,7 @@ def test_meta_learning_basic():
         memory_capacity=100,
         insight_threshold=0.1,
         consolidation_interval=10,
-        save_directory='test_meta_learning_data'
+        save_directory='tests/test_meta_learning_data'
     )
     
     print("Meta-learning system initialized")

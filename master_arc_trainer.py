@@ -351,7 +351,7 @@ class MasterARCTrainer:
                         # Enhanced Governor with outcome tracking and cross-session learning
                         self.governor = MetaCognitiveGovernor(
                             log_file="continuous_learning_data/logs/meta_cognitive_governor.log",
-                            outcome_tracking_dir="meta_learning_data",
+                            outcome_tracking_dir="continuous_learning_data/meta_learning_data",
                             persistence_dir="continuous_learning_data"
                         )
                         self.logger.info("🧠 Meta-cognitive Governor (Third Brain) initialized")

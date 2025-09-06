@@ -1455,7 +1455,7 @@ This is an experimental change - requires review before merging.
         try:
             data_dirs = [
                 os.path.join(self.base_path, "..", "continuous_learning_data"),
-                os.path.join(self.base_path, "..", "meta_learning_data")
+                os.path.join(self.base_path, "..", "continuous_learning_data", "meta_learning_data")
             ]
             
             recent_threshold = time.time() - 600  # 10 minutes

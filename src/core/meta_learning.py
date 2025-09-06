@@ -60,7 +60,7 @@ class MetaLearningSystem:
         memory_capacity: int = 1000,
         insight_threshold: float = 0.1,
         consolidation_interval: int = 100,
-        save_directory: str = "meta_learning_data",
+    save_directory: str = "continuous_learning_data/meta_learning_data",
         use_salience_based_goals: bool = True
     ):
         self.memory_capacity = memory_capacity

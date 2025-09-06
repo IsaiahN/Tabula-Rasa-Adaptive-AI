@@ -6,7 +6,7 @@
 
 **Problem Identified:**
 The previous `.gitignore` was blocking ALL meta-cognitive files from version control:
-- `meta_learning_data/` - Completely ignored (blocks cross-session intelligence)
+- `continuous_learning_data/meta_learning_data/` - Completely ignored (blocks cross-session intelligence)
 - `persistent_learning_state.json` - Ignored (breaks learning continuity)  
 - `governor_decisions_*.log` - Ignored (no audit trail for meta-cognitive decisions)
 - `unified_trainer_results.json` - Ignored (no performance tracking evolution)
@@ -28,7 +28,7 @@ continuous_learning_data/temp/
 continuous_learning_data/raw_sessions/
 
 # PRESERVE CRITICAL META-COGNITIVE FILES FOR VERSION CONTROL:
-# - meta_learning_data/         (PRESERVED - contains cross-session intelligence)
+# - continuous_learning_data/meta_learning_data/         (PRESERVED - contains cross-session intelligence)
 # - persistent_learning_state.json (PRESERVED - critical for continuity)
 # - governor_decisions_*.log    (PRESERVED - meta-cognitive audit trail)
 # - meta_cognitive_results_*.json (PRESERVED - evolution tracking)
