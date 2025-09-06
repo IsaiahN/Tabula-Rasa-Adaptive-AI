@@ -110,7 +110,7 @@ def test_governor_integration():
     
     # Create Governor with pattern optimization
     governor = MetaCognitiveGovernor(
-        log_file="test_governor_phase1.log",
+    log_file="tests/test_governor_phase1.log",
         persistence_dir="."
     )
     

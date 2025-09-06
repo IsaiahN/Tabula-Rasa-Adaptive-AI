@@ -341,24 +341,24 @@ The system intelligently manages memory with tiered protection levels:
 ### Run Tests
 ```bash
 # Run comprehensive test suite
-python test_all_critical_fixes.py
+python tests/test_all_critical_fixes.py
 
 # Test critical systems
-python test_critical_fixes.py
+python tests/test_critical_fixes.py
 
 # Test specific components
-python test_energy_status.py
-python test_frame_analysis_fix.py
-python test_learning_feedback_fix.py
+python tests/test_energy_status.py
+python tests/test_frame_analysis_fix.py
+python tests/test_learning_feedback_fix.py
 
 # Test 4-Phase Memory Optimization System (NEW)
-python test_phase1_pattern_recognition.py      # Test Phase 1: Pattern Recognition Engine
-python test_phase2_hierarchical_clustering.py  # Test Phase 2: Memory Clustering
-python test_phase3_architect_evolution.py      # Test Phase 3: Architect Evolution
-python test_phase4_performance_optimization.py # Test Phase 4: Performance Optimization (NEW)
+python tests/test_phase1_pattern_recognition.py      # Test Phase 1: Pattern Recognition Engine
+python tests/test_phase2_hierarchical_clustering.py  # Test Phase 2: Memory Clustering
+python tests/test_phase3_architect_evolution.py      # Test Phase 3: Architect Evolution
+python tests/test_phase4_performance_optimization.py # Test Phase 4: Performance Optimization (NEW)
 
 # Test memory management
-python test_memory_solutions.py
+python tests/test_memory_solutions.py
 
 # Unit and integration tests
 pytest tests/unit/
@@ -512,13 +512,13 @@ print(f'Performance Engine: {status[\"performance_optimization\"][\"status\"]}')
 "
 
 # Test complete 4-phase memory optimization system
-python test_phase4_performance_optimization.py
+python tests/test_phase4_performance_optimization.py
 
 # Test individual phases
-python test_phase1_pattern_recognition.py    # Pattern Recognition Engine
-python test_phase2_hierarchical_clustering.py # Memory Clustering  
-python test_phase3_architect_evolution.py    # Architect Evolution
-python test_phase4_performance_optimization.py # Performance Optimization (NEW)
+python tests/test_phase1_pattern_recognition.py    # Pattern Recognition Engine
+python tests/test_phase2_hierarchical_clustering.py # Memory Clustering  
+python tests/test_phase3_architect_evolution.py    # Architect Evolution
+python tests/test_phase4_performance_optimization.py # Performance Optimization (NEW)
 ```
 
 ### Governor & Architect Training with Performance Optimization
@@ -811,7 +811,7 @@ python enhanced_performance_demo.py              # Demo all performance phases +
 
 # Validate specific enhancements
 python performance_validation.py                 # Run focused performance tests
-python test_performance_fixes.py                 # Unit tests for performance fixes
+python tests/test_performance_fixes.py                 # Unit tests for performance fixes
 
 # Test action intelligence system
 python -c "from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop; print('Action Intelligence System Ready!')"
@@ -844,10 +844,10 @@ python run_continuous_learning.py --mode performance_comparison
 #### 🧪 Advanced Testing Capabilities
 ```bash
 # Test enhanced continuous learning system with action intelligence
-python test_enhanced_continuous_learning.py
+python tests/test_enhanced_continuous_learning.py
 
 # Direct ARC agent testing with performance features + action learning
-python test_arc_agent_direct.py
+python tests/test_arc_agent_direct.py
 
 # Memory performance analysis + action semantic tracking
 python temp_memory_methods.py

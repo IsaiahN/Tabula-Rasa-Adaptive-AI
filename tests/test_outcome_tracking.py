@@ -24,7 +24,7 @@ def test_outcome_tracking_system():
     
     # Initialize Governor with outcome tracking
     governor = MetaCognitiveGovernor(
-        log_file="test_governor.log",
+    log_file="tests/test_governor.log",
         outcome_tracking_dir=str(test_dir)
     )
     
@@ -204,8 +204,8 @@ def test_outcome_tracking_system():
     import shutil
     if test_dir.exists():
         shutil.rmtree(test_dir)
-    if Path("test_governor.log").exists():
-        Path("test_governor.log").unlink()
+    if Path("tests/test_governor.log").exists():
+        Path("tests/test_governor.log").unlink()
 
 if __name__ == "__main__":
     test_outcome_tracking_system()

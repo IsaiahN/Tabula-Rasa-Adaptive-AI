@@ -183,7 +183,7 @@ def test_integrated_dashboard():
         
         # Create Governor with outcome tracking and learning
         governor = MetaCognitiveGovernor(
-            log_file="test_integrated_governor.log",
+            log_file="tests/test_integrated_governor.log",
             outcome_tracking_dir=str(test_dir / "outcomes"),
             persistence_dir=str(test_dir / "learning")
         )
