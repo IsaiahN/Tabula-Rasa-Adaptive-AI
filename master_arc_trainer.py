@@ -182,7 +182,7 @@ def signal_handler(signum, frame):
     print("💾 Saving training state...")
     
     try:
-        state_file = Path("training_state_backup.json")
+        state_file = Path("continuous_learning_data/backups/training_state_backup.json")
         with open(state_file, 'w') as f:
             json.dump(training_state, f, indent=2)
         print(f"✅ Training state saved to: {state_file}")
@@ -317,7 +317,7 @@ class MasterARCTrainer:
 
         if not self.config.no_logs:
             # Use centralized setup to ensure UTF-8 encoding and rotation
-            log_filename = f'master_arc_training_{int(time.time())}.log'
+            log_filename = f'continuous_learning_data/logs/master_arc_training_{int(time.time())}.log'
             setup_logging(log_path=log_filename, level=log_level)
 
         self.logger = logging.getLogger(__name__)
@@ -762,8 +762,7 @@ class MasterARCTrainer:
             return
         
         timestamp = int(time.time())
-        results_file = f"master_training_results_{timestamp}.json"
-        
+        results_file = f"continuous_learning_data/sessions/master_training_results_{timestamp}.json"
         try:
             # Clean results for JSON serialization recursively
             def clean_for_json(obj):
@@ -777,9 +776,7 @@ class MasterARCTrainer:
                     return [clean_for_json(item) for item in obj]
                 else:
                     return obj
-            
             clean_results = clean_for_json(results)
-            
             with open(results_file, 'w', encoding='utf-8') as f:
                 json.dump(clean_results, f, indent=2, ensure_ascii=False)
             self.logger.info(f"Results saved to: {results_file}")
@@ -1090,19 +1087,15 @@ class MasterARCTrainer:
         """Save detailed meta-cognitive training logs."""
         if self.config.no_logs:
             return
-        
         try:
-            log_file = f"meta_cognitive_training_{self.session_id}.json"
-            
-            # Convert config to JSON-serializable format
+            log_file = f"continuous_learning_data/sessions/meta_cognitive_training_{self.session_id}.json"
+            # ...existing code for config_dict, clean_session_results, log_data...
             config_dict = {
                 'mode': self.config.mode,
                 'max_actions': self.config.max_actions,
                 'target_score': self.config.target_score,
                 'salience_mode': str(self.config.salience_mode) if hasattr(self.config.salience_mode, 'value') else self.config.salience_mode
             }
-            
-            # Enhanced session results with comprehensive data
             clean_session_results = []
             for result in session_results:
                 clean_result = {
@@ -1114,13 +1107,11 @@ class MasterARCTrainer:
                     'architect_involved': len([e for e in self.architect_evolutions if e.get('session') == result.get('session')]) > 0
                 }
                 clean_session_results.append(clean_result)
-            
-            # Enhanced log data structure matching real_arc_training_with_metacognition format
             log_data = {
                 'session_id': self.session_id,
                 'timestamp': datetime.now().isoformat(),
                 'config': config_dict,
-                'training_results': clean_session_results,  # Match original format naming
+                'training_results': clean_session_results,
                 'governor_decisions': [
                     {
                         'session': d.get('session'),
@@ -1150,10 +1141,8 @@ class MasterARCTrainer:
                     'architect_evolutions': len(self.architect_evolutions)
                 }
             }
-            
             with open(log_file, 'w', encoding='utf-8') as f:
                 json.dump(log_data, f, indent=2, ensure_ascii=False)
-            
             if COLOR_AVAILABLE and self.config.enable_colored_output:
                 print(f"\n{Fore.BLUE}📊 Meta-cognitive logs saved to: {log_file}{Style.RESET_ALL}")
             else:
@@ -1393,9 +1382,8 @@ class ContinuousTrainingRunner:
         if self.dashboard:
             safe_print(f"DASHBOARD: Stopping...")
             self.dashboard.stop()
-            
             # Export session data
-            export_path = Path(f"continuous_session_{int(time.time())}.json")
+            export_path = Path(f"continuous_learning_data/sessions/continuous_session_{int(time.time())}.json")
             try:
                 if self.dashboard.export_session_data(export_path):
                     safe_print(f"EXPORT: Session data saved to {export_path}")

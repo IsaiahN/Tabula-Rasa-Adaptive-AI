@@ -1,0 +1,160 @@
+{
+  "game_performance": {
+    "spatial_reasoning_1": {
+      "win_rate": 0.37333333333333335,
+      "avg_score": 49.074666666666666,
+      "episodes_played": 75,
+      "last_updated": 1756538029.117146
+    },
+    "spatial_reasoning_2": {
+      "win_rate": 0.30666666666666664,
+      "avg_score": 43.996,
+      "episodes_played": 75,
+      "last_updated": 1756538031.7756388
+    },
+    "spatial_reasoning_3": {
+      "win_rate": 0.29333333333333333,
+      "avg_score": 43.40266666666666,
+      "episodes_played": 75,
+      "last_updated": 1756538034.5957434
+    },
+    "pattern_matching_1": {
+      "win_rate": 0.36,
+      "avg_score": 47.848,
+      "episodes_played": 75,
+      "last_updated": 1756538037.2550566
+    },
+    "pattern_matching_2": {
+      "win_rate": 0.28,
+      "avg_score": 44.638666666666666,
+      "episodes_played": 75,
+      "last_updated": 1756538039.9705644
+    },
+    "pattern_matching_3": {
+      "win_rate": 0.28,
+      "avg_score": 43.97866666666667,
+      "episodes_played": 75,
+      "last_updated": 1756538042.630399
+    },
+    "abstract_logic_1": {
+      "win_rate": 0.3333333333333333,
+      "avg_score": 47.1,
+      "episodes_played": 75,
+      "last_updated": 1756538045.3324702
+    },
+    "abstract_logic_2": {
+      "win_rate": 0.37333333333333335,
+      "avg_score": 49.882666666666665,
+      "episodes_played": 75,
+      "last_updated": 1756538048.0113423
+    },
+    "abstract_logic_3": {
+      "win_rate": 0.25333333333333335,
+      "avg_score": 43.784,
+      "episodes_played": 75,
+      "last_updated": 1756538050.7611406
+    },
+    "sequence_completion_1": {
+      "win_rate": 0.4533333333333333,
+      "avg_score": 48.684,
+      "episodes_played": 75,
+      "last_updated": 1756538053.5433817
+    },
+    "sequence_completion_2": {
+      "win_rate": 0.25333333333333335,
+      "avg_score": 42.57866666666666,
+      "episodes_played": 75,
+      "last_updated": 1756538056.2463732
+    },
+    "sequence_completion_3": {
+      "win_rate": 0.29333333333333333,
+      "avg_score": 41.208,
+      "episodes_played": 75,
+      "last_updated": 1756538058.9191332
+    },
+    "visual_analogies_1": {
+      "win_rate": 0.48,
+      "avg_score": 50.98,
+      "episodes_played": 75,
+      "last_updated": 1756538061.6064086
+    },
+    "visual_analogies_2": {
+      "win_rate": 0.3333333333333333,
+      "avg_score": 44.67466666666667,
+      "episodes_played": 75,
+      "last_updated": 1756538064.2796342
+    },
+    "visual_analogies_3": {
+      "win_rate": 0.29333333333333333,
+      "avg_score": 45.77066666666667,
+      "episodes_played": 75,
+      "last_updated": 1756538066.9472778
+    },
+    "transformation_rules_1": {
+      "win_rate": 0.49333333333333335,
+      "avg_score": 52.537333333333336,
+      "episodes_played": 75,
+      "last_updated": 1756538069.5966287
+    },
+    "transformation_rules_2": {
+      "win_rate": 0.38666666666666666,
+      "avg_score": 48.394666666666666,
+      "episodes_played": 75,
+      "last_updated": 1756538072.3418102
+    },
+    "transformation_rules_3": {
+      "win_rate": 0.22666666666666666,
+      "avg_score": 41.67733333333334,
+      "episodes_played": 75,
+      "last_updated": 1756538075.0000045
+    },
+    "object_counting_1": {
+      "win_rate": 0.36,
+      "avg_score": 45.278666666666666,
+      "episodes_played": 75,
+      "last_updated": 1756538077.7142317
+    },
+    "object_counting_2": {
+      "win_rate": 0.3466666666666667,
+      "avg_score": 43.60133333333333,
+      "episodes_played": 75,
+      "last_updated": 1756538080.3838184
+    },
+    "object_counting_3": {
+      "win_rate": 0.26666666666666666,
+      "avg_score": 42.076,
+      "episodes_played": 75,
+      "last_updated": 1756538083.0922933
+    },
+    "symmetry_detection_1": {
+      "win_rate": 0.4266666666666667,
+      "avg_score": 48.85333333333333,
+      "episodes_played": 75,
+      "last_updated": 1756538085.7439954
+    },
+    "symmetry_detection_2": {
+      "win_rate": 0.4266666666666667,
+      "avg_score": 51.75066666666667,
+      "episodes_played": 75,
+      "last_updated": 1756538088.411226
+    },
+    "symmetry_detection_3": {
+      "win_rate": 0.32,
+      "avg_score": 45.54666666666666,
+      "episodes_played": 75,
+      "last_updated": 1756538091.1379056
+    }
+  },
+  "session_count": 1,
+  "total_runtime": 64.79383134841919,
+  "training_config": {
+    "base_episodes_per_game": 50,
+    "max_episodes_per_game": 200,
+    "plateau_threshold": 10,
+    "restart_threshold": 5,
+    "salience_mode": "LOSSLESS",
+    "learning_rate_decay": 0.95,
+    "difficulty_progression": true
+  },
+  "last_saved": 1756538091.1382406
+}

@@ -61,9 +61,9 @@ def simulate_advanced_memory_patterns():
         {'memory_type': 'TEMPORARY_PURGE', 'file_path': 'temp/sandbox_test.dat', 'operation': 'write', 'success': True, 'duration': 0.001, 'timestamp': time.time() - 38.5},
         
         # Cross-session pattern (persistent learning data)
-        {'memory_type': 'IMPORTANT_DECAY', 'file_path': 'persistent_learning_state.json', 'operation': 'read', 'success': True, 'duration': 0.003, 'timestamp': time.time() - 20},
+    {'memory_type': 'IMPORTANT_DECAY', 'file_path': 'continuous_learning_data/backups/persistent_learning_state.json', 'operation': 'read', 'success': True, 'duration': 0.003, 'timestamp': time.time() - 20},
         {'memory_type': 'IMPORTANT_DECAY', 'file_path': 'cross_session_patterns.json', 'operation': 'read', 'success': True, 'duration': 0.004, 'timestamp': time.time() - 19},
-        {'memory_type': 'IMPORTANT_DECAY', 'file_path': 'persistent_learning_state.json', 'operation': 'write', 'success': True, 'duration': 0.005, 'timestamp': time.time() - 18},
+    {'memory_type': 'IMPORTANT_DECAY', 'file_path': 'continuous_learning_data/backups/persistent_learning_state.json', 'operation': 'write', 'success': True, 'duration': 0.005, 'timestamp': time.time() - 18},
     ]
     
     return patterns

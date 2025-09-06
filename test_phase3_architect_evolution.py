@@ -141,7 +141,7 @@ def test_phase3_architect_evolution():
     
     # Initialize enhanced Governor with all Phase 1+2+3 capabilities
     enhanced_governor = MetaCognitiveGovernor(
-        log_file="governor_decisions_phase3.log",
+        log_file="continuous_learning_data/logs/governor_decisions_phase3.log",
         persistence_dir="."
     )
     

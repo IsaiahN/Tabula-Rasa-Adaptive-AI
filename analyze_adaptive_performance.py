@@ -12,7 +12,7 @@ def analyze_training_data():
 
     # 1. Analyze historical performance data
     try:
-        with open('persistent_learning_state.json', 'r') as f:
+        with open('continuous_learning_data/backups/persistent_learning_state.json', 'r') as f:
             historical_data = json.load(f)
         
         print('🎯 HISTORICAL PERFORMANCE DATA:')

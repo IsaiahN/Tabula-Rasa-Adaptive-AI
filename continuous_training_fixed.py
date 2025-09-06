@@ -299,7 +299,7 @@ class ContinuousMetaCognitiveRunner:
             self.dashboard.stop()
             
             # Export session data
-            export_path = Path(f"continuous_session_{int(time.time())}.json")
+            export_path = Path(f"continuous_learning_data/sessions/continuous_session_{int(time.time())}.json")
             try:
                 if self.dashboard.export_session_data(export_path):
                     print(f"EXPORT: Session data saved to {export_path}")

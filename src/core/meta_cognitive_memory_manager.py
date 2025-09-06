@@ -60,35 +60,35 @@ class MetaCognitiveMemoryManager:
         # Memory classification patterns
         self.classification_patterns = {
             MemoryClassification.CRITICAL_LOSSLESS: [
-                "**/governor_decisions_*.log",
-                "**/architect_evolution_*.json",
-                "**/meta_cognitive_results_*.json",
-                "**/persistent_learning_state.json",
-                "**/unified_trainer_results.json",
-                "**/cross_session_*.json",
-                "**/outcome_tracking_*.json",
-                "**/critical_breakthroughs_*.json"
+                "continuous_learning_data/logs/governor_decisions_*.log",
+                "continuous_learning_data/architect_evolution_*.json",
+                "continuous_learning_data/meta_cognitive_results_*.json",
+                "continuous_learning_data/backups/persistent_learning_state.json",
+                "continuous_learning_data/unified_trainer_results.json",
+                "continuous_learning_data/cross_session_*.json",
+                "continuous_learning_data/outcome_tracking_*.json",
+                "continuous_learning_data/critical_breakthroughs_*.json"
             ],
             MemoryClassification.IMPORTANT_DECAY: [
-                "**/meta_learning_session_*.json",
-                "**/session_session_*.json",
-                "**/action_intelligence_*.json",
-                "**/combined_score_*.json",
-                "**/memory_hierarchy_*.json",
-                "**/salience_patterns_*.json"
+                "continuous_learning_data/meta_learning_session_*.json",
+                "continuous_learning_data/session_session_*.json",
+                "continuous_learning_data/action_intelligence_*.json",
+                "continuous_learning_data/combined_score_*.json",
+                "continuous_learning_data/memory_hierarchy_*.json",
+                "continuous_learning_data/salience_patterns_*.json"
             ],
             MemoryClassification.REGULAR_DECAY: [
-                "**/continuous_session_*.json",
-                "**/training_episode_*.json",
-                "**/performance_metrics_*.json",
-                "**/coordination_logs_*.json"
+                "continuous_learning_data/sessions/continuous_session_*.json",
+                "continuous_learning_data/training_episode_*.json",
+                "continuous_learning_data/performance_metrics_*.json",
+                "continuous_learning_data/coordination_logs_*.json"
             ],
             MemoryClassification.TEMPORARY_PURGE: [
-                "**/temp_*.json",
-                "**/debug_*.log",
-                "**/sandbox_*.json",
-                "**/mutation_exploratory_temp_*.json",
-                "**/test_temp_*.json"
+                "continuous_learning_data/temp_*.json",
+                "continuous_learning_data/debug_*.log",
+                "continuous_learning_data/sandbox_*.json",
+                "continuous_learning_data/mutations/mutation_exploratory_temp_*.json",
+                "continuous_learning_data/test_temp_*.json"
             ]
         }
         
