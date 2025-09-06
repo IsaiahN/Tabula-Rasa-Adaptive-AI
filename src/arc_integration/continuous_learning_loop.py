@@ -10,6 +10,7 @@ import json
 import logging
 import numpy as np
 import os
+import math
 import random
 import re  # Added for enhanced parsing
 import sys
@@ -617,11 +618,12 @@ class ContinuousLearningLoop:
         """🔧 CRITICAL FIX: Unified energy consumption method for consistency across all systems."""
         
         # Calculate base energy cost
+        # Calculate base energy cost
         if action_effective:
             base_cost = self.ENERGY_COSTS['action_effective']
         else:
             base_cost = self.ENERGY_COSTS['action_ineffective']
-        
+
         # Apply modifiers
         total_cost = base_cost + self.ENERGY_COSTS['computation_base']
         
@@ -892,7 +894,7 @@ class ContinuousLearningLoop:
             'memory_analysis': {},
             'action_effectiveness': {}
         }
-        
+
         if not actions_history:
             return analysis
         
@@ -1188,12 +1190,11 @@ class ContinuousLearningLoop:
                             
                             # Initialize position tracking for ACTION 6 directional movement
                             if not existing_guid:  # Only for new games, not level resets
-                                # Get grid dimensions from frame if available
-                                frame = result.get('frame', [])
-                                if frame and len(frame) > 0 and isinstance(frame[0], list):
-                                    grid_height, grid_width = len(frame), len(frame[0])
-                                else:
-                                    grid_width, grid_height = 64, 64  # Default
+                                # Get grid dimensions from frame if available (use canonical normalizer)
+                                frame = result.get('frame', None)
+                                arr, (grid_width, grid_height) = self._normalize_frame(frame)
+                                if arr is None:
+                                    grid_width, grid_height = 64, 64
                                 
                                 # Start ACTION 6 position at center of grid for directional movement
                                 self._current_game_x = grid_width // 2
@@ -1417,21 +1418,15 @@ class ContinuousLearningLoop:
     def _extract_grid_dimensions(self, response_data: Dict[str, Any]) -> Tuple[int, int]:
         """Extract actual grid dimensions from API response frame data."""
         try:
-            frame = response_data.get('frame', [])
-            if frame and len(frame) > 0 and isinstance(frame[0], list):
-                # Frame is a 2D grid: frame[y][x] format
-                # 🔧 CRITICAL FIX: Ensure frame[0] exists before accessing it
-                if len(frame[0]) > 0:
-                    height = len(frame)  # Number of rows (corrected from len(frame[0]))
-                    width = len(frame[0])  # Number of columns
-                    
-                    # Validate dimensions are reasonable
-                    if 1 <= width <= 64 and 1 <= height <= 64:
-                        return (width, height)
-                    else:
-                        logger.warning(f"Invalid grid dimensions detected: {width}x{height}, using fallback")
+            frame = response_data.get('frame', None)
+            # Use canonical normalization to derive dimensions
+            arr, (w, h) = self._normalize_frame(frame)
+            if arr is not None:
+                # _normalize_frame returns (array, (width,height))
+                if 1 <= w <= 1024 and 1 <= h <= 1024:
+                    return (w, h)
                 else:
-                    logger.warning(f"Frame has empty rows, using fallback dimensions")
+                    logger.warning(f"Invalid normalized dimensions detected: {w}x{h}, using fallback")
             
         except (IndexError, TypeError) as e:
             logger.warning(f"Error extracting grid dimensions: {e}")
@@ -1463,6 +1458,80 @@ class ContinuousLearningLoop:
                     continue
         
         return None
+
+    def _normalize_frame(self, frame: Any) -> Tuple[Optional['np.ndarray'], Tuple[int, int]]:
+        """
+        Normalize various frame representations into a 2D numpy array and return (array, (width, height)).
+
+        Handles common variants seen from the API:
+        - frame as [[row1, row2, ...]] (wrapped in extra list)
+        - frame as [row1, row2, ...] (2D list)
+        - frame as flat list of length N (attempt square reshape or common 8x8/64x64 heuristics)
+        - numpy arrays
+        Returns (None, (64,64)) on failure as safe fallback.
+        """
+        try:
+            if frame is None:
+                return None, (64, 64)
+
+            # If it's already a numpy array
+            if isinstance(frame, np.ndarray):
+                arr = frame
+            else:
+                # Handle common list shapes safely
+                if isinstance(frame, list) and len(frame) > 0:
+                    first = frame[0]
+                    # Case: wrapped extra list like [[r0, r1, ...]] or [[row1],[row2],...]
+                    if isinstance(first, list):
+                        # If outer list has one element which itself is a list-of-rows, unwrap
+                        if len(frame) == 1 and any(isinstance(el, list) for el in first):
+                            arr = np.array(first)
+                        else:
+                            arr = np.array(frame)
+                    # Case: flat numeric list -> attempt reshape heuristics
+                    elif isinstance(first, (int, float)):
+                        total = len(frame)
+                        if total == 64:
+                            arr = np.array(frame).reshape((8, 8))
+                        else:
+                            side = int(total ** 0.5)
+                            if side * side == total:
+                                arr = np.array(frame).reshape((side, side))
+                            elif total % 64 == 0:
+                                height = total // 64
+                                arr = np.array(frame).reshape((height, 64))
+                            else:
+                                arr = np.array(frame).reshape((1, total))
+                    else:
+                        # Unknown nested structure - attempt generic conversion
+                        arr = np.array(frame)
+                else:
+                    # Fallback generic conversion
+                    arr = np.array(frame)
+
+            # Ensure at least 2D
+            if arr is None:
+                return None, (64, 64)
+
+            if arr.ndim == 1:
+                total = arr.size
+                side = int(total ** 0.5)
+                if side * side == total:
+                    arr = arr.reshape((side, side))
+                else:
+                    arr = arr.reshape((1, total))
+
+            # Now arr is 2D: (height, width)
+            height, width = int(arr.shape[0]), int(arr.shape[1])
+
+            # Clamp to sensible bounds
+            if not (1 <= width <= 1024 and 1 <= height <= 1024):
+                return arr, (64, 64)
+
+            return arr, (width, height)
+
+        except Exception:
+            return None, (64, 64)
     
     def _extract_game_state_from_output(self, stdout: str, stderr: str) -> str:
         """Extract game state from command output."""
@@ -1563,36 +1632,16 @@ class ContinuousLearningLoop:
             r'move[:\s]*(\d+)'
         ]
         
+        # Extract action counts from output patterns
         for pattern in action_patterns:
             matches = re.findall(pattern, combined_output, re.IGNORECASE)
-            if matches:
+            # If patterns include numeric action counts, use the largest as a conservative estimate
+            for m in matches:
                 try:
-                    result['actions_taken'] = max(int(m) for m in matches)
-                except ValueError:
-                    result['actions_taken'] = len(matches)
-        
-        # If success detected but no score, infer reasonable score
-        if result['success'] and result['final_score'] == 0:
-            result['final_score'] = 100
-        
-        return result
-    
-    def _should_continue_game(self, response_data: Dict[str, Any]) -> bool:
-        """Check if game should continue based on state - only stop on WIN or GAME_OVER."""
-        state = response_data.get('state', 'NOT_FINISHED')
-        should_continue = state == 'NOT_FINISHED'
-        
-        if not should_continue:
-            logger.info(f"Game ending with state: {state}")
-        
-        return should_continue
-    
-    def _verify_grid_bounds(self, x: int, y: int, grid_width: int, grid_height: int) -> bool:
-        """🔧 CRITICAL FIX: Enhanced coordinate validation with detailed logging."""
-        if x is None or y is None:
-            return False
-        
-        # Check bounds
+                    val = int(m)
+                    result['actions_taken'] = max(result.get('actions_taken', 0), val)
+                except Exception:
+                    continue
         x_valid = 0 <= x < grid_width
         y_valid = 0 <= y < grid_height
         
@@ -1651,56 +1700,40 @@ class ContinuousLearningLoop:
                     'confidence': analysis_results.get('position_confidence', 0.0)
                 }
             
-            # Basic frame analysis - convert frame to numpy for color analysis
-            # FIXED: Proper frame structure handling with error checking
+            # Basic frame analysis - normalize frame to canonical numpy 2D array
             frame_array = None
             try:
-                if frame and len(frame) > 0:
-                    # Handle different frame structures
-                    if isinstance(frame[0], list):
-                        # Frame is a 2D array: [[row1], [row2], ...]
-                        frame_array = np.array(frame)
-                    else:
-                        # Frame is already a flat list or other structure
-                        frame_array = np.array(frame)
-                        
-                    if frame_array.size > 0 and frame_array.ndim >= 1:
-                        # Ensure we have a valid 2D structure for analysis
-                        if frame_array.ndim == 1:
-                            # Convert 1D to 2D if needed (assume square-ish grid)
-                            side_length = int(np.sqrt(len(frame_array)))
-                            if side_length * side_length == len(frame_array):
-                                frame_array = frame_array.reshape(side_length, side_length)
-                        
-                        # Color and pattern analysis
-                        unique_colors = np.unique(frame_array)
-                        color_info = {
-                            'unique_colors': unique_colors.tolist(),
-                            'color_count': len(unique_colors),
-                            'dominant_color': int(np.argmax(np.bincount(frame_array.flatten()))) if frame_array.size > 0 else 0
+                norm_arr, (gw, gh) = self._normalize_frame(frame)
+                if norm_arr is not None:
+                    frame_array = norm_arr
+                    # Color and pattern analysis
+                    unique_colors = np.unique(frame_array)
+                    color_info = {
+                        'unique_colors': unique_colors.tolist(),
+                        'color_count': int(len(unique_colors)),
+                        'dominant_color': int(np.bincount(frame_array.flatten()).argmax()) if frame_array.size > 0 else 0
+                    }
+                    enhanced_analysis['color_analysis'] = color_info
+
+                    # Pattern complexity analysis
+                    total_elements = int(frame_array.size)
+                    complexity_score = len(unique_colors) / total_elements if total_elements > 0 else 0
+                    enhanced_analysis['complexity'] = {
+                        'score': complexity_score,
+                        'is_simple': complexity_score < 0.1,
+                        'is_complex': complexity_score > 0.5
+                    }
+
+                    # Simple boundary detection (based on edge complexity)
+                    if len(unique_colors) > 2:  # Has boundaries if more than background + one color
+                        enhanced_analysis['boundary_analysis'] = {
+                            'has_clear_boundaries': True,
+                            'boundary_count': len(unique_colors) - 1,
+                            'complexity_level': 'high' if complexity_score > 0.5 else 'medium' if complexity_score > 0.2 else 'low'
                         }
-                        enhanced_analysis['color_analysis'] = color_info
-                        
-                        # Pattern complexity analysis
-                        total_elements = frame_array.size
-                        complexity_score = len(unique_colors) / total_elements if total_elements > 0 else 0
-                        enhanced_analysis['complexity'] = {
-                            'score': complexity_score,
-                            'is_simple': complexity_score < 0.1,
-                            'is_complex': complexity_score > 0.5
-                        }
-                        
-                        # Simple boundary detection (based on edge complexity)
-                        if len(unique_colors) > 2:  # Has boundaries if more than background + one color
-                            enhanced_analysis['boundary_analysis'] = {
-                                'has_clear_boundaries': True,
-                                'boundary_count': len(unique_colors) - 1,  # Rough estimate
-                                'complexity_level': 'high' if complexity_score > 0.5 else 'medium' if complexity_score > 0.2 else 'low'
-                            }
             except Exception as frame_error:
                 print(f"⚠️ Frame structure analysis failed: {frame_error}")
-                # Continue without frame array analysis
-                pass
+                frame_array = None
             
             # Store frame analysis for game loop usage
             if not hasattr(self, '_last_frame_analysis'):
@@ -1914,21 +1947,20 @@ class ContinuousLearningLoop:
                                     if exploration_active and hasattr(self.frame_analyzer, 'mark_color_explored'):
                                         # Get the color at clicked coordinate from the BEFORE state frame
                                         # (after state might show changes from the click)
-                                        current_frame = before_state.get('frame', [])
-                                        
-                                        # 🔧 CRITICAL FIX: Proper frame validation to prevent frame_len=0 errors
-                                        frame_valid = (
-                                            current_frame and 
-                                            len(current_frame) > 0 and 
-                                            len(current_frame[0]) > 0 and 
-                                            0 <= y < len(current_frame) and 
-                                            0 <= x < len(current_frame[0])
-                                        )
-                                        
+                                        current_frame = before_state.get('frame', None)
+
+                                        # Normalize the frame to a canonical 2D numpy array for safe indexing
+                                        norm_arr, (fw, fh) = self._normalize_frame(current_frame)
+                                        frame_valid = False
+                                        if norm_arr is not None:
+                                            # norm_arr shape is (height, width)
+                                            height, width = norm_arr.shape
+                                            frame_valid = (0 <= y < height and 0 <= x < width)
+
                                         if frame_valid:
                                             try:
-                                                # Handle nested list format and ensure we get an integer color value
-                                                raw_color = current_frame[y][x]
+                                                # Handle nested list format by using normalized numpy array
+                                                raw_color = int(norm_arr[y, x])
                                                 
                                                 # 🔧 CRITICAL FIX: Ensure clicked_color is always an integer
                                                 if isinstance(raw_color, list):
@@ -1971,7 +2003,22 @@ class ContinuousLearningLoop:
                                         else:
                                             # 🔧 CRITICAL FIX: Better error reporting for frame validation failures
                                             frame_height = len(current_frame) if current_frame else 0
-                                            frame_width = len(current_frame[0]) if current_frame and len(current_frame) > 0 else 0
+                                            # Use canonical dimensions when possible
+                                            if current_frame is None:
+                                                frame_width = 0
+                                            else:
+                                                try:
+                                                    # current_frame may be a nested list or numpy array
+                                                    if isinstance(current_frame, np.ndarray):
+                                                        frame_width = int(current_frame.shape[1]) if current_frame.ndim >= 2 else 0
+                                                    elif isinstance(current_frame, list) and len(current_frame) > 0:
+                                                        # safely derive width using normalization
+                                                        arr_local, (w_local, h_local) = self._normalize_frame(current_frame)
+                                                        frame_width = w_local if arr_local is not None else 0
+                                                    else:
+                                                        frame_width = 0
+                                                except Exception:
+                                                    frame_width = 0
                                             print(f"⚠️ EXPLORATION: Invalid coordinates ({x},{y}) for frame analysis")
                                             print(f"   Frame dimensions: {frame_height}x{frame_width}")
                                             print(f"   Frame valid: {current_frame is not None}")
@@ -8425,7 +8472,14 @@ class ContinuousLearningLoop:
             initial_frame = session_data.get('frame', [])
             if initial_frame:
                 self._last_frame = initial_frame
-                print(f"🎯 Initialized frame data: {len(initial_frame)}x{len(initial_frame[0]) if initial_frame else 0}")
+                try:
+                    arr_init, (iw, ih) = self._normalize_frame(initial_frame)
+                    if arr_init is not None:
+                        print(f"🎯 Initialized frame data: {arr_init.shape[0]}x{arr_init.shape[1]}")
+                    else:
+                        print(f"🎯 Initialized frame data: unknown (fallback)")
+                except Exception:
+                    print(f"🎯 Initialized frame data: unknown (error)")
             
             guid = session_data.get('guid')
             current_state = investigation.get('state', 'NOT_STARTED')
@@ -8555,32 +8609,17 @@ class ContinuousLearningLoop:
                     actual_frame = investigation.get('frame', [])
                     print(f"🎯 Using frame from investigation data")
                 
-                # 🔧 CRITICAL FIX: Proper frame dimension extraction that handles 2D grid structure
-                if actual_frame and isinstance(actual_frame, list) and len(actual_frame) > 0:
-                    if isinstance(actual_frame[0], list) and len(actual_frame[0]) > 0:
-                        # Standard 2D grid: [[row1], [row2], ...]
-                        actual_height = len(actual_frame)
-                        actual_width = len(actual_frame[0])
-                        actual_grid_dims = (actual_width, actual_height)  # (width, height) format
-                        print(f"🎯 Using actual frame dimensions: {actual_grid_dims} (W×H)")
-                    elif isinstance(actual_frame[0], (int, float)):
-                        # Flat list structure - try to determine dimensions
-                        total_elements = len(actual_frame)
-                        # Assume square-ish grid
-                        side_length = int(total_elements ** 0.5)
-                        if side_length * side_length == total_elements:
-                            actual_grid_dims = (side_length, side_length)
-                            print(f"🎯 Reconstructed square frame dimensions: {actual_grid_dims} (W×H) from {total_elements} elements")
-                        else:
-                            # Fallback for non-square flat structure
-                            actual_grid_dims = (64, total_elements // 64) if total_elements >= 64 else (total_elements, 1)
-                            print(f"🎯 Estimated frame dimensions: {actual_grid_dims} (W×H) from {total_elements} elements")
-                    else:
-                        actual_grid_dims = (64, 64)  # Fallback for unknown structure
-                        print(f"⚠️ Unknown frame structure, using fallback dimensions: {actual_grid_dims}")
+                # 🔧 CRITICAL FIX: Normalize frame into a 2D numpy array and derive grid dims
+                normalized_arr, dims = self._normalize_frame(actual_frame)
+                if normalized_arr is not None:
+                    # Store canonical current frame data as 2D numpy array (height, width)
+                    # Note: normalize returns (width, height) dims tuple
+                    self.current_frame_data = normalized_arr
+                    actual_grid_dims = dims
+                    print(f"🎯 Using actual frame dimensions: {actual_grid_dims} (W×H) - normalized frame stored")
                 else:
-                    actual_grid_dims = (64, 64)  # Fallback only if no frame data
-                    print(f"⚠️ No frame data available, using fallback dimensions: {actual_grid_dims}")
+                    actual_grid_dims = (64, 64)
+                    print(f"⚠️ No frame data available after normalization, using fallback dimensions: {actual_grid_dims}")
                 
                 # Optimize coordinates if needed (for ACTION6)
                 x, y = None, None
@@ -8636,33 +8675,15 @@ class ContinuousLearningLoop:
                     if new_frame:
                         session_data['frame'] = new_frame
                         self._last_frame = new_frame  # Keep latest frame for dimension extraction
-                        
-                        # 🔧 CRITICAL FIX: Proper frame dimension calculation for both 2D and flat list frames
-                        if isinstance(new_frame, list) and len(new_frame) > 0:
-                            if isinstance(new_frame[0], list):
-                                # 2D grid structure: [[row1], [row2], ...]
-                                frame_height = len(new_frame)
-                                frame_width = len(new_frame[0])
-                                print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - 2D structure")
-                            else:
-                                # Flat list structure - need to determine actual grid dimensions
-                                total_elements = len(new_frame)
-                                if total_elements == 64:
-                                    # Most common ARC grid size is 8x8 = 64 elements
-                                    frame_width, frame_height = 8, 8
-                                    print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - Reconstructed from {total_elements} elements")
-                                else:
-                                    # Try to infer square dimensions
-                                    side_length = int(total_elements ** 0.5)
-                                    if side_length * side_length == total_elements:
-                                        frame_width, frame_height = side_length, side_length
-                                        print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - Square from {total_elements} elements")
-                                    else:
-                                        # Use actual grid dimensions from earlier calculation
-                                        frame_width, frame_height = actual_grid_dims
-                                        print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - Using calculated dimensions")
+
+                        # Normalize and store canonical frame data
+                        normalized_new, new_dims = self._normalize_frame(new_frame)
+                        if normalized_new is not None:
+                            self.current_frame_data = normalized_new
+                            frame_width, frame_height = new_dims
+                            print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - normalized and stored")
                         else:
-                            print(f"🎯 Updated frame data: Invalid frame structure")
+                            print(f"🎯 Updated frame data: Invalid frame structure after normalization")
                     
                     # Track effectiveness
                     score_improvement = new_score - current_score

@@ -74,8 +74,13 @@ def test_meta_learning_basic():
     print(f"   - Learning insights: {len(meta_learning.learning_insights)}")
     print(f"   - Experience buffer: {len(meta_learning.experience_buffer)}")
     print(f"   - Total experiences processed: 15")
-    
-    return True
+
+    # Basic assertions so this runs as a pytest test instead of returning a value
+    from collections import deque
+    assert isinstance(meta_learning.experience_buffer, (list, deque))
+    # Consolidation may clear the buffer; accept either full buffer or empty after consolidation
+    assert len(meta_learning.experience_buffer) in (0, 15)
+    assert isinstance(relevant_insights, list)
 
 if __name__ == "__main__":
     try:

@@ -18,6 +18,7 @@ from pathlib import Path
 # Add src to path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
+import pytest
 
 # Set up a minimal environment for testing
 os.environ['ARC_API_KEY'] = 'test_key_12345'
@@ -36,20 +37,18 @@ def test_action_limit_fix():
             
             if "MAX_ACTIONS = 100000" in content:
                 print("✅ PASS: MAX_ACTIONS increased to 100,000")
-                return True
+                assert True
             elif "MAX_ACTIONS = 200" in content:
-                print("❌ FAIL: MAX_ACTIONS still at 200 - fix not applied")
-                return False
+                pytest.fail("MAX_ACTIONS still at 200 - fix not applied")
             else:
-                print("⚠️  WARNING: MAX_ACTIONS not found in expected format")
-                return False
+                pytest.fail("MAX_ACTIONS not found in expected format")
         else:
             print("❌ FAIL: arc_agent_adapter.py not found")
-            return False
+            assert False, "arc_agent_adapter.py not found"
             
     except Exception as e:
         print(f"❌ ERROR: {e}")
-        return False
+        assert False, f"test_action_limit_fix error: {e}"
 
 def test_enhanced_boredom_detection():
     """Test that enhanced boredom detection with strategy switching is implemented."""
@@ -78,14 +77,14 @@ def test_enhanced_boredom_detection():
                 else:
                     print(f"❌ {name}: MISSING")
             
-            return passed == len(checks)
+            assert passed == len(checks)
         else:
             print("❌ FAIL: continuous_learning_loop.py not found")
-            return False
+            assert False, "continuous_learning_loop.py not found"
             
     except Exception as e:
         print(f"❌ ERROR: {e}")
-        return False
+        assert False, f"test_enhanced_boredom_detection error: {e}"
 
 def test_success_weighted_memory():
     """Test that success-weighted memory prioritization (10x for wins) is implemented."""
@@ -113,14 +112,14 @@ def test_success_weighted_memory():
                 else:
                     print(f"❌ {name}: MISSING")
             
-            return passed == len(checks)
+            assert passed == len(checks)
         else:
             print("❌ FAIL: continuous_learning_loop.py not found")
-            return False
+            assert False, "continuous_learning_loop.py not found"
             
     except Exception as e:
         print(f"❌ ERROR: {e}")
-        return False
+        assert False, f"test_success_weighted_memory error: {e}"
 
 def test_mid_game_consolidation():
     """Test that mid-game consolidation is implemented."""
@@ -148,14 +147,14 @@ def test_mid_game_consolidation():
                 else:
                     print(f"❌ {name}: MISSING")
             
-            return passed == len(checks)
+            assert passed == len(checks)
         else:
             print("❌ FAIL: continuous_learning_loop.py not found")
-            return False
+            assert False, "continuous_learning_loop.py not found"
             
     except Exception as e:
         print(f"❌ ERROR: {e}")
-        return False
+        assert False, f"test_mid_game_consolidation error: {e}"
 
 def test_continuous_learning_metrics():
     """Test that enhanced continuous learning metrics are tracked."""
@@ -184,14 +183,14 @@ def test_continuous_learning_metrics():
                 else:
                     print(f"❌ {name}: MISSING")
             
-            return passed == len(checks)
+            assert passed == len(checks)
         else:
             print("❌ FAIL: continuous_learning_loop.py not found")
-            return False
+            assert False, "continuous_learning_loop.py not found"
             
     except Exception as e:
         print(f"❌ ERROR: {e}")
-        return False
+        assert False, f"test_continuous_learning_metrics error: {e}"
 
 def main():
     """Run all performance fix tests."""
@@ -217,8 +216,11 @@ def main():
     
     results = []
     for test in tests:
-        result = test()
-        results.append(result)
+        try:
+            test()
+            results.append(True)
+        except AssertionError:
+            results.append(False)
     
     # Summary
     print("\n" + "=" * 60)
@@ -238,11 +240,9 @@ def main():
         print("   - Continuous learning with mid-game consolidation")
         print("   - Success-weighted memory for win retention")
         print("   - Enhanced boredom detection with strategy switching")
-        return True
+        assert True
     else:
-        print(f"\n⚠️  {total - passed} critical fixes still missing")
-        return False
+        pytest.fail(f"{total - passed} critical fixes still missing")
 
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    main()

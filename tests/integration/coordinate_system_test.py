@@ -161,7 +161,7 @@ class CoordinateSystemTester:
                     'details': response
                 }
                 print(f"   ❌ FAILED: {response['error']}")
-                return result
+                assert result.get('passed') is True, result.get('message', 'Game Start failed')
             
             # Validate response structure
             required_fields = ['game_id', 'guid', 'frame', 'state', 'score', 'win_score', 'available_actions']
@@ -175,7 +175,7 @@ class CoordinateSystemTester:
                     'details': response
                 }
                 print(f"   ❌ FAILED: Missing fields {missing_fields}")
-                return result
+                assert result.get('passed') is True, result.get('message', 'Missing fields in Game Start')
             
             result = {
                 'test_name': 'Game Start',
@@ -263,7 +263,7 @@ class CoordinateSystemTester:
             }
             print(f"   ❌ FAILED: {str(e)}")
         
-        return result
+        assert result.get('passed') is True, result.get('message', 'Coordinate Validation failed')
     
     def test_action6_center_start(self) -> Dict[str, Any]:
         """
@@ -283,7 +283,7 @@ class CoordinateSystemTester:
                     'details': {'available_actions': available_actions}
                 }
                 print(f"   ⚠️ SKIPPED: ACTION6 not available (available: {available_actions})")
-                return result
+                assert result.get('passed') is True, result.get('message', 'ACTION6 not available')
             
             # Get initial state
             initial_score = self.api_client.current_score
@@ -300,7 +300,7 @@ class CoordinateSystemTester:
                     'details': response
                 }
                 print(f"   ❌ FAILED: {response['error']}")
-                return result
+                assert result.get('passed') is True, result.get('message', 'ACTION6 execution failed')
             
             # Validate response
             new_score = response.get('score', initial_score)
@@ -343,7 +343,7 @@ class CoordinateSystemTester:
             }
             print(f"   ❌ FAILED: {str(e)}")
         
-        return result
+        assert result.get('passed') is True, result.get('message', 'ACTION6 Center Start failed')
     
     def test_simple_actions(self) -> Dict[str, Any]:
         """
@@ -363,7 +363,7 @@ class CoordinateSystemTester:
                     'details': {'available_actions': available_actions}
                 }
                 print("   ⚠️ SKIPPED: No simple actions available")
-                return result
+                assert result.get('passed') is True, result.get('message', 'No simple actions available')
             
             action_results = []
             
@@ -416,7 +416,7 @@ class CoordinateSystemTester:
             }
             print(f"   ❌ FAILED: {str(e)}")
         
-        return result
+        assert result.get('passed') is True, result.get('message', 'Simple Actions failed')
     
     def test_frame_analysis(self) -> Dict[str, Any]:
         """
@@ -436,7 +436,7 @@ class CoordinateSystemTester:
                     'details': {}
                 }
                 print("   ❌ FAILED: No frame data available")
-                return result
+                assert result.get('passed') is True, result.get('message', 'No frame data available')
             
             # Analyze frame
             analysis = self.frame_analyzer.analyze_frame(frame, self.test_game_id)
@@ -453,7 +453,12 @@ class CoordinateSystemTester:
                 'passed': has_required_fields and colors_found,
                 'message': f'Frame analysis {"successful" if has_required_fields and colors_found else "failed"}',
                 'details': {
-                    'frame_dimensions': f"{len(frame)}x{len(frame[0])}x{len(frame[0][0])}",
+                    # Compute dimensions via FrameAnalyzer normalizer to avoid brittle indexing
+                    'frame_dimensions': lambda f: (
+                        (lambda a: f"{a.shape[0]}x{a.shape[1]}x{(a.shape[2] if a.ndim==3 else 1)}")(
+                            FrameAnalyzer()._normalize_local_frame(f)
+                        )
+                    )(frame),
                     'colors_detected': list(analysis.get('colors_detected', set())),
                     'agent_position': analysis.get('agent_position'),
                     'position_confidence': analysis.get('position_confidence', 0.0),
@@ -477,7 +482,7 @@ class CoordinateSystemTester:
             }
             print(f"   ❌ FAILED: {str(e)}")
         
-        return result
+        assert result.get('passed') is True, result.get('message', 'Frame Analysis failed')
     
     def test_pathway_learning(self) -> Dict[str, Any]:
         """
@@ -497,7 +502,7 @@ class CoordinateSystemTester:
                     'details': {}
                 }
                 print("   ⚠️ SKIPPED: No action history for pathway learning")
-                return result
+                assert result.get('passed') is True, result.get('message', 'No action history for pathway learning')
             
             # Track actions in pathway system
             pathway_analyses = []
@@ -551,7 +556,7 @@ class CoordinateSystemTester:
             }
             print(f"   ❌ FAILED: {str(e)}")
         
-        return result
+        assert result.get('passed') is True, result.get('message', 'Pathway Learning failed')
     
     def test_score_measurement(self) -> Dict[str, Any]:
         """
@@ -612,7 +617,7 @@ class CoordinateSystemTester:
             }
             print(f"   ❌ FAILED: {str(e)}")
         
-        return result
+        assert result.get('passed') is True, result.get('message', 'Score-Based Success Measurement failed')
     
     def _print_test_summary(self, results: Dict[str, Any]):
         """

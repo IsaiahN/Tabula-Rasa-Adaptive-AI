@@ -64,11 +64,11 @@ class TestBasicFunctionality:
             assert restored <= 100.0
             
             logger.info("✅ Energy System test passed!")
-            return True
+            assert True
             
         except Exception as e:
             logger.error(f"❌ Energy System test failed: {e}")
-            return False
+            assert False, f"Energy System test failed: {e}"
     
     @patch('core.agent.torch.load')  # Mock model loading
     def test_adaptive_learning_agent_basic(self, mock_torch_load):
@@ -103,11 +103,11 @@ class TestBasicFunctionality:
             assert agent.hidden_dim == 64
             
             logger.info("✅ Adaptive Learning Agent test passed!")
-            return True
+            assert True
             
         except Exception as e:
             logger.error(f"❌ Adaptive Learning Agent test failed: {e}")
-            return False
+            assert False, f"Adaptive Learning Agent test failed: {e}"
     
     def test_salience_system_basic(self):
         """Test basic salience system functionality."""
@@ -135,11 +135,11 @@ class TestBasicFunctionality:
             assert processed.shape == memory_matrix.shape
             
             logger.info("✅ Salience System test passed!")
-            return True
+            assert True
             
         except Exception as e:
             logger.error(f"❌ Salience System test failed: {e}")
-            return False
+            assert False, f"Salience System test failed: {e}"
     
     def test_agent_state_basic(self):
         """Test basic agent state functionality."""
@@ -165,11 +165,11 @@ class TestBasicFunctionality:
             assert agent_state.memory_state.shape == (32, 8)
             
             logger.info("✅ Agent State test passed!")
-            return True
+            assert True
             
         except Exception as e:
             logger.error(f"❌ Agent State test failed: {e}")
-            return False
+            assert False, f"Agent State test failed: {e}"
     
     def test_integration_basic(self):
         """Test basic integration of components."""
@@ -197,64 +197,31 @@ class TestBasicFunctionality:
             assert processed_memory is not None
             
             logger.info("✅ Basic Integration test passed!")
-            return True
+            assert True
             
         except Exception as e:
             logger.error(f"❌ Basic Integration test failed: {e}")
-            return False
+            assert False, f"Basic Integration test failed: {e}"
 
 
 def test_all_basic_functionality():
-    """Run all basic functionality tests."""
-    logger.info("="*60)
-    logger.info("🚀 STARTING BASIC FUNCTIONALITY TESTS")
-    logger.info("="*60)
-    
+    """Run all basic functionality tests via pytest-style invocation."""
     test_suite = TestBasicFunctionality()
     test_suite.setup_method()
-    
-    tests = [
-        test_suite.test_energy_system_basic,
-        test_suite.test_adaptive_learning_agent_basic,
-        test_suite.test_salience_system_basic,
-        test_suite.test_agent_state_basic,
-        test_suite.test_integration_basic
-    ]
-    
-    passed = 0
-    failed = 0
-    
-    for test in tests:
-        try:
-            if test():
-                passed += 1
-            else:
-                failed += 1
-        except Exception as e:
-            logger.error(f"❌ Test {test.__name__} raised exception: {e}")
-            failed += 1
-    
-    test_suite.teardown_method()
-    
-    logger.info("="*60)
-    logger.info(f"📊 BASIC FUNCTIONALITY TEST RESULTS")
-    logger.info("="*60)
-    logger.info(f"✅ Passed: {passed}")
-    logger.info(f"❌ Failed: {failed}")
-    logger.info(f"📈 Success Rate: {(passed/(passed+failed)*100):.1f}%")
-    
-    if failed == 0:
-        logger.info("🎉 ALL BASIC TESTS PASSED! Core components are working correctly.")
-        return True
-    else:
-        logger.info("⚠️  SOME TESTS FAILED. Please review core component implementations.")
-        return False
+
+    try:
+        test_suite.test_energy_system_basic()
+        test_suite.test_adaptive_learning_agent_basic()
+        test_suite.test_salience_system_basic()
+        test_suite.test_agent_state_basic()
+        test_suite.test_integration_basic()
+    finally:
+        test_suite.teardown_method()
+
+    # If we reach here without exception, the tests passed
+    assert True
 
 
 if __name__ == '__main__':
-    # Run tests directly or with pytest
-    if len(sys.argv) > 1 and sys.argv[1] == '--pytest':
-        pytest.main([__file__, '-v'])
-    else:
-        success = test_all_basic_functionality()
-        sys.exit(0 if success else 1)
+    # Allow running the file directly to exercise tests but rely on pytest for assertions
+    pytest.main([__file__, '-v'])

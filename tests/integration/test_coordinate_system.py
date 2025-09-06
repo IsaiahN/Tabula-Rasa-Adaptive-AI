@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 import pytest
+import numpy as np
 
 from arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
 from vision.frame_analyzer import FrameAnalyzer
@@ -42,13 +43,10 @@ def test_coordinate_system_imports():
             print("✅ CoordinateAwareTrainingManager imported successfully")
         except Exception as e:
             print(f"⚠️ CoordinateAwareTrainingManager import warning: {e}")
-        
         print("✅ All coordinate system imports successful!")
-        return True
-        
+        assert True
     except Exception as e:
-        print(f"❌ Import test failed: {e}")
-        return False
+        pytest.fail(f"Import test failed: {e}")
 
 
 def test_coordinate_system_components():
@@ -58,7 +56,8 @@ def test_coordinate_system_components():
     try:
         # Test FrameAnalyzer
         frame_analyzer = FrameAnalyzer()
-        test_frame = [[[1, 0, 0] for _ in range(10)] for _ in range(10)]
+        # Use simple 2D integer grid (color indices) instead of 3-channel tuples
+        test_frame = np.array([[1 for _ in range(10)] for _ in range(10)], dtype=int)
         analysis = frame_analyzer.analyze_frame(test_frame)
         print(f"✅ FrameAnalyzer analysis: {type(analysis)}")
         
@@ -82,13 +81,11 @@ def test_coordinate_system_components():
         print(f"✅ CoordinateManager center coordinates: {center_coords}")
         
         print("✅ All component tests successful!")
-        return True
-        
+        assert True
     except Exception as e:
-        print(f"❌ Component test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"Component test failed: {e}")
 
 
 @pytest.mark.asyncio
@@ -99,7 +96,7 @@ async def test_integration_without_api():
     try:
         # Create mock frame data
         mock_frame_data = {
-            'frame': [[[1 if i == j else 0 for _ in range(3)] for j in range(10)] for i in range(10)],
+            'frame': np.array([[1 if i == j else 0 for j in range(10)] for i in range(10)], dtype=int),
             'score': 50,
             'state': 'PLAYING'
         }
@@ -141,13 +138,11 @@ async def test_integration_without_api():
         print(f"✅ strategic positions coordinates: {coords[:3]}")  # Show first 3
         
         print("✅ Integration test successful!")
-        return True
-        
+        assert True
     except Exception as e:
-        print(f"❌ Integration test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"Integration test failed: {e}")
 
 
 def main():
@@ -159,16 +154,25 @@ def main():
     total_tests = 3
     
     # Test 1: Imports
-    if test_coordinate_system_imports():
+    try:
+        test_coordinate_system_imports()
         tests_passed += 1
-    
+    except Exception:
+        pass
+
     # Test 2: Components
-    if test_coordinate_system_components():
+    try:
+        test_coordinate_system_components()
         tests_passed += 1
-    
+    except Exception:
+        pass
+
     # Test 3: Integration
-    if asyncio.run(test_integration_without_api()):
+    try:
+        asyncio.run(test_integration_without_api())
         tests_passed += 1
+    except Exception:
+        pass
     
     print("\n" + "=" * 50)
     print(f"📊 Test Results: {tests_passed}/{total_tests} tests passed")
@@ -176,12 +180,11 @@ def main():
     if tests_passed == total_tests:
         print("🎉 All coordinate system tests passed!")
         print("✅ System is ready for coordinate-aware training")
-        return True
+        assert True
     else:
         print("❌ Some tests failed. Check error messages above.")
-        return False
+        pytest.fail(f"{total_tests - tests_passed} coordinate system tests failed")
 
 
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    main()

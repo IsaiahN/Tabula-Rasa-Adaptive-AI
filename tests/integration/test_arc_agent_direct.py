@@ -3,11 +3,13 @@
 Direct test of ARC-AGI-3 agent to diagnose hanging issue
 """
 import asyncio
+import pytest
 import subprocess
 import sys
 import time
 from pathlib import Path
 
+@pytest.mark.asyncio
 async def test_arc_agent():
     """Test the ARC-AGI-3 agent directly"""
     

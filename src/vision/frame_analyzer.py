@@ -54,6 +54,61 @@ class FrameAnalyzer:
         self.exploration_complete = False
         self.current_game_colors = set()      # Colors detected in current game
         self.game_state_memory = {}           # Remember game states and transitions
+
+    def _normalize_local_frame(self, frame: Any) -> np.ndarray:
+        """Small helper to convert various frame wrappers into a 2D numpy array.
+
+        Accepts:
+        - frame as [[row1, row2, ...]] (wrapped)
+        - frame as [row1, row2, ...] (2D list)
+        - frame as flat list (will attempt reasonable reshape)
+        - numpy arrays
+        Returns a numpy 2D array; raises if conversion fails.
+        """
+        if frame is None:
+            return np.zeros((64, 64), dtype=int)
+
+        try:
+            # If it's already a numpy array
+            if isinstance(frame, np.ndarray):
+                arr = frame.copy()
+            else:
+                # If wrapped in an extra list: [[row1,row2,...]]
+                # Use a canonical local normalization to handle wrapped frames ([[rows]]) and flat lists
+                try:
+                    arr_local, (w_local, h_local) = self._normalize_local_frame(frame)
+                    if arr_local is None:
+                        return {
+                            'movement_detected': False,
+                            'agent_position': None
+                        }
+                    arr = arr_local
+                except Exception:
+                    return {
+                        'movement_detected': False,
+                        'agent_position': None
+                    }
+                else:
+                    arr = np.array(frame)
+
+            # If 1D try reshape to square or keep as single-row
+            if arr.ndim == 1:
+                n = arr.size
+                side = int(np.sqrt(n))
+                if side * side == n:
+                    arr = arr.reshape((side, side))
+                else:
+                    arr = arr.reshape((1, n))
+
+            # Ensure 2D
+            if arr.ndim >= 2:
+                return arr
+
+        except Exception:
+            pass
+
+        # Fallback
+        return np.zeros((64, 64), dtype=int)
         
     def reset_for_new_game(self, game_id: str = None):
         """Reset exploration phase for a new game while preserving learned patterns."""
@@ -98,9 +153,8 @@ class FrameAnalyzer:
         Returns:
             Dictionary with interactive targets, ranked by priority
         """
-        # Convert frame to numpy array
-        frame_array = np.array(frame[0]) if isinstance(frame[0][0], list) else np.array(frame)
-        
+        # Convert frame to numpy array using local normalizer
+        frame_array = self._normalize_local_frame(frame)
         targets = []
         analysis = {
             'interactive_targets': [],
@@ -110,7 +164,7 @@ class FrameAnalyzer:
             'visual_features': {},
             'exploration_zones': []
         }
-        
+
         try:
             # 1. COLOR CLUSTERING - Find unique/standout colors
             color_targets = self._find_color_anomalies(frame_array)
@@ -782,7 +836,7 @@ class FrameAnalyzer:
             return {'shape_type': 'unknown', 'details': {}}
             
         try:
-            frame_array = np.array(frame[0]) if isinstance(frame[0][0], list) else np.array(frame)
+            frame_array = self._normalize_local_frame(frame)
             
             # Extract local region around click point
             region_size = 7
@@ -821,7 +875,7 @@ class FrameAnalyzer:
             return {}
             
         try:
-            frame_array = np.array(frame[0]) if isinstance(frame[0][0], list) else np.array(frame)
+            frame_array = self._normalize_local_frame(frame)
             
             # Analyze surrounding area
             context_size = 10
@@ -849,8 +903,9 @@ class FrameAnalyzer:
             return {'changes_detected': False}
             
         try:
-            before_array = np.array(before_frame[0]) if isinstance(before_frame[0][0], list) else np.array(before_frame)
-            after_array = np.array(after_frame[0]) if isinstance(after_frame[0][0], list) else np.array(after_frame)
+            # Normalize both frames
+            before_array = self._normalize_local_frame(before_frame)
+            after_array = self._normalize_local_frame(after_frame)
             
             # Calculate differences
             if before_array.shape != after_array.shape:
@@ -1868,7 +1923,9 @@ class FrameAnalyzer:
             for x in range(0, width, max(1, width // 10)):  # Sample every 10% of width
                 if not self.should_avoid_coordinate(x, y):
                     # Check if there's actually something interesting at this coordinate
-                    if current_frame and y < len(current_frame) and x < len(current_frame[0]):
+                    # Use safe normalized indexing
+                    cf = self._normalize_local_frame(current_frame)
+                    if cf is not None and y < cf.shape[0] and x < cf.shape[1]:
                         pixel_value = current_frame[y][x] if isinstance(current_frame[y], list) else current_frame[y][x] if hasattr(current_frame[y], '__getitem__') else 0
                         if pixel_value != 0:  # Non-zero pixel = potentially interesting
                             available_coords.append((x, y))
@@ -1951,8 +2008,8 @@ class FrameAnalyzer:
             Dictionary with position info, movement detected, confidence
         """
         # Convert to numpy array for easier processing
-        frame_array = np.array(frame[0])  # Frame is wrapped in extra list
-        
+        frame_array = self._normalize_local_frame(frame)
+
         result = {
             'agent_position': None,
             'movement_detected': False,
@@ -1961,25 +2018,28 @@ class FrameAnalyzer:
             'colors_detected': set(),
             'timestamp': datetime.now().isoformat()
         }
-        
+
         # Track unique colors in frame
-        unique_colors = set(frame_array.flatten())
+        try:
+            unique_colors = set(frame_array.flatten())
+        except Exception:
+            unique_colors = set()
         result['colors_detected'] = unique_colors
-        
+
         # Detect movement if we have previous frame
         if self.previous_frame is not None:
             movement_info = self._detect_movement(self.previous_frame, frame_array)
             result.update(movement_info)
-        
+
         # Attempt to detect agent position
         position_info = self._detect_agent_position(frame_array, unique_colors)
         result.update(position_info)
-        
+
         # Update history
         self._update_frame_history(frame_array)
-        
+
         self.previous_frame = frame_array.copy()
-        
+
         return result
     
     def _detect_movement(self, old_frame: np.ndarray, new_frame: np.ndarray) -> Dict[str, Any]:

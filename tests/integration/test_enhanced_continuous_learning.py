@@ -10,6 +10,7 @@ This script demonstrates the new tracking capabilities for:
 """
 
 import asyncio
+import pytest
 import sys
 from pathlib import Path
 
@@ -25,6 +26,7 @@ except ImportError as e:
     print("This is expected if dependencies aren't installed yet.")
     sys.exit(1)
 
+@pytest.mark.asyncio
 async def test_enhanced_features():
     """Test the enhanced continuous learning features."""
     
