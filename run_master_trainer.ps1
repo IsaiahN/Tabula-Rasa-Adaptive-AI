@@ -1,0 +1,2 @@
+$env:ARC_API_KEY='3405f9ba-f632-48e6-ac2b-73ed62056b24'
+Start-Process -NoNewWindow -FilePath 'C:/Users/Admin/AppData/Local/Microsoft/WindowsApps/python3.13.exe' -ArgumentList @('master_arc_trainer.py','--dashboard','gui','--mode','continuous-training','--max-cycles','100','--session-duration','240') -RedirectStandardOutput 'master_arc_trainer_output.log' -RedirectStandardError 'master_arc_trainer_error.log' -PassThru

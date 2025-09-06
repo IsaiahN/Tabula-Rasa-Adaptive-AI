@@ -1,0 +1,2944 @@
+{
+  "success": true,
+  "mode": "meta-cognitive-training",
+  "session_results": [
+    {
+      "session": 1,
+      "performance": {
+        "win_rate": 0.2,
+        "avg_score": 30,
+        "learning_efficiency": 0.8,
+        "session": 1
+      },
+      "governor_recommendation": {
+        "type": "mode_switch",
+        "changes": {
+          "enable_systematic_search": true,
+          "increase_depth_limit": 50
+        },
+        "rationale": "Low scores with 0.20 win rate suggest systematic search needed",
+        "confidence": 0.8,
+        "urgency": 0.5
+      },
+      "training_result": {
+        "success": true,
+        "results": {
+          "session_id": "session_1757135306",
+          "start_time": 1757135306.440183,
+          "games_played": {
+            "sp80-5f3511b239b8": {
+              "game_id": "sp80-5f3511b239b8",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "sp80-5f3511b239b8",
+                  "session": 1,
+                  "actions_taken": 33,
+                  "episode_duration": 6.724697828292847,
+                  "timestamp": 1757135313.1680596,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 91.39999999999952,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 33.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "as66-821a4dcad9c2": {
+              "game_id": "as66-821a4dcad9c2",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "as66-821a4dcad9c2",
+                  "session": 1,
+                  "actions_taken": 33,
+                  "episode_duration": 6.601609230041504,
+                  "timestamp": 1757135313.0482385,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 91.39999999999952,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 33.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "ls20-fa137e247ce6": {
+              "game_id": "ls20-fa137e247ce6",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "ls20-fa137e247ce6",
+                  "session": 1,
+                  "actions_taken": 33,
+                  "episode_duration": 6.572158336639404,
+                  "timestamp": 1757135313.022287,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 91.39999999999952,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 33.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "ft09-f340c8e5138e": {
+              "game_id": "ft09-f340c8e5138e",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "ft09-f340c8e5138e",
+                  "session": 1,
+                  "actions_taken": 17,
+                  "episode_duration": 3.765648126602173,
+                  "timestamp": 1757135318.9466274,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 78.8999999999996,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 17.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "vc33-58ec4396715d": {
+              "game_id": "vc33-58ec4396715d",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "vc33-58ec4396715d",
+                  "session": 1,
+                  "actions_taken": 19,
+                  "episode_duration": 3.8823914527893066,
+                  "timestamp": 1757135319.0739722,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 78.8999999999996,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 19.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "lp85-2e205bbe3622": {
+              "game_id": "lp85-2e205bbe3622",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "lp85-2e205bbe3622",
+                  "session": 1,
+                  "actions_taken": 19,
+                  "episode_duration": 4.173772573471069,
+                  "timestamp": 1757135319.3703988,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 73.5999999999996,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 19.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            }
+          },
+          "overall_performance": {
+            "games_trained": 6,
+            "total_episodes": 6,
+            "overall_win_rate": 0.0,
+            "overall_average_score": 0.0,
+            "learning_efficiency": 0.0,
+            "knowledge_transfer_score": 0,
+            "lp_stability": 0.0,
+            "lp_magnitude": 0.0,
+            "memory_consolidation_rate": 0.0,
+            "memory_operations_efficiency": 0.0,
+            "sleep_quality": 0.0,
+            "sleep_efficiency": 0.0,
+            "energy_management": 1.0,
+            "boredom_detection_rate": 0.0,
+            "curriculum_progress": 0.1,
+            "goal_discovery_rate": 0.0,
+            "goal_system_phase": 0.33,
+            "tabula_rasa_health": 0.1
+          },
+          "learning_insights": [],
+          "knowledge_transfers": [],
+          "detailed_metrics": {
+            "salience_mode": "lossless",
+            "sleep_cycles": 0,
+            "memory_operations": 0,
+            "high_salience_experiences": 0,
+            "compressed_memories": 0,
+            "grid_sizes_encountered": [
+              "64x64"
+            ]
+          },
+          "arc3_scoreboard_url": "https://arcprize.org/leaderboard",
+          "win_highlighted": false,
+          "swarm_mode_used": true,
+          "swarm_results": {
+            "mode": "swarm",
+            "total_games": 6,
+            "max_concurrent": 3,
+            "games_completed": {
+              "sp80-5f3511b239b8": {
+                "game_id": "sp80-5f3511b239b8",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "sp80-5f3511b239b8",
+                    "session": 1,
+                    "actions_taken": 33,
+                    "episode_duration": 6.724697828292847,
+                    "timestamp": 1757135313.1680596,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 91.39999999999952,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 33.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "as66-821a4dcad9c2": {
+                "game_id": "as66-821a4dcad9c2",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "as66-821a4dcad9c2",
+                    "session": 1,
+                    "actions_taken": 33,
+                    "episode_duration": 6.601609230041504,
+                    "timestamp": 1757135313.0482385,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 91.39999999999952,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 33.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "ls20-fa137e247ce6": {
+                "game_id": "ls20-fa137e247ce6",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "ls20-fa137e247ce6",
+                    "session": 1,
+                    "actions_taken": 33,
+                    "episode_duration": 6.572158336639404,
+                    "timestamp": 1757135313.022287,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 91.39999999999952,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 33.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "ft09-f340c8e5138e": {
+                "game_id": "ft09-f340c8e5138e",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "ft09-f340c8e5138e",
+                    "session": 1,
+                    "actions_taken": 17,
+                    "episode_duration": 3.765648126602173,
+                    "timestamp": 1757135318.9466274,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 78.8999999999996,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 17.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "vc33-58ec4396715d": {
+                "game_id": "vc33-58ec4396715d",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "vc33-58ec4396715d",
+                    "session": 1,
+                    "actions_taken": 19,
+                    "episode_duration": 3.8823914527893066,
+                    "timestamp": 1757135319.0739722,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 78.8999999999996,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 19.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "lp85-2e205bbe3622": {
+                "game_id": "lp85-2e205bbe3622",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "lp85-2e205bbe3622",
+                    "session": 1,
+                    "actions_taken": 19,
+                    "episode_duration": 4.173772573471069,
+                    "timestamp": 1757135319.3703988,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 73.5999999999996,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 19.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              }
+            },
+            "overall_performance": {
+              "games_completed": 6,
+              "total_episodes": 6,
+              "overall_win_rate": 0.0,
+              "games_per_hour": 1445.973868557787,
+              "episodes_per_hour": 1445.973868557787
+            },
+            "swarm_efficiency": {
+              "total_duration_hours": 0.004149452580346002,
+              "concurrent_speedup": 1445.973868557787,
+              "batch_count": 2,
+              "average_batch_size": 3.0
+            }
+          },
+          "end_time": 1757135321.3929589,
+          "duration": 14.952775955200195,
+          "grid_sizes_summary": {
+            "unique_sizes": 1,
+            "sizes_encountered": [
+              "64x64"
+            ],
+            "dynamic_sizing_verified": false
+          }
+        },
+        "config_used": {
+          "max_actions_per_game": 500,
+          "target_score": 85.0,
+          "salience_mode": "SalienceMode.DECAY_COMPRESSION",
+          "enable_all_advanced_features": true,
+          "enable_meta_cognitive_oversight": true,
+          "enable_detailed_monitoring": true,
+          "max_cycles": 1
+        }
+      }
+    },
+    {
+      "session": 2,
+      "performance": {
+        "win_rate": 0.30000000000000004,
+        "avg_score": 38,
+        "learning_efficiency": 0.75,
+        "session": 2
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.6,
+        "urgency": 0.4
+      },
+      "training_result": {
+        "success": true,
+        "results": {
+          "session_id": "session_1757135321",
+          "start_time": 1757135321.659233,
+          "games_played": {
+            "ft09-f340c8e5138e": {
+              "game_id": "ft09-f340c8e5138e",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "ft09-f340c8e5138e",
+                  "session": 1,
+                  "actions_taken": 23,
+                  "episode_duration": 4.907280206680298,
+                  "timestamp": 1757135326.5698595,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 92.19999999999962,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 23.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "ls20-fa137e247ce6": {
+              "game_id": "ls20-fa137e247ce6",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "ls20-fa137e247ce6",
+                  "session": 1,
+                  "actions_taken": 25,
+                  "episode_duration": 4.836825609207153,
+                  "timestamp": 1757135326.503273,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 92.19999999999962,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 25.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "vc33-58ec4396715d": {
+              "game_id": "vc33-58ec4396715d",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "vc33-58ec4396715d",
+                  "session": 1,
+                  "actions_taken": 23,
+                  "episode_duration": 5.106579780578613,
+                  "timestamp": 1757135326.776808,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 92.19999999999962,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 23.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "lp85-2e205bbe3622": {
+              "game_id": "lp85-2e205bbe3622",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "lp85-2e205bbe3622",
+                  "session": 1,
+                  "actions_taken": 25,
+                  "episode_duration": 4.889812469482422,
+                  "timestamp": 1757135333.6794686,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 70.09999999999955,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 25.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "as66-821a4dcad9c2": {
+              "game_id": "as66-821a4dcad9c2",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "as66-821a4dcad9c2",
+                  "session": 1,
+                  "actions_taken": 23,
+                  "episode_duration": 4.84086275100708,
+                  "timestamp": 1757135333.6349955,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 70.09999999999955,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 23.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "sp80-5f3511b239b8": {
+              "game_id": "sp80-5f3511b239b8",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "sp80-5f3511b239b8",
+                  "session": 1,
+                  "actions_taken": 23,
+                  "episode_duration": 5.077949523925781,
+                  "timestamp": 1757135333.875828,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 70.09999999999955,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 23.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            }
+          },
+          "overall_performance": {
+            "games_trained": 6,
+            "total_episodes": 6,
+            "overall_win_rate": 0.0,
+            "overall_average_score": 0.0,
+            "learning_efficiency": 0.0,
+            "knowledge_transfer_score": 0,
+            "lp_stability": 0.0,
+            "lp_magnitude": 0.0,
+            "memory_consolidation_rate": 0.0,
+            "memory_operations_efficiency": 0.0,
+            "sleep_quality": 0.0,
+            "sleep_efficiency": 0.0,
+            "energy_management": 1.0,
+            "boredom_detection_rate": 0.0,
+            "curriculum_progress": 0.1,
+            "goal_discovery_rate": 0.0,
+            "goal_system_phase": 0.33,
+            "tabula_rasa_health": 0.1
+          },
+          "learning_insights": [],
+          "knowledge_transfers": [],
+          "detailed_metrics": {
+            "salience_mode": "lossless",
+            "sleep_cycles": 0,
+            "memory_operations": 0,
+            "high_salience_experiences": 0,
+            "compressed_memories": 0,
+            "grid_sizes_encountered": [
+              "64x64"
+            ]
+          },
+          "arc3_scoreboard_url": "https://arcprize.org/leaderboard",
+          "win_highlighted": false,
+          "swarm_mode_used": true,
+          "swarm_results": {
+            "mode": "swarm",
+            "total_games": 6,
+            "max_concurrent": 3,
+            "games_completed": {
+              "ft09-f340c8e5138e": {
+                "game_id": "ft09-f340c8e5138e",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "ft09-f340c8e5138e",
+                    "session": 1,
+                    "actions_taken": 23,
+                    "episode_duration": 4.907280206680298,
+                    "timestamp": 1757135326.5698595,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 92.19999999999962,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 23.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "ls20-fa137e247ce6": {
+                "game_id": "ls20-fa137e247ce6",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "ls20-fa137e247ce6",
+                    "session": 1,
+                    "actions_taken": 25,
+                    "episode_duration": 4.836825609207153,
+                    "timestamp": 1757135326.503273,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 92.19999999999962,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 25.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "vc33-58ec4396715d": {
+                "game_id": "vc33-58ec4396715d",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "vc33-58ec4396715d",
+                    "session": 1,
+                    "actions_taken": 23,
+                    "episode_duration": 5.106579780578613,
+                    "timestamp": 1757135326.776808,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 92.19999999999962,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 23.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "lp85-2e205bbe3622": {
+                "game_id": "lp85-2e205bbe3622",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "lp85-2e205bbe3622",
+                    "session": 1,
+                    "actions_taken": 25,
+                    "episode_duration": 4.889812469482422,
+                    "timestamp": 1757135333.6794686,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 70.09999999999955,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 25.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "as66-821a4dcad9c2": {
+                "game_id": "as66-821a4dcad9c2",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "as66-821a4dcad9c2",
+                    "session": 1,
+                    "actions_taken": 23,
+                    "episode_duration": 4.84086275100708,
+                    "timestamp": 1757135333.6349955,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 70.09999999999955,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 23.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "sp80-5f3511b239b8": {
+                "game_id": "sp80-5f3511b239b8",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "sp80-5f3511b239b8",
+                    "session": 1,
+                    "actions_taken": 23,
+                    "episode_duration": 5.077949523925781,
+                    "timestamp": 1757135333.875828,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 70.09999999999955,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 23.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              }
+            },
+            "overall_performance": {
+              "games_completed": 6,
+              "total_episodes": 6,
+              "overall_win_rate": 0.0,
+              "games_per_hour": 1518.1330119073373,
+              "episodes_per_hour": 1518.1330119073373
+            },
+            "swarm_efficiency": {
+              "total_duration_hours": 0.003952222863833109,
+              "concurrent_speedup": 1518.1330119073373,
+              "batch_count": 2,
+              "average_batch_size": 3.0
+            }
+          },
+          "end_time": 1757135335.9023829,
+          "duration": 14.243149757385254,
+          "grid_sizes_summary": {
+            "unique_sizes": 1,
+            "sizes_encountered": [
+              "64x64"
+            ],
+            "dynamic_sizing_verified": false
+          }
+        },
+        "config_used": {
+          "max_actions_per_game": 500,
+          "target_score": 85.0,
+          "salience_mode": "SalienceMode.DECAY_COMPRESSION",
+          "enable_all_advanced_features": true,
+          "enable_meta_cognitive_oversight": true,
+          "enable_detailed_monitoring": true,
+          "max_cycles": 1
+        }
+      }
+    },
+    {
+      "session": 3,
+      "performance": {
+        "win_rate": 0.4,
+        "avg_score": 46,
+        "learning_efficiency": 0.7000000000000001,
+        "session": 3
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.39999999999999997,
+        "urgency": 0.4
+      },
+      "training_result": {
+        "success": true,
+        "results": {
+          "session_id": "session_1757135348",
+          "start_time": 1757135348.554792,
+          "games_played": {
+            "ls20-fa137e247ce6": {
+              "game_id": "ls20-fa137e247ce6",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "ls20-fa137e247ce6",
+                  "session": 1,
+                  "actions_taken": 23,
+                  "episode_duration": 4.9349799156188965,
+                  "timestamp": 1757135353.4923267,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 87.8999999999995,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 23.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "sp80-5f3511b239b8": {
+              "game_id": "sp80-5f3511b239b8",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "sp80-5f3511b239b8",
+                  "session": 1,
+                  "actions_taken": 23,
+                  "episode_duration": 4.956517457962036,
+                  "timestamp": 1757135353.5164852,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 87.8999999999995,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 23.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "ft09-f340c8e5138e": {
+              "game_id": "ft09-f340c8e5138e",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "ft09-f340c8e5138e",
+                  "session": 1,
+                  "actions_taken": 25,
+                  "episode_duration": 4.719470977783203,
+                  "timestamp": 1757135353.282356,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 87.8999999999995,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 25.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "vc33-58ec4396715d": {
+              "game_id": "vc33-58ec4396715d",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "vc33-58ec4396715d",
+                  "session": 1,
+                  "actions_taken": 27,
+                  "episode_duration": 5.21465802192688,
+                  "timestamp": 1757135360.7549925,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 90.79999999999951,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 27.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "lp85-2e205bbe3622": {
+              "game_id": "lp85-2e205bbe3622",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "lp85-2e205bbe3622",
+                  "session": 1,
+                  "actions_taken": 27,
+                  "episode_duration": 5.339504718780518,
+                  "timestamp": 1757135360.8832116,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 85.39999999999951,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 27.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            },
+            "as66-821a4dcad9c2": {
+              "game_id": "as66-821a4dcad9c2",
+              "episodes": [
+                {
+                  "success": false,
+                  "final_score": 0,
+                  "best_score": 0,
+                  "game_state": "NOT_FINISHED",
+                  "game_id": "as66-821a4dcad9c2",
+                  "session": 1,
+                  "actions_taken": 25,
+                  "episode_duration": 5.502438306808472,
+                  "timestamp": 1757135361.0503657,
+                  "sleep_cycle_executed": false,
+                  "sleep_cycle_results": {},
+                  "reset_decision": {
+                    "should_reset": false,
+                    "reason": null,
+                    "confidence": 0.0,
+                    "expected_benefit": 0.0
+                  },
+                  "memory_consolidation_status": {
+                    "is_consolidating": false,
+                    "is_prioritizing": false,
+                    "compression_active": false,
+                    "total_consolidation_ops": 0,
+                    "last_consolidation_score": 0.0,
+                    "high_salience_strengthened": 0,
+                    "low_salience_decayed": 0
+                  },
+                  "sleep_state_info": {
+                    "is_sleeping": false,
+                    "sleep_cycles_completed": 0,
+                    "total_sleep_time": 0.0,
+                    "last_sleep_trigger": null,
+                    "current_energy_level": 85.39999999999951,
+                    "average_sleep_quality": 0.0
+                  },
+                  "effective_actions": [],
+                  "action_sequences": {
+                    "sequences": [],
+                    "patterns": [],
+                    "strategy_effectiveness": {}
+                  },
+                  "mid_game_consolidations": 0,
+                  "success_weighted_memories": 0,
+                  "continuous_learning_metrics": {
+                    "consolidation_points": 1,
+                    "memory_strength_ops": 0,
+                    "pattern_discoveries": 0,
+                    "learning_velocity": 0.0
+                  }
+                }
+              ],
+              "performance_metrics": {
+                "total_episodes": 1,
+                "win_rate": 0.0,
+                "average_score": 0.0,
+                "average_actions": 25.0,
+                "best_score": 0,
+                "patterns_per_episode": 0.0
+              },
+              "final_performance": {
+                "episodes_played": 1,
+                "win_rate": 0.0,
+                "grid_size": "64x64"
+              },
+              "grid_dimensions": [
+                64,
+                64
+              ]
+            }
+          },
+          "overall_performance": {
+            "games_trained": 6,
+            "total_episodes": 6,
+            "overall_win_rate": 0.0,
+            "overall_average_score": 0.0,
+            "learning_efficiency": 0.0,
+            "knowledge_transfer_score": 0,
+            "lp_stability": 0.0,
+            "lp_magnitude": 0.0,
+            "memory_consolidation_rate": 0.0,
+            "memory_operations_efficiency": 0.0,
+            "sleep_quality": 0.0,
+            "sleep_efficiency": 0.0,
+            "energy_management": 1.0,
+            "boredom_detection_rate": 0.0,
+            "curriculum_progress": 0.1,
+            "goal_discovery_rate": 0.0,
+            "goal_system_phase": 0.33,
+            "tabula_rasa_health": 0.1
+          },
+          "learning_insights": [],
+          "knowledge_transfers": [],
+          "detailed_metrics": {
+            "salience_mode": "lossless",
+            "sleep_cycles": 0,
+            "memory_operations": 0,
+            "high_salience_experiences": 0,
+            "compressed_memories": 0,
+            "grid_sizes_encountered": [
+              "64x64"
+            ]
+          },
+          "arc3_scoreboard_url": "https://arcprize.org/leaderboard",
+          "win_highlighted": false,
+          "swarm_mode_used": true,
+          "swarm_results": {
+            "mode": "swarm",
+            "total_games": 6,
+            "max_concurrent": 3,
+            "games_completed": {
+              "ls20-fa137e247ce6": {
+                "game_id": "ls20-fa137e247ce6",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "ls20-fa137e247ce6",
+                    "session": 1,
+                    "actions_taken": 23,
+                    "episode_duration": 4.9349799156188965,
+                    "timestamp": 1757135353.4923267,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 87.8999999999995,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 23.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "sp80-5f3511b239b8": {
+                "game_id": "sp80-5f3511b239b8",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "sp80-5f3511b239b8",
+                    "session": 1,
+                    "actions_taken": 23,
+                    "episode_duration": 4.956517457962036,
+                    "timestamp": 1757135353.5164852,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 87.8999999999995,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 23.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "ft09-f340c8e5138e": {
+                "game_id": "ft09-f340c8e5138e",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "ft09-f340c8e5138e",
+                    "session": 1,
+                    "actions_taken": 25,
+                    "episode_duration": 4.719470977783203,
+                    "timestamp": 1757135353.282356,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 87.8999999999995,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 25.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "vc33-58ec4396715d": {
+                "game_id": "vc33-58ec4396715d",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "vc33-58ec4396715d",
+                    "session": 1,
+                    "actions_taken": 27,
+                    "episode_duration": 5.21465802192688,
+                    "timestamp": 1757135360.7549925,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 90.79999999999951,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 27.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "lp85-2e205bbe3622": {
+                "game_id": "lp85-2e205bbe3622",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "lp85-2e205bbe3622",
+                    "session": 1,
+                    "actions_taken": 27,
+                    "episode_duration": 5.339504718780518,
+                    "timestamp": 1757135360.8832116,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 85.39999999999951,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 27.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              },
+              "as66-821a4dcad9c2": {
+                "game_id": "as66-821a4dcad9c2",
+                "episodes": [
+                  {
+                    "success": false,
+                    "final_score": 0,
+                    "best_score": 0,
+                    "game_state": "NOT_FINISHED",
+                    "game_id": "as66-821a4dcad9c2",
+                    "session": 1,
+                    "actions_taken": 25,
+                    "episode_duration": 5.502438306808472,
+                    "timestamp": 1757135361.0503657,
+                    "sleep_cycle_executed": false,
+                    "sleep_cycle_results": {},
+                    "reset_decision": {
+                      "should_reset": false,
+                      "reason": null,
+                      "confidence": 0.0,
+                      "expected_benefit": 0.0
+                    },
+                    "memory_consolidation_status": {
+                      "is_consolidating": false,
+                      "is_prioritizing": false,
+                      "compression_active": false,
+                      "total_consolidation_ops": 0,
+                      "last_consolidation_score": 0.0,
+                      "high_salience_strengthened": 0,
+                      "low_salience_decayed": 0
+                    },
+                    "sleep_state_info": {
+                      "is_sleeping": false,
+                      "sleep_cycles_completed": 0,
+                      "total_sleep_time": 0.0,
+                      "last_sleep_trigger": null,
+                      "current_energy_level": 85.39999999999951,
+                      "average_sleep_quality": 0.0
+                    },
+                    "effective_actions": [],
+                    "action_sequences": {
+                      "sequences": [],
+                      "patterns": [],
+                      "strategy_effectiveness": {}
+                    },
+                    "mid_game_consolidations": 0,
+                    "success_weighted_memories": 0,
+                    "continuous_learning_metrics": {
+                      "consolidation_points": 1,
+                      "memory_strength_ops": 0,
+                      "pattern_discoveries": 0,
+                      "learning_velocity": 0.0
+                    }
+                  }
+                ],
+                "performance_metrics": {
+                  "total_episodes": 1,
+                  "win_rate": 0.0,
+                  "average_score": 0.0,
+                  "average_actions": 25.0,
+                  "best_score": 0,
+                  "patterns_per_episode": 0.0
+                },
+                "final_performance": {
+                  "episodes_played": 1,
+                  "win_rate": 0.0,
+                  "grid_size": "64x64"
+                },
+                "grid_dimensions": [
+                  64,
+                  64
+                ]
+              }
+            },
+            "overall_performance": {
+              "games_completed": 6,
+              "total_episodes": 6,
+              "overall_win_rate": 0.0,
+              "games_per_hour": 1484.2425324987505,
+              "episodes_per_hour": 1484.2425324987505
+            },
+            "swarm_efficiency": {
+              "total_duration_hours": 0.004042466017935011,
+              "concurrent_speedup": 1484.2425324987505,
+              "batch_count": 2,
+              "average_batch_size": 3.0
+            }
+          },
+          "end_time": 1757135363.1203117,
+          "duration": 14.5655198097229,
+          "grid_sizes_summary": {
+            "unique_sizes": 1,
+            "sizes_encountered": [
+              "64x64"
+            ],
+            "dynamic_sizing_verified": false
+          }
+        },
+        "config_used": {
+          "max_actions_per_game": 500,
+          "target_score": 85.0,
+          "salience_mode": "SalienceMode.DECAY_COMPRESSION",
+          "enable_all_advanced_features": true,
+          "enable_meta_cognitive_oversight": true,
+          "enable_detailed_monitoring": true,
+          "max_cycles": 1
+        }
+      }
+    }
+  ],
+  "governor_decisions": [
+    {
+      "timestamp": "2025-09-06T00:08:26.348805",
+      "puzzle_type": "mastery_session_1",
+      "recommendation": "mode_switch",
+      "confidence": 0.8,
+      "changes": {
+        "enable_systematic_search": true,
+        "increase_depth_limit": 50
+      },
+      "rationale": "Low scores with 0.20 win rate suggest systematic search needed"
+    },
+    {
+      "timestamp": "2025-09-06T00:08:41.425531",
+      "puzzle_type": "mastery_session_2",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.6,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    },
+    {
+      "timestamp": "2025-09-06T00:08:55.927479",
+      "puzzle_type": "mastery_session_3",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.39999999999999997,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    }
+  ],
+  "architect_evolutions": [
+    {
+      "session": 3,
+      "timestamp": "2025-09-06T00:09:08.320958",
+      "trigger": "autonomous_cycle",
+      "success": false,
+      "generation": 0,
+      "improvement": -1.0
+    }
+  ],
+  "session_id": "master_training_1757135305",
+  "timestamp": "2025-09-06T00:09:23.176942"
+}

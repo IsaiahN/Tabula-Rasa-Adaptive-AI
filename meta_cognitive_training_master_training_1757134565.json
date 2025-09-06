@@ -1,0 +1,127 @@
+{
+  "session_id": "master_training_1757134565",
+  "timestamp": "2025-09-05T23:57:03.142902",
+  "config": {
+    "mode": "meta-cognitive-training",
+    "max_actions": 500,
+    "target_score": 85.0,
+    "salience_mode": "decay_compression"
+  },
+  "training_results": [
+    {
+      "session": 1,
+      "performance": {
+        "win_rate": 0.2,
+        "avg_score": 30,
+        "learning_efficiency": 0.8,
+        "session": 1
+      },
+      "governor_recommendation": {
+        "type": "mode_switch",
+        "changes": {
+          "enable_systematic_search": true,
+          "increase_depth_limit": 50
+        },
+        "rationale": "Low scores with 0.20 win rate suggest systematic search needed",
+        "confidence": 0.8,
+        "urgency": 0.5
+      },
+      "training_success": true,
+      "governor_active": true,
+      "architect_involved": false
+    },
+    {
+      "session": 2,
+      "performance": {
+        "win_rate": 0.30000000000000004,
+        "avg_score": 38,
+        "learning_efficiency": 0.75,
+        "session": 2
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.6,
+        "urgency": 0.4
+      },
+      "training_success": true,
+      "governor_active": true,
+      "architect_involved": false
+    },
+    {
+      "session": 3,
+      "performance": {
+        "win_rate": 0.4,
+        "avg_score": 46,
+        "learning_efficiency": 0.7000000000000001,
+        "session": 3
+      },
+      "governor_recommendation": {
+        "type": "parameter_adjustment",
+        "changes": {
+          "max_actions_per_game": 750
+        },
+        "rationale": "Low efficiency suggests need for more exploration actions",
+        "confidence": 0.39999999999999997,
+        "urgency": 0.4
+      },
+      "training_success": true,
+      "governor_active": true,
+      "architect_involved": true
+    }
+  ],
+  "governor_decisions": [
+    {
+      "session": null,
+      "timestamp": "2025-09-05T23:56:05.530991",
+      "recommendation": "mode_switch",
+      "confidence": 0.8,
+      "changes": {
+        "enable_systematic_search": true,
+        "increase_depth_limit": 50
+      },
+      "rationale": "Low scores with 0.20 win rate suggest systematic search needed"
+    },
+    {
+      "session": null,
+      "timestamp": "2025-09-05T23:56:21.804154",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.6,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    },
+    {
+      "session": null,
+      "timestamp": "2025-09-05T23:56:36.140453",
+      "recommendation": "parameter_adjustment",
+      "confidence": 0.39999999999999997,
+      "changes": {
+        "max_actions_per_game": 750
+      },
+      "rationale": "Low efficiency suggests need for more exploration actions"
+    }
+  ],
+  "architect_evolutions": [
+    {
+      "session": 3,
+      "timestamp": "2025-09-05T23:56:48.712324",
+      "trigger": "autonomous_cycle",
+      "success": false,
+      "generation": 0,
+      "improvement": -1.0
+    }
+  ],
+  "final_status": {
+    "total_sessions": 3,
+    "governor_total_decisions": 3,
+    "architect_generation": 1,
+    "successful_evolutions": 0,
+    "governor_decisions_made": 3,
+    "architect_evolutions": 1
+  }
+}

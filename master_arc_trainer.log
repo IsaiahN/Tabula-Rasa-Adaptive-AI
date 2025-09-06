@@ -19,3 +19,14 @@
 2025-09-05 14:39:24,356 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in console mode
 2025-09-05 14:39:24,357 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757101164
 2025-09-05 14:39:24,358 - ContinuousTrainingRunner - INFO - Dashboard started in console mode
+2025-09-05 23:42:24,563 - src.core.meta_cognitive_dashboard.Dashboard - INFO - GUI dashboard initialized successfully
+2025-09-05 23:42:24,565 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in gui mode
+2025-09-05 23:42:24,566 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757133744
+2025-09-05 23:42:24,567 - ContinuousTrainingRunner - INFO - Dashboard started in gui mode
+2025-09-05 23:42:48,202 - src.core.meta_cognitive_dashboard.Dashboard - INFO - GUI dashboard initialized successfully
+2025-09-05 23:42:48,205 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in gui mode
+2025-09-05 23:42:48,206 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757133768
+2025-09-05 23:42:48,207 - ContinuousTrainingRunner - INFO - Dashboard started in gui mode
+2025-09-06 00:01:28,013 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Meta-cognitive dashboard initialized in console mode
+2025-09-06 00:01:28,015 - src.core.meta_cognitive_dashboard.Dashboard - INFO - Dashboard monitoring started for session continuous_training_1757134888
+2025-09-06 00:01:28,016 - ContinuousTrainingRunner - INFO - Dashboard started in console mode

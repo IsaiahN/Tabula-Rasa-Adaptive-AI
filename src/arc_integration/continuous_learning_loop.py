@@ -23,67 +23,31 @@ from datetime import datetime
 from enum import Enum
 from concurrent.futures import ThreadPoolExecutor  # Added for SWARM mode
 from collections import deque  # Added for rate limiting
-
-# Load environment variables
-from dotenv import load_dotenv
-load_dotenv()
-
-# Import frame analysis for visual intelligence
-from src.vision.frame_analyzer import FrameAnalyzer
-
-# Add the src directory to the path for imports
-current_dir = Path(__file__).parent
-src_dir = current_dir.parent
-if str(src_dir) not in sys.path:
-    sys.path.insert(0, str(src_dir))
-
-# Now import with absolute imports within the package
 from arc_integration.arc_meta_learning import ARCMetaLearningSystem
 from core.meta_learning import MetaLearningSystem
 from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
-from core.sleep_system import SleepCycle
-from core.agent import AdaptiveLearningAgent
-from core.predictive_core import PredictiveCore
-# 🔧 CONSOLIDATED: Adaptive energy system now integrated into unified energy system
-# from core.adaptive_energy_system import AdaptiveEnergySystem, EnergyConfig, EnergySystemIntegration
-from goals.goal_system import GoalInventionSystem, GoalPhase
-from core.energy_system import EnergySystem
-from memory.dnc import DNCMemory
-
+# Fallback comparator if salience comparator module unavailable
 try:
-    # Import for salience mode comparison if available  
     from salience_mode_comparison import SalienceModeComparator
-except ImportError:
-    # Fallback if comparison module is not available
+except Exception:
     class SalienceModeComparator:
         @staticmethod
         def compare_modes(*args, **kwargs):
             return {'comparison_available': False}
-            return {'comparison_available': False}
-    SALIENCE_COMPARATOR_AVAILABLE = True
-except ImportError:
-    SALIENCE_COMPARATOR_AVAILABLE = False
-    logger = logging.getLogger(__name__)
-    if logger.hasHandlers():
-        logger.warning("SalienceModeComparator not available - comparison features disabled")
-
-logger = logging.getLogger(__name__)
 
 # ARC-3 API Configuration
 ARC3_BASE_URL = "https://three.arcprize.org"
 ARC3_SCOREBOARD_URL = "https://arcprize.org/leaderboard"
 
 # Rate Limiting Configuration for ARC-AGI-3 API
-# Official limit: 600 requests per minute (RPM)
 ARC3_RATE_LIMIT = {
     'requests_per_minute': 600,
-    'requests_per_second': 10,  # 600/60 = 10 RPS max
-    'safe_requests_per_second': 8,  # Conservative limit with 20% buffer
-    'backoff_base_delay': 1.0,  # Base delay for exponential backoff
-    'backoff_max_delay': 60.0,  # Maximum backoff delay
-    'request_timeout': 30.0     # Timeout per request
+    'requests_per_second': 10,
+    'safe_requests_per_second': 8,
+    'backoff_base_delay': 1.0,
+    'backoff_max_delay': 60.0,
+    'request_timeout': 30.0
 }
-
 class RateLimiter:
     """
     Rate limiter for ARC-AGI-3 API that respects the 600 RPM limit
@@ -96,57 +60,57 @@ class RateLimiter:
         self.consecutive_429s = 0  # Count of consecutive 429 errors
         self.total_requests = 0
         self.total_429s = 0
-        
+
     async def acquire(self):
         """Acquire permission to make a request, with rate limiting."""
         current_time = time.time()
-        
+
         # Remove requests older than 1 minute
         while self.request_times and current_time - self.request_times[0] > 60:
             self.request_times.popleft()
-        
+
         # Check if we're at the per-minute limit
         if len(self.request_times) >= ARC3_RATE_LIMIT['requests_per_minute']:
             wait_time = 60 - (current_time - self.request_times[0])
             if wait_time > 0:
                 print(f"⏸️ Rate limit: Waiting {wait_time:.1f}s (at {len(self.request_times)}/600 RPM)")
                 await asyncio.sleep(wait_time)
-        
-        # Check requests per second limit  
+
+        # Check requests per second limit
         recent_requests = sum(1 for t in self.request_times if current_time - t <= 1)
         if recent_requests >= self.requests_per_second:
             wait_time = 1.0 / self.requests_per_second
             await asyncio.sleep(wait_time)
-        
+
         # Apply backoff delay if we've been getting 429s
         if self.backoff_delay > 0:
             print(f"⏳ Backoff delay: {self.backoff_delay:.1f}s (after {self.consecutive_429s} 429s)")
             await asyncio.sleep(self.backoff_delay)
-        
+
         # Record this request
         self.request_times.append(current_time)
         self.total_requests += 1
-        
+
     def handle_429_response(self):
         """Handle a 429 rate limit response with exponential backoff."""
         self.consecutive_429s += 1
         self.total_429s += 1
-        
+
         # Exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s, 60s (max)
         self.backoff_delay = min(
             ARC3_RATE_LIMIT['backoff_base_delay'] * (2 ** (self.consecutive_429s - 1)),
             ARC3_RATE_LIMIT['backoff_max_delay']
         )
-        
+
         print(f"🚫 Rate limit exceeded (429) - backing off {self.backoff_delay:.1f}s")
-        
+
     def handle_success_response(self):
         """Handle a successful response - reset backoff."""
         if self.consecutive_429s > 0:
             print(f"✅ Request succeeded - resetting backoff (was {self.backoff_delay:.1f}s)")
         self.consecutive_429s = 0
         self.backoff_delay = 0.0
-        
+
     def get_stats(self) -> Dict[str, Any]:
         """Get rate limiter statistics."""
         return {
@@ -503,10 +467,10 @@ class ContinuousLearningLoop:
             }
         }
 
-    # Note: Removed legacy `success_multiplier` and `_calculate_episode_effectiveness` stub.
-    # Use `SalienceCalculator` or explicit episode metrics (wins/actions) to derive episode
-    # effectiveness. Keeping `success_weighted_memories` was a compatibility shim; rely on
-    # explicit replay buffer weighting via `SalienceWeightedReplayBuffer` instead.
+        # Note: Removed legacy `success_multiplier` and `_calculate_episode_effectiveness` stub.
+        # Use `SalienceCalculator` or explicit episode metrics (wins/actions) to derive episode
+        # effectiveness. Keeping `success_weighted_memories` was a compatibility shim; rely on
+        # explicit replay buffer weighting via `SalienceWeightedReplayBuffer` instead.
 
         # Salience system components
         self.salience_calculator: Optional[SalienceCalculator] = None
@@ -522,7 +486,8 @@ class ContinuousLearningLoop:
         
         # 🔧 CRITICAL FIX: Swarm mode tracking for scorecard isolation
         self._swarm_mode_active: bool = False
-        
+        # Ensure standalone mode flag exists to avoid AttributeError in session flows
+        self.standalone_mode: bool = False
         # Rate limiting for ARC-AGI-3 API compliance
         self.rate_limiter = RateLimiter()
         print(f"🛡️ Rate limiter initialized: {ARC3_RATE_LIMIT['safe_requests_per_second']} RPS max, 600 RPM limit")
@@ -1181,97 +1146,110 @@ class ContinuousLearningLoop:
             await self.rate_limiter.acquire()
             
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=ARC3_RATE_LIMIT['request_timeout'])) as session:
-                async with session.post(url, headers=headers, json=payload) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        self.rate_limiter.handle_success_response()
-                        guid = result.get('guid')
-                        
-                        if guid:
-                            # Store the GUID for this game
-                            self.current_game_sessions[game_id] = guid
+                # Implement limited retries for transient 5xx errors (502,503,504)
+                max_retries = 3
+                attempt = 0
+                while attempt < max_retries:
+                    attempt += 1
+                    async with session.post(url, headers=headers, json=payload) as response:
+                        status = response.status
+                        if status == 200:
+                            result = await response.json()
+                            self.rate_limiter.handle_success_response()
+                            guid = result.get('guid')
                             reset_type = "LEVEL RESET" if existing_guid else "NEW GAME"
-                            print(f"✅ {reset_type} successful: {game_id}")
-                            
-                            # Initialize position tracking for ACTION 6 directional movement
-                            if not existing_guid:  # Only for new games, not level resets
-                                # Get grid dimensions from frame if available (use canonical normalizer)
-                                frame = result.get('frame', None)
-                                arr, (grid_width, grid_height) = self._normalize_frame(frame)
-                                if arr is None:
-                                    grid_width, grid_height = 64, 64
-                                
-                                # Start ACTION 6 position at center of grid for directional movement
-                                self._current_game_x = grid_width // 2
-                                self._current_game_y = grid_height // 2
-                                print(f"🎯 Initialized ACTION 6 position at center: ({self._current_game_x},{self._current_game_y}) for {grid_width}x{grid_height} grid")
-                                
-                                # Clear boundary data for new games - boundaries are game-specific
-                                universal_boundary = self.available_actions_memory['universal_boundary_detection']
-                                legacy_boundary = self.available_actions_memory['action6_boundary_detection']
-                                
-                                # Clear universal boundary data
-                                if game_id in universal_boundary['boundary_data']:
-                                    old_boundaries = len(universal_boundary['boundary_data'][game_id])
-                                    print(f"🧹 Cleared {old_boundaries} previous universal boundary mappings for new game {game_id}")
-                                
-                                # Initialize fresh universal boundary detection for this game
-                                universal_boundary['boundary_data'][game_id] = {}
-                                universal_boundary['coordinate_attempts'][game_id] = {}
-                                universal_boundary['action_coordinate_history'][game_id] = {}
-                                universal_boundary['stuck_patterns'][game_id] = {}
-                                universal_boundary['success_zone_mapping'][game_id] = {}
-                                
-                                # Initialize ACTION 6 directional system
-                                if 6 in universal_boundary['directional_systems']:
-                                    universal_boundary['directional_systems'][6]['current_direction'][game_id] = 'right'
-                                
-                                # Initialize legacy system for backward compatibility
-                                legacy_boundary['boundary_data'][game_id] = {}
-                                legacy_boundary['coordinate_attempts'][game_id] = {}
-                                legacy_boundary['last_coordinates'][game_id] = None
-                                legacy_boundary['stuck_count'][game_id] = 0
-                                legacy_boundary['current_direction'][game_id] = 'right'
-                                
-                                print(f"🌐 Initialized universal boundary detection system for {game_id}")
-                                
-                                # ENHANCED: Reset frame analyzer tracking for new game including exploration phase
-                                if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
-                                    try:
-                                        if hasattr(self.frame_analyzer, 'reset_for_new_game'):
-                                            self.frame_analyzer.reset_for_new_game(game_id)
-                                        else:
-                                            self.frame_analyzer.reset_coordinate_tracking()
-                                        print(f"🎯 Reset frame analyzer tracking for new game {game_id}")
-                                    except Exception as e:
-                                        print(f"⚠️ Failed to reset frame analyzer: {e}")
-                                print(f"🔄 All actions will now benefit from boundary awareness and coordinate intelligence")
-                            
-                            return {
-                                'guid': guid,
-                                'game_id': game_id,
-                                'scorecard_id': self.current_scorecard_id,
-                                'state': result.get('state', 'NOT_STARTED'),
-                                'frame': result.get('frame', []),
-                                'available_actions': result.get('available_actions', [1,2,3,4,5,6,7]),
-                                'score': result.get('score', 0),
-                                'reset_type': reset_type.lower().replace(' ', '_')
-                            }
+                            if guid:
+                                # Store the GUID for this game
+                                self.current_game_sessions[game_id] = guid
+                                print(f"✅ {reset_type} successful: {game_id}")
+
+                                # Initialize position tracking for ACTION 6 directional movement
+                                if not existing_guid:  # Only for new games, not level resets
+                                    # Get grid dimensions from frame if available (use canonical normalizer)
+                                    frame = result.get('frame', None)
+                                    arr, (grid_width, grid_height) = self._normalize_frame(frame)
+                                    if arr is None:
+                                        grid_width, grid_height = 64, 64
+
+                                    # Start ACTION 6 position at center of grid for directional movement
+                                    self._current_game_x = grid_width // 2
+                                    self._current_game_y = grid_height // 2
+                                    print(f"🎯 Initialized ACTION 6 position at center: ({self._current_game_x},{self._current_game_y}) for {grid_width}x{grid_height} grid")
+
+                                    # Clear boundary data for new games - boundaries are game-specific
+                                    universal_boundary = self.available_actions_memory['universal_boundary_detection']
+                                    legacy_boundary = self.available_actions_memory['action6_boundary_detection']
+
+                                    # Clear universal boundary data
+                                    if game_id in universal_boundary['boundary_data']:
+                                        old_boundaries = len(universal_boundary['boundary_data'][game_id])
+                                        print(f"🧹 Cleared {old_boundaries} previous universal boundary mappings for new game {game_id}")
+
+                                    # Initialize fresh universal boundary detection for this game
+                                    universal_boundary['boundary_data'][game_id] = {}
+                                    universal_boundary['coordinate_attempts'][game_id] = {}
+                                    universal_boundary['action_coordinate_history'][game_id] = {}
+                                    universal_boundary['stuck_patterns'][game_id] = {}
+                                    universal_boundary['success_zone_mapping'][game_id] = {}
+
+                                    # Initialize ACTION 6 directional system
+                                    if 6 in universal_boundary['directional_systems']:
+                                        universal_boundary['directional_systems'][6]['current_direction'][game_id] = 'right'
+
+                                    # Initialize legacy system for backward compatibility
+                                    legacy_boundary['boundary_data'][game_id] = {}
+                                    legacy_boundary['coordinate_attempts'][game_id] = {}
+                                    legacy_boundary['last_coordinates'][game_id] = None
+                                    legacy_boundary['stuck_count'][game_id] = 0
+                                    legacy_boundary['current_direction'][game_id] = 'right'
+
+                                    print(f"🌐 Initialized universal boundary detection system for {game_id}")
+
+                                    # ENHANCED: Reset frame analyzer tracking for new game including exploration phase
+                                    if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
+                                        try:
+                                            if hasattr(self.frame_analyzer, 'reset_for_new_game'):
+                                                self.frame_analyzer.reset_for_new_game(game_id)
+                                            else:
+                                                self.frame_analyzer.reset_coordinate_tracking()
+                                            print(f"🎯 Reset frame analyzer tracking for new game {game_id}")
+                                        except Exception as e:
+                                            print(f"⚠️ Failed to reset frame analyzer: {e}")
+                                    print(f"🔄 All actions will now benefit from boundary awareness and coordinate intelligence")
+
+                                return {
+                                    'guid': guid,
+                                    'game_id': game_id,
+                                    'scorecard_id': self.current_scorecard_id,
+                                    'state': result.get('state', 'NOT_STARTED'),
+                                    'frame': result.get('frame', []),
+                                    'available_actions': result.get('available_actions', [1,2,3,4,5,6,7]),
+                                    'score': result.get('score', 0),
+                                    'reset_type': reset_type.lower().replace(' ', '_')
+                                }
+                            else:
+                                print(f"❌ No GUID returned for game {game_id}")
+                                return None
+                        elif status == 429:
+                            # Handle rate limit exceeded
+                            self.rate_limiter.handle_429_response()
+                            print(f"🚫 Rate limit exceeded on RESET {game_id} - will retry with backoff")
+                            await asyncio.sleep(self.rate_limiter.backoff_delay)
+                            continue  # Retry loop
+                        elif 500 <= status < 600:
+                            # Transient server error - retry with backoff
+                            print(f"⚠️ Server error on RESET {game_id}: {status} - attempt {attempt}/{max_retries}")
+                            await asyncio.sleep(min(self.rate_limiter.backoff_delay or 1.0, ARC3_RATE_LIMIT['backoff_max_delay']))
+                            continue
                         else:
-                            print(f"❌ No GUID returned for game {game_id}")
+                            self.rate_limiter.handle_success_response()  # Not a rate limit issue
+                            error_text = await response.text()
+                            print(f"❌ RESET failed: {status} - {error_text}")
                             return None
-                    elif response.status == 429:
-                        # Handle rate limit exceeded
-                        self.rate_limiter.handle_429_response()
-                        print(f"🚫 Rate limit exceeded on RESET {game_id} - will retry with backoff")
-                        # Retry after backoff
-                        await asyncio.sleep(self.rate_limiter.backoff_delay)
-                        return await self._start_game_session(game_id, existing_guid)  # Recursive retry
-                    else:
-                        self.rate_limiter.handle_success_response()  # Not a rate limit issue
-                        error_text = await response.text()
-                        print(f"❌ RESET failed: {response.status} - {error_text}")
-                        return None
+                    # End of attempt loop - if we reach here and didn't return, try again
+                # Exhausted retries
+                print(f"❌ RESET failed after {max_retries} attempts for {game_id}")
+                return None
                         
         except asyncio.TimeoutError:
             print(f"⏰ API request timeout on RESET {game_id}")
@@ -1302,31 +1280,39 @@ class ContinuousLearningLoop:
             await self.rate_limiter.acquire()
             
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=ARC3_RATE_LIMIT['request_timeout'])) as session:
-                async with session.post(url, headers=headers, json=payload) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        self.rate_limiter.handle_success_response()
-                        scorecard_id = result.get('card_id')
-                        
-                        if scorecard_id:
-                            self.current_scorecard_id = scorecard_id
-                            print(f"✅ Scorecard opened: {scorecard_id}")
-                            return scorecard_id
+                max_retries = 3
+                attempt = 0
+                while attempt < max_retries:
+                    attempt += 1
+                    async with session.post(url, headers=headers, json=payload) as response:
+                        status = response.status
+                        if status == 200:
+                            result = await response.json()
+                            self.rate_limiter.handle_success_response()
+                            scorecard_id = result.get('card_id')
+                            if scorecard_id:
+                                self.current_scorecard_id = scorecard_id
+                                print(f"✅ Scorecard opened: {scorecard_id}")
+                                return scorecard_id
+                            else:
+                                print(f"❌ No card_id returned")
+                                return None
+                        elif status == 429:
+                            self.rate_limiter.handle_429_response()
+                            print(f"🚫 Rate limit exceeded opening scorecard - will retry with backoff")
+                            await asyncio.sleep(self.rate_limiter.backoff_delay)
+                            continue
+                        elif 500 <= status < 600:
+                            print(f"⚠️ Server error opening scorecard: {status} (attempt {attempt}/{max_retries})")
+                            await asyncio.sleep(min(self.rate_limiter.backoff_delay or 1.0, ARC3_RATE_LIMIT['backoff_max_delay']))
+                            continue
                         else:
-                            print(f"❌ No card_id returned")
+                            self.rate_limiter.handle_success_response()
+                            error_text = await response.text()
+                            print(f"❌ Failed to open scorecard: {status} - {error_text}")
                             return None
-                    elif response.status == 429:
-                        # Handle rate limit exceeded
-                        self.rate_limiter.handle_429_response()
-                        print(f"🚫 Rate limit exceeded opening scorecard - will retry with backoff")
-                        # Retry after backoff
-                        await asyncio.sleep(self.rate_limiter.backoff_delay)
-                        return await self._open_scorecard()  # Recursive retry
-                    else:
-                        self.rate_limiter.handle_success_response()  # Not a rate limit issue
-                        error_text = await response.text()
-                        print(f"❌ Failed to open scorecard: {response.status} - {error_text}")
-                        return None
+                print(f"❌ Failed to open scorecard after {max_retries} attempts")
+                return None
                         
         except asyncio.TimeoutError:
             print(f"⏰ API request timeout opening scorecard")
@@ -1537,6 +1523,27 @@ class ContinuousLearningLoop:
 
         except Exception:
             return None, (64, 64)
+
+    def _verify_grid_bounds(self, x: int, y: int, width: int, height: int) -> bool:
+        """Return True if (x,y) are within 0..width-1 and 0..height-1."""
+        try:
+            if width <= 0 or height <= 0:
+                return False
+            return 0 <= x < width and 0 <= y < height
+        except Exception:
+            return False
+
+    def _safe_coordinate_fallback(self, grid_width: int, grid_height: int, reason: str = "bounds check failed") -> Tuple[int, int]:
+        """Return a safe coordinate (center) when bounds are invalid."""
+        try:
+            gx = int(grid_width) if grid_width else 64
+            gy = int(grid_height) if grid_height else 64
+            cx = max(0, min(gx - 1, gx // 2)) if gx > 0 else 32
+            cy = max(0, min(gy - 1, gy // 2)) if gy > 0 else 32
+            logger.debug(f"Safe coordinate fallback used ({cx},{cy}) due to: {reason}")
+            return cx, cy
+        except Exception:
+            return 32, 32
     
     def _extract_game_state_from_output(self, stdout: str, stderr: str) -> str:
         """Extract game state from command output."""
@@ -1703,32 +1710,63 @@ class ContinuousLearningLoop:
             try:
                 norm_arr, (gw, gh) = self._normalize_frame(frame)
                 if norm_arr is not None:
-                    frame_array = norm_arr
-                    # Color and pattern analysis
-                    unique_colors = np.unique(frame_array)
-                    color_info = {
-                        'unique_colors': unique_colors.tolist(),
-                        'color_count': int(len(unique_colors)),
-                        'dominant_color': int(np.bincount(frame_array.flatten()).argmax()) if frame_array.size > 0 else 0
-                    }
-                    enhanced_analysis['color_analysis'] = color_info
+                    # Ensure integer dtype for bincount/unique
+                    try:
+                        frame_array = norm_arr.astype(int)
+                    except Exception:
+                        frame_array = np.array(norm_arr, dtype=int)
 
-                    # Pattern complexity analysis
-                    total_elements = int(frame_array.size)
-                    complexity_score = len(unique_colors) / total_elements if total_elements > 0 else 0
-                    enhanced_analysis['complexity'] = {
-                        'score': complexity_score,
-                        'is_simple': complexity_score < 0.1,
-                        'is_complex': complexity_score > 0.5
-                    }
+                    # Safe flatten
+                    flat = frame_array.flatten() if frame_array is not None else np.array([], dtype=int)
+                    if flat.size == 0:
+                        # Nothing to analyze beyond presence
+                        enhanced_analysis['color_analysis'] = {'unique_colors': [], 'color_count': 0, 'dominant_color': 0}
+                        enhanced_analysis['complexity'] = {'score': 0.0, 'is_simple': True, 'is_complex': False}
+                    else:
+                        # Unique colors
+                        try:
+                            unique_colors = np.unique(flat)
+                        except Exception:
+                            unique_colors = np.array([], dtype=int)
 
-                    # Simple boundary detection (based on edge complexity)
-                    if len(unique_colors) > 2:  # Has boundaries if more than background + one color
-                        enhanced_analysis['boundary_analysis'] = {
-                            'has_clear_boundaries': True,
-                            'boundary_count': len(unique_colors) - 1,
-                            'complexity_level': 'high' if complexity_score > 0.5 else 'medium' if complexity_score > 0.2 else 'low'
+                        # Dominant color via bincount (guarded)
+                        dominant = 0
+                        try:
+                            # bincount requires non-negative ints
+                            if flat.dtype.kind not in ('i', 'u'):
+                                flat_vals = flat.astype(int)
+                            else:
+                                flat_vals = flat
+                            if flat_vals.size > 0:
+                                counts = np.bincount(flat_vals)
+                                if counts.size > 0:
+                                    dominant = int(np.argmax(counts))
+                        except Exception:
+                            dominant = 0
+
+                        color_info = {
+                            'unique_colors': unique_colors.tolist() if unique_colors is not None else [],
+                            'color_count': int(len(unique_colors)) if unique_colors is not None else 0,
+                            'dominant_color': dominant
                         }
+                        enhanced_analysis['color_analysis'] = color_info
+
+                        # Pattern complexity analysis
+                        total_elements = int(flat.size)
+                        complexity_score = (len(unique_colors) / total_elements) if total_elements > 0 else 0.0
+                        enhanced_analysis['complexity'] = {
+                            'score': complexity_score,
+                            'is_simple': complexity_score < 0.1,
+                            'is_complex': complexity_score > 0.5
+                        }
+
+                        # Simple boundary detection (based on edge complexity)
+                        if len(unique_colors) > 2:  # Has boundaries if more than background + one color
+                            enhanced_analysis['boundary_analysis'] = {
+                                'has_clear_boundaries': True,
+                                'boundary_count': len(unique_colors) - 1,
+                                'complexity_level': 'high' if complexity_score > 0.5 else 'medium' if complexity_score > 0.2 else 'low'
+                            }
             except Exception as frame_error:
                 print(f"⚠️ Frame structure analysis failed: {frame_error}")
                 frame_array = None
@@ -8659,6 +8697,15 @@ class ContinuousLearningLoop:
                     game_id, selected_action, x, y, actual_grid_dims[0], actual_grid_dims[1], current_frame_analysis
                 )
                 
+                # Ensure tracking lists exist
+                if 'effective_actions' not in locals():
+                    effective_actions = []
+                if 'action_history' not in locals():
+                    action_history = []
+
+                # Initialize was_effective default to False to avoid unbound local errors
+                was_effective = False
+
                 if action_result:
                     # Update state from response
                     new_state = action_result.get('state', current_state)
