@@ -173,6 +173,13 @@ class TrainingSession:
 
 
 class ContinuousLearningLoop:
+    # Update any logic that creates or references phase0 experiment results to use the new continuous_learning_data directory
+    self.phase0_experiment_results_dir = Path("continuous_learning_data/phase0_experiment_results")
+    self.phase0_experiment_results_dir.mkdir(parents=True, exist_ok=True)
+    self.lp_validation_results_path = self.phase0_experiment_results_dir / "lp_validation_results.yaml"
+    self.survival_test_results_path = self.phase0_experiment_results_dir / "survival_test_results.yaml"
+    self.phase0_logs_dir = self.phase0_experiment_results_dir / "logs"
+    self.phase0_logs_dir.mkdir(parents=True, exist_ok=True)
     """
     Manages continuous learning sessions for the Adaptive Learning Agent on ARC tasks.
     
@@ -204,8 +211,13 @@ class ContinuousLearningLoop:
                 "or copy .env.template to .env and add your API key."
             )
         
-        self.save_directory = Path(save_directory)
-        self.save_directory.mkdir(exist_ok=True)
+    # Use continuous_learning_data for adaptive learning evaluation results and architect evolution data
+    self.save_directory = Path(save_directory)
+    self.save_directory.mkdir(exist_ok=True)
+    self.adaptive_learning_eval_dir = Path("continuous_learning_data/adaptive_learning_agi_evaluation_1756519407")
+    self.adaptive_learning_eval_dir.mkdir(parents=True, exist_ok=True)
+    self.architect_evolution_data_dir = Path("continuous_learning_data/architect_evolution_data")
+    self.architect_evolution_data_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize meta-learning systems
         base_meta_learning = MetaLearningSystem(
@@ -214,6 +226,13 @@ class ContinuousLearningLoop:
             consolidation_interval=50,
             save_directory=str(self.save_directory / "base_meta_learning")
         )
+
+    # Update any logic that creates adaptive learning evaluation results to use the new continuous_learning_data directory
+    self.adaptive_learning_eval_path = self.adaptive_learning_eval_dir / "research_results.json"
+    # Update any logic that creates architect evolution data to use the new continuous_learning_data directory
+    self.architectural_insights_path = self.architect_evolution_data_dir / "architectural_insights.json"
+    self.evolution_history_path = self.architect_evolution_data_dir / "evolution_history.json"
+    self.evolution_strategies_path = self.architect_evolution_data_dir / "evolution_strategies.json"
         
         self.arc_meta_learning = ARCMetaLearningSystem(
             base_meta_learning=base_meta_learning,
