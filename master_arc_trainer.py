@@ -115,7 +115,7 @@ def setup_windows_logging():
     
     # File handler with UTF-8 encoding
     try:
-        file_handler = logging.FileHandler('master_arc_trainer.log', encoding='utf-8')
+        file_handler = logging.FileHandler('continuous_learning_data/logs/master_arc_trainer.log', encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter(log_format))
         handlers.append(file_handler)
@@ -350,7 +350,7 @@ class MasterARCTrainer:
                     try:
                         # Enhanced Governor with outcome tracking and cross-session learning
                         self.governor = MetaCognitiveGovernor(
-                            log_file="meta_cognitive_governor.log",
+                            log_file="continuous_learning_data/logs/meta_cognitive_governor.log",
                             outcome_tracking_dir="meta_learning_data",
                             persistence_dir="continuous_learning_data"
                         )

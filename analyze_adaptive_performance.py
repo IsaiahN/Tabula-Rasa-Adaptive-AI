@@ -50,7 +50,7 @@ def analyze_training_data():
 
     # 2. Analyze recent training results
     try:
-        with open('unified_trainer_results.json', 'r') as f:
+        with open('continuous_learning_data/unified_trainer_results.json', 'r') as f:
             recent_data = json.load(f)
         
         print('🚀 RECENT TRAINING RESULTS (Post-Adaptive Sleep System):')

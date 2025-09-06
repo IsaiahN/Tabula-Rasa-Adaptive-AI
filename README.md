@@ -84,47 +84,20 @@ python master_arc_trainer.py --mode analysis --compare-performance
 tabula-rasa/
 ├── master_arc_trainer.py           # 🎯 Main entry point - Meta-Cognitive Intelligence
 ├── src/
-│   ├── core/                        # Core cognitive systems
-│   │   ├── meta_cognitive_governor.py   # Third Brain runtime supervisor with 4-phase integration
-│   │   ├── architect.py                 # Zeroth Brain self-improvement
-│   │   ├── architect_evolution_engine.py # Phase 3: Autonomous architectural evolution
-│   │   ├── performance_optimization_engine.py # Phase 4: Intelligent performance optimization (NEW)
-│   │   ├── memory_pattern_optimizer.py # Phase 1: Memory pattern recognition and optimization
-│   │   ├── hierarchical_memory_clusterer.py # Phase 2: Intelligent memory clustering
-│   │   ├── meta_cognitive_memory_manager.py  # Intelligent memory management coordinator
-│   │   ├── agent.py                     # Adaptive learning agent
-│   │   ├── predictive_core.py           # World model prediction
-│   │   ├── meta_learning.py             # Meta-learning system
-│   │   ├── energy_system.py             # Energy and survival
-│   │   ├── salience_system.py           # Experience prioritization
-│   │   └── sleep_system.py              # Memory consolidation
-│   ├── arc_integration/             # ARC-AGI-3 integration
-│   │   ├── continuous_learning_loop.py  # Main training loop
-│   │   ├── arc_agent_adapter.py         # ARC API adapter
-│   │   └── arc_meta_learning.py         # ARC-specific learning
-│   ├── memory/                      # Memory systems
-│   │   └── dnc.py                   # Differentiable Neural Computer
-│   ├── goals/                       # Goal system
-│   ├── environment/                 # Training environments
-│   ├── monitoring/                  # Performance tracking
-│   └── utils/                       # Utilities
-├── tests/                           # Comprehensive test suite
-│   ├── unit/                       # Unit tests
-│   ├── integration/                # Integration tests
-│   └── system/                     # System tests
-├── configs/                         # Configuration files
-│   ├── base_config.yaml            # Base training configuration
-│   ├── phase0_config.yaml          # Phase 0 bootstrap config
-│   ├── phase1_config.yaml          # Phase 1 survival config
-│   └── training_config.yaml        # Advanced training config
-├── docs/                            # Documentation
-│   └── meta_cognitive_memory_solutions.md  # Memory management solutions
-├── examples/                        # Demo scripts
-├── continuous_learning_data/        # Training data and logs
-│   ├── base_meta_learning/          # Base meta-learning data
-│   └── *.json                       # Session and performance logs
-├── checkpoints/                     # Model checkpoints
-└── meta_learning_data/              # Meta-learning session data
+│   └── ...                         # Core cognitive and meta-cognitive systems
+├── continuous_learning_data/       # All logs, sessions, results, and backups
+│   ├── logs/                       # All log files (e.g., governor_decisions_*.log, master_arc_training_*.log)
+│   ├── sessions/                   # All session and results files (e.g., continuous_session_*.json, master_training_results_*.json)
+│   ├── backups/                    # Persistent and backup state (e.g., persistent_learning_state.json)
+│   ├── mutations/                  # Mutation and experimental files
+│   └── ...                         # Other learning data
+├── checkpoints/                    # Model checkpoints
+├── meta_learning_data/             # Meta-learning session data
+├── configs/                        # Configuration files
+├── docs/                           # Documentation
+├── examples/                       # Demo scripts
+├── tests/                          # Comprehensive test suite
+└── ...
 ```
 
 ## 🎮 Training Modes
@@ -217,6 +190,17 @@ The **Architect** enables autonomous evolution through:
 - **Unified configuration**: No parameter confusion or duplication
 - **Meta-cognitive optimization**: Governor can adjust parameters dynamically
 - **Cross-session persistence**: Settings learned and maintained across sessions
+
+### Log and Data File Organization (2025+)
+
+All logs, session data, and results are now organized under the `continuous_learning_data/` directory for clarity and maintainability:
+
+- `continuous_learning_data/logs/` — All log files (e.g., `governor_decisions_*.log`, `master_arc_training_*.log`, `meta_cognitive_training_*.log`)
+- `continuous_learning_data/sessions/` — All session and results files (e.g., `continuous_session_*.json`, `master_training_results_*.json`, `meta_cognitive_results_*.json`)
+- `continuous_learning_data/backups/` — Persistent and backup state (e.g., `persistent_learning_state.json`, `training_state_backup.json`)
+- `continuous_learning_data/mutations/` — Mutation and experimental files
+
+All code and scripts now read/write these files in their new locations. The root directory remains clean and organized.
 
 ## 🗂️ 4-Phase Meta-Cognitive Memory Optimization System
 

@@ -267,11 +267,26 @@ architect_config = {
 
 ## 📝 Logging and Monitoring
 
-### Log Files Generated:
-- **`governor.log`:** Governor decisions and recommendations
-- **`architect.log`:** Architectural changes and evolution cycles  
-- **`meta_cognitive_training.log`:** Combined training session logs
-- **`performance_history.json`:** Detailed performance metrics over time
+### Log and Data File Organization (2025+)
+
+All logs, session data, and results are now organized under the `continuous_learning_data/` directory for clarity and maintainability:
+
+#### Subfolder Structure:
+
+- `continuous_learning_data/logs/` — All log files (e.g., `governor_decisions_*.log`, `master_arc_training_*.log`, `meta_cognitive_training_*.log`)
+- `continuous_learning_data/sessions/` — All session and results files (e.g., `continuous_session_*.json`, `master_training_results_*.json`, `meta_cognitive_results_*.json`)
+- `continuous_learning_data/backups/` — Persistent and backup state (e.g., `persistent_learning_state.json`, `training_state_backup.json`)
+- `continuous_learning_data/mutations/` — Mutation and experimental files
+
+#### Example Files:
+- `continuous_learning_data/logs/governor_decisions_1757057647.log`
+- `continuous_learning_data/logs/master_arc_training_1757134683.log`
+- `continuous_learning_data/sessions/continuous_session_1757096995.json`
+- `continuous_learning_data/sessions/master_training_results_1757135245.json`
+- `continuous_learning_data/sessions/meta_cognitive_results_meta_cognitive_session_1757051827.json`
+- `continuous_learning_data/backups/persistent_learning_state.json`
+
+All code and scripts now read/write these files in their new locations. The root directory remains clean and organized.
 
 ### Key Metrics Dashboard:
 ```python

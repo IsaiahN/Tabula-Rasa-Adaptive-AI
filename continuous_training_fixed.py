@@ -36,7 +36,7 @@ def setup_windows_logging():
     
     # File handler with UTF-8 encoding
     try:
-        file_handler = logging.FileHandler('meta_cognitive_training.log', encoding='utf-8')
+        file_handler = logging.FileHandler('continuous_learning_data/logs/meta_cognitive_training.log', encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter(log_format))
         handlers.append(file_handler)
