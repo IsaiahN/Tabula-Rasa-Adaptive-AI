@@ -71,8 +71,9 @@ shutdown_requested = False
 training_state = {}
 
 def setup_windows_logging():
-    """Set up logging that works properly on Windows."""
+    """Set up logging that works properly on Windows with real-time terminal and file output."""
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    simple_format = '%(message)s'  # For terminal display
     
     # Create handlers with UTF-8 encoding
     handlers = []
@@ -103,24 +104,34 @@ def setup_windows_logging():
                     record.msg = str(record.msg).encode('ascii', errors='replace').decode('ascii')
                     return super().format(record)
         
-        console_handler.setFormatter(SafeFormatter(log_format))
-        handlers.append(console_handler)
+        console_handler.setFormatter(SafeFormatter(simple_format))  # Simple format for console
         
     except Exception:
         # Fallback: basic console handler
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
-        console_handler.setFormatter(logging.Formatter(log_format))
-        handlers.append(console_handler)
+        console_handler.setFormatter(logging.Formatter(simple_format))
     
-    # File handler with UTF-8 encoding
+    # Create TeeHandler for simultaneous file and console output
     try:
+        tee_handler = TeeHandler(
+            file_path='continuous_learning_data/logs/master_arc_trainer_output.log',
+            console_handler=console_handler
+        )
+        tee_handler.setLevel(logging.INFO)
+        tee_handler.setFormatter(SafeFormatter(log_format) if 'SafeFormatter' in locals() else logging.Formatter(log_format))
+        handlers.append(tee_handler)
+        
+        # Also add separate file handler for detailed logs
         file_handler = logging.FileHandler('continuous_learning_data/logs/master_arc_trainer.log', encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter(log_format))
         handlers.append(file_handler)
-    except Exception:
-        pass  # Skip file logging if it fails
+        
+    except Exception as e:
+        # Fallback to console-only
+        handlers.append(console_handler)
+        print(f"Warning: Could not set up file logging: {e}")
     
     # Configure root logger
     try:
@@ -140,10 +151,54 @@ def setup_windows_logging():
         logging.getLogger('git').setLevel(logging.WARNING)
     except Exception:
         pass
+    
+    print("🚀 Enhanced logging initialized - real-time terminal and file output enabled")
 
-def safe_print(text: str, use_color: bool = True):
-    """Print text safely, handling Unicode encoding issues on Windows."""
+class TeeHandler(logging.Handler):
+    """Custom handler that writes to both file and console simultaneously."""
+    
+    def __init__(self, file_path: str, console_handler: logging.Handler):
+        super().__init__()
+        self.file_path = file_path
+        self.console_handler = console_handler
+        # Ensure log directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+    def emit(self, record):
+        try:
+            # Format the record
+            msg = self.format(record)
+            
+            # Write to file (append mode, UTF-8 encoding)
+            with open(self.file_path, 'a', encoding='utf-8') as f:
+                f.write(msg + '\n')
+                f.flush()
+            
+            # Also emit to console
+            if self.console_handler:
+                self.console_handler.emit(record)
+                
+        except Exception:
+            self.handleError(record)
+
+def safe_print(text: str, use_color: bool = True, log_to_file: bool = True):
+    """Print text safely to both terminal and log file, handling Unicode encoding issues on Windows."""
     try:
+        # Always log to the master output file if requested
+        if log_to_file:
+            log_path = 'continuous_learning_data/logs/master_arc_trainer_output.log'
+            try:
+                os.makedirs(os.path.dirname(log_path), exist_ok=True)
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    # Strip ANSI codes for file logging
+                    import re
+                    clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+                    f.write(clean_text + '\r\n')
+                    f.flush()
+            except Exception as e:
+                # Don't let file logging errors prevent console output
+                pass
+        
         # On Windows, handle encoding issues more gracefully
         if os.name == 'nt':  # Windows
             try:
@@ -154,24 +209,26 @@ def safe_print(text: str, use_color: bool = True):
                 pass
         
         if COLOR_AVAILABLE and use_color:
-            print(text, flush=False)  # Don't force flush to avoid Windows issues
+            print(text, flush=True)  # Force flush for real-time output
         else:
             # Strip ANSI color codes if colorama not available
             import re
             clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-            print(clean_text, flush=False)
+            print(clean_text, flush=True)
+            
     except (UnicodeEncodeError, OSError) as e:
         # Fallback: encode to ASCII and ignore problematic characters
         try:
+            import re
             clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text) if '\x1b[' in text else text
             safe_text = clean_text.encode('ascii', errors='ignore').decode('ascii')
-            print(safe_text)
+            print(safe_text, flush=True)
         except Exception:
             # Ultimate fallback - just print a safe message
-            print("Output contains non-displayable characters")
+            print("Output contains non-displayable characters", flush=True)
     except Exception:
         # Any other exception - print safe message
-        print("Output contains non-displayable characters")
+        print("Output contains non-displayable characters", flush=True)
 
 def signal_handler(signum, frame):
     """Handle graceful shutdown signals."""
@@ -1182,6 +1239,9 @@ class ContinuousTrainingRunner:
         safe_print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         safe_print(f"=" * 60 + Style.RESET_ALL)
         
+        # Initialize the enhanced output file
+        safe_print("🚀 Enhanced terminal output enabled - showing real-time progress")
+        
         # Initialize dashboard
         await self._setup_dashboard()
         
@@ -1522,6 +1582,9 @@ async def main():
     parser = create_parser()
     args = parser.parse_args()
     
+    # Set up enhanced logging first
+    setup_windows_logging()
+    
     # Use safe print for the header
     safe_print("🚀 MASTER ARC TRAINER - Unified Training System", True)
     safe_print("=" * 60, False)
@@ -1586,11 +1649,9 @@ async def main():
     
     # Handle continuous training mode
     if args.continuous_training or args.mode == 'continuous-training':
-        # Setup Windows logging for continuous mode
-        setup_windows_logging()
-        
         safe_print(f"{Fore.CYAN}TABULA RASA - CONTINUOUS META-COGNITIVE TRAINING")
         safe_print(f"Windows-compatible version with enhanced error handling{Style.RESET_ALL}")
+        safe_print("📺 Real-time terminal output enabled - you'll see progress as it happens")
         
         runner = ContinuousTrainingRunner(dashboard_mode=args.dashboard, config=config)
         

@@ -9,6 +9,9 @@ import aiohttp
 import json
 import logging
 import numpy as np
+
+# Set up logger for this module
+logger = logging.getLogger(__name__)
 import os
 import math
 import random
@@ -26,6 +29,45 @@ from collections import deque  # Added for rate limiting
 from arc_integration.arc_meta_learning import ARCMetaLearningSystem
 from core.meta_learning import MetaLearningSystem
 from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
+# Import FrameAnalyzer
+try:
+    from vision.frame_analyzer import FrameAnalyzer
+except ImportError:
+    # Fallback FrameAnalyzer if the main one isn't available
+    class FrameAnalyzer:
+        def __init__(self):
+            pass
+        def analyze_frame(self, frame, game_id):
+            return {}
+        def reset_coordinate_tracking(self):
+            pass
+        def reset_for_new_game(self, game_id):
+            pass
+
+# Import other required systems
+try:
+    from core.energy_system import EnergySystem
+except ImportError:
+    # Fallback EnergySystem
+    class EnergySystem:
+        def __init__(self):
+            pass
+
+try:
+    from goals.goal_system import GoalInventionSystem
+except ImportError:
+    # Fallback GoalInventionSystem
+    class GoalInventionSystem:
+        def __init__(self):
+            pass
+
+try:
+    from core.agent import AdaptiveLearningAgent
+except ImportError:
+    # Fallback AdaptiveLearningAgent
+    class AdaptiveLearningAgent:
+        def __init__(self, config):
+            pass
 # Fallback comparator if salience comparator module unavailable
 try:
     from salience_mode_comparison import SalienceModeComparator
