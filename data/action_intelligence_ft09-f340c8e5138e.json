@@ -6,8 +6,8 @@
   "effective_actions": {
     "6": {
       "success_rate": 1.0,
-      "attempts": 66,
-      "successes": 66
+      "attempts": 82,
+      "successes": 82
     }
   },
   "winning_sequences": [],
@@ -20,8 +20,8 @@
       },
       "45,32": {
         "success_rate": 1.0,
-        "attempts": 4,
-        "successes": 4
+        "attempts": 5,
+        "successes": 5
       },
       "35,29": {
         "success_rate": 1.0,
@@ -30,8 +30,8 @@
       },
       "28,29": {
         "success_rate": 1.0,
-        "attempts": 7,
-        "successes": 7
+        "attempts": 8,
+        "successes": 8
       },
       "50,32": {
         "success_rate": 1.0,
@@ -45,8 +45,8 @@
       },
       "47,32": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 5,
+        "successes": 5
       },
       "52,3": {
         "success_rate": 1.0,
@@ -55,8 +55,8 @@
       },
       "52,32": {
         "success_rate": 1.0,
-        "attempts": 4,
-        "successes": 4
+        "attempts": 5,
+        "successes": 5
       },
       "46,32": {
         "success_rate": 1.0,
@@ -70,8 +70,8 @@
       },
       "53,32": {
         "success_rate": 1.0,
-        "attempts": 2,
-        "successes": 2
+        "attempts": 4,
+        "successes": 4
       },
       "44,0": {
         "success_rate": 1.0,
@@ -85,8 +85,8 @@
       },
       "51,32": {
         "success_rate": 1.0,
-        "attempts": 4,
-        "successes": 4
+        "attempts": 9,
+        "successes": 9
       },
       "44,32": {
         "success_rate": 1.0,
@@ -95,8 +95,8 @@
       },
       "54,32": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 2,
+        "successes": 2
       },
       "55,32": {
         "success_rate": 1.0,
@@ -105,8 +105,8 @@
       },
       "34,29": {
         "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
+        "attempts": 3,
+        "successes": 3
       },
       "48,32": {
         "success_rate": 1.0,
@@ -116,8 +116,8 @@
     }
   },
   "action_transitions": {
-    "((6,), 6, (6,))": 1116
+    "((6,), 6, (6,))": 1603
   },
   "total_sessions_learned": 1,
-  "last_updated": 1757217530.0231512
+  "last_updated": 1757220766.194917
 }

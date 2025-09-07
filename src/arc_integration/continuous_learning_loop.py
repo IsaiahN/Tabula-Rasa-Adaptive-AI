@@ -12,6 +12,16 @@ import numpy as np
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
+try:
+    # Runtime instrumentation: print the file path when this module is imported so we can
+    # confirm which copy of the module the Python process actually loaded at runtime.
+    try:
+        resolved_path = Path(__file__).resolve()
+    except Exception:
+        resolved_path = getattr(sys.modules.get(__name__), '__file__', 'unknown')
+    print(f"MODULE IMPORTED: continuous_learning_loop -> {resolved_path}")
+except Exception:
+    logger.exception("Failed to emit module import instrumentation")
 import os
 import math
 import random
@@ -632,6 +642,11 @@ class ContinuousLearningLoop:
             'exploration_bonus': 25,  # Extra actions if exploring new coordinates
             'score_improvement_bonus': 30  # Extra actions after score improvement
         }
+        # Runtime instrumentation: print action cap system so logs show which config is active
+        try:
+            print(f"DEBUG ACTION CAP SYSTEM: {self._action_cap_system}")
+        except Exception:
+            logger.exception("Failed to print action cap system for debugging")
         
         # 🔧 CRITICAL FIX: Enhanced progress tracking for smarter termination
         self._progress_tracker = {
