@@ -79,41 +79,43 @@ class DashboardEvent:
 
 class MetaCognitiveDashboard:
     """Real-time visualization dashboard for meta-cognitive systems."""
-    
+
     def __init__(self, mode: DashboardMode = DashboardMode.CONSOLE,
                  update_interval: float = 2.0,
                  data_retention_hours: int = 24,
                  logger: Optional[logging.Logger] = None):
-        
+        # Basic configuration
         self.mode = mode
-        self.update_interval = update_interval
-        self.data_retention_hours = data_retention_hours
+        self.update_interval = float(update_interval)
+        self.data_retention_hours = int(data_retention_hours)
         self.logger = logger or logging.getLogger(f"{__name__}.Dashboard")
-        
+
         # Data storage
         self.metrics = deque(maxlen=10000)
         self.events = deque(maxlen=1000)
         self.performance_history = defaultdict(lambda: deque(maxlen=500))
         self.decision_history = deque(maxlen=200)
-        
+
         # Current state tracking
-        self.current_session_id = None
-        self.session_start_time = None
+        self.current_session_id: Optional[str] = None
+        self.session_start_time: Optional[float] = None
         self.last_update = time.time()
-        
-        # Dashboard state
+        # Track last scores per source for delta computation
+        self._last_scores: Dict[str, float] = {}
+
+        # Dashboard runtime state
         self.is_running = False
-        self.update_thread = None
+        self.update_thread: Optional[threading.Thread] = None
         self.gui_root = None
-        self.gui_components = {}
-        
+        self.gui_components: Dict[str, Any] = {}
+
         # Event subscribers
-        self.event_subscribers = []
-        
-        # Initialize display
+        self.event_subscribers: List[Callable[[DashboardEvent], None]] = []
+
+        # Initialize display (GUI or console)
         self._initialize_display()
-        
-        self.logger.info(f"Meta-cognitive dashboard initialized in {mode.value} mode")
+
+        self.logger.info(f"Meta-cognitive dashboard initialized in {self.mode.value} mode")
     
     def start(self, session_id: str = None):
         """Start the dashboard monitoring."""
@@ -430,6 +432,16 @@ class MetaCognitiveDashboard:
             events_frame = ttk.Frame(notebook)
             notebook.add(events_frame, text="Events")
             self._create_events_tab(events_frame)
+
+            # Frame Analyzer tab (GUI only) - shows frames, requested actions, scores
+            frame_analyzer_frame = ttk.Frame(notebook)
+            notebook.add(frame_analyzer_frame, text="Frame Analyzer")
+            self._create_frame_analyzer_tab(frame_analyzer_frame)
+
+            # File Ops tab - show deletions, ranking and progress on learning files
+            file_ops_frame = ttk.Frame(notebook)
+            notebook.add(file_ops_frame, text="File Ops")
+            self._create_file_ops_tab(file_ops_frame)
             
             # Start GUI update loop
             self.gui_root.after(1000, self._update_gui)
@@ -518,20 +530,154 @@ class MetaCognitiveDashboard:
     
     def _create_performance_tab(self, parent):
         """Create performance tab content."""
-        perf_label = ttk.Label(parent, text="Performance metrics will be displayed here", 
-                              font=('Arial', 12))
-        perf_label.pack(expand=True)
-        
-        # TODO: Add matplotlib integration for performance graphs
+        perf_frame = ttk.Frame(parent)
+        perf_frame.pack(fill='both', expand=True, padx=6, pady=6)
+
+        stats_frame = ttk.LabelFrame(perf_frame, text='Live Performance', padding=6)
+        stats_frame.pack(fill='x', padx=4, pady=4)
+        self.gui_components['perf_latest'] = ttk.Label(stats_frame, text='Latest: N/A')
+        self.gui_components['perf_latest'].pack(anchor='w')
+
+        # If matplotlib is available, embed a small time-series plot
         if MATPLOTLIB_AVAILABLE:
-            # Placeholder for performance graphs
-            pass
+            try:
+                from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+                fig = plt.Figure(figsize=(6, 3), dpi=80)
+                ax = fig.add_subplot(111)
+                ax.set_title('Score over time')
+                ax.set_ylabel('Score')
+                ax.set_xlabel('Time')
+                canvas = FigureCanvasTkAgg(fig, master=perf_frame)
+                canvas.get_tk_widget().pack(fill='both', expand=True)
+                self.gui_components['perf_fig'] = fig
+                self.gui_components['perf_ax'] = ax
+                self.gui_components['perf_canvas'] = canvas
+            except Exception:
+                # Graceful fallback if embedding fails
+                self.gui_components['perf_fig'] = None
+                self.gui_components['perf_ax'] = None
+                self.gui_components['perf_canvas'] = None
+        else:
+            note = ttk.Label(perf_frame, text='Matplotlib not available - install to see live graphs')
+            note.pack()
     
     def _create_events_tab(self, parent):
-        """Create events tab content."""
-        events_label = ttk.Label(parent, text="System events will be displayed here", 
-                                font=('Arial', 12))
-        events_label.pack(expand=True)
+        """Create events tab content with a searchable tree/list."""
+        # Tree for events: Time, Type, Source, Title, Importance
+        columns = ('Time', 'Type', 'Source', 'Title', 'Importance')
+        events_tree = ttk.Treeview(parent, columns=columns, show='headings', height=20)
+        for col in columns:
+            events_tree.heading(col, text=col)
+            events_tree.column(col, width=150)
+        events_tree.pack(side='left', fill='both', expand=True, padx=6, pady=6)
+        scrollbar = ttk.Scrollbar(parent, orient='vertical', command=events_tree.yview)
+        events_tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side='right', fill='y')
+        self.gui_components['events_tree'] = events_tree
+        # search/filter entry
+        search_frame = ttk.Frame(parent)
+        search_frame.pack(fill='x', padx=6)
+        ttk.Label(search_frame, text='Filter:').pack(side='left')
+        filter_entry = ttk.Entry(search_frame)
+        filter_entry.pack(side='left', fill='x', expand=True, padx=4)
+        self.gui_components['events_filter'] = filter_entry
+
+    def _create_frame_analyzer_tab(self, parent):
+        """Create the Frame Analyzer GUI components."""
+        # Left: frame preview (simulated with Canvas)
+        left = ttk.Frame(parent)
+        left.pack(side='left', fill='both', expand=True, padx=5, pady=5)
+
+        preview_frame = ttk.LabelFrame(left, text="Frame Preview", padding=6)
+        preview_frame.pack(fill='both', expand=True)
+
+        # Canvas to draw simple rectangles/text to simulate frame updates
+        canvas = tk.Canvas(preview_frame, bg='black', width=480, height=360)
+        canvas.pack(fill='both', expand=True)
+        self.gui_components['frame_canvas'] = canvas
+
+        # Right: action list and score info
+        right = ttk.Frame(parent)
+        right.pack(side='right', fill='y', padx=5, pady=5)
+
+        actions_frame = ttk.LabelFrame(right, text='Requested Actions', padding=6)
+        actions_frame.pack(fill='both', expand=False)
+        actions_list = tk.Listbox(actions_frame, height=10, width=40)
+        actions_list.pack(fill='both', expand=True)
+        self.gui_components['actions_list'] = actions_list
+
+        score_frame = ttk.LabelFrame(right, text='Score', padding=6)
+        score_frame.pack(fill='x', pady=6)
+        self.gui_components['current_score'] = ttk.Label(score_frame, text='Score: 0')
+        self.gui_components['current_score'].pack(anchor='w')
+        self.gui_components['win_score'] = ttk.Label(score_frame, text='Win Score: 0')
+        self.gui_components['win_score'].pack(anchor='w')
+        self.gui_components['score_delta'] = ttk.Label(score_frame, text='Δ: 0')
+        self.gui_components['score_delta'].pack(anchor='w')
+
+        # Session/scorecard full names
+        id_frame = ttk.LabelFrame(right, text='Session / Scorecard', padding=6)
+        id_frame.pack(fill='x', pady=6)
+        self.gui_components['full_scorecard_name'] = ttk.Label(id_frame, text='Scorecard: N/A')
+        self.gui_components['full_scorecard_name'].pack(anchor='w')
+        self.gui_components['full_session_name'] = ttk.Label(id_frame, text='Session: N/A')
+        self.gui_components['full_session_name'].pack(anchor='w')
+
+    def _create_file_ops_tab(self, parent):
+        """Create File Operations tab for deletion and ranking visualization."""
+        top = ttk.Frame(parent)
+        top.pack(fill='both', expand=True, padx=5, pady=5)
+
+        ops_frame = ttk.LabelFrame(top, text='File Operations', padding=6)
+        ops_frame.pack(fill='both', expand=True)
+
+        # Tree for files with ranking/priority
+        columns = ('File', 'Rank', 'Status')
+        file_tree = ttk.Treeview(ops_frame, columns=columns, show='headings', height=20)
+        for col in columns:
+            file_tree.heading(col, text=col)
+            file_tree.column(col, width=200)
+        file_tree.pack(side='left', fill='both', expand=True)
+        scrollbar = ttk.Scrollbar(ops_frame, orient='vertical', command=file_tree.yview)
+        file_tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side='right', fill='y')
+        self.gui_components['file_tree'] = file_tree
+
+        # Controls to simulate rank-up / delete
+        control_frame = ttk.Frame(parent)
+        control_frame.pack(fill='x', padx=5, pady=5)
+        ttk.Button(control_frame, text='Simulate Rank Up', command=self._simulate_rank_up).pack(side='left', padx=4)
+        ttk.Button(control_frame, text='Simulate Delete', command=self._simulate_delete).pack(side='left', padx=4)
+
+        # Status label
+        self.gui_components['file_ops_status'] = ttk.Label(parent, text='No operations yet')
+        self.gui_components['file_ops_status'].pack(anchor='w', padx=8, pady=4)
+
+    # --- File ops simulation helpers ---
+    def _simulate_rank_up(self):
+        """Simulate ranking up the top candidate file."""
+        if not hasattr(self, '_sim_files') or not self._sim_files:
+            return
+        # Pick highest-priority 'consider' file
+        candidate = None
+        for f in self._sim_files:
+            if f['status'] == 'consider':
+                candidate = f
+                break
+        if not candidate:
+            candidate = sorted(self._sim_files, key=lambda x: x['rank'])[0]
+        candidate['rank'] += 1
+        candidate['status'] = 'ranked'
+        self.log_event('FILE_RANK_UP', 'file_ops', f"Ranked up {candidate['file']}", f"New rank: {candidate['rank']}", importance=0.6, data=candidate)
+
+    def _simulate_delete(self):
+        """Simulate deleting the lowest-ranked file."""
+        if not hasattr(self, '_sim_files') or not self._sim_files:
+            return
+        # Pick lowest rank
+        lowest = sorted(self._sim_files, key=lambda x: x['rank'])[0]
+        lowest['status'] = 'deleted'
+        self.log_event('FILE_DELETED', 'file_ops', f"Deleted {lowest['file']}", f"Rank was: {lowest['rank']}", importance=0.8, data=lowest)
     
     def _update_loop(self):
         """Main update loop for the dashboard."""
@@ -713,6 +859,154 @@ class MetaCognitiveDashboard:
                         ))
                 except Exception as tree_error:
                     self.logger.warning(f"Failed to update decision tree: {tree_error}")
+
+            # Update Frame Analyzer GUI components
+            try:
+                # Simulated frame drawing: draw moving rectangles to indicate motion
+                if 'frame_canvas' in self.gui_components:
+                    canvas = self.gui_components['frame_canvas']
+                    canvas.delete('all')
+                    # Use last few performance metrics to generate simple shapes
+                    recent_perf = list(self.performance_history.values())
+                    # Simple moving box based on time
+                    t = int(time.time() * 10) % 400
+                    x = 20 + (t % 440)
+                    y = 20 + ((t * 3) % 300)
+                    canvas.create_rectangle(x, y, x+60, y+40, fill='lime')
+                    canvas.create_text(10, 10, anchor='nw', text=f"Updated: {datetime.now().strftime('%H:%M:%S')}", fill='white')
+
+                # Actions list - show last performance metrics as 'requested actions'
+                if 'actions_list' in self.gui_components:
+                    actions_list = self.gui_components['actions_list']
+                    actions_list.delete(0, tk.END)
+                    # Convert recent metrics into human-friendly actions and show score deltas
+                    recent_metrics = list(self.metrics)[-12:]
+                    for m in reversed(recent_metrics):
+                        try:
+                            name = str(m.name)
+                            src = str(m.source)
+                            val = float(m.value) if m.value is not None else 0.0
+                        except Exception:
+                            name = str(m.name)
+                            src = str(m.source)
+                            val = 0.0
+
+                        delta_text = ''
+                        # If this metric looks like a score, compute delta versus last seen
+                        if 'score' in name.lower():
+                            prev = self._last_scores.get(src, 0.0)
+                            delta = val - prev
+                            symbol = '+' if delta > 0 else '-' if delta < 0 else ' '
+                            delta_text = f" ({symbol}{abs(delta):.1f})"
+                            self._last_scores[src] = val
+
+                        label = f"{src}:{name}={val:.1f}{delta_text}"
+                        actions_list.insert(tk.END, label)
+
+                # Score display - show current and win score with delta
+                if 'current_score' in self.gui_components:
+                    cur = 0.0
+                    win = 0.0
+                    # Look for 'score' and 'win_score' metrics
+                    for m in list(self.metrics)[-50:]:
+                        if m.name.lower() in ('score', 'average_score', 'game_score'):
+                            try:
+                                cur = float(m.value)
+                            except:
+                                cur = cur
+                        if m.name.lower() in ('win_score', 'target_score', 'target'):
+                            try:
+                                win = float(m.value)
+                            except:
+                                win = win
+
+                    delta = cur - getattr(self, '_last_displayed_score', 0.0)
+                    self._last_displayed_score = cur
+                    self.gui_components['current_score'].config(text=f"Score: {cur:.1f}")
+                    self.gui_components['win_score'].config(text=f"Win Score: {win:.1f}")
+                    self.gui_components['score_delta'].config(text=f"Δ: {delta:+.1f}")
+
+                    # Full names
+                    full_scorecard = getattr(self, '_scorecard_name', 'Scorecard: N/A')
+                    full_session = str(self.current_session_id or 'Session: N/A')
+                    self.gui_components['full_scorecard_name'].config(text=f"Scorecard: {full_scorecard}")
+                    self.gui_components['full_session_name'].config(text=f"Session: {full_session}")
+
+            except Exception as fa_err:
+                self.logger.warning(f"Failed to update Frame Analyzer UI: {fa_err}")
+
+            # Update File Ops view
+            try:
+                if 'file_tree' in self.gui_components:
+                    tree = self.gui_components['file_tree']
+                    # Keep an internal list of simulated learning files
+                    if not hasattr(self, '_sim_files'):
+                        # Initialize with some entries
+                        self._sim_files = [
+                            {'file': 'learned_patterns.pkl', 'rank': 5, 'status': 'kept'},
+                            {'file': 'policy_weights_v1.pt', 'rank': 3, 'status': 'kept'},
+                            {'file': 'candidate_rule_set.json', 'rank': 1, 'status': 'consider'},
+                        ]
+
+                    # Repopulate tree
+                    for iid in tree.get_children():
+                        tree.delete(iid)
+                    for f in self._sim_files:
+                        tree.insert('', 'end', values=(f['file'], f['rank'], f['status']))
+                    # Update status label
+                    self.gui_components['file_ops_status'].config(text=f"Files: {len(self._sim_files)} | Last update: {datetime.now().strftime('%H:%M:%S')}")
+            except Exception as fo_err:
+                self.logger.warning(f"Failed to update File Ops UI: {fo_err}")
+            # Update Events tree
+            try:
+                if 'events_tree' in self.gui_components:
+                    tree = self.gui_components['events_tree']
+                    filt = None
+                    if 'events_filter' in self.gui_components:
+                        filt = self.gui_components['events_filter'].get().strip()
+
+                    # Keep last 50 events
+                    recent_events = list(self.events)[-50:]
+                    # Clear tree
+                    for iid in tree.get_children():
+                        tree.delete(iid)
+
+                    for ev in reversed(recent_events):
+                        ts = datetime.fromtimestamp(ev.timestamp).strftime('%H:%M:%S')
+                        if filt and filt.lower() not in (ev.event_type.lower() + ev.source.lower() + ev.title.lower()):
+                            continue
+                        tree.insert('', 'end', values=(ts, ev.event_type, ev.source, str(ev.title)[:60], f"{ev.importance:.2f}"))
+            except Exception as ev_err:
+                self.logger.warning(f"Failed to update events tree: {ev_err}")
+
+            # Update Performance plot if available
+            try:
+                if self.gui_components.get('perf_ax') is not None:
+                    ax = self.gui_components['perf_ax']
+                    fig = self.gui_components['perf_fig']
+                    canvas = self.gui_components['perf_canvas']
+                    ax.clear()
+                    ax.set_title('Score over time')
+                    ax.set_ylabel('Score')
+                    ax.set_xlabel('Time')
+                    # Aggregate recent score-like metrics
+                    times = []
+                    values = []
+                    # look for any performance history keys that include 'score'
+                    for k, hist in self.performance_history.items():
+                        if 'score' in k:
+                            for entry in list(hist)[-200:]:
+                                times.append(datetime.fromtimestamp(entry['timestamp']))
+                                values.append(entry['value'])
+                    if times and values:
+                        ax.plot(times, values, '-o', markersize=4)
+                        fig.autofmt_xdate()
+                    canvas.draw_idle()
+                    # update latest label
+                    if values:
+                        self.gui_components['perf_latest'].config(text=f"Latest score: {values[-1]:.1f}")
+            except Exception as perf_err:
+                self.logger.warning(f"Failed to update performance plot: {perf_err}")
             
             # Schedule next update
             if self.gui_root:

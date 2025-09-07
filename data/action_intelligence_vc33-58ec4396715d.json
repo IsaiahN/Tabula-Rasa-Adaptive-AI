@@ -1,0 +1,28 @@
+{
+  "game_id": "vc33-58ec4396715d",
+  "initial_actions": [
+    6
+  ],
+  "effective_actions": {
+    "6": {
+      "success_rate": 1.0,
+      "attempts": 1,
+      "successes": 1
+    }
+  },
+  "winning_sequences": [],
+  "coordinate_patterns": {
+    "6": {
+      "43,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      }
+    }
+  },
+  "action_transitions": {
+    "((6,), 6, (6,))": 22
+  },
+  "total_sessions_learned": 0,
+  "last_updated": 1757204426.4980495
+}
