@@ -1,13 +1,13 @@
 {
-  "game_id": "vc33-58ec4396715d",
+  "game_id": "ft09-f340c8e5138e",
   "initial_actions": [
     6
   ],
   "effective_actions": {
     "6": {
       "success_rate": 1.0,
-      "attempts": 9,
-      "successes": 9
+      "attempts": 8,
+      "successes": 8
     }
   },
   "winning_sequences": [],
@@ -18,32 +18,32 @@
         "attempts": 1,
         "successes": 1
       },
-      "49,32": {
-        "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
-      },
-      "52,32": {
-        "success_rate": 1.0,
-        "attempts": 3,
-        "successes": 3
-      },
-      "36,29": {
-        "success_rate": 1.0,
-        "attempts": 1,
-        "successes": 1
-      },
       "45,32": {
         "success_rate": 1.0,
         "attempts": 1,
         "successes": 1
       },
-      "51,32": {
+      "35,29": {
         "success_rate": 1.0,
         "attempts": 1,
         "successes": 1
       },
-      "29,29": {
+      "28,29": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "50,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "56,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "47,32": {
         "success_rate": 1.0,
         "attempts": 1,
         "successes": 1
@@ -51,8 +51,8 @@
     }
   },
   "action_transitions": {
-    "((6,), 6, (6,))": 164
+    "((6,), 6, (6,))": 217
   },
   "total_sessions_learned": 0,
-  "last_updated": 1757211603.4874372
+  "last_updated": 1757211701.0909863
 }

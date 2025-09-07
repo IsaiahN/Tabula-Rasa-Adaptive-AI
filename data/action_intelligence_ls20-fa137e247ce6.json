@@ -9,6 +9,16 @@
   "effective_actions": {
     "1": {
       "success_rate": 1.0,
+      "attempts": 4,
+      "successes": 4
+    },
+    "2": {
+      "success_rate": 1.0,
+      "attempts": 2,
+      "successes": 2
+    },
+    "3": {
+      "success_rate": 1.0,
       "attempts": 1,
       "successes": 1
     }
@@ -21,9 +31,11 @@
     "4": {}
   },
   "action_transitions": {
-    "((1, 2, 3, 4), 2, (1, 2, 3, 4))": 16,
-    "((1, 2, 3, 4), 1, (1, 2, 3, 4))": 21
+    "((1, 2, 3, 4), 2, (1, 2, 3, 4))": 119,
+    "((1, 2, 3, 4), 1, (1, 2, 3, 4))": 148,
+    "((1, 2, 3, 4), 3, (1, 2, 3, 4))": 62,
+    "((1, 2, 3, 4), 4, (1, 2, 3, 4))": 12
   },
   "total_sessions_learned": 1,
-  "last_updated": 1757204434.1243346
+  "last_updated": 1757211513.376388
 }
