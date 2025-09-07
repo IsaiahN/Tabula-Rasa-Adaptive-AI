@@ -601,7 +601,7 @@ class AdaptiveLearningARCAgent(Agent):
         
     def _save_learning_data(self, insight: Dict[str, Any]):
         """Save learning data for future analysis."""
-        save_dir = Path("continuous_learning_data/arc_learning_data")
+        save_dir = Path("data/arc_learning_data")
         save_dir.mkdir(parents=True, exist_ok=True)
         filename = save_dir / f"{self.game_id}_episode_{len(self.performance_history)}.json"
         try:

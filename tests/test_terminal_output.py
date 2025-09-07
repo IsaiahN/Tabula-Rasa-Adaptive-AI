@@ -35,7 +35,7 @@ def test_safe_print():
     safe_print("✅ All tests completed!")
     
     # Check if output file was created
-    output_file = Path('continuous_learning_data/logs/master_arc_trainer_output.log')
+    output_file = Path('data/logs/master_arc_trainer_output.log')
     if output_file.exists():
         print(f"✅ Output file created: {output_file}")
         print(f"📊 File size: {output_file.stat().st_size} bytes")
@@ -69,7 +69,7 @@ def test_tee_handler():
     
     # Create TeeHandler
     tee_handler = TeeHandler(
-        file_path='continuous_learning_data/logs/test_tee_output.log',
+        file_path='data/logs/test_tee_output.log',
         console_handler=console_handler
     )
     tee_handler.setLevel(logging.INFO)
@@ -83,7 +83,7 @@ def test_tee_handler():
     logger.info("✅ TeeHandler test complete")
     
     # Check if file was created
-    test_file = Path('continuous_learning_data/logs/test_tee_output.log')
+    test_file = Path('data/logs/test_tee_output.log')
     if test_file.exists():
         print(f"✅ TeeHandler file created: {test_file}")
         with open(test_file, 'r', encoding='utf-8') as f:
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         print("=" * 60)
         
         # Final verification
-        output_file = Path('continuous_learning_data/logs/master_arc_trainer_output.log')
+        output_file = Path('data/logs/master_arc_trainer_output.log')
         if output_file.exists():
             file_size = output_file.stat().st_size
             print(f"📊 Final output file size: {file_size} bytes")

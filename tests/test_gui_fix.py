@@ -59,22 +59,21 @@ def test_console_dashboard():
     dashboard.stop()
     print("✅ Console dashboard test completed successfully!")
     
-    return True
+    assert True
 
 def test_gui_dashboard():
     """Test GUI dashboard with the fixes."""
     print("\n🧪 Testing GUI Dashboard with Fixes...")
-    
     try:
         # Create dashboard in GUI mode
         dashboard = MetaCognitiveDashboard(
             mode=DashboardMode.GUI,
             update_interval=1.0
         )
-        
+
         # Start monitoring
         dashboard.start("test_session_gui")
-        
+
         # Test metrics that previously caused issues
         test_metrics = {
             'status': 'starting',
@@ -82,85 +81,88 @@ def test_gui_dashboard():
             'completion': 'completed',
             'score': 92.3
         }
-        
+
         print("📊 Logging test metrics to GUI...")
         dashboard.log_performance_update(test_metrics, "gui_test")
-        
+
         # Add some test events
         dashboard.log_event(
-            "TEST_EVENT", 
-            "test_system", 
-            "GUI Test Event", 
+            "TEST_EVENT",
+            "test_system",
+            "GUI Test Event",
             "Testing GUI with unicode: éñçødîng and special chars",
             importance=0.8
         )
-        
+
         print("✅ GUI dashboard initialized successfully!")
         print("Note: GUI window should open. Close it to continue the test.")
-        
+
         # Run GUI for a short time (non-blocking test)
         dashboard.gui_root.after(5000, dashboard.gui_root.quit)  # Auto-close after 5 seconds
         dashboard.run_gui()
-        
+
         # Stop dashboard
         dashboard.stop()
         print("✅ GUI dashboard test completed!")
-        
-        return True
-        
+        assert True
+
     except Exception as e:
         print(f"⚠️ GUI test failed (this is OK on headless systems): {e}")
-        return False
+        assert False
 
-async def test_continuous_training_dashboard():
-    """Test the continuous training dashboard functionality."""
-    print("\n🧪 Testing Continuous Training Dashboard...")
-    
-    dashboard = MetaCognitiveDashboard(
-        mode=DashboardMode.CONSOLE,
-        update_interval=1.0
-    )
-    
-    dashboard.start("continuous_test")
-    
-    # Simulate continuous training metrics
-    for session in range(3):
-        print(f"📈 Simulating training session {session + 1}...")
+def test_continuous_training_dashboard():
+    """Run the continuous training dashboard test via asyncio.run to avoid
+    depending on pytest async plugins."""
+    async def _body():
+        print("\n🧪 Testing Continuous Training Dashboard...")
         
-        # Metrics that mirror what the actual training sends
-        session_metrics = {
-            'session_number': session + 1,
-            'status': 'starting' if session == 0 else 'running',
-            'duration': 45.5 + (session * 12.3),
-            'success': True,
-            'win_rate': 0.6 + (session * 0.1),
-            'learning_efficiency': 0.8 - (session * 0.05)
-        }
+        dashboard = MetaCognitiveDashboard(
+            mode=DashboardMode.CONSOLE,
+            update_interval=1.0
+        )
         
-        dashboard.log_performance_update(session_metrics, 'continuous_runner')
+        dashboard.start("continuous_test")
         
-        # Simulate meta-cognitive activity
-        if session > 0:
-            dashboard.log_governor_decision(
-                recommendation={'type': 'adjust_parameters'},
-                confidence=0.75 + (session * 0.1),
-                context={'session': session + 1}
-            )
+        # Simulate continuous training metrics
+        for session in range(3):
+            print(f"📈 Simulating training session {session + 1}...")
+            
+            # Metrics that mirror what the actual training sends
+            session_metrics = {
+                'session_number': session + 1,
+                'status': 'starting' if session == 0 else 'running',
+                'duration': 45.5 + (session * 12.3),
+                'success': True,
+                'win_rate': 0.6 + (session * 0.1),
+                'learning_efficiency': 0.8 - (session * 0.05)
+            }
+            
+            dashboard.log_performance_update(session_metrics, 'continuous_runner')
+            
+            # Simulate meta-cognitive activity
+            if session > 0:
+                dashboard.log_governor_decision(
+                    recommendation={'type': 'adjust_parameters'},
+                    confidence=0.75 + (session * 0.1),
+                    context={'session': session + 1}
+                )
+            
+            await asyncio.sleep(1)  # Brief pause between sessions
         
-        await asyncio.sleep(1)  # Brief pause between sessions
-    
-    # Final status
-    final_metrics = {'status': 'completed', 'total_sessions': 3}
-    dashboard.log_performance_update(final_metrics, 'continuous_runner')
-    
-    # Get final summary
-    summary = dashboard.get_performance_summary(hours=1)
-    print(f"📋 Final summary: {summary['events']['total']} events, {len(summary['metrics'])} metrics")
-    
-    dashboard.stop()
-    print("✅ Continuous training dashboard test completed!")
-    
-    return True
+        # Final status
+        final_metrics = {'status': 'completed', 'total_sessions': 3}
+        dashboard.log_performance_update(final_metrics, 'continuous_runner')
+        
+        # Get final summary
+        summary = dashboard.get_performance_summary(hours=1)
+        print(f"📋 Final summary: {summary['events']['total']} events, {len(summary['metrics'])} metrics")
+        
+        dashboard.stop()
+        print("✅ Continuous training dashboard test completed!")
+        
+        return True
+
+    return __import__('asyncio').run(_body())
 
 if __name__ == "__main__":
     print("🔧 TESTING GUI FIXES FOR META-COGNITIVE DASHBOARD")

@@ -115,7 +115,7 @@ def setup_windows_logging():
     # Create TeeHandler for simultaneous file and console output
     try:
         tee_handler = TeeHandler(
-            file_path='continuous_learning_data/logs/master_arc_trainer_output.log',
+            file_path='data/logs/master_arc_trainer_output.log',
             console_handler=console_handler
         )
         tee_handler.setLevel(logging.INFO)
@@ -123,7 +123,7 @@ def setup_windows_logging():
         handlers.append(tee_handler)
         
         # Also add separate file handler for detailed logs
-        file_handler = logging.FileHandler('continuous_learning_data/logs/master_arc_trainer.log', encoding='utf-8')
+        file_handler = logging.FileHandler('data/logs/master_arc_trainer.log', encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter(log_format))
         handlers.append(file_handler)
@@ -186,7 +186,7 @@ def safe_print(text: str, use_color: bool = True, log_to_file: bool = True):
     try:
         # Always log to the master output file if requested
         if log_to_file:
-            log_path = 'continuous_learning_data/logs/master_arc_trainer_output.log'
+            log_path = 'data/logs/master_arc_trainer_output.log'
             try:
                 os.makedirs(os.path.dirname(log_path), exist_ok=True)
                 with open(log_path, 'a', encoding='utf-8') as f:
@@ -239,7 +239,7 @@ def signal_handler(signum, frame):
     print("💾 Saving training state...")
     
     try:
-        state_file = Path("continuous_learning_data/backups/training_state_backup.json")
+        state_file = Path("data/backups/training_state_backup.json")
         with open(state_file, 'w') as f:
             json.dump(training_state, f, indent=2)
         print(f"✅ Training state saved to: {state_file}")
@@ -335,6 +335,9 @@ class MasterTrainingConfig:
     compare_systems: bool = False
     performance_tests: bool = False
 
+# Backwards-compatible alias expected by some tests
+TrainingConfig = MasterTrainingConfig
+
 class MasterARCTrainer:
     """
     Master ARC trainer that unifies all training functionality.
@@ -374,7 +377,7 @@ class MasterARCTrainer:
 
         if not self.config.no_logs:
             # Use centralized setup to ensure UTF-8 encoding and rotation
-            log_filename = f'continuous_learning_data/logs/master_arc_training_{int(time.time())}.log'
+            log_filename = f'data/logs/master_arc_training_{int(time.time())}.log'
             setup_logging(log_path=log_filename, level=log_level)
 
         self.logger = logging.getLogger(__name__)
@@ -407,9 +410,9 @@ class MasterARCTrainer:
                     try:
                         # Enhanced Governor with outcome tracking and cross-session learning
                         self.governor = MetaCognitiveGovernor(
-                            log_file="continuous_learning_data/logs/meta_cognitive_governor.log",
-                            outcome_tracking_dir="continuous_learning_data/meta_learning_data",
-                            persistence_dir="continuous_learning_data"
+                            log_file="data/logs/meta_cognitive_governor.log",
+                            outcome_tracking_dir="data/meta_learning_data",
+                            persistence_dir="data"
                         )
                         self.logger.info("🧠 Meta-cognitive Governor (Third Brain) initialized")
                     except Exception as e:
@@ -819,7 +822,7 @@ class MasterARCTrainer:
             return
         
         timestamp = int(time.time())
-        results_file = f"continuous_learning_data/sessions/master_training_results_{timestamp}.json"
+        results_file = f"data/sessions/master_training_results_{timestamp}.json"
         try:
             # Clean results for JSON serialization recursively
             def clean_for_json(obj):
@@ -1145,7 +1148,7 @@ class MasterARCTrainer:
         if self.config.no_logs:
             return
         try:
-            log_file = f"continuous_learning_data/sessions/meta_cognitive_training_{self.session_id}.json"
+            log_file = f"data/sessions/meta_cognitive_training_{self.session_id}.json"
             # ...existing code for config_dict, clean_session_results, log_data...
             config_dict = {
                 'mode': self.config.mode,
@@ -1443,7 +1446,7 @@ class ContinuousTrainingRunner:
             safe_print(f"DASHBOARD: Stopping...")
             self.dashboard.stop()
             # Export session data
-            export_path = Path(f"continuous_learning_data/sessions/continuous_session_{int(time.time())}.json")
+            export_path = Path(f"data/sessions/continuous_session_{int(time.time())}.json")
             try:
                 if self.dashboard.export_session_data(export_path):
                     safe_print(f"EXPORT: Session data saved to {export_path}")

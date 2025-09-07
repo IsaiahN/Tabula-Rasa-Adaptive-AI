@@ -60,35 +60,35 @@ class MetaCognitiveMemoryManager:
         # Memory classification patterns
         self.classification_patterns = {
             MemoryClassification.CRITICAL_LOSSLESS: [
-                "continuous_learning_data/logs/governor_decisions_*.log",
-                "continuous_learning_data/architect_evolution_*.json",
-                "continuous_learning_data/meta_cognitive_results_*.json",
-                "continuous_learning_data/backups/persistent_learning_state.json",
-                "continuous_learning_data/unified_trainer_results.json",
-                "continuous_learning_data/cross_session_*.json",
-                "continuous_learning_data/outcome_tracking_*.json",
-                "continuous_learning_data/critical_breakthroughs_*.json"
+                "data/logs/governor_decisions_*.log",
+                "data/architect_evolution_*.json",
+                "data/meta_cognitive_results_*.json",
+                "data/backups/persistent_learning_state.json",
+                "data/unified_trainer_results.json",
+                "data/cross_session_*.json",
+                "data/outcome_tracking_*.json",
+                "data/critical_breakthroughs_*.json"
             ],
             MemoryClassification.IMPORTANT_DECAY: [
-                "continuous_learning_data/meta_learning_session_*.json",
-                "continuous_learning_data/session_session_*.json",
-                "continuous_learning_data/action_intelligence_*.json",
-                "continuous_learning_data/combined_score_*.json",
-                "continuous_learning_data/memory_hierarchy_*.json",
-                "continuous_learning_data/salience_patterns_*.json"
+                "data/meta_learning_session_*.json",
+                "data/session_session_*.json",
+                "data/action_intelligence_*.json",
+                "data/combined_score_*.json",
+                "data/memory_hierarchy_*.json",
+                "data/salience_patterns_*.json"
             ],
             MemoryClassification.REGULAR_DECAY: [
-                "continuous_learning_data/sessions/continuous_session_*.json",
-                "continuous_learning_data/training_episode_*.json",
-                "continuous_learning_data/performance_metrics_*.json",
-                "continuous_learning_data/coordination_logs_*.json"
+                "data/sessions/continuous_session_*.json",
+                "data/training_episode_*.json",
+                "data/performance_metrics_*.json",
+                "data/coordination_logs_*.json"
             ],
             MemoryClassification.TEMPORARY_PURGE: [
-                "continuous_learning_data/temp_*.json",
-                "continuous_learning_data/debug_*.log",
-                "continuous_learning_data/sandbox_*.json",
-                "continuous_learning_data/mutations/mutation_exploratory_temp_*.json",
-                "continuous_learning_data/test_temp_*.json"
+                "data/temp_*.json",
+                "data/debug_*.log",
+                "data/sandbox_*.json",
+                "data/mutations/mutation_exploratory_temp_*.json",
+                "data/test_temp_*.json"
             ]
         }
         
@@ -172,8 +172,8 @@ class MetaCognitiveMemoryManager:
         
         # Scan all relevant directories
         scan_dirs = [
-            self.base_path / "continuous_learning_data" / "meta_learning_data",
-            self.base_path / "continuous_learning_data", 
+            self.base_path / "data" / "meta_learning_data",
+            self.base_path / "data", 
             self.base_path / "checkpoints",
             self.base_path / "research_results",
             self.base_path  # Root level files

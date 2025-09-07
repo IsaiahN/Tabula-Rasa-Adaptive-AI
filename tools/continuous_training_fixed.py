@@ -41,7 +41,7 @@ def setup_windows_logging():
     
     # File handler with UTF-8 encoding
     try:
-        file_handler = logging.FileHandler('continuous_learning_data/logs/meta_cognitive_training.log', encoding='utf-8')
+        file_handler = logging.FileHandler('data/logs/meta_cognitive_training.log', encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(logging.Formatter(log_format))
         handlers.append(file_handler)
@@ -304,7 +304,7 @@ class ContinuousMetaCognitiveRunner:
             self.dashboard.stop()
             
             # Export session data
-            export_path = Path(f"continuous_learning_data/sessions/continuous_session_{int(time.time())}.json")
+            export_path = Path(f"data/sessions/continuous_session_{int(time.time())}.json")
             try:
                 if self.dashboard.export_session_data(export_path):
                     print(f"EXPORT: Session data saved to {export_path}")

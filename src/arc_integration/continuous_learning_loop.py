@@ -233,7 +233,7 @@ class ContinuousLearningLoop:
         arc_agents_path: str,
         tabula_rasa_path: str,
         api_key: Optional[str] = None,
-        save_directory: str = "continuous_learning_data"
+        save_directory: str = "data"
     ):
         self.arc_agents_path = Path(arc_agents_path)
         self.tabula_rasa_path = Path(tabula_rasa_path)
@@ -3714,8 +3714,8 @@ class ContinuousLearningLoop:
         try:
             memory_paths = [
                 Path("checkpoints"),
-                Path("continuous_learning_data/meta_learning_data"),
-                Path("continuous_learning_data"),
+                Path("data/meta_learning_data"),
+                Path("data"),
                 Path("test_meta_learning_data")
             ]
             
@@ -7805,8 +7805,8 @@ class ContinuousLearningLoop:
             
             # Look for memory files in the continuous learning data directory
             memory_dirs = [
-                Path("continuous_learning_data"),
-                Path("continuous_learning_data/meta_learning_data"), 
+                Path("data"),
+                Path("data/meta_learning_data"), 
                 Path("test_meta_learning_data")
             ]
             
@@ -7849,8 +7849,8 @@ class ContinuousLearningLoop:
             current_time = time.time()
             
             memory_dirs = [
-                Path("continuous_learning_data"),
-                Path("continuous_learning_data/meta_learning_data"),
+                Path("data"),
+                Path("data/meta_learning_data"),
                 Path("test_meta_learning_data") 
             ]
             
@@ -7904,7 +7904,7 @@ class ContinuousLearningLoop:
             memory_clusters = defaultdict(list)
             
             # Group memories by similarity patterns
-            memory_dir = Path("continuous_learning_data")
+            memory_dir = Path("data")
             if memory_dir.exists():
                 for memory_file in memory_dir.glob("*.json"):
                     try:

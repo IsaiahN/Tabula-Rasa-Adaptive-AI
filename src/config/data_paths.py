@@ -81,32 +81,32 @@ class DataPaths:
         """Get mapping from old paths to new paths for migration."""
         return {
             # Root data directory
-            "continuous_learning_data": str(cls.BASE),
+            "data": str(cls.BASE),
             
             # Training paths
-            "continuous_learning_data/sessions": str(cls.TRAINING_SESSIONS),
-            "continuous_learning_data/meta_learning_data": str(cls.TRAINING_META_LEARNING),
+            "data/sessions": str(cls.TRAINING_SESSIONS),
+            "data/meta_learning_data": str(cls.TRAINING_META_LEARNING),
             
             # Logging paths  
-            "continuous_learning_data/logs": str(cls.LOGS_TRAINING),
-            "continuous_learning_data/logs/governor_decisions": str(cls.LOGS_GOVERNOR),
+            "data/logs": str(cls.LOGS_TRAINING),
+            "data/logs/governor_decisions": str(cls.LOGS_GOVERNOR),
             
             # Memory paths
-            "continuous_learning_data/backups": str(cls.MEMORY_BACKUPS),
-            "continuous_learning_data/memory_backups": str(cls.MEMORY_BACKUPS),
+            "data/backups": str(cls.MEMORY_BACKUPS),
+            "data/memory_backups": str(cls.MEMORY_BACKUPS),
             
             # Architecture paths
-            "continuous_learning_data/architect_evolution_data": str(cls.ARCHITECTURE_EVOLUTION),
-            "continuous_learning_data/mutations": str(cls.ARCHITECTURE_MUTATIONS),
+            "data/architect_evolution_data": str(cls.ARCHITECTURE_EVOLUTION),
+            "data/mutations": str(cls.ARCHITECTURE_MUTATIONS),
             
             # Experiments
-            "continuous_learning_data/adaptive_learning_agi_evaluation": str(cls.EXPERIMENTS_EVALUATIONS),
-            "continuous_learning_data/phase0_experiment_results": str(cls.EXPERIMENTS_PHASE0),
-            "continuous_learning_data/performance_optimization_data": str(cls.EXPERIMENTS_PERFORMANCE),
+            "data/adaptive_learning_agi_evaluation": str(cls.EXPERIMENTS_EVALUATIONS),
+            "data/phase0_experiment_results": str(cls.EXPERIMENTS_PHASE0),
+            "data/performance_optimization_data": str(cls.EXPERIMENTS_PERFORMANCE),
             
             # Legacy directories
-            "continuous_learning_data/base_meta_learning": str(cls.TRAINING_META_LEARNING),
-            "continuous_learning_data/meta_cognitive": str(cls.MEMORY_PERSISTENT),
+            "data/base_meta_learning": str(cls.TRAINING_META_LEARNING),
+            "data/meta_cognitive": str(cls.MEMORY_PERSISTENT),
         }
 
 # === SPECIFIC FILE PATHS ===
@@ -167,7 +167,7 @@ def get_config_path(*path_components) -> Path:
 DataPaths.ensure_directories()
 
 # Legacy compatibility - will be removed after migration
-LEGACY_BASE_DIR = "continuous_learning_data"
+LEGACY_BASE_DIR = "data"
 
 def get_migrated_path(old_path: str) -> str:
     """Convert old path format to new organized structure."""
