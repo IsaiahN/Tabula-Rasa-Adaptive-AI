@@ -1,0 +1,977 @@
+2025-09-06 22:12:41,455 - INFO - arc_integration.arc_meta_learning - ARC Meta-Learning System initialized
+2025-09-06 22:12:41,457 - INFO - src.arc_integration.continuous_learning_loop - ✅ Enhanced sleep system initialized for memory consolidation
+2025-09-06 22:12:41,457 - INFO - src.arc_integration.continuous_learning_loop - ✅ Using unified energy system (adaptive features integrated)
+2025-09-06 22:12:41,458 - INFO - goals.goal_system - Goal system initialized in survival phase
+2025-09-06 22:12:41,542 - INFO - core.agent - Predictive core initialized with lstm architecture
+2025-09-06 22:12:41,580 - INFO - core.agent - DNC memory system initialized and integrated with predictive core
+2025-09-06 22:12:41,582 - INFO - core.agent - Learning progress drive initialized
+2025-09-06 22:12:41,583 - INFO - core.agent - Energy and death management system initialized
+2025-09-06 22:12:41,583 - INFO - goals.goal_system - Goal system initialized in survival phase
+2025-09-06 22:12:41,584 - INFO - core.agent - Goal system initialized in survival phase
+2025-09-06 22:12:41,593 - INFO - core.agent - Action selection system initialized
+2025-09-06 22:12:41,594 - INFO - core.agent - Sleep and dream cycle system initialized
+2025-09-06 22:12:41,595 - INFO - core.agent - Monitoring and metrics system initialized
+2025-09-06 22:12:41,598 - INFO - core.agent - Meta-learning system initialized
+2025-09-06 22:12:41,599 - INFO - core.agent - Adaptive Learning Agent initialized successfully
+2025-09-06 22:12:41,600 - INFO - src.arc_integration.continuous_learning_loop - Demo agent initialized for monitoring
+2025-09-06 22:12:41,623 - INFO - src.arc_integration.continuous_learning_loop - Continuous Learning Loop initialized with ARC-3 API integration
+2025-09-06 22:12:41,626 - INFO - __main__ - ✅ Coordinate intelligence initialized
+2025-09-06 22:12:41,627 - INFO - src.core.meta_cognitive_governor.Governor - Outcome tracking enabled
+2025-09-06 22:12:41,629 - INFO - src.core.meta_cognitive_governor.Governor - Loaded 0 learned patterns from disk
+2025-09-06 22:12:41,643 - INFO - src.core.meta_cognitive_governor.Governor - Cross-session learning manager initialized with 0 existing patterns
+2025-09-06 22:12:41,644 - INFO - src.core.meta_cognitive_governor.Governor - Cross-session learning enabled
+2025-09-06 22:12:41,645 - INFO - src.core.meta_cognitive_governor.Governor - Meta-cognitive memory management enabled
+2025-09-06 22:12:41,645 - INFO - src.core.meta_cognitive_governor.Governor - Memory pattern optimization enabled - Phase 1 immediate wins
+2025-09-06 22:12:41,646 - INFO - src.core.hierarchical_memory_clusterer - 🗂️ HierarchicalMemoryClusterer initialized for Phase 2
+2025-09-06 22:12:41,646 - INFO - src.core.meta_cognitive_governor.Governor - Hierarchical memory clustering enabled - Phase 2 intelligent clusters
+2025-09-06 22:12:41,647 - INFO - src.core.architect_evolution_engine - 🏗️ Architect Evolution Engine initialized for Phase 3
+2025-09-06 22:12:41,648 - INFO - src.core.architect_evolution_engine -    Autonomous evolution: enabled
+2025-09-06 22:12:41,648 - INFO - src.core.architect_evolution_engine -    Loaded 0 existing insights
+2025-09-06 22:12:41,649 - INFO - src.core.architect_evolution_engine -    Loaded 0 evolution strategies
+2025-09-06 22:12:41,649 - INFO - src.core.meta_cognitive_governor.Governor - Architect Evolution Engine enabled - Phase 3 autonomous evolution
+2025-09-06 22:12:41,651 - INFO - src.core.performance_optimization_engine - ⚡ Initialized 1 adaptive configurations
+2025-09-06 22:12:41,695 - INFO - src.core.performance_optimization_engine - ⚡ Real-time optimization thread started
+2025-09-06 22:12:41,697 - INFO - src.core.performance_optimization_engine - ⚡ Performance Optimization Engine initialized for Phase 4
+2025-09-06 22:12:41,697 - INFO - src.core.performance_optimization_engine -    Real-time optimization: enabled
+2025-09-06 22:12:41,698 - INFO - src.core.performance_optimization_engine -    Optimization interval: 60.0s
+2025-09-06 22:12:41,698 - INFO - src.core.performance_optimization_engine -    Loaded 0 optimization history entries
+2025-09-06 22:12:41,699 - INFO - src.core.performance_optimization_engine -    Adaptive configurations: 1
+2025-09-06 22:12:41,699 - INFO - src.core.meta_cognitive_governor.Governor - Performance Optimization Engine enabled - Phase 4 performance maximization
+2025-09-06 22:12:41,700 - INFO - src.core.meta_cognitive_governor.Governor - 🔍 Initialized 37 cognitive system monitors
+2025-09-06 22:12:41,700 - INFO - src.core.meta_cognitive_governor.Governor - 🧠 MetaCognitiveGovernor initialized - Third Brain online
+2025-09-06 22:12:41,701 - INFO - __main__ - 🧠 Meta-cognitive Governor (Third Brain) initialized
+2025-09-06 22:12:41,702 - INFO - src.core.architect.Architect - Architect memory management enabled
+2025-09-06 22:12:41,705 - INFO - src.core.architect.Architect - ✅ Already on correct branch: Tabula-Rasa-v3
+2025-09-06 22:12:41,707 - INFO - src.core.architect.Architect - ✅ GitIgnore already configured for Architect control
+2025-09-06 22:12:41,708 - INFO - src.core.architect.Architect - 🔬 Architect initialized - Zeroth Brain online
+2025-09-06 22:12:41,709 - INFO - __main__ - 🏗️ Architect (Zeroth Brain) initialized
+2025-09-06 22:12:41,709 - INFO - __main__ - ✅ Core systems initialized successfully
+2025-09-06 22:12:42,416 - INFO - __main__ - 🚀 Starting training mode: meta-cognitive-training
+2025-09-06 22:12:42,418 - INFO - __main__ - Meta-Cognitive Training Mode - Comprehensive monitoring
+2025-09-06 22:12:42,427 - INFO - src.core.meta_cognitive_governor.Governor - Started outcome measurement outcome_1757214762_4429 for governor_mode_switch
+2025-09-06 22:12:42,428 - INFO - src.core.meta_cognitive_governor.Governor - 🎯 Governor recommendation: mode_switch (confidence: 0.80)
+2025-09-06 22:12:42,430 - INFO - __main__ - No games specified, fetching from ARC-AGI-3 API...
+2025-09-06 22:12:42,686 - INFO - src.arc_integration.continuous_learning_loop - Retrieved 6 available games from ARC-AGI-3 API
+2025-09-06 22:12:42,689 - INFO - __main__ - Selected 6 games from ARC API: ['sp80-5f3511b239b8', 'ft09-f340c8e5138e', 'lp85-2e205bbe3622', 'vc33-58ec4396715d', 'as66-821a4dcad9c2', 'ls20-fa137e247ce6']
+2025-09-06 22:12:42,690 - INFO - src.arc_integration.continuous_learning_loop - ✅ Unified energy system configured: current=91.2/100, sleep_threshold=40.0, energy_costs=standardized
+2025-09-06 22:12:42,693 - INFO - src.arc_integration.continuous_learning_loop - Started training session session_1757214762 with 6 games using lossless mode
+2025-09-06 22:12:42,694 - INFO - src.arc_integration.continuous_learning_loop - Running continuous learning for session session_1757214762
+2025-09-06 22:12:43,194 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:43,215 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Loaded action intelligence for ft09-f340c8e5138e: 1 effective actions
+2025-09-06 22:12:43,216 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:43,326 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:43,347 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Loaded action intelligence for sp80-5f3511b239b8: 4 effective actions
+2025-09-06 22:12:43,348 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:43,456 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:43,457 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:43,500 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:43,519 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Loaded action intelligence for lp85-2e205bbe3622: 1 effective actions
+2025-09-06 22:12:43,519 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:43,625 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:43,626 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:43,632 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:43,632 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:43,762 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:43,763 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:43,794 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:43,794 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:43,883 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:43,883 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:43,948 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:43,948 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,048 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:44,048 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:44,055 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:44,055 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,064 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:44,064 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,182 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:44,183 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,245 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:44,246 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:44,256 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:44,257 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,356 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:44,357 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,366 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:44,367 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:44,377 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:44,377 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,485 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:44,485 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,527 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:44,528 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:44,551 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:44,552 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,655 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:44,656 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,663 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for sp80-5f3511b239b8
+2025-09-06 22:12:44,664 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:44,759 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:44,760 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,790 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:44,790 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,830 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:44,831 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:44,942 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:44,943 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:44,971 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:44,972 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,075 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:45,076 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:45,087 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:45,087 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,195 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:45,196 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,243 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:45,244 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:45,261 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:45,261 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,372 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:45,388 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:45,389 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,498 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:45,512 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:45,513 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:45,563 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:45,564 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,678 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:45,692 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:45,692 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,702 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:45,702 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:45,806 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:45,806 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,869 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:45,870 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:45,959 - INFO - src.arc_integration.continuous_learning_loop - Action 3 successful for sp80-5f3511b239b8
+2025-09-06 22:12:45,960 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:45,987 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:45,988 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,096 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:46,110 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:46,110 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,121 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:46,121 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:46,286 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:46,286 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,302 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:46,302 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,405 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:46,406 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:46,411 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:46,411 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,533 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:46,534 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,596 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:46,597 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:46,607 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:46,607 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,712 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:46,713 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,721 - INFO - src.arc_integration.continuous_learning_loop - Action 4 successful for sp80-5f3511b239b8
+2025-09-06 22:12:46,722 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:46,855 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:46,855 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,877 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:46,877 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:46,892 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:46,893 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:46,996 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:47,041 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:47,042 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:47,056 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:47,057 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:47,162 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:47,163 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:47,171 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:47,171 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:47,289 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:47,290 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:47,297 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:47,297 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:47,347 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:47,347 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:47,456 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:47,472 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:47,473 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:47,483 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:12:47,484 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:47,728 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:12:47,729 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:47,734 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:12:47,734 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:48,143 - INFO - src.arc_integration.continuous_learning_loop - 💾 Saved action intelligence for ft09-f340c8e5138e: 1 effective actions
+2025-09-06 22:12:48,144 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Action Intelligence for ft09-f340c8e5138e: 1/1 effective actions, 12 coordinate patterns learned
+2025-09-06 22:12:50,509 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:50,522 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Loaded action intelligence for vc33-58ec4396715d: 1 effective actions
+2025-09-06 22:12:50,523 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:50,546 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:50,548 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Loaded action intelligence for as66-821a4dcad9c2: 4 effective actions
+2025-09-06 22:12:50,548 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:50,732 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:50,733 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Loaded action intelligence for ls20-fa137e247ce6: 3 effective actions
+2025-09-06 22:12:50,734 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:50,760 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:50,760 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:50,786 - INFO - src.arc_integration.continuous_learning_loop - Action 5 successful for as66-821a4dcad9c2
+2025-09-06 22:12:50,786 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:50,944 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:50,945 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:50,951 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:50,952 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:50,983 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:12:50,983 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:51,154 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:51,202 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:51,202 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:51,207 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:51,208 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:51,379 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:51,380 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:51,387 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:12:51,388 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:51,397 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:51,398 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:51,565 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:51,566 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:51,643 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:51,644 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:51,648 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:51,648 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:51,685 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:12:51,686 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:51,829 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:51,830 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:51,843 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:51,844 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:51,856 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:51,857 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:51,970 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:51,970 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:51,983 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:51,984 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:52,099 - INFO - src.arc_integration.continuous_learning_loop - Action 3 successful for ls20-fa137e247ce6
+2025-09-06 22:12:52,100 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:52,170 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:52,170 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:52,184 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:52,184 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:52,285 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:52,285 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:52,292 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:52,292 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:52,306 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:52,307 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:52,473 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:52,474 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:52,484 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:52,484 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:52,548 - INFO - src.arc_integration.continuous_learning_loop - Action 4 successful for ls20-fa137e247ce6
+2025-09-06 22:12:52,548 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:52,587 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:52,588 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:52,719 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:52,720 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:52,726 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:52,727 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:52,767 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:52,767 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:52,909 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:52,909 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:53,014 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:12:53,014 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:53,021 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for as66-821a4dcad9c2
+2025-09-06 22:12:53,021 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:53,079 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:53,079 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:53,189 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:53,190 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:53,199 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:53,199 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:53,253 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:53,254 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:53,314 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:12:53,314 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:53,319 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:53,319 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:53,487 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:53,487 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:53,497 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:53,498 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:53,507 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:53,508 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:53,658 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:12:53,659 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:53,664 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:53,664 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:53,730 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:53,730 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:53,832 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:53,832 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:53,853 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:53,853 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:53,862 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:53,862 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:54,020 - INFO - src.arc_integration.continuous_learning_loop - Action 3 successful for ls20-fa137e247ce6
+2025-09-06 22:12:54,020 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:54,080 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:54,081 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:54,091 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:54,092 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:54,192 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:54,193 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:54,262 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:54,262 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:54,315 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:12:54,315 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:54,319 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:54,320 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:54,442 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:54,443 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:54,495 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:54,496 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:54,511 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:54,512 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:54,621 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:54,621 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:54,630 - INFO - src.arc_integration.continuous_learning_loop - Action 4 successful for ls20-fa137e247ce6
+2025-09-06 22:12:54,631 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:54,634 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:54,635 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:54,809 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:54,810 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:54,881 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:54,881 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:54,888 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:54,888 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:54,999 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:55,059 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:55,060 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:55,077 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:12:55,078 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:55,179 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:55,180 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:55,256 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:55,257 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:55,285 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:55,286 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:55,304 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for as66-821a4dcad9c2
+2025-09-06 22:12:55,304 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:55,468 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:55,468 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:55,478 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:55,479 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:55,497 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:12:55,498 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:55,663 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:55,735 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:55,736 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:55,752 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:55,753 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:55,774 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:12:55,774 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:55,917 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:55,918 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:55,928 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:55,929 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:55,939 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:12:55,940 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:56,041 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:56,041 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:56,058 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:56,058 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:56,189 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:12:56,189 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:12:56,226 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:12:56,226 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:56,240 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:56,241 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:56,344 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:12:56,345 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:56,596 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:12:56,596 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:56,908 - INFO - src.arc_integration.continuous_learning_loop - 💾 Saved action intelligence for as66-821a4dcad9c2: 4 effective actions
+2025-09-06 22:12:56,908 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Action Intelligence for as66-821a4dcad9c2: 4/5 effective actions, 1 coordinate patterns learned
+2025-09-06 22:12:58,942 - INFO - arc_integration.arc_meta_learning - ARC meta-learning state saved to data\meta_learning_session_1757214762.json
+2025-09-06 22:12:58,943 - INFO - src.arc_integration.continuous_learning_loop - Completed training session session_1757214762 - Win rate: 0.0%
+2025-09-06 22:12:58,947 - INFO - src.core.meta_cognitive_governor.Governor - Started outcome measurement outcome_1757214778_6976 for governor_parameter_adjustment
+2025-09-06 22:12:58,948 - INFO - src.core.meta_cognitive_governor.Governor - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.60)
+2025-09-06 22:12:58,951 - INFO - __main__ - No games specified, fetching from ARC-AGI-3 API...
+2025-09-06 22:12:59,041 - INFO - src.arc_integration.continuous_learning_loop - Retrieved 6 available games from ARC-AGI-3 API
+2025-09-06 22:12:59,044 - INFO - __main__ - Selected 6 games from ARC API: ['sp80-5f3511b239b8', 'as66-821a4dcad9c2', 'lp85-2e205bbe3622', 'vc33-58ec4396715d', 'ft09-f340c8e5138e', 'ls20-fa137e247ce6']
+2025-09-06 22:12:59,044 - INFO - src.arc_integration.continuous_learning_loop - ✅ Unified energy system configured: current=81.9/100, sleep_threshold=40.0, energy_costs=standardized
+2025-09-06 22:12:59,046 - INFO - src.arc_integration.continuous_learning_loop - Started training session session_1757214779 with 6 games using lossless mode
+2025-09-06 22:12:59,047 - INFO - src.arc_integration.continuous_learning_loop - Running continuous learning for session session_1757214779
+2025-09-06 22:12:59,519 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:12:59,713 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:12:59,714 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:59,727 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:12:59,728 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:12:59,909 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for as66-821a4dcad9c2
+2025-09-06 22:12:59,909 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:59,956 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for sp80-5f3511b239b8
+2025-09-06 22:12:59,956 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:12:59,987 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:12:59,988 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:00,075 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:00,076 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:00,133 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:00,133 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:00,182 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:13:00,183 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:00,338 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:13:00,356 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for as66-821a4dcad9c2
+2025-09-06 22:13:00,357 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:00,379 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:13:00,379 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:00,535 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:13:00,536 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:00,565 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:00,566 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:00,579 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:00,580 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:00,693 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:13:00,706 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:13:00,706 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:00,770 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:13:00,771 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:00,857 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:00,858 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:00,875 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:13:00,876 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:00,937 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:00,938 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,042 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:13:01,042 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,125 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for as66-821a4dcad9c2
+2025-09-06 22:13:01,126 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,215 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:01,216 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,297 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:01,297 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,337 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for sp80-5f3511b239b8
+2025-09-06 22:13:01,338 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,462 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:13:01,463 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,512 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:01,513 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,650 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:01,651 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,677 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for sp80-5f3511b239b8
+2025-09-06 22:13:01,677 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:01,853 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:01,879 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for as66-821a4dcad9c2
+2025-09-06 22:13:01,880 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,003 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:13:02,005 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,049 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:02,051 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,178 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:02,179 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,239 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:13:02,239 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,356 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:13:02,356 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,413 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:02,414 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,529 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:02,531 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,549 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for as66-821a4dcad9c2
+2025-09-06 22:13:02,550 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,678 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:13:02,680 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,729 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:02,730 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,866 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:02,868 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:02,889 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for as66-821a4dcad9c2
+2025-09-06 22:13:02,890 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,003 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for sp80-5f3511b239b8
+2025-09-06 22:13:03,004 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,065 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:03,067 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,184 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:03,185 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,201 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:13:03,201 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,379 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:03,387 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for sp80-5f3511b239b8
+2025-09-06 22:13:03,387 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,504 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for as66-821a4dcad9c2
+2025-09-06 22:13:03,506 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,552 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:03,553 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,672 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:13:03,689 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:03,690 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,848 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:13:03,860 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:03,860 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:03,994 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:13:04,026 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:04,027 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:04,133 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:13:04,168 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:04,169 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:04,285 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for sp80-5f3511b239b8
+2025-09-06 22:13:04,302 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:04,303 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:04,435 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for as66-821a4dcad9c2
+2025-09-06 22:13:04,474 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:04,475 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:04,614 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:13:04,616 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:04,638 - INFO - src.arc_integration.continuous_learning_loop - Action 3 successful for sp80-5f3511b239b8
+2025-09-06 22:13:04,639 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:04,764 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:13:04,766 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:04,810 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:13:04,811 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:13:04,929 - INFO - src.arc_integration.continuous_learning_loop - Action 3 successful for sp80-5f3511b239b8
+2025-09-06 22:13:05,269 - INFO - src.arc_integration.continuous_learning_loop - 💾 Saved action intelligence for sp80-5f3511b239b8: 4 effective actions
+2025-09-06 22:13:05,270 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Action Intelligence for sp80-5f3511b239b8: 4/6 effective actions, 7 coordinate patterns learned
+2025-09-06 22:13:07,737 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:07,737 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:07,756 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:07,756 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:07,920 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:07,921 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:08,031 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:08,032 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,061 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:08,062 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,191 - INFO - src.arc_integration.continuous_learning_loop - Action 3 successful for ls20-fa137e247ce6
+2025-09-06 22:13:08,192 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:08,237 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:08,237 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,250 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:08,251 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,371 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:08,373 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:08,493 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:08,495 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,520 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:08,521 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,659 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:08,661 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:08,693 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:08,694 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,710 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:08,711 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,824 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:08,825 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,851 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:08,853 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:08,868 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:08,869 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:08,993 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:09,061 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:09,063 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,085 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:09,085 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,164 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:09,165 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:09,187 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:09,188 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,202 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:09,203 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,398 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:09,398 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,413 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:09,414 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,467 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:09,468 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:09,573 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:09,574 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,604 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:09,604 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,637 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:09,637 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:09,792 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:09,793 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,814 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:09,815 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:09,923 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:09,924 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:09,933 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:09,933 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,081 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:10,083 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,123 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:10,124 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:10,138 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:10,139 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,244 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:10,245 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:10,251 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:10,252 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,280 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:10,280 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,400 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:10,455 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:10,456 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:10,469 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:10,470 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,573 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:10,574 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:10,581 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:10,582 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,608 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:10,609 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,783 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:10,784 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:10,805 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:10,806 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,896 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:10,897 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:10,923 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:10,924 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,061 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:13:11,062 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:11,078 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:11,079 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,131 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:11,131 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,245 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:11,246 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:11,262 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:11,262 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,368 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:11,369 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,459 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:11,460 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,483 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:11,484 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:11,543 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:11,544 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,568 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:11,569 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,653 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:11,653 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:11,666 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:11,667 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,743 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:11,743 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,771 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:11,772 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:11,847 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:11,848 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,951 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:11,952 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:11,966 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:11,967 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:11,983 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:11,983 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:12,155 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:12,156 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:12,171 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:12,172 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:12,228 - INFO - src.arc_integration.continuous_learning_loop - Action 3 successful for ls20-fa137e247ce6
+2025-09-06 22:13:12,228 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:12,284 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:12,286 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:12,398 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:13:12,400 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:12,418 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:12,419 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:12,488 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:13:12,489 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:12,596 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:13:12,597 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:12,606 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:13:12,607 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:12,642 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:13:12,642 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:13:12,827 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:13:12,828 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:13:13,154 - INFO - src.arc_integration.continuous_learning_loop - 💾 Saved action intelligence for vc33-58ec4396715d: 1 effective actions
+2025-09-06 22:13:13,155 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Action Intelligence for vc33-58ec4396715d: 1/1 effective actions, 13 coordinate patterns learned
+2025-09-06 22:13:15,224 - INFO - arc_integration.arc_meta_learning - ARC meta-learning state saved to data\meta_learning_session_1757214779.json
+2025-09-06 22:13:15,224 - INFO - src.arc_integration.continuous_learning_loop - Completed training session session_1757214779 - Win rate: 0.0%
+2025-09-06 22:13:15,229 - INFO - src.core.meta_cognitive_governor.Governor - Started outcome measurement outcome_1757214795_3910 for governor_parameter_adjustment
+2025-09-06 22:13:15,231 - INFO - src.core.meta_cognitive_governor.Governor - 🎯 Governor recommendation: parameter_adjustment (confidence: 0.40)
+2025-09-06 22:13:15,238 - INFO - src.core.architect.Architect - 🧬 Starting evolution cycle 0
+2025-09-06 22:13:15,432 - INFO - src.core.architect.Architect - 🎯 Using training script: master_arc_trainer.py
+2025-09-06 22:13:15,436 - INFO - src.core.architect.Architect - 🎮 Running actual ARC training test: C:\Users\Admin\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\python.exe C:\Users\Admin\Documents\GitHub\tabula-rasa\master_arc_trainer.py --mode quick-validation --games ls20,ft09 --max-cycles 3 --session-duration 2 --no-logs --no-monitoring
+2025-09-06 22:14:45,479 - WARNING - src.core.architect.Architect - ⏰ Training test timed out, terminating process
+2025-09-06 22:14:45,583 - INFO - src.core.architect.Architect - 🧪 Mutation exploratory_1757214795 tested: overall_improvement=-14.265, duration=90.3s
+2025-09-06 22:14:45,644 - INFO - __main__ - No games specified, fetching from ARC-AGI-3 API...
+2025-09-06 22:14:46,080 - INFO - src.arc_integration.continuous_learning_loop - Retrieved 6 available games from ARC-AGI-3 API
+2025-09-06 22:14:46,086 - INFO - __main__ - Selected 6 games from ARC API: ['ls20-fa137e247ce6', 'lp85-2e205bbe3622', 'as66-821a4dcad9c2', 'vc33-58ec4396715d', 'sp80-5f3511b239b8', 'ft09-f340c8e5138e']
+2025-09-06 22:14:46,087 - INFO - src.arc_integration.continuous_learning_loop - ✅ Unified energy system configured: current=90.9/100, sleep_threshold=40.0, energy_costs=standardized
+2025-09-06 22:14:46,090 - INFO - src.arc_integration.continuous_learning_loop - Started training session session_1757214886 with 6 games using lossless mode
+2025-09-06 22:14:46,091 - INFO - src.arc_integration.continuous_learning_loop - Running continuous learning for session session_1757214886
+2025-09-06 22:14:46,695 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:46,696 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:46,896 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:46,896 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:46,909 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:46,910 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:46,988 - INFO - src.arc_integration.continuous_learning_loop - Action 4 successful for as66-821a4dcad9c2
+2025-09-06 22:14:46,988 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:47,154 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:47,182 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:47,183 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:47,203 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:14:47,203 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:47,371 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:47,372 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:47,381 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:47,381 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:47,448 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:14:47,449 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:47,551 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:14:47,552 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:47,622 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:47,622 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:47,693 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:47,694 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:47,714 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:47,715 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:47,763 - INFO - src.arc_integration.continuous_learning_loop - Action 4 successful for as66-821a4dcad9c2
+2025-09-06 22:14:47,763 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:47,873 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:47,874 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:47,881 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:14:47,882 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:47,922 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:47,922 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:48,044 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:48,045 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:48,077 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:48,077 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:48,091 - INFO - src.arc_integration.continuous_learning_loop - Action 4 successful for as66-821a4dcad9c2
+2025-09-06 22:14:48,091 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:48,233 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:14:48,233 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:48,254 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:48,254 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:48,263 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:48,263 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:48,398 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:48,398 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:48,406 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:48,406 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:48,553 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:14:48,554 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:48,558 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:14:48,558 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:48,576 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:48,576 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:48,722 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:48,723 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:48,730 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:48,731 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:48,872 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:14:48,872 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:48,880 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:48,880 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:49,016 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:14:49,016 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:49,044 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:49,044 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:49,054 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:49,054 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:49,190 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:49,190 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:49,197 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:49,198 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:49,212 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:14:49,213 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:49,373 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:49,373 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:49,382 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:49,383 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:49,450 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for as66-821a4dcad9c2
+2025-09-06 22:14:49,450 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:49,525 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:49,525 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:49,630 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:49,631 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:49,671 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:14:49,672 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:49,696 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:49,696 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:49,782 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:14:49,783 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:49,842 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:49,842 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:49,950 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:49,951 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:49,982 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:14:49,982 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:49,986 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:49,987 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:50,158 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:50,159 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:50,170 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:50,171 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:50,227 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:14:50,228 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:50,320 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:14:50,320 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:50,392 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:50,392 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:50,457 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:50,457 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:50,488 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:50,489 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:50,624 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:50,624 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:50,635 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for as66-821a4dcad9c2
+2025-09-06 22:14:50,636 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:50,641 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for ls20-fa137e247ce6
+2025-09-06 22:14:50,642 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:50,811 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for as66-821a4dcad9c2: max() iterable argument is empty
+2025-09-06 22:14:50,812 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:50,821 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ls20-fa137e247ce6: max() iterable argument is empty
+2025-09-06 22:14:50,822 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:50,900 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for lp85-2e205bbe3622
+2025-09-06 22:14:50,900 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:51,041 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for as66-821a4dcad9c2
+2025-09-06 22:14:51,042 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for as66-821a4dcad9c2: [1, 2, 3, 4, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:51,070 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for lp85-2e205bbe3622: max() iterable argument is empty
+2025-09-06 22:14:51,070 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for lp85-2e205bbe3622: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:51,133 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for ls20-fa137e247ce6
+2025-09-06 22:14:51,133 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ls20-fa137e247ce6: [1, 2, 3, 4] (loaded 3 cached patterns)
+2025-09-06 22:14:51,470 - INFO - src.arc_integration.continuous_learning_loop - 💾 Saved action intelligence for ls20-fa137e247ce6: 3 effective actions
+2025-09-06 22:14:51,471 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Action Intelligence for ls20-fa137e247ce6: 3/4 effective actions, 0 coordinate patterns learned
+2025-09-06 22:14:54,021 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:54,022 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:54,039 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:54,040 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:54,300 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:54,301 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:54,323 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for sp80-5f3511b239b8
+2025-09-06 22:14:54,324 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:54,348 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:54,349 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:54,526 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:54,527 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:54,537 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:54,537 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:54,583 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:54,583 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:54,765 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:54,798 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:54,799 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:54,810 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:54,811 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:54,961 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:54,962 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:54,988 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:54,989 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,036 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:55,037 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,121 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:55,123 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:55,223 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:55,224 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,276 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:55,277 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,296 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:55,296 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:55,388 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:55,389 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,440 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:55,441 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:55,469 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:55,470 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,576 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:55,576 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,607 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:55,608 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:55,620 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:55,621 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,749 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:55,750 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,787 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:55,788 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:55,826 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:55,827 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,940 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:55,941 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:55,953 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:55,954 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:55,998 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:55,999 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:56,196 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:56,234 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:56,235 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:56,266 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:56,267 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:56,453 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:56,454 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:56,482 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:56,483 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:56,499 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:56,500 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:56,637 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:56,638 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:56,669 - INFO - src.arc_integration.continuous_learning_loop - Action 2 successful for sp80-5f3511b239b8
+2025-09-06 22:14:56,670 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:56,684 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:56,684 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:56,833 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:56,851 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:56,851 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:56,865 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:56,866 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:57,024 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:57,026 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:57,052 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:57,053 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:57,059 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:57,060 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:57,214 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:57,235 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:57,235 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:57,250 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:57,251 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:57,419 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:57,421 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:57,452 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:57,452 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:57,462 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:57,463 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:57,639 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:57,641 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:57,663 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:57,664 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:57,791 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:57,792 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:57,819 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:57,820 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,014 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:58,015 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,040 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:58,041 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,054 - INFO - src.arc_integration.continuous_learning_loop - Action 3 successful for sp80-5f3511b239b8
+2025-09-06 22:14:58,054 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:58,212 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:58,213 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,230 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:58,230 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,244 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:58,245 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:58,402 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:58,419 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for vc33-58ec4396715d: max() iterable argument is empty
+2025-09-06 22:14:58,420 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,437 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for ft09-f340c8e5138e: max() iterable argument is empty
+2025-09-06 22:14:58,437 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,617 - WARNING - src.arc_integration.continuous_learning_loop - Frame analysis failed for sp80-5f3511b239b8: max() iterable argument is empty
+2025-09-06 22:14:58,617 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:58,628 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for vc33-58ec4396715d
+2025-09-06 22:14:58,629 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for vc33-58ec4396715d: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,643 - INFO - src.arc_integration.continuous_learning_loop - Action 6 successful for ft09-f340c8e5138e
+2025-09-06 22:14:58,644 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for ft09-f340c8e5138e: [6] (loaded 1 cached patterns)
+2025-09-06 22:14:58,836 - INFO - src.arc_integration.continuous_learning_loop - Action 1 successful for sp80-5f3511b239b8
+2025-09-06 22:14:58,836 - INFO - src.arc_integration.continuous_learning_loop - 🎮 Initialized actions for sp80-5f3511b239b8: [1, 2, 3, 4, 5, 6] (loaded 4 cached patterns)
+2025-09-06 22:14:59,262 - INFO - src.arc_integration.continuous_learning_loop - 💾 Saved action intelligence for sp80-5f3511b239b8: 4 effective actions
+2025-09-06 22:14:59,262 - INFO - src.arc_integration.continuous_learning_loop - 🧠 Action Intelligence for sp80-5f3511b239b8: 4/6 effective actions, 7 coordinate patterns learned
+2025-09-06 22:15:01,312 - INFO - arc_integration.arc_meta_learning - ARC meta-learning state saved to data\meta_learning_session_1757214886.json
+2025-09-06 22:15:01,313 - INFO - src.arc_integration.continuous_learning_loop - Completed training session session_1757214886 - Win rate: 0.0%
+2025-09-06 22:15:01,354 - ERROR - __main__ - Could not save meta-cognitive logs: [Errno 2] No such file or directory: 'data/sessions/meta_cognitive_training_master_training_1757214761.json'
+2025-09-06 22:15:01,358 - ERROR - __main__ - Could not save results: [Errno 2] No such file or directory: 'data/sessions/master_training_results_1757214901.json'
+2025-09-06 22:15:01,362 - INFO - ContinuousTrainingRunner - Session 6 completed: success=True, duration=139.9s
