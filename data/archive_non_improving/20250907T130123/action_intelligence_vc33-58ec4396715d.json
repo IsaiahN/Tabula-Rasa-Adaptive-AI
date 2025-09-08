@@ -1,0 +1,128 @@
+{
+  "game_id": "vc33-58ec4396715d",
+  "initial_actions": [
+    6
+  ],
+  "effective_actions": {
+    "6": {
+      "success_rate": 1.0,
+      "attempts": 185,
+      "successes": 185
+    }
+  },
+  "winning_sequences": [],
+  "coordinate_patterns": {
+    "6": {
+      "43,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "49,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "52,32": {
+        "success_rate": 1.0,
+        "attempts": 5,
+        "successes": 5
+      },
+      "36,29": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "45,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "51,32": {
+        "success_rate": 1.0,
+        "attempts": 7,
+        "successes": 7
+      },
+      "29,29": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "57,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "53,32": {
+        "success_rate": 1.0,
+        "attempts": 6,
+        "successes": 6
+      },
+      "44,32": {
+        "success_rate": 1.0,
+        "attempts": 4,
+        "successes": 4
+      },
+      "54,32": {
+        "success_rate": 1.0,
+        "attempts": 4,
+        "successes": 4
+      },
+      "55,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "28,29": {
+        "success_rate": 1.0,
+        "attempts": 130,
+        "successes": 130
+      },
+      "50,32": {
+        "success_rate": 1.0,
+        "attempts": 8,
+        "successes": 8
+      },
+      "57,3": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "48,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "46,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "31,29": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "47,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "56,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,9": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      }
+    }
+  },
+  "action_transitions": {
+    "((6,), 6, (6,))": 1697
+  },
+  "total_sessions_learned": 1,
+  "last_updated": 1757221852.1712017
+}

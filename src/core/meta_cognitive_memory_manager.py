@@ -184,6 +184,15 @@ class MetaCognitiveMemoryManager:
                 continue
                 
             for file_path in scan_dir.rglob("*.json"):
+                # Skip files that were archived as non-improving
+                try:
+                    # normalize path parts for robust matching
+                    parts = [p.lower() for p in file_path.parts]
+                    if 'archive_non_improving' in parts:
+                        continue
+                except Exception:
+                    pass
+
                 if file_path.is_file():
                     classification = self.classify_file(file_path)
                     
@@ -204,6 +213,14 @@ class MetaCognitiveMemoryManager:
             
             # Also scan log files
             for file_path in scan_dir.rglob("*.log"):
+                # Skip archived logs as well
+                try:
+                    parts = [p.lower() for p in file_path.parts]
+                    if 'archive_non_improving' in parts:
+                        continue
+                except Exception:
+                    pass
+
                 if file_path.is_file():
                     classification = self.classify_file(file_path)
                     

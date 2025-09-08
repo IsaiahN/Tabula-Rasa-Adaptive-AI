@@ -745,10 +745,10 @@ class FrameAnalyzer:
         """
         import uuid
         from datetime import datetime
-        
+
         interaction_id = str(uuid.uuid4())[:8]
         timestamp = datetime.now().isoformat()
-        
+
         # Extract visual characteristics
         visual_data = {
             'coordinate': (x, y),
@@ -827,6 +827,23 @@ class FrameAnalyzer:
         api_success = len(interaction_result['success_indicators']) > 0 or interaction_result['state_change']
         context_info = f"interaction_{interaction_id}_indicators_{len(interaction_result['success_indicators'])}"
         self._record_coordinate_effectiveness(x, y, api_success, score_change, context_info)
+
+        # Append an action trace for this interaction (if logging available)
+        try:
+            from arc_integration.action_trace_logger import log_action_trace
+            import time as _time
+            trace = {
+                'ts': _time.time(),
+                'game_id': game_id or interaction_record.get('game_id', 'unknown'),
+                'interaction_id': interaction_id,
+                'x': x,
+                'y': y,
+                'score_change': score_change,
+                'success': bool(api_success)
+            }
+            log_action_trace(trace)
+        except Exception:
+            pass
         
         return interaction_id
     

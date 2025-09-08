@@ -9,6 +9,21 @@ import aiohttp
 import json
 import logging
 import numpy as np
+# Action & session trace logger (lightweight, append-only)
+try:
+    from arc_integration.action_trace_logger import log_action_trace, write_session_trace
+except Exception:
+    # Leave safe fallbacks if the module isn't available
+    def log_action_trace(record):
+        try:
+            print("⚠️ action_trace_logger unavailable")
+        except Exception:
+            pass
+    def write_session_trace(game_id, session_result, raw_output=None):
+        try:
+            print("⚠️ action_trace_logger unavailable")
+        except Exception:
+            pass
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
@@ -16,9 +31,12 @@ try:
     # Runtime instrumentation: print the file path when this module is imported so we can
     # confirm which copy of the module the Python process actually loaded at runtime.
     try:
-        resolved_path = Path(__file__).resolve()
+        # Local import to avoid NameError if Path/sys aren't available yet
+        from pathlib import Path as _Path
+        resolved_path = _Path(__file__).resolve()
     except Exception:
-        resolved_path = getattr(sys.modules.get(__name__), '__file__', 'unknown')
+        import sys as _sys
+        resolved_path = getattr(_sys.modules.get(__name__), '__file__', 'unknown')
     print(f"MODULE IMPORTED: continuous_learning_loop -> {resolved_path}")
 except Exception:
     logger.exception("Failed to emit module import instrumentation")
@@ -1246,6 +1264,11 @@ class ContinuousLearningLoop:
                             if guid:
                                 # Store the GUID for this game
                                 self.current_game_sessions[game_id] = guid
+                                # Log GUID -> game mapping for auditing
+                                try:
+                                    log_action_trace({'ts': time.time(), 'event': 'guid_assigned', 'game_id': game_id, 'guid': guid})
+                                except Exception:
+                                    pass
                                 print(f"✅ {reset_type} successful: {game_id}")
 
                                 # Initialize position tracking for ACTION 6 directional movement
@@ -2162,6 +2185,21 @@ class ContinuousLearningLoop:
                             # Update current position tracking for future directional movement
                             self._current_game_x = x
                             self._current_game_y = y
+
+                            # Record action trace (append-only) with minimal fields
+                            try:
+                                trace = {
+                                    'ts': time.time(),
+                                    'game_id': game_id,
+                                    'guid': guid,
+                                    'action_number': action_number,
+                                    'x': x if action_number == 6 else None,
+                                    'y': y if action_number == 6 else None,
+                                    'response_score': data.get('score') if isinstance(data, dict) else None
+                                }
+                                log_action_trace(trace)
+                            except Exception:
+                                pass
                         
                         return data
                     elif response.status == 429:
@@ -7594,6 +7632,10 @@ class ContinuousLearningLoop:
             result['effective_actions'] = effective_actions
             
             print(f"📊 Parsed game session: {result['total_actions']} actions, {len(effective_actions)} effective, final score {result['final_score']}")
+            try:
+                write_session_trace(result.get('game_id', 'unknown'), result, stdout_text)
+            except Exception:
+                pass
             
         except Exception as e:
             print(f"⚠️ Error parsing complete game session: {e}")

@@ -1,0 +1,158 @@
+{
+  "game_id": "lp85-2e205bbe3622",
+  "initial_actions": [
+    6
+  ],
+  "effective_actions": {
+    "6": {
+      "success_rate": 1.0,
+      "attempts": 50,
+      "successes": 50
+    }
+  },
+  "winning_sequences": [],
+  "coordinate_patterns": {
+    "6": {
+      "53,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "52,32": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "55,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "49,32": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "28,29": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "51,32": {
+        "success_rate": 1.0,
+        "attempts": 9,
+        "successes": 9
+      },
+      "50,32": {
+        "success_rate": 1.0,
+        "attempts": 3,
+        "successes": 3
+      },
+      "48,32": {
+        "success_rate": 1.0,
+        "attempts": 5,
+        "successes": 5
+      },
+      "47,3": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "58,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "61,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "56,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "46,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "44,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "47,32": {
+        "success_rate": 1.0,
+        "attempts": 2,
+        "successes": 2
+      },
+      "59,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "45,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "54,32": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "42,0": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,28": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,27": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,26": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,25": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,24": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,23": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "28,22": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      },
+      "54,3": {
+        "success_rate": 1.0,
+        "attempts": 1,
+        "successes": 1
+      }
+    }
+  },
+  "action_transitions": {
+    "((6,), 6, (6,))": 1495
+  },
+  "total_sessions_learned": 1,
+  "last_updated": 1757220953.5080428
+}

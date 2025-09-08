@@ -1,0 +1,11 @@
+{
+  "game_id": "unknown",
+  "timestamp": 1757275010,
+  "session_result": {
+    "final_score": 0,
+    "total_actions": 0,
+    "final_state": "UNKNOWN",
+    "effective_actions": []
+  },
+  "raw_output_snippet": ""
+}
