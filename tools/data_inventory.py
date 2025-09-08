@@ -91,8 +91,17 @@ if __name__ == '__main__':
     p.add_argument('--heuristic', default='avg_score==0 and total_actions<10')
     args = p.parse_args()
 
-    pattern = os.path.join(args.data_dir, '*.json')
-    paths = sorted(glob.glob(pattern))
+    # Include top-level data JSONs and the canonical subfolders for sessions and meta-learning
+    patterns = [
+        os.path.join(args.data_dir, '*.json'),
+        os.path.join(args.data_dir, 'sessions', '*.json'),
+        os.path.join(args.data_dir, 'meta_learning_sessions', '*.json'),
+        os.path.join(args.data_dir, 'meta_learning_data', '*.json')
+    ]
+    paths = []
+    for pat in patterns:
+        paths.extend(glob.glob(pat))
+    paths = sorted(set(paths))
     selected = paths[args.offset: args.offset + args.limit]
 
     inventory = []
