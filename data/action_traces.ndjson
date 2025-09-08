@@ -1,0 +1,1 @@
+{"ts": 1757291723, "event": "action_executed", "game_id": "test-game-001", "guid": "testguid1234", "action_number": 1, "action_type": "ACTION6", "x": 42, "y": 7, "response_score": 5, "success": true}

@@ -691,7 +691,6 @@ class ContinuousLearningLoop:
 
         Returns the updated current energy level after applying costs and modifiers.
         """
-
         # Determine base cost depending on action effectiveness
         base_cost = self.ENERGY_COSTS['action_effective'] if action_effective else self.ENERGY_COSTS['action_ineffective']
 
@@ -1228,7 +1227,8 @@ class ContinuousLearningLoop:
             url = f"{ARC3_BASE_URL}/api/cmd/RESET"
             headers = {
                 "X-API-Key": self.api_key,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Accept": "application/json"
             }
             
             # Build payload based on reset type
@@ -1249,11 +1249,27 @@ class ContinuousLearningLoop:
             await self.rate_limiter.acquire()
             
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=ARC3_RATE_LIMIT['request_timeout'])) as session:
-                # Implement limited retries for transient 5xx errors (502,503,504)
+                # Implement limited retries for transient errors and add preflight runner availability checks
                 max_retries = 3
                 attempt = 0
+                base_backoff = 1.0
                 while attempt < max_retries:
                     attempt += 1
+
+                    # Preflight: check runner availability heuristically to avoid wasted RESET attempts
+                    try:
+                        runners_ok = await self._check_runner_availability(game_id)
+                        if not runners_ok:
+                            # If preflight says no runners, sleep with jitter and retry
+                            jitter = random.uniform(0.5, 1.5)
+                            wait = min(base_backoff * (2 ** (attempt - 1)) + jitter, ARC3_RATE_LIMIT['backoff_max_delay'])
+                            print(f"⚠️ Preflight indicates no available runners for {game_id}. Backing off {wait:.1f}s (attempt {attempt}/{max_retries})")
+                            await asyncio.sleep(wait)
+                            continue
+                    except Exception:
+                        # If preflight failed for any reason, proceed with attempt anyway
+                        pass
+
                     async with session.post(url, headers=headers, json=payload) as response:
                         status = response.status
                         if status == 200:
@@ -1345,13 +1361,41 @@ class ContinuousLearningLoop:
                             await asyncio.sleep(self.rate_limiter.backoff_delay)
                             continue  # Retry loop
                         elif 500 <= status < 600:
-                            # Transient server error - retry with backoff
-                            print(f"⚠️ Server error on RESET {game_id}: {status} - attempt {attempt}/{max_retries}")
-                            await asyncio.sleep(min(self.rate_limiter.backoff_delay or 1.0, ARC3_RATE_LIMIT['backoff_max_delay']))
+                            # Transient server error - retry with jittered exponential backoff
+                            backoff = min(base_backoff * (2 ** (attempt - 1)), ARC3_RATE_LIMIT['backoff_max_delay'])
+                            jitter = random.uniform(0.2, 1.0)
+                            wait = backoff + jitter
+                            print(f"⚠️ Server error on RESET {game_id}: {status} - attempt {attempt}/{max_retries}, backing off {wait:.1f}s")
+                            await asyncio.sleep(wait)
                             continue
                         else:
                             self.rate_limiter.handle_success_response()  # Not a rate limit issue
                             error_text = await response.text()
+                            # Best-effort debug logging for ops: response status, headers, and truncated body
+                            try:
+                                resp_headers = dict(response.headers)
+                                resp_body = error_text if isinstance(error_text, str) else str(error_text)
+                                if len(resp_body) > 2000:
+                                    resp_body = resp_body[:2000] + "...<truncated>"
+                                logger.debug(f"RESET non-200 response for {game_id}: status={status}, headers={resp_headers}, body={resp_body}")
+                                # Also append to an append-only debug log on disk for ops
+                                try:
+                                    self._append_reset_debug_log(game_id, status, resp_headers, resp_body)
+                                except Exception:
+                                    pass
+                            except Exception:
+                                logger.debug("Failed to capture detailed RESET response for debugging")
+
+                            # Treat 400 with a 'no available game backend' server message as transient
+                            if status == 400 and isinstance(error_text, str) and 'no available game backend' in error_text.lower():
+                                # Backoff and retry with jitter
+                                backoff = min(base_backoff * (2 ** (attempt - 1)), ARC3_RATE_LIMIT['backoff_max_delay'])
+                                jitter = random.uniform(0.5, 1.5)
+                                wait = backoff + jitter
+                                print(f"⚠️ No available game backend for {game_id} (server message). Retrying after {wait:.1f}s (attempt {attempt}/{max_retries})")
+                                await asyncio.sleep(wait)
+                                continue
+
                             print(f"❌ RESET failed: {status} - {error_text}")
                             return None
                     # End of attempt loop - if we reach here and didn't return, try again
@@ -1640,6 +1684,79 @@ class ContinuousLearningLoop:
             return 0 <= x < width and 0 <= y < height
         except Exception:
             return False
+
+    def _ensure_reset_debug_dir(self) -> Path:
+        """Ensure the reset debug logs directory exists and return its Path."""
+        try:
+            path = self.save_directory / "reset_debug_logs"
+            path.mkdir(parents=True, exist_ok=True)
+            return path
+        except Exception:
+            # Fallback to save_directory if creation fails
+            return self.save_directory
+
+    def _append_reset_debug_log(self, game_id: str, status: int, headers: Dict[str, Any], body: str) -> None:
+        """Append a JSON record of a RESET non-200 response to an append-only NDJSON file.
+
+        This is best-effort and must never raise.
+        """
+        try:
+            log_dir = self._ensure_reset_debug_dir()
+            timestamp = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+            fname = log_dir / f"reset_debug_{timestamp}.ndjson"
+            record = {
+                'ts': time.time(),
+                'iso_ts': datetime.utcnow().isoformat() + 'Z',
+                'game_id': game_id,
+                'status': status,
+                'headers': headers,
+                'body': body[:20000]  # cap body to avoid enormous writes
+            }
+            with open(fname, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(record, default=str) + "\n")
+        except Exception:
+            try:
+                logger.debug("Failed to write reset debug log to disk")
+            except Exception:
+                pass
+
+    async def _check_runner_availability(self, game_id: str) -> bool:
+        """Best-effort preflight check to see if the server/runners are available.
+
+        Returns True if health-check suggests runners available, False otherwise.
+        This method is non-blocking in the sense that failures cause a False return
+        but won't raise exceptions.
+        """
+        health_urls = [f"{ARC3_BASE_URL}/api/health", f"{ARC3_BASE_URL}/api/runner/status"]
+        headers = {"X-API-Key": self.api_key}
+        try:
+            await self.rate_limiter.acquire()
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5.0)) as session:
+                for url in health_urls:
+                    try:
+                        async with session.get(url, headers=headers) as resp:
+                            if resp.status == 200:
+                                # If JSON, look for common keys
+                                try:
+                                    j = await resp.json()
+                                    # Heuristic: if runners_count or available_runners present and >0
+                                    if isinstance(j, dict):
+                                        if j.get('runners_available') or j.get('available_runners') or j.get('runners_count', 0) > 0:
+                                            return True
+                                        # If health indicates OK, accept it
+                                        if j.get('status', '').lower() in ('ok', 'healthy', 'available'):
+                                            return True
+                                except Exception:
+                                    # Non-JSON 200 is still a good sign
+                                    return True
+                            elif resp.status in (204,):
+                                return True
+                    except Exception:
+                        # Try next health URL
+                        continue
+        except Exception:
+            pass
+        return False
 
     def _safe_coordinate_fallback(self, grid_width: int, grid_height: int, reason: str = "bounds check failed") -> Tuple[int, int]:
         """Return a safe coordinate (center) when bounds are invalid."""
