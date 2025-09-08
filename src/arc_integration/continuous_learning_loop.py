@@ -1204,16 +1204,21 @@ class ContinuousLearningLoop:
         """
         return await self._open_scorecard()
 
-    async def _start_game_session(self, game_id: str, existing_guid: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    async def _start_game_session(self, game_id: str, existing_guid: Optional[str] = None, is_level_reset: bool = False) -> Optional[Dict[str, Any]]:
         """
         Start a new game session or reset an existing one using the ARC-AGI-3 API RESET command.
         
         Args:
             game_id: The game ID to start
-            existing_guid: If provided, performs a level reset within existing session
+            existing_guid: The existing game session GUID if this is a level reset
+            is_level_reset: Whether this is a level reset (True) or new game (False)
             
         Returns:
             Session data with GUID if successful, None if failed
+            
+        Note:
+            - For new games: existing_guid should be None and is_level_reset should be False
+            - For level resets: existing_guid must be a valid GUID and is_level_reset should be True
         """
         try:
             # Step 1: Open a scorecard if we don't have one
@@ -1223,13 +1228,22 @@ class ContinuousLearningLoop:
                     print(f"❌ Failed to open scorecard")
                     return None
             
-            # Step 2: Prepare RESET call
+            # Step 2: Prepare RESET call with proper API structure
             url = f"{ARC3_BASE_URL}/api/cmd/RESET"
             headers = {
                 "X-API-Key": self.api_key,
-                "Content-Type": "application/json",
-                "Accept": "application/json"
+                "Content-Type": "application/json"
             }
+            
+            # Determine if this is a valid level reset or new game
+            is_actually_reset = bool(is_level_reset and existing_guid and game_id in self.current_game_sessions)
+            
+            # Ensure we're not trying to do a level reset with an invalid GUID
+            if is_level_reset and not is_actually_reset:
+                logger.warning(f"Invalid level reset attempt for game {game_id} - missing or invalid GUID")
+                # Fall back to new game if level reset isn't possible
+                is_level_reset = False
+                existing_guid = None
             
             # Build payload based on reset type
             payload = {
@@ -1237,13 +1251,18 @@ class ContinuousLearningLoop:
                 "card_id": self.current_scorecard_id
             }
             
-            if existing_guid:
-                # Level Reset - reset within existing game session
+            if is_actually_reset:
+                # Level Reset - use existing session
                 payload["guid"] = existing_guid
-                print(f"🔄 LEVEL RESET for {game_id}")
+                print(f"🔄 LEVEL RESET for {game_id} (GUID: {existing_guid[:8]}...)")
             else:
-                # New Game - start fresh game session
-                print(f"🔄 NEW GAME RESET for {game_id}")
+                # New Game - start fresh session
+                # Clear any existing session for this game
+                if game_id in self.current_game_sessions:
+                    del self.current_game_sessions[game_id]
+                print(f"🆕 NEW GAME for {game_id}")
+                
+            print(f"🔧 API Payload: {payload}")
             
             # Apply rate limiting
             await self.rate_limiter.acquire()
@@ -1272,20 +1291,42 @@ class ContinuousLearningLoop:
 
                     async with session.post(url, headers=headers, json=payload) as response:
                         status = response.status
+                        response_text = await response.text()
+                        print(f"🔍 API Response Status: {status}")
+                        print(f"🔍 API Response: {response_text[:500]}" + ("..." if len(response_text) > 500 else ""))
+                        
                         if status == 200:
-                            result = await response.json()
-                            self.rate_limiter.handle_success_response()
-                            guid = result.get('guid')
-                            reset_type = "LEVEL RESET" if existing_guid else "NEW GAME"
-                            if guid:
-                                # Store the GUID for this game
-                                self.current_game_sessions[game_id] = guid
-                                # Log GUID -> game mapping for auditing
-                                try:
-                                    log_action_trace({'ts': time.time(), 'event': 'guid_assigned', 'game_id': game_id, 'guid': guid})
-                                except Exception:
-                                    pass
-                                print(f"✅ {reset_type} successful: {game_id}")
+                            try:
+                                result = await response.json()
+                                self.rate_limiter.handle_success_response()
+                                guid = result.get('guid')
+                                if not guid:
+                                    print(f"❌ No GUID in response for game {game_id}")
+                                    print(f"🔍 Full response: {result}")
+                                    return None
+                                
+                                # Process successful response with valid GUID
+                                if guid:
+                                    # Store the GUID for this game if it's new
+                                    if not is_actually_reset:
+                                        self.current_game_sessions[game_id] = guid
+                                        print(f"✅ NEW GAME started successfully: {game_id}")
+                                        print(f"🔑 New session GUID: {guid}")
+                                    
+                                    # Log GUID -> game mapping for auditing
+                                    try:
+                                        log_action_trace({
+                                            'ts': time.time(), 
+                                            'event': 'new_game_started', 
+                                            'game_id': game_id, 
+                                            'guid': guid,
+                                            'scorecard_id': self.current_scorecard_id
+                                        })
+                                    except Exception as e:
+                                        print(f"⚠️ Failed to log game start: {e}")
+                                else:
+                                    print(f"✅ LEVEL RESET successful for {game_id}")
+                                    print(f"🔄 Using existing session GUID: {guid}")
 
                                 # Initialize position tracking for ACTION 6 directional movement
                                 if not existing_guid:  # Only for new games, not level resets
@@ -1341,7 +1382,12 @@ class ContinuousLearningLoop:
                                             print(f"⚠️ Failed to reset frame analyzer: {e}")
                                     print(f"🔄 All actions will now benefit from boundary awareness and coordinate intelligence")
 
-                                return {
+                                # Enhanced response validation
+                                if not isinstance(result, dict):
+                                    print(f"❌ Invalid response format from server: {type(result).__name__}")
+                                    return None
+                                    
+                                response_data = {
                                     'guid': guid,
                                     'game_id': game_id,
                                     'scorecard_id': self.current_scorecard_id,
@@ -1349,10 +1395,18 @@ class ContinuousLearningLoop:
                                     'frame': result.get('frame', []),
                                     'available_actions': result.get('available_actions', [1,2,3,4,5,6,7]),
                                     'score': result.get('score', 0),
-                                    'reset_type': reset_type.lower().replace(' ', '_')
+                                    'reset_type': 'level_reset' if is_actually_reset else 'new_game',
+                                    'raw_response': result  # Include full response for debugging
                                 }
-                            else:
-                                print(f"❌ No GUID returned for game {game_id}")
+                                
+                                # Validate required fields
+                                if not response_data['frame']:
+                                    print(f"⚠️ Warning: Empty frame data in response for game {game_id}")
+                                
+                                return response_data
+                            except Exception as e:
+                                print(f"❌ Error parsing response: {str(e)}")
+                                print(f"🔍 Raw response: {response_text[:500]}")
                                 return None
                         elif status == 429:
                             # Handle rate limit exceeded
@@ -1370,7 +1424,12 @@ class ContinuousLearningLoop:
                             continue
                         else:
                             self.rate_limiter.handle_success_response()  # Not a rate limit issue
-                            error_text = await response.text()
+                            try:
+                                error_text = await response.text()
+                                # Log the full error response for debugging
+                                print(f"🔍 Error response details: {error_text[:500]}" + ("..." if len(error_text) > 500 else ""))
+                            except Exception as e:
+                                error_text = f"Failed to get error text: {str(e)}"
                             # Best-effort debug logging for ops: response status, headers, and truncated body
                             try:
                                 resp_headers = dict(response.headers)
@@ -1627,149 +1686,105 @@ class ContinuousLearningLoop:
                     # Case: wrapped extra list like [[r0, r1, ...]] or [[row1],[row2],...]
                     if isinstance(first, list):
                         # If outer list has one element which itself is a list-of-rows, unwrap
-                        if len(frame) == 1 and any(isinstance(el, list) for el in first):
-                            arr = np.array(first)
-                        else:
-                            arr = np.array(frame)
-                    # Case: flat numeric list -> attempt reshape heuristics
-                    elif isinstance(first, (int, float)):
-                        total = len(frame)
-                        if total == 64:
-                            arr = np.array(frame).reshape((8, 8))
-                        else:
-                            side = int(total ** 0.5)
-                            if side * side == total:
-                                arr = np.array(frame).reshape((side, side))
-                            elif total % 64 == 0:
-                                height = total // 64
-                                arr = np.array(frame).reshape((height, 64))
-                            else:
-                                arr = np.array(frame).reshape((1, total))
                     else:
-                        # Unknown nested structure - attempt generic conversion
                         arr = np.array(frame)
+                # Case: flat numeric list -> attempt reshape heuristics
+                elif isinstance(first, (int, float)):
+                    total = len(frame)
+                    if total == 64:
+                        arr = np.array(frame).reshape((8, 8))
+                    else:
+                        side = int(total ** 0.5)
+                        if side * side == total:
+                            arr = np.array(frame).reshape((side, side))
+                        elif total % 64 == 0:
+                            height = total // 64
+                            arr = np.array(frame).reshape((height, 64))
+                        else:
+                            arr = np.array(frame).reshape((1, total))
                 else:
-                    # Fallback generic conversion
+                    # Unknown nested structure - attempt generic conversion
                     arr = np.array(frame)
+            else:
+                # Fallback generic conversion
+                arr = np.array(frame)
 
-            # Ensure at least 2D
-            if arr is None:
-                return None, (64, 64)
-
-            if arr.ndim == 1:
-                total = arr.size
-                side = int(total ** 0.5)
-                if side * side == total:
-                    arr = arr.reshape((side, side))
-                else:
-                    arr = arr.reshape((1, total))
-
-            # Now arr is 2D: (height, width)
-            height, width = int(arr.shape[0]), int(arr.shape[1])
-
-            # Clamp to sensible bounds
-            if not (1 <= width <= 1024 and 1 <= height <= 1024):
-                return arr, (64, 64)
-
-            return arr, (width, height)
-
-        except Exception:
+        # Ensure at least 2D
+        if arr is None:
             return None, (64, 64)
 
-    def _verify_grid_bounds(self, x: int, y: int, width: int, height: int) -> bool:
-        """Return True if (x,y) are within 0..width-1 and 0..height-1."""
-        try:
-            if width <= 0 or height <= 0:
-                return False
-            return 0 <= x < width and 0 <= y < height
-        except Exception:
+        if arr.ndim == 1:
+            total = arr.size
+            side = int(total ** 0.5)
+            if side * side == total:
+                arr = arr.reshape((side, side))
+            else:
+                arr = arr.reshape((1, total))
+
+        # Now arr is 2D: (height, width)
+        height, width = int(arr.shape[0]), int(arr.shape[1])
+
+        # Clamp to sensible bounds
+        if not (1 <= width <= 1024 and 1 <= height <= 1024):
+            return arr, (64, 64)
+
+        return arr, (width, height)
+
+    except Exception:
+        return None, (64, 64)
+
+def _verify_grid_bounds(self, x: int, y: int, width: int, height: int) -> bool:
+    """Return True if (x,y) are within 0..width-1 and 0..height-1."""
+    try:
+        if width <= 0 or height <= 0:
             return False
-
-    def _ensure_reset_debug_dir(self) -> Path:
-        """Ensure the reset debug logs directory exists and return its Path."""
-        try:
-            path = self.save_directory / "reset_debug_logs"
-            path.mkdir(parents=True, exist_ok=True)
-            return path
-        except Exception:
-            # Fallback to save_directory if creation fails
-            return self.save_directory
-
-    def _append_reset_debug_log(self, game_id: str, status: int, headers: Dict[str, Any], body: str) -> None:
-        """Append a JSON record of a RESET non-200 response to an append-only NDJSON file.
-
-        This is best-effort and must never raise.
-        """
-        try:
-            log_dir = self._ensure_reset_debug_dir()
-            timestamp = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
-            fname = log_dir / f"reset_debug_{timestamp}.ndjson"
-            record = {
-                'ts': time.time(),
-                'iso_ts': datetime.utcnow().isoformat() + 'Z',
-                'game_id': game_id,
-                'status': status,
-                'headers': headers,
-                'body': body[:20000]  # cap body to avoid enormous writes
-            }
-            with open(fname, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(record, default=str) + "\n")
-        except Exception:
-            try:
-                logger.debug("Failed to write reset debug log to disk")
-            except Exception:
-                pass
-
-    async def _check_runner_availability(self, game_id: str) -> bool:
-        """Best-effort preflight check to see if the server/runners are available.
-
-        Returns True if health-check suggests runners available, False otherwise.
-        This method is non-blocking in the sense that failures cause a False return
-        but won't raise exceptions.
-        """
-        health_urls = [f"{ARC3_BASE_URL}/api/health", f"{ARC3_BASE_URL}/api/runner/status"]
-        headers = {"X-API-Key": self.api_key}
-        try:
-            await self.rate_limiter.acquire()
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5.0)) as session:
-                for url in health_urls:
-                    try:
-                        async with session.get(url, headers=headers) as resp:
-                            if resp.status == 200:
-                                # If JSON, look for common keys
-                                try:
-                                    j = await resp.json()
-                                    # Heuristic: if runners_count or available_runners present and >0
-                                    if isinstance(j, dict):
-                                        if j.get('runners_available') or j.get('available_runners') or j.get('runners_count', 0) > 0:
-                                            return True
-                                        # If health indicates OK, accept it
-                                        if j.get('status', '').lower() in ('ok', 'healthy', 'available'):
-                                            return True
-                                except Exception:
-                                    # Non-JSON 200 is still a good sign
-                                    return True
-                            elif resp.status in (204,):
-                                return True
-                    except Exception:
-                        # Try next health URL
-                        continue
-        except Exception:
-            pass
+        return 0 <= x < width and 0 <= y < height
+    except Exception:
         return False
 
-    def _safe_coordinate_fallback(self, grid_width: int, grid_height: int, reason: str = "bounds check failed") -> Tuple[int, int]:
-        """Return a safe coordinate (center) when bounds are invalid."""
-        try:
-            gx = int(grid_width) if grid_width else 64
-            gy = int(grid_height) if grid_height else 64
-            cx = max(0, min(gx - 1, gx // 2)) if gx > 0 else 32
-            cy = max(0, min(gy - 1, gy // 2)) if gy > 0 else 32
-            logger.debug(f"Safe coordinate fallback used ({cx},{cy}) due to: {reason}")
-            return cx, cy
-        except Exception:
-            return 32, 32
-    
+def _ensure_reset_debug_dir(self) -> Path:
+    """Ensure the reset debug logs directory exists and return its Path."""
+    try:
+        path = self.save_directory / "reset_debug_logs"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    except Exception:
+        # Fallback to save_directory if creation fails
+        return self.save_directory
+        
+        async def check_url(url: str) -> bool:
+            try:
+                await self.rate_limiter.acquire()
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5.0)) as session:
+                    async with session.get(url, headers=headers) as resp:
+                        if resp.status == 200:
+                            try:
+                                data = await resp.json()
+                                if isinstance(data, dict):
+                                    # Check for common health indicators
+                                    if any(data.get(k, 0) > 0 for k in ['runners_available', 'available_runners', 'runners_count']):
+                                        return True
+                                    if data.get('status', '').lower() in ('ok', 'healthy', 'available'):
+                                        return True
+                            except:
+                                # Non-JSON 200 is still a good sign
+                                return True
+                        return resp.status in (200, 204)
+            except Exception as e:
+                logger.debug(f"Health check to {url} failed: {e}")
+                return False
+        
+        # Try all health endpoints in parallel
+        tasks = [check_url(url) for url in health_urls]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # If any check passed, update last successful ping
+        if any(isinstance(r, bool) and r for r in results):
+            self._last_successful_ping = current_time
+            return True
+        
+        return False
+
     def _extract_game_state_from_output(self, stdout: str, stderr: str) -> str:
         """Extract game state from command output."""
         combined_output = stdout + "\n" + stderr
