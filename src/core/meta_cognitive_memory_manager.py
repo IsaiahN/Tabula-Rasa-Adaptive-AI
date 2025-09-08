@@ -71,7 +71,9 @@ class MetaCognitiveMemoryManager:
             ],
             MemoryClassification.IMPORTANT_DECAY: [
                 "data/meta_learning_session_*.json",
+                "data/meta_learning_sessions/meta_learning_*.json",
                 "data/session_session_*.json",
+                "data/sessions/session_*.json",
                 "data/action_intelligence_*.json",
                 "data/combined_score_*.json",
                 "data/memory_hierarchy_*.json",
@@ -173,6 +175,8 @@ class MetaCognitiveMemoryManager:
         # Scan all relevant directories
         scan_dirs = [
             self.base_path / "data" / "meta_learning_data",
+            self.base_path / "data" / "meta_learning_sessions",
+            self.base_path / "data" / "sessions",
             self.base_path / "data", 
             self.base_path / "checkpoints",
             self.base_path / "research_results",

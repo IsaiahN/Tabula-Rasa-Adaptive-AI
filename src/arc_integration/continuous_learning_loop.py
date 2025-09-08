@@ -4516,7 +4516,13 @@ class ContinuousLearningLoop:
         
     def _save_session_results(self, session_results: Dict[str, Any]):
         """Save final session results."""
-        filename = self.save_directory / f"session_{session_results['session_id']}_final.json"
+        # Default to data/sessions for session results to centralize artifacts
+        session_dir = Path("data") / "sessions"
+        try:
+            session_dir.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+        filename = session_dir / f"session_{session_results['session_id']}_final.json"
         try:
             # Convert grid_sizes_encountered set to list for JSON serialization
             if 'detailed_metrics' in session_results and 'grid_sizes_encountered' in session_results['detailed_metrics']:
@@ -4525,8 +4531,13 @@ class ContinuousLearningLoop:
             with open(filename, 'w') as f:
                 json.dump(session_results, f, indent=2, default=str)
             
-            # Also save meta-learning state
-            meta_learning_file = self.save_directory / f"meta_learning_{session_results['session_id']}.json"
+            # Also save meta-learning state under data/meta_learning_sessions
+            meta_learning_dir = Path("data") / "meta_learning_sessions"
+            try:
+                meta_learning_dir.mkdir(parents=True, exist_ok=True)
+            except Exception:
+                pass
+            meta_learning_file = meta_learning_dir / f"meta_learning_{session_results['session_id']}.json"
             self.arc_meta_learning.save_learning_state(str(meta_learning_file))
             
         except Exception as e:
