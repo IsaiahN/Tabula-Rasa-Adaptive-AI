@@ -313,8 +313,8 @@ class MetaCognitiveGovernor:
         self.training_data_cleanup_config = {
             'min_score_threshold': 0.1,    # Minimum score to consider valuable
             'min_episodes_threshold': 5,   # Minimum episodes to consider meaningful
-            'max_age_days': 7,             # Maximum age of data to keep
-            'cleanup_frequency': 5,        # Clean every 5 governor decisions
+            'max_age_days': 70,             # Maximum age of data to keep
+            'cleanup_frequency': 7,        # Clean every 5 governor decisions
             'max_cleanup_interval': 1800   # Max 30 minutes between cleanups
         }
         
