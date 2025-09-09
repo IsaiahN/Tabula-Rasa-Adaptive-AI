@@ -1,0 +1,142 @@
+2025-09-08 19:18:47,546 - arc_integration.enhanced_learning_loop - INFO - Initializing EnhancedLearningLoop...
+2025-09-08 19:18:47,547 - arc_integration.enhanced_learning_loop - INFO - EnhancedLearningLoop initialized successfully
+2025-09-08 19:18:47,547 - arc_integration.enhanced_learning_loop - INFO - Starting training on task test_task_001 for 5 episodes
+2025-09-08 19:18:47,547 - arc_integration.enhanced_learning_loop - INFO - Starting episode 0
+2025-09-08 19:18:47,548 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 0: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:18:47,550 - arc_integration.enhanced_learning_loop - INFO - New best score: 0.00
+2025-09-08 19:18:47,551 - arc_integration.enhanced_learning_loop - INFO - Starting episode 1
+2025-09-08 19:18:47,551 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 1: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:18:47,557 - arc_integration.enhanced_learning_loop - WARNING - No scorecards to generate reports from
+2025-09-08 19:18:47,558 - arc_integration.enhanced_learning_loop - INFO - Starting episode 2
+2025-09-08 19:18:47,559 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 2: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:18:47,560 - arc_integration.enhanced_learning_loop - INFO - Starting episode 3
+2025-09-08 19:18:47,560 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 3: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:18:47,564 - arc_integration.enhanced_learning_loop - WARNING - No scorecards to generate reports from
+2025-09-08 19:18:47,565 - arc_integration.enhanced_learning_loop - INFO - Starting episode 4
+2025-09-08 19:18:47,565 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 4: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:18:47,567 - arc_integration.enhanced_learning_loop - WARNING - No scorecards to generate reports from
+2025-09-08 19:18:47,569 - arc_integration.enhanced_learning_loop - WARNING - No scorecards to generate reports from
+2025-09-08 19:18:47,570 - arc_integration.enhanced_learning_loop - INFO - EnhancedLearningLoop closed
+2025-09-08 19:19:42,268 - arc_integration.enhanced_learning_loop - INFO - Initializing EnhancedLearningLoop...
+2025-09-08 19:19:42,269 - arc_integration.enhanced_learning_loop - INFO - EnhancedLearningLoop initialized successfully
+2025-09-08 19:19:42,269 - arc_integration.enhanced_learning_loop - INFO - Starting training on task test_task_001 for 5 episodes
+2025-09-08 19:19:42,269 - arc_integration.enhanced_learning_loop - INFO - Starting episode 0
+2025-09-08 19:19:42,269 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 0: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:19:42,273 - arc_integration.enhanced_learning_loop - INFO - New best score: 0.00
+2025-09-08 19:19:42,273 - arc_integration.enhanced_learning_loop - INFO - Starting episode 1
+2025-09-08 19:19:42,273 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 1: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:19:42,274 - arc_integration.enhanced_learning_loop - WARNING - No scorecards to generate reports from
+2025-09-08 19:19:42,276 - arc_integration.enhanced_learning_loop - INFO - Starting episode 2
+2025-09-08 19:19:42,276 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 2: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:19:42,278 - arc_integration.enhanced_learning_loop - INFO - Starting episode 3
+2025-09-08 19:19:42,278 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 3: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:19:42,279 - arc_integration.enhanced_learning_loop - WARNING - No scorecards to generate reports from
+2025-09-08 19:19:42,281 - arc_integration.enhanced_learning_loop - INFO - Starting episode 4
+2025-09-08 19:19:42,281 - arc_integration.enhanced_learning_loop - ERROR - Error in episode 4: Session not initialized. Use async with statement.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\enhanced_learning_loop.py", line 183, in _run_episode
+    task_info = await self.arc_client.get_task(task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 174, in get_task
+    return await self._make_request("GET", endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\arc_api_client.py", line 92, in _make_request
+    raise ARCError("Session not initialized. Use async with statement.")
+arc_integration.arc_api_client.ARCError: Session not initialized. Use async with statement.
+2025-09-08 19:19:42,283 - arc_integration.enhanced_learning_loop - WARNING - No scorecards to generate reports from
+2025-09-08 19:19:42,285 - arc_integration.enhanced_learning_loop - WARNING - No scorecards to generate reports from
+2025-09-08 19:19:42,286 - arc_integration.enhanced_learning_loop - INFO - EnhancedLearningLoop closed
+2025-09-08 19:21:10,643 - arc_integration.enhanced_learning_loop - INFO - Initializing EnhancedLearningLoop...
+2025-09-08 19:21:10,643 - arc_integration.enhanced_learning_loop - INFO - EnhancedLearningLoop initialized successfully
+2025-09-08 19:21:11,337 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x0000028CC89E3E00>

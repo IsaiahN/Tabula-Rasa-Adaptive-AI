@@ -1,0 +1,168 @@
+2025-09-08 17:14:58,305 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:14:58,320 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:14:58,322 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:14:58,344 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 1 failed for ft09-f340c8e5138e: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:14:58,345 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 1 failed for as66-821a4dcad9c2: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:14:58,346 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 1 failed for sp80-0605ab9e5b2a: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:14:59,353 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:14:59,355 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:14:59,356 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:14:59,368 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 2 failed for ft09-f340c8e5138e: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:14:59,369 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 2 failed for as66-821a4dcad9c2: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:14:59,370 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 2 failed for sp80-0605ab9e5b2a: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:00,386 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:00,388 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:00,390 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:00,403 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 3 failed for ft09-f340c8e5138e: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:00,404 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 3 failed for as66-821a4dcad9c2: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:00,405 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 3 failed for sp80-0605ab9e5b2a: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:01,417 - WARNING - src.arc_integration.continuous_learning_loop - ⚠️ No successful episodes for ft09-f340c8e5138e - 3 errors
+2025-09-08 17:15:01,418 - WARNING - src.arc_integration.continuous_learning_loop - ⚠️ No successful episodes for as66-821a4dcad9c2 - 3 errors
+2025-09-08 17:15:01,418 - WARNING - src.arc_integration.continuous_learning_loop - ⚠️ No successful episodes for sp80-0605ab9e5b2a - 3 errors
+2025-09-08 17:15:01,419 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:01,421 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:01,423 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:01,433 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 1 failed for ls20-fa137e247ce6: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:01,433 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 1 failed for lp85-2e205bbe3622: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:01,435 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 1 failed for vc33-58ec4396715d: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:02,443 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:02,445 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:02,447 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:02,458 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 2 failed for ls20-fa137e247ce6: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:02,459 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 2 failed for lp85-2e205bbe3622: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:02,460 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 2 failed for vc33-58ec4396715d: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:03,468 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:03,470 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:03,472 - ERROR - src.arc_integration.continuous_learning_loop - Error in _take_action: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4222, in _take_action
+    action = self._select_action(state_key, valid_actions)
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4147, in _select_action
+    if random.random() < self.exploration_rate:
+                         ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute 'exploration_rate'
+2025-09-08 17:15:03,483 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 3 failed for ls20-fa137e247ce6: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:03,485 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 3 failed for lp85-2e205bbe3622: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:03,486 - ERROR - src.arc_integration.continuous_learning_loop - ❌ Episode 3 failed for vc33-58ec4396715d: 'ContinuousLearningLoop' object has no attribute '_estimate_game_complexity'
+2025-09-08 17:15:04,501 - WARNING - src.arc_integration.continuous_learning_loop - ⚠️ No successful episodes for ls20-fa137e247ce6 - 3 errors
+2025-09-08 17:15:04,502 - WARNING - src.arc_integration.continuous_learning_loop - ⚠️ No successful episodes for lp85-2e205bbe3622 - 3 errors
+2025-09-08 17:15:04,502 - WARNING - src.arc_integration.continuous_learning_loop - ⚠️ No successful episodes for vc33-58ec4396715d - 3 errors

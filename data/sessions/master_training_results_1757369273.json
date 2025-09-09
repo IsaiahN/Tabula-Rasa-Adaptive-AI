@@ -1,0 +1,12 @@
+{
+  "success": false,
+  "error": "name 'time' is not defined",
+  "config_used": {
+    "max_actions_per_game": 50,
+    "max_cycles": 3,
+    "disable_advanced_features": true,
+    "basic_mode_only": true
+  },
+  "mode": "minimal-debug",
+  "timestamp": "2025-09-08T17:07:53.626659"
+}

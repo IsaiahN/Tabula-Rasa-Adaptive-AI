@@ -1,0 +1,186 @@
+2025-09-08 16:44:18,279 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for sp80-0605ab9e5b2a: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,290 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for lp85-2e205bbe3622: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,291 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ls20-fa137e247ce6: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,416 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for sp80-0605ab9e5b2a: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,417 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for lp85-2e205bbe3622: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,418 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ls20-fa137e247ce6: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,519 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for sp80-0605ab9e5b2a: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,520 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for lp85-2e205bbe3622: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,522 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ls20-fa137e247ce6: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,636 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for sp80-0605ab9e5b2a: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,638 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for lp85-2e205bbe3622: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,639 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ls20-fa137e247ce6: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,741 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for sp80-0605ab9e5b2a: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,742 - WARNING - src.arc_integration.continuous_learning_loop - Game sp80-0605ab9e5b2a had 5 consecutive failures at episode 1
+2025-09-08 16:44:18,742 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for lp85-2e205bbe3622: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,743 - WARNING - src.arc_integration.continuous_learning_loop - Game lp85-2e205bbe3622 had 5 consecutive failures at episode 1
+2025-09-08 16:44:18,743 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ls20-fa137e247ce6: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,744 - WARNING - src.arc_integration.continuous_learning_loop - Game ls20-fa137e247ce6 had 5 consecutive failures at episode 1
+2025-09-08 16:44:18,745 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for vc33-58ec4396715d: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,746 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for as66-821a4dcad9c2: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,747 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ft09-f340c8e5138e: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,853 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for vc33-58ec4396715d: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,855 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for as66-821a4dcad9c2: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,856 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ft09-f340c8e5138e: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,972 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for vc33-58ec4396715d: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,974 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for as66-821a4dcad9c2: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:18,975 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ft09-f340c8e5138e: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:19,101 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for vc33-58ec4396715d: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:19,102 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for as66-821a4dcad9c2: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:19,104 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ft09-f340c8e5138e: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:19,220 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for vc33-58ec4396715d: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:19,222 - WARNING - src.arc_integration.continuous_learning_loop - Game vc33-58ec4396715d had 5 consecutive failures at episode 1
+2025-09-08 16:44:19,222 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for as66-821a4dcad9c2: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:19,223 - WARNING - src.arc_integration.continuous_learning_loop - Game as66-821a4dcad9c2 had 5 consecutive failures at episode 1
+2025-09-08 16:44:19,223 - ERROR - src.arc_integration.continuous_learning_loop - Error in mastery session 1 for ft09-f340c8e5138e: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+Traceback (most recent call last):
+  File "c:\Users\Admin\Documents\GitHub\tabula-rasa\src\arc_integration\continuous_learning_loop.py", line 4447, in _run_real_arc_mastery_session_enhanced
+    agent_state = self._get_current_agent_state()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ContinuousLearningLoop' object has no attribute '_get_current_agent_state'
+2025-09-08 16:44:19,225 - WARNING - src.arc_integration.continuous_learning_loop - Game ft09-f340c8e5138e had 5 consecutive failures at episode 1
