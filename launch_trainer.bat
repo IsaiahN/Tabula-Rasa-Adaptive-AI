@@ -2,6 +2,17 @@
 REM Multi-Mode Master ARC Trainer Launcher
 REM Provides easy access to different training modes
 
+REM Check if .env file exists, if not run setup
+if not exist ".env" (
+    echo .env file not found. Running environment setup...
+    python setup_env.py
+    if errorlevel 1 (
+        echo Failed to create .env file. Please run 'python setup_env.py' manually.
+        pause
+        exit /b 1
+    )
+)
+
 :MENU
 cls
 echo ===============================================

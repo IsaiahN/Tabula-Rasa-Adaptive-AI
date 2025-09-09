@@ -103,10 +103,9 @@ tabula-rasa/
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment variables (copy .env.template to .env and configure)
-cp .env.template .env
-# Add your ARC-3 API key and paths to .env
-# Note: .env.template has been updated to include all required variables with proper Windows paths
+# Set up environment variables
+python setup_env.py  # Creates .env from template
+# Edit .env file and add your ARC-3 API key and paths
 ```
 
 ## Quick Start
@@ -575,7 +574,7 @@ python temp_memory_methods.py
 
 ### Environment Variables (.env)
 
-**Updated .env.template**: The template file has been updated with comprehensive configuration including Windows-specific paths, all required variables, and proper documentation for each setting.
+**Environment Configuration**: Create a `.env` file with the following configuration including Windows-specific paths, all required variables, and proper documentation for each setting.
 
 ```bash
 # ARC-3 API Configuration
