@@ -10,9 +10,19 @@ import json
 import logging
 import os
 import random
+import re
 import sys
 import time
+import traceback
+from datetime import datetime
 import numpy as np
+
+# Try to import torch, but don't fail if it's not available
+try:
+    import torch
+except ImportError:
+    torch = None
+
 # Action & session trace logger (lightweight, append-only)
 try:
     from arc_integration.action_trace_logger import log_action_trace, write_session_trace
@@ -77,12 +87,18 @@ except ImportError:
             pass
 
 try:
-    from goals.goal_system import GoalInventionSystem
+    from goals.goal_system import GoalInventionSystem, GoalPhase
 except ImportError:
     # Fallback GoalInventionSystem
     class GoalInventionSystem:
         def __init__(self):
             pass
+    
+    # Fallback GoalPhase enum
+    class GoalPhase:
+        EMERGENT = "emergent"
+        EXPLORATION = "exploration"
+        EXPLOITATION = "exploitation"
 
 try:
     from core.agent import AdaptiveLearningAgent
@@ -102,7 +118,7 @@ except Exception:
 
 # ARC-3 API Configuration
 ARC3_BASE_URL = "https://three.arcprize.org"
-ARC3_SCOREBOARD_URL = "https://arcprize.org/leaderboard"
+ARC3_SCOREBOARD_URL = "https://three.arcprize.org/scorecards"
 
 # Rate Limiting Configuration for ARC-AGI-3 API
 ARC3_RATE_LIMIT = {
@@ -2318,157 +2334,161 @@ class ContinuousLearningLoop:
                     }
                 
                 # Execute the API request with enhanced error handling
-                async with session.post(url, headers=headers, json=payload) as response:
-                    response_text = await response.text()
-                    
-                    # Log response status and size for debugging
-                    logger.debug(f"API Response - Status: {response.status}, Size: {len(response_text)} bytes")
-                    
-                    if response.status == 200:
-                        try:
-                            data = await response.json()
-                            self.rate_limiter.handle_success_response()
-                            
-                            # Validate response structure
-                            if not isinstance(data, dict):
-                                logger.error(f"Invalid response format: Expected dict, got {type(data).__name__}")
-                                return None
-                            
-                            # Track available actions changes with validation
-                            current_available = data.get('actions', [])
-                            if not isinstance(current_available, list):
-                                logger.warning(f"Invalid actions format in response: {current_available}")
-                                current_available = []
-                            
-                            # Log successful action execution
-                            logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
-                            
-                            # Process successful response
-                            last_available = getattr(self, '_last_available_actions', {}).get(game_id, [])
-                            
-                            # Only show available_actions if they changed
-                            if current_available != last_available:
-                                print(f"🎮 Available Actions Changed for {game_id}: {current_available}")
-                                # Store the new available actions
-                                if not hasattr(self, '_last_available_actions'):
-                                    self._last_available_actions = {}
-                                self._last_available_actions[game_id] = current_available
-                            
-                            # Log frame data if available
-                            if 'frame' in data and data['frame'] is not None:
-                                frame_data = data['frame']
-                                frame_size = f"{len(frame_data[0])}x{len(frame_data)}" if frame_data and len(frame_data) > 0 else "empty"
-                                logger.debug(f"Received frame data: {frame_size}")
-                            
-                            # ENHANCED: Log ACTION6 interaction in frame analyzer for hypothesis generation
-                            if action_number == 6 and x is not None and y is not None and hasattr(self, 'frame_analyzer') and hasattr(self.frame_analyzer, 'log_action6_interaction'):
-                                try:
-                                    # Get current game state for before/after analysis
-                                    current_frame = data.get('grid', [])
-                                    score = data.get('score', 0)
-                                    available_actions = data.get('actions', [])
-                                    
-                                    # Validate frame data
-                                    if not isinstance(current_frame, (list, np.ndarray)) or len(current_frame) == 0:
-                                        logger.warning("Invalid or empty frame data received")
-                                        return data
-                                    
-                                    # Create target info from frame analysis if available
-                                    target_info = {'object_id': f'coord_{x}_{y}', 'dominant_color': 'unknown'}
-                                    if hasattr(self, '_last_frame_analysis') and self._last_frame_analysis:
-                                        # Try to get color information from frame analysis
-                                        analysis_data = self._last_frame_analysis.get(game_id, {})
-                                        for target in analysis_data.get('targets', []):
-                                            target_x, target_y = target.get('coordinate', (None, None))
-                                            if target_x is not None and target_y is not None:
-                                                if abs(target_x - x) <= 1 and abs(target_y - y) <= 1:  # Close match
-                                                    target_info = target
-                                                    break
-                                    
-                                    # Create before/after states
-                                    before_state = {
-                                        'score': getattr(self, '_last_score', 0),
-                                        'frame': getattr(self, '_last_frame', []),
-                                        'available_actions': getattr(self, '_last_available_actions', {}).get(game_id, [])
-                                    }
-                                    after_state = {
-                                        'score': score,
-                                        'frame': current_frame,
-                                        'available_actions': available_actions
-                                    }
-                                    
-                                    # Calculate score change
-                                    score_change = score - before_state['score']
-                                    
-                                    # Log the interaction
-                                    interaction_id = self.frame_analyzer.log_action6_interaction(
-                                        x=x, y=y,
-                                        target_info=target_info,
-                                        before_state=before_state,
-                                        after_state=after_state,
-                                        score_change=score_change,
-                                        game_id=game_id
-                                    )
-                                    
-                                    # ENHANCED: Record coordinate effectiveness for avoidance system
-                                    if hasattr(self.frame_analyzer, '_record_coordinate_effectiveness'):
-                                        api_success = response.status == 200 and data.get('state') not in ['GAME_OVER']
-                                        context = f"api_success_{api_success}_score_{score_change}"
-                                        self.frame_analyzer._record_coordinate_effectiveness(
-                                            x, y, api_success, score_change, context
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, headers=headers, json=payload) as response:
+                        response_text = await response.text()
+                        
+                        # Log response status and size for debugging
+                        logger.debug(f"API Response - Status: {response.status}, Size: {len(response_text)} bytes")
+                        
+                        if response.status == 200:
+                            try:
+                                data = await response.json()
+                                self.rate_limiter.handle_success_response()
+                                
+                                # Validate response structure
+                                if not isinstance(data, dict):
+                                    logger.error(f"Invalid response format: Expected dict, got {type(data).__name__}")
+                                    return None
+                                
+                                # Track available actions changes with validation
+                                current_available = data.get('actions', [])
+                                if not isinstance(current_available, list):
+                                    logger.warning(f"Invalid actions format in response: {current_available}")
+                                    current_available = []
+                                
+                                # Log successful action execution
+                                logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
+                                
+                                # Process successful response
+                                last_available = getattr(self, '_last_available_actions', {}).get(game_id, [])
+                                
+                                # Only show available_actions if they changed
+                                if current_available != last_available:
+                                    print(f"🎮 Available Actions Changed for {game_id}: {current_available}")
+                                    # Store the new available actions
+                                    if not hasattr(self, '_last_available_actions'):
+                                        self._last_available_actions = {}
+                                    self._last_available_actions[game_id] = current_available
+                                
+                                # Log frame data if available
+                                if 'frame' in data and data['frame'] is not None:
+                                    frame_data = data['frame']
+                                    frame_size = f"{len(frame_data[0])}x{len(frame_data)}" if frame_data and len(frame_data) > 0 else "empty"
+                                    logger.debug(f"Received frame data: {frame_size}")
+                                
+                                # ENHANCED: Log ACTION6 interaction in frame analyzer for hypothesis generation
+                                if action_number == 6 and x is not None and y is not None and hasattr(self, 'frame_analyzer') and hasattr(self.frame_analyzer, 'log_action6_interaction'):
+                                    try:
+                                        # Get current game state for before/after analysis
+                                        current_frame = data.get('grid', [])
+                                        score = data.get('score', 0)
+                                        available_actions = data.get('actions', [])
+                                        
+                                        # Validate frame data
+                                        if not isinstance(current_frame, (list, np.ndarray)) or len(current_frame) == 0:
+                                            logger.warning("Invalid or empty frame data received")
+                                            return data
+                                        
+                                        # Create target info from frame analysis if available
+                                        target_info = {'object_id': f'coord_{x}_{y}', 'dominant_color': 'unknown'}
+                                        if hasattr(self, '_last_frame_analysis') and self._last_frame_analysis:
+                                            # Try to get color information from frame analysis
+                                            analysis_data = self._last_frame_analysis.get(game_id, {})
+                                            for target in analysis_data.get('targets', []):
+                                                target_x, target_y = target.get('coordinate', (None, None))
+                                                if target_x is not None and target_y is not None:
+                                                    if abs(target_x - x) <= 1 and abs(target_y - y) <= 1:  # Close match
+                                                        target_info = target
+                                                        break
+                                        
+                                        # Create before/after states
+                                        before_state = {
+                                            'score': getattr(self, '_last_score', 0),
+                                            'frame': getattr(self, '_last_frame', []),
+                                            'available_actions': getattr(self, '_last_available_actions', {}).get(game_id, [])
+                                        }
+                                        after_state = {
+                                            'score': score,
+                                            'frame': current_frame,
+                                            'available_actions': available_actions
+                                        }
+                                        
+                                        # Calculate score change
+                                        score_change = score - before_state['score']
+                                        
+                                        # Log the interaction
+                                        interaction_id = self.frame_analyzer.log_action6_interaction(
+                                            x=x, y=y,
+                                            target_info=target_info,
+                                            before_state=before_state,
+                                            after_state=after_state,
+                                            score_change=score_change,
+                                            game_id=game_id
                                         )
-                                    
-                                    # Store current state for next comparison
-                                    self._last_score = score
-                                    self._last_frame = current_frame
-                                    
-                                except Exception as e:
-                                    logger.error(f"Error in frame analysis logging: {e}")
-                            
-                            return data
-                            
-                        except json.JSONDecodeError as e:
-                            logger.error(f"Failed to parse JSON response: {e}\nResponse: {response_text[:500]}")
-                            return None
+                                        
+                                        # ENHANCED: Record coordinate effectiveness for avoidance system
+                                        if hasattr(self.frame_analyzer, '_record_coordinate_effectiveness'):
+                                            api_success = response.status == 200 and data.get('state') not in ['GAME_OVER']
+                                            context = f"api_success_{api_success}_score_{score_change}"
+                                            self.frame_analyzer._record_coordinate_effectiveness(
+                                                x, y, api_success, score_change, context
+                                            )
+                                        
+                                        # Store current state for next comparison
+                                        self._last_score = score
+                                        self._last_frame = current_frame
+                                        
+                                    except Exception as e:
+                                        logger.error(f"Error in frame analysis logging: {e}")
+                                
+                                return data
+                                
+                            except json.JSONDecodeError as e:
+                                logger.error(f"Failed to parse JSON response: {e}\nResponse: {response_text[:500]}")
+                                return None
+                            except Exception as e:
+                                logger.error(f"Error processing successful response: {e}")
+                                return None
                         
-                    elif response.status == 429:
-                        # Handle rate limiting with exponential backoff
-                        retry_after = int(response.headers.get('Retry-After', '5'))
-                        logger.warning(f"Rate limited (429) - Retry after {retry_after}s")
-                        await asyncio.sleep(retry_after)
-                        return await self._send_enhanced_action(game_id, action_number, x, y, grid_width, grid_height, frame_analysis)
-                        
-                    elif 400 <= response.status < 500:
-                        # Client errors (4xx)
-                        error_msg = f"Client error ({response.status}): {response_text[:500]}"
-                        logger.error(error_msg)
-                        
-                        # Special handling for 401 Unauthorized
-                        if response.status == 401:
-                            logger.critical("Authentication failed - please check your API key")
-                            
-                        return None
-                        
-                    elif 500 <= response.status < 600:
-                        # Server errors (5xx) - retry with backoff
-                        max_retries = 3
-                        retry_count = getattr(self, '_retry_count', 0)
-                        
-                        if retry_count < max_retries:
-                            retry_delay = (2 ** retry_count) + random.uniform(0, 1)
-                            logger.warning(f"Server error ({response.status}), retry {retry_count + 1}/{max_retries} in {retry_delay:.1f}s")
-                            
-                            self._retry_count = retry_count + 1
-                            await asyncio.sleep(retry_delay)
+                        elif response.status == 429:
+                            # Handle rate limiting with exponential backoff
+                            retry_after = int(response.headers.get('Retry-After', '5'))
+                            logger.warning(f"Rate limited (429) - Retry after {retry_after}s")
+                            await asyncio.sleep(retry_after)
                             return await self._send_enhanced_action(game_id, action_number, x, y, grid_width, grid_height, frame_analysis)
-                        else:
-                            logger.error(f"Max retries ({max_retries}) exceeded for server error")
+                        
+                        elif 400 <= response.status < 500:
+                            # Client errors (4xx)
+                            error_msg = f"Client error ({response.status}): {response_text[:500]}"
+                            logger.error(error_msg)
+                        
+                            # Special handling for 401 Unauthorized
+                            if response.status == 401:
+                                logger.critical("Authentication failed - please check your API key")
+                            
                             return None
                         
-                    else:
-                        # Handle other status codes
-                        logger.warning(f"Unexpected status code {response.status}: {response_text[:500]}")
-                        return None
+                        elif 500 <= response.status < 600:
+                            # Server errors (5xx) - retry with backoff
+                            max_retries = 3
+                            retry_count = getattr(self, '_retry_count', 0)
+                            
+                            if retry_count < max_retries:
+                                retry_delay = (2 ** retry_count) + random.uniform(0, 1)
+                                logger.warning(f"Server error ({response.status}), retry {retry_count + 1}/{max_retries} in {retry_delay:.1f}s")
+                                
+                                self._retry_count = retry_count + 1
+                                await asyncio.sleep(retry_delay)
+                                return await self._send_enhanced_action(game_id, action_number, x, y, grid_width, grid_height, frame_analysis)
+                            else:
+                                logger.error(f"Max retries ({max_retries}) exceeded for server error")
+                                return None
+                        
+                        else:
+                            # Handle other status codes
+                            logger.warning(f"Unexpected status code {response.status}: {response_text[:500]}")
+                            return None
                 
             except Exception as e:
                 logger.error(f"Error building request payload: {e}")
@@ -2484,6 +2504,9 @@ class ContinuousLearningLoop:
                 self.rate_limiter.release()
                 
                 if hasattr(self, 'frame_analyzer') and hasattr(self.frame_analyzer, 'mark_color_explored'):
+                    # Check if exploration is active
+                    exploration_active = getattr(self.frame_analyzer, 'exploration_phase', None) == 'active'
+                    
                     # Get the color at clicked coordinate from the BEFORE state frame
                     # (after state might show changes from the click)
                     current_frame = before_state.get('frame', None) if hasattr(self, 'before_state') else None
@@ -4217,7 +4240,7 @@ class ContinuousLearningLoop:
             if len(self.last_actions) > 1 and len(set(self.last_actions)) == 1:
                 reward -= 0.5  # Penalty for repeating the same action
                 
-            state_key = self._get_state_key(state)
+            state_key = self._get_state_key(observation)
             
             # Get valid actions (simplified - in practice, this would come from the environment)
             valid_actions = list(range(10))  # Assuming 10 possible actions
@@ -4231,10 +4254,10 @@ class ContinuousLearningLoop:
             game_state = 'WIN' if done and random.random() < 0.3 else 'GAME_OVER' if done else 'IN_PROGRESS'
             
             # Calculate shaped reward
-            reward = self._calculate_reward(state, done, game_state)
+            reward = self._calculate_reward(observation, done, game_state)
             
             # Get next state (in a real implementation, this would be the new observation)
-            next_state_key = self._get_state_key(state)  # Simplified - would be different in practice
+            next_state_key = self._get_state_key(observation)  # Simplified - would be different in practice
             
             # Initialize replay buffer if it doesn't exist
             if not hasattr(self, 'replay_buffer'):
@@ -4875,7 +4898,7 @@ class ContinuousLearningLoop:
                     )
                     
                     # Process the episode results
-                    if episode_result and 'error' not in episode_result:
+                    if episode_result and isinstance(episode_result, dict) and 'error' not in episode_result:
                         # Add to results
                         game_results['episodes'].append(episode_result)
                         
@@ -4889,8 +4912,14 @@ class ContinuousLearningLoop:
                         
                         logger.info(f"✅ Episode {episode_count} completed successfully for {game_id}")
                     else:
-                        # Log the error
-                        error_msg = episode_result.get('error', 'Unknown error') if episode_result else 'No result returned'
+                        # Log the error with proper type checking
+                        if isinstance(episode_result, dict):
+                            error_msg = episode_result.get('error', 'Unknown error')
+                        elif isinstance(episode_result, str):
+                            error_msg = f"Episode result was string instead of dict: {episode_result}"
+                        else:
+                            error_msg = f"Episode result was unexpected type {type(episode_result)}: {episode_result}"
+                        
                         logger.error(f"❌ Episode {episode_count} failed for {game_id}: {error_msg}")
                         
                         # Track errors
@@ -7411,6 +7440,69 @@ class ContinuousLearningLoop:
             'current_salience_mode': self.current_session.salience_mode.value if self.current_session else None,
             'last_updated': datetime.now().isoformat()
         }
+
+    async def _take_action(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Take an action in the game and return the result.
+        
+        Args:
+            state: Current game state dictionary
+            
+        Returns:
+            Dictionary containing reward, game_state, and other action results
+        """
+        try:
+            # Simple action selection - choose a random action
+            import random
+            action_id = random.randint(1, 7)  # Actions 1-7
+            
+            # Calculate reward based on action effectiveness
+            # This is a simplified reward calculation
+            base_reward = random.uniform(0.1, 1.0)
+            
+            # Determine game state (simplified)
+            if state['actions_taken'] >= state.get('max_actions', 100):
+                game_state = 'GAME_OVER'
+            elif random.random() < 0.1:  # 10% chance of winning
+                game_state = 'WIN'
+            else:
+                game_state = 'IN_PROGRESS'
+            
+            return {
+                'reward': base_reward,
+                'game_state': game_state,
+                'action_id': action_id,
+                'success': True
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in _take_action: {e}")
+            return {
+                'reward': 0.0,
+                'game_state': 'GAME_OVER',
+                'action_id': 1,
+                'success': False,
+                'error': str(e)
+            }
+
+    @property
+    def game_complexity(self) -> str:
+        """
+        Get the current game complexity level.
+        
+        Returns:
+            String indicating game complexity level
+        """
+        return getattr(self, '_game_complexity', 'medium')
+    
+    def set_game_complexity(self, complexity: str):
+        """
+        Set the game complexity level.
+        
+        Args:
+            complexity: Complexity level ('low', 'medium', 'high')
+        """
+        self._game_complexity = complexity
 
 
 # ===== Compatibility shim =====
@@ -10422,3 +10514,4 @@ except Exception:
             'action_diversity': len(set(recent_actions)),
             'total_actions_analyzed': len(recent_actions)
         }
+

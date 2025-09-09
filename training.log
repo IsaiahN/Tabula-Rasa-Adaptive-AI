@@ -1,2 +1,7 @@
 2025-09-08 17:37:09,743 - INFO - Action 100/100000 | Reward: 1.00 | Exploration: 0.606
 2025-09-08 17:37:10,325 - INFO - Action 100/100000 | Reward: -7.50 | Exploration: 0.215
+2025-09-08 20:58:12,829 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x000002282DCE4440>
+2025-09-08 20:58:12,831 - asyncio - ERROR - Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x000002282DCCAED0>, 316770.738579)])']
+connector: <aiohttp.connector.TCPConnector object at 0x000002282DE98EC0>
