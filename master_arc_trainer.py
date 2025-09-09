@@ -270,7 +270,41 @@ try:
     ContinuousLearningLoop = None
     
     # Load environment configuration
-    load_dotenv('.env')
+    # Try to load .env file, but don't fail if it doesn't exist
+    env_files_loaded = []
+    try:
+        load_dotenv('.env')
+        env_files_loaded.append('.env')
+    except Exception as e:
+        print(f"Note: Could not load .env file: {e}")
+    
+    # Also try to load from .env.template as fallback
+    try:
+        load_dotenv('.env.template')
+        env_files_loaded.append('.env.template')
+    except Exception:
+        pass
+    
+    if env_files_loaded:
+        print(f"✅ Loaded environment files: {', '.join(env_files_loaded)}")
+    
+    # Check if ARC_API_KEY is available
+    arc_api_key = os.getenv('ARC_API_KEY')
+    if not arc_api_key:
+        print("⚠️  WARNING: ARC_API_KEY environment variable not set!")
+        print("   Please set your ARC API key using one of these methods:")
+        print("   1. Environment variable:")
+        print("      Windows: set ARC_API_KEY=your_api_key_here")
+        print("      PowerShell: $env:ARC_API_KEY=\"your_api_key_here\"")
+        print("      Linux/Mac: export ARC_API_KEY=your_api_key_here")
+        print("   2. Create a .env file with: ARC_API_KEY=your_api_key_here")
+        print("   3. Pass --api-key argument when running the script")
+        print("   4. Run setup script: python setup_env.py")
+        print("   Get your API key from: https://three.arcprize.org")
+        print()
+        print("   The training will continue but will use mock mode if no API key is provided.")
+    else:
+        print(f"✅ ARC_API_KEY loaded: {arc_api_key[:8]}...")
     
 except ImportError as e:
     print(f"❌ IMPORT ERROR: {e}")
@@ -385,7 +419,7 @@ class MasterARCTrainer:
                 self.logger.info("Initializing MOCK ARC client for local testing...")
                 self.arc_client = MockARCClient(api_key="mock-api-key")
             else:
-                from arc_integration.arc_api_client import ARCClient, DEFAULT_BASE_URL
+                from arc_integration.arc_api_client_fixed import ARCClient, DEFAULT_BASE_URL
                 self.logger.info("Initializing REAL ARC API client...")
                 
                 # Debug: Log environment variables
@@ -401,10 +435,28 @@ class MasterARCTrainer:
             
             # Test API connectivity with a simple request
             try:
-                # Try to reset the game as a simple health check
-                self.logger.info("Testing API connectivity with reset_game...")
-                game_state = await self.arc_client.reset_game()
-                self.logger.info(f"Successfully connected to {'MOCK' if self.config.local_mode else 'ARC'} API. Game ID: {game_state.game_id}")
+                # First get available games to test connectivity
+                self.logger.info("Testing API connectivity with get_available_games...")
+                games = await self.arc_client.get_available_games()
+                self.logger.info(f"Successfully connected to {'MOCK' if self.config.local_mode else 'ARC'} API. Found {len(games)} available games")
+                
+                # If we have games, test with the first one
+                if games and len(games) > 0:
+                    test_game_id = games[0].get('game_id', 'ls20-016295f7601e')  # Fallback to known game
+                    self.logger.info(f"Testing with game: {test_game_id}")
+                    
+                    # Open a test scorecard
+                    scorecard = await self.arc_client.open_scorecard(tags=["test", "tabula_rasa"])
+                    self.logger.info(f"Opened test scorecard: {scorecard.card_id}")
+                    
+                    # Test reset_game with the test game
+                    game_state = await self.arc_client.reset_game(test_game_id, scorecard.card_id)
+                    self.logger.info(f"Successfully tested reset_game. Game ID: {game_state.game_id}")
+                    
+                    # Close the test scorecard
+                    await self.arc_client.close_scorecard(scorecard.card_id)
+                    self.logger.info("Closed test scorecard")
+                
                 self.initialized = True
                 return True
             except Exception as e:
@@ -468,7 +520,9 @@ class MasterARCTrainer:
             if self.config.enable_meta_cognitive_governor:
                 try:
                     from src.core.meta_cognitive_governor import MetaCognitiveGovernor
-                    self.governor = MetaCognitiveGovernor()
+                    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    data_path = os.path.join(base_path, 'data')
+                    self.governor = MetaCognitiveGovernor(persistence_dir=data_path)
                     self.logger.info("Meta-cognitive governor initialized")
                 except ImportError as e:
                     self.logger.warning(f"Could not initialize meta-cognitive governor: {e}")
@@ -479,7 +533,7 @@ class MasterARCTrainer:
                 try:
                     from src.core.architect import Architect
                     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    repo_path = os.path.join(base_path, 'architect_evolution_data')
+                    repo_path = os.path.join(base_path, 'data', 'architect_evolution_data')
                     os.makedirs(repo_path, exist_ok=True)
                     self.architect = Architect(base_path=base_path, repo_path=repo_path)
                     self.logger.info("Architect system initialized")
@@ -539,6 +593,34 @@ class MasterARCTrainer:
                 'timestamp': datetime.now().isoformat()
             }
     
+    async def _run_maximum_intelligence(self):
+        """Run maximum intelligence mode with all systems enabled."""
+        self.logger.info("🚀 Starting MAXIMUM-INTELLIGENCE mode")
+        self.logger.info("   All meta-cognitive systems enabled")
+        self.logger.info("   Governor + Architect + All cognitive systems")
+        
+        try:
+            # Run continuous learning with maximum intelligence settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': True,
+                'enable_architect_evolution': True,
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': True,
+                'max_actions': self.config.max_actions,
+                'max_cycles': self.config.max_cycles,
+                'target_score': self.config.target_score
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in maximum intelligence mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
     async def _run_continuous_learning(self, config_overrides: Dict = None):
         """Core continuous learning execution with enhanced client handling."""
         try:
@@ -556,11 +638,17 @@ class MasterARCTrainer:
                 self.logger.info("Creating ContinuousLearningLoop instance...")
                 
                 # Create and initialize the training loop with the client
+                # Get the current directory as the tabula_rasa_path
+                tabula_rasa_path = os.path.dirname(os.path.abspath(__file__))
+                
+                # Use the arc_agents_path from config or default
+                arc_agents_path = self.config.arc_agents_path or os.path.join(tabula_rasa_path, '..', 'ARC-AGI-3-Agents')
+                
                 self.continuous_loop = ContinuousLearningLoop(
-                    config={
-                        **self.config.__dict__,
-                        **(config_overrides or {})
-                    }
+                    arc_agents_path=arc_agents_path,
+                    tabula_rasa_path=tabula_rasa_path,
+                    api_key=self.config.api_key,
+                    save_directory="data"
                 )
                 
                 # Initialize coordinate manager with the continuous loop if needed
@@ -575,8 +663,18 @@ class MasterARCTrainer:
                 
                 self.logger.info("Starting training loop...")
                 
-                # Start the training loop
-                await self.continuous_loop.run()
+                # Get available games and run in swarm mode
+                games = await self.continuous_loop.get_available_games()
+                if games:
+                    game_ids = [game.get('game_id') for game in games[:5]]  # Use first 5 games
+                    self.logger.info(f"Running swarm mode with {len(game_ids)} games: {game_ids}")
+                    await self.continuous_loop.run_swarm_mode(
+                        games=game_ids,
+                        max_concurrent=2,
+                        max_episodes_per_game=10
+                    )
+                else:
+                    self.logger.warning("No games available, skipping training")
                 
                 # Save results if available
                 if hasattr(self.continuous_loop, 'get_results'):

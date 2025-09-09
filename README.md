@@ -46,8 +46,47 @@ A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehe
 pip install -r requirements.txt
 
 # Set up environment variables
-cp .env.template .env
-# Add your ARC-3 API key to .env file
+python setup_env.py
+# Edit .env file and add your ARC-3 API key
+```
+
+### Environment Setup
+
+The system requires an ARC-AGI-3 API key to function. You can set it up in several ways:
+
+#### Option 1: Using the setup script (Recommended)
+```bash
+python setup_env.py
+# Follow the prompts to create .env file
+# Edit .env file and add your actual API key
+```
+
+#### Option 2: Manual environment variable
+```bash
+# Windows Command Prompt
+set ARC_API_KEY=your_api_key_here
+
+# Windows PowerShell
+$env:ARC_API_KEY="your_api_key_here"
+
+# Linux/Mac
+export ARC_API_KEY=your_api_key_here
+```
+
+#### Option 3: Create .env file manually
+Create a `.env` file in the project root with:
+```
+ARC_API_KEY=your_api_key_here
+```
+
+#### Get your API key
+1. Visit [https://three.arcprize.org](https://three.arcprize.org)
+2. Sign up for an account
+3. Get your API key from your profile
+
+#### Test the setup
+```bash
+python test_arc_api.py
 ```
 
 ### Basic Usage

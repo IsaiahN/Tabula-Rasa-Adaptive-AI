@@ -788,3 +788,41 @@ If you've managed to hit a rate limit, you'll see a standard `429` response.
 ```json
 {"error":"RATE_LIMIT_EXCEEDED","message":"rate limit has been exceeded"}
 ```
+
+
+## HOW TO CREATE OR START A NEW GAME:
+import requests
+
+url = "https://three.arcprize.org/api/cmd/RESET"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "card_id": "8bb3b1b8-4b46-4a29-a13b-ad7850a0f916"
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
+
+## HOW TO RESET A LEVEL:
+import requests
+
+url = "https://three.arcprize.org/api/cmd/RESET"
+
+payload = {
+    "game_id": "ls20-016295f7601e",
+    "card_id": "8bb3b1b8-4b46-4a29-a13b-ad7850a0f916",
+    "guid": "2fa5332c-2e55-4825-b5c5-df960d504470"
+}
+headers = {
+    "X-API-Key": "<api-key>",
+    "Content-Type": "application/json"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+
+print(response.json())
