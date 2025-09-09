@@ -309,6 +309,15 @@ class MetaCognitiveGovernor:
             'max_cleanup_interval': 3600  # Max 1 hour between cleanups
         }
         
+        # Training data cleanup configuration
+        self.training_data_cleanup_config = {
+            'min_score_threshold': 0.1,    # Minimum score to consider valuable
+            'min_episodes_threshold': 5,   # Minimum episodes to consider meaningful
+            'max_age_days': 7,             # Maximum age of data to keep
+            'cleanup_frequency': 5,        # Clean every 5 governor decisions
+            'max_cleanup_interval': 1800   # Max 30 minutes between cleanups
+        }
+        
         # Special handling for master_arc_trainer logs - keep under 100k
         self.master_trainer_threshold = 100000  # 100k lines for master trainer logs
         self.master_trainer_remove_lines = 50000  # Remove 50k lines when threshold exceeded
@@ -461,6 +470,28 @@ class MetaCognitiveGovernor:
                 if archive_cleanup_results['archives_deleted'] > 0:
                     self.logger.info(f"🗑️ Archive cleanup: deleted {archive_cleanup_results['archives_deleted']} old archives")
                 self._last_archive_cleanup = time.time()
+            
+            # Clean up low-value training data periodically
+            if not hasattr(self, '_training_data_cleanup_counter'):
+                self._training_data_cleanup_counter = 0
+            self._training_data_cleanup_counter += 1
+            
+            # Clean training data every 5 governor decisions or if we haven't cleaned in a while
+            should_clean_training_data = (
+                self._training_data_cleanup_counter % self.training_data_cleanup_config['cleanup_frequency'] == 0 or 
+                not hasattr(self, '_last_training_data_cleanup') or 
+                (time.time() - getattr(self, '_last_training_data_cleanup', 0)) > self.training_data_cleanup_config['max_cleanup_interval']
+            )
+            
+            if should_clean_training_data:
+                training_cleanup_results = self.cleanup_low_value_training_data(
+                    min_score_threshold=self.training_data_cleanup_config['min_score_threshold'],
+                    min_episodes_threshold=self.training_data_cleanup_config['min_episodes_threshold'],
+                    max_age_days=self.training_data_cleanup_config['max_age_days']
+                )
+                if training_cleanup_results['files_deleted'] > 0:
+                    self.logger.info(f"🧹 Training data cleanup: deleted {training_cleanup_results['files_deleted']} low-value files")
+                self._last_training_data_cleanup = time.time()
             
             # Analyze current system state
             system_analysis = self._analyze_cognitive_systems()
@@ -706,6 +737,264 @@ class MetaCognitiveGovernor:
         
         # Reset the counter to avoid immediate re-cleanup
         self._last_archive_cleanup = time.time()
+        
+        return results
+
+    def cleanup_low_value_training_data(self, min_score_threshold: float = 0.1, 
+                                      min_episodes_threshold: int = 5,
+                                      max_age_days: int = 7) -> Dict[str, Any]:
+        """
+        Clean up low-value training data that wasn't producing score benefits.
+        
+        Args:
+            min_score_threshold: Minimum score to consider data valuable
+            min_episodes_threshold: Minimum episodes to consider data meaningful
+            max_age_days: Maximum age of data to keep (in days)
+            
+        Returns:
+            Dictionary with cleanup results
+        """
+        cleanup_results = {
+            'files_checked': 0,
+            'files_deleted': 0,
+            'bytes_freed': 0,
+            'sessions_cleaned': 0,
+            'meta_learning_cleaned': 0,
+            'performance_entries_cleaned': 0,
+            'errors': []
+        }
+        
+        try:
+            current_time = time.time()
+            max_age_seconds = max_age_days * 24 * 60 * 60
+            
+            # 1. Clean up sessions with no score benefit
+            sessions_dir = Path("data/sessions")
+            if sessions_dir.exists():
+                session_files = list(sessions_dir.glob("*.json"))
+                cleanup_results['files_checked'] += len(session_files)
+                
+                for session_file in session_files:
+                    try:
+                        with open(session_file, 'r') as f:
+                            session_data = json.load(f)
+                        
+                        # Check if session is valuable
+                        should_delete = False
+                        reason = ""
+                        
+                        # Check score
+                        final_score = session_data.get('session_result', {}).get('final_score', 0)
+                        if final_score < min_score_threshold:
+                            should_delete = True
+                            reason = f"low_score_{final_score}"
+                        
+                        # Check if too old
+                        file_age = current_time - session_file.stat().st_mtime
+                        if file_age > max_age_seconds:
+                            should_delete = True
+                            reason = f"old_data_{int(file_age/86400)}_days"
+                        
+                        # Check if no meaningful actions
+                        total_actions = session_data.get('session_result', {}).get('total_actions', 0)
+                        if total_actions < min_episodes_threshold:
+                            should_delete = True
+                            reason = f"insufficient_actions_{total_actions}"
+                        
+                        if should_delete:
+                            file_size = session_file.stat().st_size
+                            session_file.unlink()
+                            cleanup_results['files_deleted'] += 1
+                            cleanup_results['bytes_freed'] += file_size
+                            cleanup_results['sessions_cleaned'] += 1
+                            self.logger.info(f"🗑️ Deleted low-value session: {session_file.name} (reason: {reason})")
+                            
+                    except Exception as e:
+                        error_msg = f"Error processing session {session_file.name}: {e}"
+                        cleanup_results['errors'].append(error_msg)
+                        self.logger.error(error_msg)
+            
+            # 2. Clean up meta-learning data with no insights
+            meta_learning_dir = Path("data/meta_learning_data")
+            if meta_learning_dir.exists():
+                meta_files = list(meta_learning_dir.glob("*.json"))
+                cleanup_results['files_checked'] += len(meta_files)
+                
+                for meta_file in meta_files:
+                    try:
+                        with open(meta_file, 'r') as f:
+                            meta_data = json.load(f)
+                        
+                        # Check if meta-learning data is valuable
+                        should_delete = False
+                        reason = ""
+                        
+                        # Check for meaningful patterns/insights
+                        patterns = meta_data.get('patterns', [])
+                        insights = meta_data.get('insights', [])
+                        stats = meta_data.get('stats', {})
+                        
+                        if len(patterns) == 0 and len(insights) == 0:
+                            should_delete = True
+                            reason = "no_patterns_or_insights"
+                        
+                        # Check if too old
+                        file_age = current_time - meta_file.stat().st_mtime
+                        if file_age > max_age_seconds:
+                            should_delete = True
+                            reason = f"old_data_{int(file_age/86400)}_days"
+                        
+                        # Check if no successful transfers
+                        successful_transfers = stats.get('successful_transfers', 0)
+                        if successful_transfers == 0 and len(patterns) == 0:
+                            should_delete = True
+                            reason = "no_successful_transfers"
+                        
+                        if should_delete:
+                            file_size = meta_file.stat().st_size
+                            meta_file.unlink()
+                            cleanup_results['files_deleted'] += 1
+                            cleanup_results['bytes_freed'] += file_size
+                            cleanup_results['meta_learning_cleaned'] += 1
+                            self.logger.info(f"🗑️ Deleted low-value meta-learning: {meta_file.name} (reason: {reason})")
+                            
+                    except Exception as e:
+                        error_msg = f"Error processing meta-learning {meta_file.name}: {e}"
+                        cleanup_results['errors'].append(error_msg)
+                        self.logger.error(error_msg)
+            
+            # 3. Clean up task performance entries with no wins
+            task_performance_file = Path("data/task_performance.json")
+            if task_performance_file.exists():
+                try:
+                    with open(task_performance_file, 'r') as f:
+                        task_performance = json.load(f)
+                    
+                    original_count = len(task_performance)
+                    cleaned_performance = {}
+                    
+                    for game_id, performance_data in task_performance.items():
+                        win_rate = performance_data.get('win_rate', 0.0)
+                        avg_score = performance_data.get('avg_score', 0.0)
+                        episodes = performance_data.get('episodes', 0)
+                        last_updated = performance_data.get('last_updated', 0)
+                        
+                        # Keep if has meaningful performance or recent
+                        should_keep = (
+                            win_rate > min_score_threshold or 
+                            avg_score > min_score_threshold or
+                            episodes >= min_episodes_threshold or
+                            (current_time - last_updated) < max_age_seconds
+                        )
+                        
+                        if should_keep:
+                            cleaned_performance[game_id] = performance_data
+                        else:
+                            cleanup_results['performance_entries_cleaned'] += 1
+                            self.logger.info(f"🗑️ Removed low-value performance entry: {game_id} (win_rate: {win_rate}, score: {avg_score})")
+                    
+                    # Write cleaned performance data back
+                    if len(cleaned_performance) < original_count:
+                        with open(task_performance_file, 'w') as f:
+                            json.dump(cleaned_performance, f, indent=2)
+                        
+                        cleanup_results['files_checked'] += 1
+                        self.logger.info(f"📊 Cleaned task performance: removed {original_count - len(cleaned_performance)} entries")
+                        
+                except Exception as e:
+                    error_msg = f"Error processing task performance: {e}"
+                    cleanup_results['errors'].append(error_msg)
+                    self.logger.error(error_msg)
+            
+            # 4. Clean up empty or low-value action intelligence files
+            action_intel_files = list(Path("data").glob("action_intelligence_*.json"))
+            for intel_file in action_intel_files:
+                try:
+                    with open(intel_file, 'r') as f:
+                        intel_data = json.load(f)
+                    
+                    # Check if action intelligence data is valuable
+                    should_delete = False
+                    reason = ""
+                    
+                    # Check for meaningful data
+                    if isinstance(intel_data, dict):
+                        if len(intel_data) == 0:
+                            should_delete = True
+                            reason = "empty_data"
+                        elif all(v == 0 or v == [] for v in intel_data.values()):
+                            should_delete = True
+                            reason = "all_zero_values"
+                    
+                    # Check if too old
+                    file_age = current_time - intel_file.stat().st_mtime
+                    if file_age > max_age_seconds:
+                        should_delete = True
+                        reason = f"old_data_{int(file_age/86400)}_days"
+                    
+                    if should_delete:
+                        file_size = intel_file.stat().st_size
+                        intel_file.unlink()
+                        cleanup_results['files_deleted'] += 1
+                        cleanup_results['bytes_freed'] += file_size
+                        self.logger.info(f"🗑️ Deleted low-value action intelligence: {intel_file.name} (reason: {reason})")
+                        
+                except Exception as e:
+                    error_msg = f"Error processing action intelligence {intel_file.name}: {e}"
+                    cleanup_results['errors'].append(error_msg)
+                    self.logger.error(error_msg)
+            
+            if cleanup_results['files_deleted'] > 0:
+                self.logger.info(f"🧹 Training data cleanup completed: {cleanup_results['files_deleted']} files deleted, {cleanup_results['bytes_freed'] / 1024 / 1024:.1f} MB freed")
+                
+                # Log Governor decision
+                self.log_governor_decision({
+                    "decision_type": "training_data_cleanup",
+                    "files_deleted": cleanup_results['files_deleted'],
+                    "bytes_freed": cleanup_results['bytes_freed'],
+                    "sessions_cleaned": cleanup_results['sessions_cleaned'],
+                    "meta_learning_cleaned": cleanup_results['meta_learning_cleaned'],
+                    "performance_entries_cleaned": cleanup_results['performance_entries_cleaned'],
+                    "min_score_threshold": min_score_threshold,
+                    "min_episodes_threshold": min_episodes_threshold,
+                    "max_age_days": max_age_days
+                })
+            
+        except Exception as e:
+            error_msg = f"Training data cleanup error: {e}"
+            cleanup_results['errors'].append(error_msg)
+            self.logger.error(error_msg)
+        
+        return cleanup_results
+
+    def force_training_data_cleanup(self, min_score_threshold: float = None, 
+                                  min_episodes_threshold: int = None,
+                                  max_age_days: int = None) -> Dict[str, Any]:
+        """
+        Force immediate cleanup of low-value training data.
+        
+        Args:
+            min_score_threshold: Override min score threshold (uses config default if None)
+            min_episodes_threshold: Override min episodes threshold (uses config default if None)
+            max_age_days: Override max age days (uses config default if None)
+            
+        Returns:
+            Dictionary with cleanup results
+        """
+        min_score = min_score_threshold or self.training_data_cleanup_config['min_score_threshold']
+        min_episodes = min_episodes_threshold or self.training_data_cleanup_config['min_episodes_threshold']
+        max_age = max_age_days or self.training_data_cleanup_config['max_age_days']
+        
+        self.logger.info(f"🔧 Forcing training data cleanup: min_score={min_score}, min_episodes={min_episodes}, max_age={max_age}")
+        
+        results = self.cleanup_low_value_training_data(
+            min_score_threshold=min_score,
+            min_episodes_threshold=min_episodes,
+            max_age_days=max_age
+        )
+        
+        # Reset the counter to avoid immediate re-cleanup
+        self._last_training_data_cleanup = time.time()
         
         return results
 
