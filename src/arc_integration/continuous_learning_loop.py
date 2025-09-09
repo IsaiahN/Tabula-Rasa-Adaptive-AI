@@ -4371,23 +4371,28 @@ class ContinuousLearningLoop:
             if use_direct_control:
                 print(f"🎯 Using DIRECT API CONTROL with enhanced action selection")
                 # Use our direct API control with intelligent action selection
-                game_session_result = await self.start_training_with_direct_control(
-                    game_id, max_actions_per_session, session_count
-                )
-                
-                if "error" in game_session_result:
-                    print(f"❌ Direct control failed: {game_session_result['error']}")
+                try:
+                    game_session_result = await self.start_training_with_direct_control(
+                        game_id, max_actions_per_session, session_count
+                    )
+                    
+                    if "error" in game_session_result:
+                        print(f"❌ Direct control failed: {game_session_result['error']}")
+                        print(f"🔄 Falling back to external main.py")
+                        use_direct_control = False  # Fall back to external method
+                    else:
+                        # Convert direct control result to expected format
+                        total_score = game_session_result.get('final_score', 0)
+                        episode_actions = game_session_result.get('total_actions', 0)
+                        final_state = game_session_result.get('final_state', 'UNKNOWN')
+                        effective_actions = game_session_result.get('effective_actions', [])
+                        
+                        print(f"🎯 Direct Control Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
+                        print(f"🎯 Effective Actions Found: {len(effective_actions)}")
+                except Exception as e:
+                    print(f"❌ Direct control exception: {e}")
                     print(f"🔄 Falling back to external main.py")
                     use_direct_control = False  # Fall back to external method
-                else:
-                    # Convert direct control result to expected format
-                    total_score = game_session_result.get('final_score', 0)
-                    episode_actions = game_session_result.get('total_actions', 0)
-                    final_state = game_session_result.get('final_state', 'UNKNOWN')
-                    effective_actions = game_session_result.get('effective_actions', [])
-                    
-                    print(f"🎯 Direct Control Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                    print(f"🎯 Effective Actions Found: {len(effective_actions)}")
             
             if not use_direct_control:
                 print(f"🔄 Using EXTERNAL main.py (fallback mode)")
@@ -9877,13 +9882,22 @@ except Exception:
                         break
                 
                 # Use our intelligent action selection with current available actions
-                action_selection_response = {
-                    'available_actions': available_actions,
-                    'state': current_state,
-                    'score': current_score,
-                    'frame': session_data.get('frame', [])  # Get frame from session data
-                }
-                selected_action = self._select_next_action(action_selection_response, game_id)
+                try:
+                    action_selection_response = {
+                        'available_actions': available_actions,
+                        'state': current_state,
+                        'score': current_score,
+                        'frame': session_data.get('frame', [])  # Get frame from session data
+                    }
+                    selected_action = self._select_next_action(action_selection_response, game_id)
+                    
+                    # Track memory operations for action selection
+                    if hasattr(self, 'global_counters'):
+                        self.global_counters['total_memory_operations'] = self.global_counters.get('total_memory_operations', 0) + 1
+                    
+                except Exception as e:
+                    print(f"❌ Error in action selection: {e}")
+                    selected_action = None
                 
                 if selected_action is None:
                     print("❌ Action selection failed - stopping game loop")
@@ -9972,9 +9986,18 @@ except Exception:
                         print(f"   📊 Success: {success_rate:.1%} ({total_attempts} tries)")
                 
                 # Execute the action with actual grid dimensions
-                action_result = await self._send_enhanced_action(
-                    game_id, selected_action, x, y, actual_grid_dims[0], actual_grid_dims[1], current_frame_analysis
-                )
+                try:
+                    action_result = await self._send_enhanced_action(
+                        game_id, selected_action, x, y, actual_grid_dims[0], actual_grid_dims[1], current_frame_analysis
+                    )
+                    
+                    # Track memory operations for each action
+                    if hasattr(self, 'global_counters'):
+                        self.global_counters['total_memory_operations'] = self.global_counters.get('total_memory_operations', 0) + 1
+                    
+                except Exception as e:
+                    print(f"❌ Action execution error: {e}")
+                    action_result = None
                 
                 # Ensure tracking lists exist
                 if 'effective_actions' not in locals():
@@ -9986,11 +10009,17 @@ except Exception:
                 was_effective = False
 
                 if action_result:
-                    # Update state from response
-                    new_state = action_result.get('state', current_state)
-                    new_score = action_result.get('score', current_score)
-                    # CRITICAL: Extract available actions from API response
-                    new_available = action_result.get('available_actions', available_actions)
+                    try:
+                        # Update state from response
+                        new_state = action_result.get('state', current_state)
+                        new_score = action_result.get('score', current_score)
+                        # CRITICAL: Extract available actions from API response
+                        new_available = action_result.get('available_actions', available_actions)
+                    except Exception as e:
+                        print(f"❌ Error processing action result: {e}")
+                        new_state = current_state
+                        new_score = current_score
+                        new_available = available_actions
                     
                     # 🔧 CRITICAL FIX: Update frame data from action result with proper dimension handling
                     new_frame = action_result.get('frame') or action_result.get('grid', [])
@@ -10061,7 +10090,8 @@ except Exception:
                         self.current_energy = min(100.0, self.current_energy + energy_restoration)
                         print(f"⚡ Energy restored: +{energy_restoration:.1f} → {self.current_energy:.1f}/100")
                     
-                    # Track effectiveness for analysis
+                # Track effectiveness for analysis
+                try:
                     if was_effective:
                         effective_actions.append({
                             'action_number': selected_action,
@@ -10081,8 +10111,11 @@ except Exception:
                         'effective': was_effective,
                         'state_change': f"{current_state} → {new_state}"
                     })
+                except Exception as e:
+                    print(f"❌ Error in action tracking: {e}")
                     
-                    # Update current state for next iteration
+                # Update current state for next iteration
+                try:
                     current_state = new_state
                     current_score = new_score
                     # available_actions already updated above
@@ -10090,32 +10123,40 @@ except Exception:
                     # Update session_data with new frame information for next iteration
                     if 'frame' in action_result:
                         session_data['frame'] = action_result['frame']
+                except Exception as e:
+                    print(f"❌ Error updating state: {e}")
                     
                 else:
                     # Record failed action
-                    action_history.append({
-                            'action': selected_action,
-                            'coordinates': (x, y) if x is not None else None,
-                            'before_score': current_score,
-                            'after_score': current_score,
-                            'effective': False,
-                            'state_change': 'FAILED',
-                            'error': True
-                        })
+                    try:
+                        action_history.append({
+                                'action': selected_action,
+                                'coordinates': (x, y) if x is not None else None,
+                                'before_score': current_score,
+                                'after_score': current_score,
+                                'effective': False,
+                                'state_change': 'FAILED',
+                                'error': True
+                            })
+                    except Exception as e:
+                        print(f"❌ Error recording failed action: {e}")
                 
                 # WIN RATE-BASED PER-ACTION ENERGY DEPLETION
-                # Get current energy parameters based on win rate
-                energy_params = self._calculate_win_rate_adaptive_energy_parameters()
-                action_cost = energy_params['action_energy_cost']
-                
-                # Apply effectiveness modifier to energy cost
-                if was_effective:
-                    action_cost *= 0.8  # Reward effective actions with 20% energy savings
-                else:
-                    action_cost *= energy_params.get('effectiveness_multiplier', 1.0)  # Penalize ineffective actions
-                
-                # Deplete energy
-                self.current_energy = max(0.0, self.current_energy - action_cost)
+                try:
+                    # Get current energy parameters based on win rate
+                    energy_params = self._calculate_win_rate_adaptive_energy_parameters()
+                    action_cost = energy_params['action_energy_cost']
+                    
+                    # Apply effectiveness modifier to energy cost
+                    if was_effective:
+                        action_cost *= 0.8  # Reward effective actions with 20% energy savings
+                    else:
+                        action_cost *= energy_params.get('effectiveness_multiplier', 1.0)  # Penalize ineffective actions
+                    
+                    # Deplete energy
+                    self.current_energy = max(0.0, self.current_energy - action_cost)
+                except Exception as e:
+                    print(f"❌ Error in energy depletion: {e}")
                 
                 # Display energy status periodically
                 if actions_taken % 5 == 0:  # Every 5 actions
@@ -10167,71 +10208,102 @@ except Exception:
                 
                 
                 # Track actions without progress for emergency override
-                if current_score == investigation.get('score', 0):
-                    if not hasattr(self, '_actions_without_progress'):
+                try:
+                    if current_score == investigation.get('score', 0):
+                        if not hasattr(self, '_actions_without_progress'):
+                            self._actions_without_progress = 0
+                        self._actions_without_progress += 1
+                    else:
+                        # Progress made - reset counter
                         self._actions_without_progress = 0
-                    self._actions_without_progress += 1
-                else:
-                    # Progress made - reset counter
-                    self._actions_without_progress = 0
+                except Exception as e:
+                    print(f"❌ Error tracking progress: {e}")
                 
                 # Display score progress every 10 actions
-                if actions_taken % 10 == 0 or actions_taken - last_score_check >= 10:
-                    score_change = current_score - investigation.get('score', 0)
-                    effectiveness_pct = len(effective_actions)/max(1,actions_taken)*100
-                    print(f"📊 Progress #{actions_taken}: Score {current_score} (+{score_change}) | Effective: {len(effective_actions)}/{actions_taken} ({effectiveness_pct:.0f}%)")
-                    if current_score == investigation.get('score', 0):
-                        print(f"   ⚠️  No progress in {actions_taken} actions")
-                    last_score_check = actions_taken
+                try:
+                    if actions_taken % 10 == 0 or actions_taken - last_score_check >= 10:
+                        score_change = current_score - investigation.get('score', 0)
+                        effectiveness_pct = len(effective_actions)/max(1,actions_taken)*100
+                        print(f"📊 Progress #{actions_taken}: Score {current_score} (+{score_change}) | Effective: {len(effective_actions)}/{actions_taken} ({effectiveness_pct:.0f}%)")
+                        if current_score == investigation.get('score', 0):
+                            print(f"   ⚠️  No progress in {actions_taken} actions")
+                        last_score_check = actions_taken
+                except Exception as e:
+                    print(f"❌ Error displaying progress: {e}")
                 
                 # Rate-limit compliant delay between actions
                 # With 8 RPS limit, we need at least 0.125s between requests
                 # Use 0.15s for safety margin (6.67 RPS actual rate)
                 await asyncio.sleep(0.15)
             
-            # Session complete - close scorecard to save results
+            # Session complete - only close scorecard if we're in swarm mode or at the end of training
             if hasattr(self, 'current_scorecard_id') and self.current_scorecard_id:
-                print(f"🔒 Closing scorecard {self.current_scorecard_id} to save results...")
-                try:
-                    scorecard_closed = await self._close_scorecard(self.current_scorecard_id)
-                    if scorecard_closed:
-                        print(f"✅ Scorecard {self.current_scorecard_id} closed successfully")
-                    else:
-                        print(f"⚠️ Failed to close scorecard {self.current_scorecard_id}")
-                except Exception as e:
-                    print(f"❌ Error closing scorecard: {e}")
+                # Only close if we're in swarm mode (per-game scorecards) or if this is the final session
+                if hasattr(self, '_swarm_mode_active') and self._swarm_mode_active:
+                    print(f"🔒 Closing dedicated scorecard {self.current_scorecard_id} for {game_id}...")
+                    try:
+                        scorecard_closed = await self._close_scorecard(self.current_scorecard_id)
+                        if scorecard_closed:
+                            print(f"✅ Scorecard {self.current_scorecard_id} closed successfully")
+                        else:
+                            print(f"⚠️ Failed to close scorecard {self.current_scorecard_id}")
+                    except Exception as e:
+                        print(f"❌ Error closing scorecard: {e}")
+                else:
+                    print(f"📊 Keeping scorecard {self.current_scorecard_id} open for continued training")
             
-            final_result = {
-                'final_score': current_score,
-                'final_state': current_state,
-                'total_actions': actions_taken,
-                'effective_actions': effective_actions,
-                'action_history': action_history,
-                'success': current_state == 'WIN' or current_score > 0,
-                'termination_reason': (
-                    'WIN' if current_state == 'WIN' else
-                    'GAME_OVER' if current_state == 'GAME_OVER' else
-                    'MAX_ACTIONS' if actions_taken >= max_actions_per_game else
-                    'HIGH_SCORE' if current_score >= 100 else
-                    'UNKNOWN'
-                )
-            }
+            try:
+                final_result = {
+                    'final_score': current_score,
+                    'final_state': current_state,
+                    'total_actions': actions_taken,
+                    'effective_actions': effective_actions,
+                    'action_history': action_history,
+                    'success': current_state == 'WIN' or current_score > 0,
+                    'termination_reason': (
+                        'WIN' if current_state == 'WIN' else
+                        'GAME_OVER' if current_state == 'GAME_OVER' else
+                        'MAX_ACTIONS' if actions_taken >= max_actions_per_game else
+                        'HIGH_SCORE' if current_score >= 100 else
+                        'UNKNOWN'
+                    )
+                }
+            except Exception as e:
+                print(f"❌ Error creating final result: {e}")
+                final_result = {
+                    'final_score': 0,
+                    'final_state': 'ERROR',
+                    'total_actions': 0,
+                    'effective_actions': [],
+                    'action_history': [],
+                    'success': False,
+                    'termination_reason': 'ERROR'
+                }
             
             # Clean session summary
-            print("\n" + "="*80)
-            print("🏁 SESSION COMPLETE")
-            print("="*80)
-            print(f"Game: {game_id}")
-            print(f"Final Score: {current_score} | State: {current_state}")
-            print(f"Actions: {actions_taken}/{max_actions_per_game}")
-            print(f"Effective: {len(effective_actions)} ({len(effective_actions)/max(1,actions_taken):.1%})")
-            print(f"Result: {final_result['termination_reason']}")
-            
-            # Show coordinate intelligence summary if available
-            if hasattr(self, 'enhanced_coordinate_intelligence'):
-                print("🧠 Coordinate Intelligence: ACTIVE")
-            
-            print("="*80)
+            try:
+                print("\n" + "="*80)
+                print("🏁 SESSION COMPLETE")
+                print("="*80)
+                print(f"Game: {game_id}")
+                print(f"Final Score: {current_score} | State: {current_state}")
+                print(f"Actions: {actions_taken}/{max_actions_per_game}")
+                print(f"Effective: {len(effective_actions)} ({len(effective_actions)/max(1,actions_taken):.1%})")
+                print(f"Result: {final_result['termination_reason']}")
+                
+                # Show post-session memory status
+                print(f"\n📊 POST-SESSION MEMORY STATUS:")
+                print(f"   Memory Operations: {self.global_counters.get('total_memory_operations', 0)}")
+                print(f"   Sleep Cycles: {self.global_counters.get('total_sleep_cycles', 0)}")
+                print(f"   Energy Level: {self.current_energy:.2f}")
+                
+                # Show coordinate intelligence summary if available
+                if hasattr(self, 'enhanced_coordinate_intelligence'):
+                    print("🧠 Coordinate Intelligence: ACTIVE")
+                
+                print("="*80)
+            except Exception as e:
+                print(f"❌ Error in session summary: {e}")
             
             return final_result
             

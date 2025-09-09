@@ -533,10 +533,14 @@ class MasterARCTrainer:
                 try:
                     from src.core.architect import Architect
                     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    repo_path = os.path.join(base_path, 'data', 'architect_evolution_data')
-                    os.makedirs(repo_path, exist_ok=True)
+                    # Use the main tabula-rasa repository as the repo_path
+                    repo_path = base_path
+                    # Ensure the architect evolution data directory exists for file storage
+                    architect_data_dir = os.path.join(base_path, 'data', 'architect_evolution_data')
+                    os.makedirs(architect_data_dir, exist_ok=True)
+                    
                     self.architect = Architect(base_path=base_path, repo_path=repo_path)
-                    self.logger.info("Architect system initialized")
+                    self.logger.info("Architect system initialized with main repository")
                 except Exception as e:
                     self.logger.warning(f"Could not initialize Architect: {e}")
                     self.architect = None
