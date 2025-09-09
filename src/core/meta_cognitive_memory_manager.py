@@ -123,8 +123,8 @@ class MetaCognitiveMemoryManager:
         }
         
         self.memory_inventory: Dict[Path, MemoryFile] = {}
-        self.backup_directory = self.base_path / "memory_backups"
-        self.backup_directory.mkdir(exist_ok=True)
+        self.backup_directory = self.base_path / "data" / "memory" / "backups"
+        self.backup_directory.mkdir(parents=True, exist_ok=True)
     
     def classify_file(self, file_path: Path) -> MemoryClassification:
         """Classify a file based on patterns and content analysis."""
@@ -177,9 +177,10 @@ class MetaCognitiveMemoryManager:
             self.base_path / "data" / "meta_learning_data",
             self.base_path / "data" / "meta_learning_sessions",
             self.base_path / "data" / "sessions",
+            self.base_path / "data" / "experiments" / "research",
+            self.base_path / "data" / "memory" / "backups",
             self.base_path / "data", 
             self.base_path / "checkpoints",
-            self.base_path / "research_results",
             self.base_path  # Root level files
         ]
         
