@@ -11,6 +11,8 @@
   - **Phase 2: Hierarchical Clustering** - Smart memory clustering based on access patterns and semantic similarity
   - **Phase 3: Architect Evolution** - Autonomous architectural evolution based on memory analysis
   - **Phase 4: Performance Optimization** - Real-time performance maximization using cross-phase intelligence
+- **🧹 Intelligent Data Management** - Automatic cleanup of low-value training data and archive management
+- **📁 Unified Data Structure** - Centralized data organization with automatic migration
 
 A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehensive neural architecture that combines advanced cognitive systems with meta-cognitive supervision for adaptive reasoning, learning, and autonomous evolution. Built specifically for tackling the ARC-AGI-3 challenge with unified parameter management and intelligent self-improvement.
 
@@ -38,6 +40,24 @@ A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehe
 - **🔄 Autonomous Evolution** - Self-modifying architecture with Git integration
 - **🧠 Cognitive Monitoring** - Real-time system health and performance tracking
 
+## 🆕 Latest Updates
+
+### Data Management & Cleanup
+- **🧹 Intelligent Data Cleanup** - Automatic removal of low-value training data (0-score sessions, empty meta-learning data)
+- **📁 Unified Data Structure** - Migrated from scattered directories to centralized `/data` structure
+- **🗑️ Archive Management** - Git-based cleanup of old archives with configurable retention policies
+- **⚡ Performance Optimization** - Removed 736 low-value files, freed 11.4 MB of storage
+
+### Environment & Setup
+- **🔧 Simplified Environment** - All systems now use single `.env` file (removed `.env.local`, `.env.template` references)
+- **🚀 Auto-Setup Script** - `setup_env.py` automatically creates `.env` from template
+- **📋 Enhanced Launcher** - `launch_trainer.bat` now includes automatic environment setup
+
+### System Improvements
+- **🔍 Enhanced Governor** - Added data quality management and cleanup capabilities
+- **📊 Better Monitoring** - Improved logging and error handling throughout the system
+- **🛠️ Code Cleanup** - Updated all references to use new data structure
+
 ## 🚀 Quick Start
 
 ### Installation
@@ -45,10 +65,77 @@ A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehe
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment variables
+# Set up environment variables (automatic)
 python setup_env.py
 # Edit .env file and add your ARC-3 API key
 ```
+
+### Data Structure
+
+The system uses a unified data structure under the `/data` directory:
+
+```
+data/
+├── architecture/          # Architecture evolution data
+│   ├── evolution/         # Evolution history and strategies
+│   ├── insights/          # Architectural insights
+│   ├── mutations/         # Mutation experiments
+│   └── strategies/        # Evolution strategies
+├── experiments/           # Research and experiments
+│   ├── evaluations/       # Evaluation results
+│   ├── performance/       # Performance optimization data
+│   ├── phase0/           # Phase 0 experiment results
+│   └── research/         # Research results
+├── logs/                 # System logs
+│   ├── governor/         # Governor decision logs
+│   ├── system/           # System logs
+│   └── training/         # Training logs
+├── memory/               # Memory system
+│   ├── backups/          # Memory backups
+│   ├── cross_session/    # Cross-session learning
+│   ├── patterns/         # Learned patterns
+│   └── persistent/       # Persistent memory
+├── sessions/             # Training sessions
+├── training/             # Training data
+│   ├── intelligence/     # Action intelligence
+│   ├── meta_learning/    # Meta-learning data
+│   └── results/          # Training results
+└── archive_non_improving/ # Archived low-performance data
+```
+
+## 🎮 Usage
+
+### Quick Start with Launcher (Windows)
+```bash
+# Run the interactive launcher
+launch_trainer.bat
+```
+
+The launcher provides easy access to different training modes:
+- **Quick Validation** - Fast testing (2 cycles, 3 minutes)
+- **Meta-Cognitive Training** - Comprehensive training (5 cycles, 30 minutes)
+- **Continuous Training** - Long-running with GUI dashboard (100 cycles, 4 hours)
+- **Research Lab** - Experimentation mode (3 cycles, 15 minutes)
+- **Maximum Intelligence** - Full power mode (10 cycles, 1 hour)
+- **Custom Mode** - Specify your own parameters
+
+### Manual Usage
+```bash
+# Quick validation
+python master_arc_trainer.py --mode quick-validation --verbose --max-cycles 2
+
+# Meta-cognitive training
+python master_arc_trainer.py --mode meta-cognitive-training --verbose --max-cycles 5
+
+# Continuous training with dashboard
+python master_arc_trainer.py --mode continuous-training --dashboard gui --max-cycles 100
+```
+
+### Data Management
+The system automatically manages data quality:
+- **Automatic Cleanup** - Removes low-value training data (0-score sessions, empty meta-learning)
+- **Archive Management** - Git-based cleanup of old archives
+- **Memory Optimization** - Intelligent memory consolidation and pattern recognition
 
 ### Environment Setup
 
@@ -1303,5 +1390,34 @@ Though it took just seven days to create, it represents over a hundred rapid ite
 -   **Inspiration:** Countless brainstorming chats with multiple llms about biology, anatomy, and the inadequacies of current AI, plus my own musings on consciousness.
     
 
-The architectural foundation is built on principles from **Piaget's theory of cognitive development**, that perfectly describes how intelligence structures itself through interaction and adaptation.
+The architectural foundation is built on principles from **Piaget's theory of cognitive development**, that perfectly describes how intelligence structures itself through interaction and adaptation.
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Environment Setup
+- **Missing .env file**: Run `python setup_env.py` to create it automatically
+- **API key not found**: Ensure your ARC-3 API key is set in the `.env` file
+- **Path errors**: Check that `ARC_AGENTS_PATH` and `TABULA_RASA_PATH` are correct in `.env`
+
+#### Data Management
+- **Low disk space**: The system automatically cleans up low-value data, but you can run manual cleanup
+- **Archive cleanup**: Old archives are automatically removed after 30 days (configurable)
+- **Memory issues**: The system uses intelligent memory management with automatic consolidation
+
+#### Training Issues
+- **No actions taken**: Check that the API key is valid and the ARC-AGI-3 service is accessible
+- **Low performance**: The system learns over time; early sessions may have low scores
+- **Memory errors**: The system automatically manages memory; restart if needed
+
+#### Launcher Issues
+- **launch_trainer.bat not working**: Ensure Python is in your PATH and run `python master_arc_trainer.py` directly
+- **Environment not loading**: The launcher automatically runs `setup_env.py` if needed
+
+### Getting Help
+
+1. **Check logs**: Look in `data/logs/` for detailed error information
+2. **Run diagnostics**: Use `python master_arc_trainer.py --mode quick-validation` for basic testing
+3. **Verify setup**: Ensure all dependencies are installed with `pip install -r requirements.txt`
 
