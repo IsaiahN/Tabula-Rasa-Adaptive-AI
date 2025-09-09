@@ -293,13 +293,17 @@ class MetaCognitiveGovernor:
             self.logger.warning("Memory pattern optimizer not available")
         
         # Log file management system
-        self.log_cleanup_threshold = 10000  # Lines
+        self.log_cleanup_threshold = 10000  # Lines for regular logs
         self.log_cleanup_remove_lines = 5000  # Lines to remove when threshold exceeded
         self.log_cleanup_patterns = [
             "master_arc_trainer*.log",
             "governor_decisions*.log",
             "arc_trainer*.log"
         ]
+        
+        # Special handling for master_arc_trainer logs - keep under 100k
+        self.master_trainer_threshold = 100000  # 100k lines for master trainer logs
+        self.master_trainer_remove_lines = 50000  # Remove 50k lines when threshold exceeded
         
         # Hierarchical memory clustering (Phase 2 enhancement)
         self.memory_clusterer = None
@@ -612,12 +616,22 @@ class MetaCognitiveGovernor:
             
             result['original_lines'] = len(lines)
             
+            # Special handling for master_arc_trainer logs - keep under 100k
+            if 'master_arc_trainer' in log_file.name.lower():
+                threshold = self.master_trainer_threshold
+                remove_lines = self.master_trainer_remove_lines
+                min_keep = 10000  # Keep at least 10k lines for master trainer logs
+            else:
+                threshold = self.log_cleanup_threshold
+                remove_lines = self.log_cleanup_remove_lines
+                min_keep = 1000  # Keep at least 1k lines for other logs
+            
             # Check if file exceeds threshold
-            if len(lines) <= self.log_cleanup_threshold:
+            if len(lines) <= threshold:
                 return result
             
             # Remove first N lines (oldest entries)
-            lines_to_remove = min(self.log_cleanup_remove_lines, len(lines) - 1000)  # Keep at least 1000 lines
+            lines_to_remove = min(remove_lines, len(lines) - min_keep)
             cleaned_lines = lines[lines_to_remove:]
             
             # Write cleaned content back to file
