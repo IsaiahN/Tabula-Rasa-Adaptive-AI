@@ -315,8 +315,8 @@ class MasterTrainingConfig:
     api_key: Optional[str] = None  # ARC API key
     arc_agents_path: Optional[str] = None  # Path to arc-agents directory
     local_mode: bool = False  # Use local mock client for testing
-    max_actions: int = 500
-    max_cycles: int = 50
+    max_actions: int = 1500
+    max_cycles: int = 150
     target_score: float = 85.0
     session_duration: int = 60  # minutes
 

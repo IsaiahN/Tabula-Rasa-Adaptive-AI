@@ -1,5 +1,5 @@
 {
-  "game_id": "lp85-d265526edbaa",
+  "game_id": "ft09-b8377d4b7815",
   "initial_actions": [
     6
   ],
@@ -9,6 +9,6 @@
     "6": {}
   },
   "action_transitions": {},
-  "total_sessions_learned": 1,
-  "last_updated": 1757446718.03279
+  "total_sessions_learned": 918,
+  "last_updated": 1757452737.2811959
 }

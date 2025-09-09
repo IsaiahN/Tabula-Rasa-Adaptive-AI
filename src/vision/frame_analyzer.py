@@ -192,18 +192,20 @@ class FrameAnalyzer:
                 selected_target = exploration_target
                 print(f"🔍 EXPLORATION MODE: Targeting {exploration_target['reason']}")
             else:
-                # Check if we're stuck (more than 100 attempts at stuck coordinates)
+                # Check if we're stuck (more than 200 attempts at stuck coordinates)
                 total_stuck_attempts = sum(
                     result['try_count'] for result in self.coordinate_results.values() 
                     if result.get('is_stuck_coordinate', False)
                 )
                 
-                if total_stuck_attempts > 50:
+                # Only trigger emergency mode if we have a significant number of stuck attempts
+                # and we're not making progress
+                if total_stuck_attempts > 200:
                     emergency_mode = True
                     print(f"🚨 EMERGENCY MODE: {total_stuck_attempts} attempts at stuck coordinates")
                     
-                    # Force diversification
-                    emergency_coord = self.get_emergency_diversification_target(
+                    # Force diversification - use random coordinates avoiding stuck areas
+                    emergency_coord = self._get_emergency_diversification_target(
                         frame, (frame_array.shape[1], frame_array.shape[0])
                     )
                     selected_target = {
@@ -2343,3 +2345,29 @@ class FrameAnalyzer:
         clamped_x = max(0, min(63, x))
         clamped_y = max(0, min(63, y))
         return (clamped_x, clamped_y)
+    
+    def _get_emergency_diversification_target(self, frame: Any, grid_dimensions: Tuple[int, int]) -> Tuple[int, int]:
+        """
+        Generate emergency diversification coordinates when stuck.
+        Uses random selection avoiding known stuck coordinates.
+        """
+        import random
+        
+        grid_width, grid_height = grid_dimensions
+        max_attempts = 50
+        
+        for attempt in range(max_attempts):
+            # Generate random coordinates
+            x = random.randint(1, grid_width - 2)
+            y = random.randint(1, grid_height - 2)
+            
+            # Check if this coordinate should be avoided
+            if not self.should_avoid_coordinate(x, y):
+                print(f"🎲 RANDOM DIVERSIFICATION: Selected ({x},{y}) after {attempt + 1} attempts")
+                return (x, y)
+        
+        # If all attempts failed, return a random coordinate anyway
+        x = random.randint(1, grid_width - 2)
+        y = random.randint(1, grid_height - 2)
+        print(f"🎲 RANDOM DIVERSIFICATION: Selected ({x},{y}) after {max_attempts} attempts (forced)")
+        return (x, y)

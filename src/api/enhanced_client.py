@@ -60,6 +60,17 @@ class ArcAgiApiClient:
         
         try:
             response = self.session.post(url, json=payload)
+            
+            # Handle HTTP errors with JSON error messages
+            if response.status_code == 400:
+                try:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        return {'error': f'API Error: {error_data["error"]}', 'details': error_data}
+                except:
+                    pass
+                return {'error': f'Bad Request (400): {response.text}'}
+            
             response.raise_for_status()
             
             result = response.json()
@@ -129,6 +140,17 @@ class ArcAgiApiClient:
         
         try:
             response = self.session.post(url, json=payload)
+            
+            # Handle HTTP errors with JSON error messages
+            if response.status_code == 400:
+                try:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        return {'error': f'API Error: {error_data["error"]}', 'details': error_data}
+                except:
+                    pass
+                return {'error': f'Bad Request (400): {response.text}'}
+            
             response.raise_for_status()
             
             result = response.json()
@@ -163,6 +185,17 @@ class ArcAgiApiClient:
         
         try:
             response = self.session.post(url, json=payload)
+            
+            # Handle HTTP errors with JSON error messages
+            if response.status_code == 400:
+                try:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        return {'error': f'API Error: {error_data["error"]}', 'details': error_data}
+                except:
+                    pass
+                return {'error': f'Bad Request (400): {response.text}'}
+            
             response.raise_for_status()
             
             result = response.json()

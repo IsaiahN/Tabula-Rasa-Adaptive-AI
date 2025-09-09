@@ -421,6 +421,7 @@ class ContinuousLearningLoop:
         # Training state
         self.current_session: Optional[TrainingSession] = None
         self.session_history: List[Dict[str, Any]] = []
+        self.performance_history: List[Dict[str, Any]] = []  # Add performance history for Governor/Architect
         self.global_performance_metrics = {
             'total_games_played': 0,
             'total_episodes': 0,
@@ -3068,6 +3069,17 @@ class ContinuousLearningLoop:
                         else:
                             break
                     
+                    # INTELLIGENT RESET LOGIC: Check if we should reset due to frame stagnation
+                    if self._should_reset_due_to_stagnation(session_result, game_id):
+                        print(f" FRAME STAGNATION DETECTED: Resetting level due to lack of new visual information")
+                        # Perform level reset instead of starting new game
+                        reset_result = await self._start_game_session(game_id, self.current_game_sessions.get(game_id))
+                        if reset_result and 'error' not in reset_result:
+                            print(f" Level reset successful - continuing with fresh frame data")
+                            # Continue with the same session count
+                        else:
+                            print(f" Level reset failed - continuing with current session")
+                    
                     # Check if we should continue based on performance
                     if self._should_stop_training(game_results, target_performance):
                         print(f"Target performance reached for {game_id}")
@@ -3352,13 +3364,39 @@ class ContinuousLearningLoop:
         attempts = exploration_data['attempts']
         
         # Systematic exploration phases
-        if phase == 'corners' and attempts < 4:
-            # Explore corners first (buttons/switches often in corners)
-            corners = [(5, 5), (grid_width-6, 5), (5, grid_height-6), (grid_width-6, grid_height-6)]
+        if phase == 'corners' and attempts < 8:
+            # Explore corners and near-corners more thoroughly
+            corners = [
+                (2, 2), (grid_width-3, 2), (2, grid_height-3), (grid_width-3, grid_height-3),  # Main corners
+                (5, 5), (grid_width-6, 5), (5, grid_height-6), (grid_width-6, grid_height-6)   # Near corners
+            ]
             coord = corners[attempts]
             exploration_data['attempts'] += 1
             
-            if attempts >= 3:
+            if attempts >= 7:
+                exploration_data['exploration_phase'] = 'boundaries'
+                exploration_data['attempts'] = 0
+                
+            return coord
+            
+        elif phase == 'boundaries' and attempts < 16:
+            # Explore grid boundaries systematically
+            boundaries = [
+                # Top edge
+                (grid_width//4, 1), (grid_width//2, 1), (grid_width*3//4, 1),
+                # Right edge  
+                (grid_width-2, grid_height//4), (grid_width-2, grid_height//2), (grid_width-2, grid_height*3//4),
+                # Bottom edge
+                (grid_width//4, grid_height-2), (grid_width//2, grid_height-2), (grid_width*3//4, grid_height-2),
+                # Left edge
+                (1, grid_height//4), (1, grid_height//2), (1, grid_height*3//4),
+                # Additional boundary points
+                (grid_width//8, 1), (grid_width*7//8, 1), (1, grid_height//8), (1, grid_height*7//8)
+            ]
+            coord = boundaries[attempts]
+            exploration_data['attempts'] += 1
+            
+            if attempts >= 15:
                 exploration_data['exploration_phase'] = 'center'
                 exploration_data['attempts'] = 0
                 
@@ -3424,6 +3462,64 @@ class ContinuousLearningLoop:
                 exploration_data['last_coordinates'] = exploration_data['last_coordinates'][-10:]
                 
             return coord
+
+    def _should_reset_due_to_stagnation(self, session_result: Dict[str, Any], game_id: str) -> bool:
+        """
+        Determine if we should reset due to frame stagnation.
+        Only reset when frame data isn't showing new information, not just because of repetitive actions.
+        """
+        # Check if we have enough data to make a decision
+        if not hasattr(self, 'frame_stagnation_tracker'):
+            self.frame_stagnation_tracker = {}
+        
+        if game_id not in self.frame_stagnation_tracker:
+            self.frame_stagnation_tracker[game_id] = {
+                'last_frame_hash': None,
+                'stagnant_frames': 0,
+                'total_frames': 0,
+                'last_reset_action': 0
+            }
+        
+        tracker = self.frame_stagnation_tracker[game_id]
+        tracker['total_frames'] += 1
+        
+        # Get current frame data
+        current_frame = session_result.get('frame')
+        if current_frame is None:
+            return False
+        
+        # Create a simple hash of the frame for comparison
+        import hashlib
+        frame_str = str(current_frame)
+        current_frame_hash = hashlib.md5(frame_str.encode()).hexdigest()[:8]
+        
+        # Check if frame has changed
+        if tracker['last_frame_hash'] == current_frame_hash:
+            tracker['stagnant_frames'] += 1
+        else:
+            tracker['stagnant_frames'] = 0
+            tracker['last_frame_hash'] = current_frame_hash
+        
+        # Only consider reset if:
+        # 1. We've seen the same frame for at least 15 consecutive actions (increased threshold)
+        # 2. We've taken at least 30 actions since last reset (increased threshold)
+        # 3. We're not making progress (score hasn't improved)
+        actions_since_reset = tracker['total_frames'] - tracker['last_reset_action']
+        current_score = session_result.get('final_score', 0)
+        
+        should_reset = (
+            tracker['stagnant_frames'] >= 15 and  # Same frame for 15+ actions (conservative)
+            actions_since_reset >= 30 and  # At least 30 actions since last reset (conservative)
+            current_score == 0  # No progress made
+        )
+        
+        if should_reset:
+            print(f" FRAME STAGNATION: {tracker['stagnant_frames']} stagnant frames, {actions_since_reset} actions since reset")
+            tracker['last_reset_action'] = tracker['total_frames']
+            tracker['stagnant_frames'] = 0
+            return True
+        
+        return False
 
     def _select_intelligent_action_with_relevance(self, available_actions: List[int], context: Dict[str, Any]) -> int:
         """

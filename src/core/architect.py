@@ -982,7 +982,8 @@ class Architect:
     and hyperparameters using a general-intelligence fitness function.
     """
     
-    def __init__(self, base_path: str, repo_path: str, logger: Optional[logging.Logger] = None):
+    def __init__(self, evolution_rate: float = 0.05, innovation_threshold: float = 0.8, memory_capacity: int = 500,
+                 base_path: str = ".", repo_path: str = ".", logger: Optional[logging.Logger] = None):
         self.base_path = Path(base_path)
         self.repo_path = Path(repo_path)
         self.logger = logger or logging.getLogger(f"{__name__}.Architect")
@@ -1031,6 +1032,200 @@ class Architect:
         self.auto_merge_threshold = 0.15  # Minimum improvement for auto-merge
         
         self.logger.info("🔬 Architect initialized - Zeroth Brain online")
+    
+    def evolve_strategy(self, available_actions: List[int], context: Dict[str, Any], 
+                       performance_data: List[Dict[str, Any]], frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Evolve strategy based on current performance and context.
+        
+        Args:
+            available_actions: List of available actions
+            context: Current game context
+            performance_data: Historical performance data
+            frame_analysis: Current frame analysis
+            
+        Returns:
+            Dictionary containing evolved strategy, reasoning, and innovation score
+        """
+        try:
+            game_id = context.get('game_id', 'unknown')
+            
+            # Analyze current performance patterns
+            innovation_score = self._calculate_innovation_score(performance_data, frame_analysis)
+            
+            # Generate evolved strategy based on analysis
+            evolved_strategy = self._generate_evolved_strategy(
+                available_actions, context, performance_data, frame_analysis
+            )
+            
+            # Generate reasoning for the strategy evolution
+            reasoning = self._generate_evolution_reasoning(
+                evolved_strategy, innovation_score, game_id
+            )
+            
+            # Track evolution
+            evolution_record = {
+                'timestamp': time.time(),
+                'game_id': game_id,
+                'available_actions': available_actions,
+                'evolved_strategy': evolved_strategy,
+                'innovation_score': innovation_score,
+                'reasoning': reasoning
+            }
+            
+            self.mutation_history.append(evolution_record)
+            
+            return {
+                'evolved_strategy': evolved_strategy,
+                'innovation_score': innovation_score,
+                'reasoning': reasoning,
+                'architectural_insights': {
+                    'performance_analysis': self._analyze_performance_patterns(performance_data),
+                    'frame_utilization': self._analyze_frame_utilization(frame_analysis),
+                    'action_effectiveness': self._analyze_action_effectiveness(available_actions, performance_data)
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Architect evolution failed: {e}")
+            # Fallback response
+            return {
+                'evolved_strategy': 'maintain_current_approach',
+                'innovation_score': 0.1,
+                'reasoning': f"Evolution error, maintaining status quo: {e}",
+                'architectural_insights': {'error': str(e)}
+            }
+    
+    def _calculate_innovation_score(self, performance_data: List[Dict[str, Any]], 
+                                  frame_analysis: Dict[str, Any]) -> float:
+        """Calculate how innovative/novel the current approach should be."""
+        base_score = 0.3
+        
+        # Performance stagnation increases innovation need
+        if performance_data:
+            recent_performance = performance_data[-5:]
+            if len(recent_performance) >= 3:
+                scores = [p.get('score', 0) for p in recent_performance]
+                if all(s <= 0 for s in scores):  # All failures
+                    base_score += 0.4
+                elif len(set(scores)) <= 1:  # No variation
+                    base_score += 0.3
+        
+        # Frame analysis complexity affects innovation
+        if frame_analysis:
+            visual_targets = frame_analysis.get('interactive_targets', [])
+            if len(visual_targets) > 3:
+                base_score += 0.2  # Rich visual environment needs more innovation
+        
+        return min(1.0, base_score)
+    
+    def _generate_evolved_strategy(self, available_actions: List[int], context: Dict[str, Any],
+                                 performance_data: List[Dict[str, Any]], frame_analysis: Dict[str, Any]) -> str:
+        """Generate an evolved strategy based on analysis."""
+        
+        # Analyze what's not working
+        if performance_data:
+            recent_failures = [p for p in performance_data[-5:] if not p.get('success', False)]
+            if len(recent_failures) >= 3:
+                # Multiple failures - suggest major strategy shift
+                if 6 in available_actions:
+                    return 'prioritize_visual_exploration'
+                else:
+                    return 'systematic_action_cycling'
+        
+        # Analyze frame richness
+        if frame_analysis:
+            interactive_targets = frame_analysis.get('interactive_targets', [])
+            if len(interactive_targets) > 5:
+                return 'target_rich_environment_exploitation'
+            elif len(interactive_targets) <= 1:
+                return 'sparse_environment_systematic_search'
+        
+        # Default evolved strategy
+        return 'adaptive_multi_modal_approach'
+    
+    def _generate_evolution_reasoning(self, evolved_strategy: str, innovation_score: float, game_id: str) -> str:
+        """Generate reasoning for the evolved strategy."""
+        reasoning_parts = [f"Architectural analysis for {game_id}"]
+        
+        if innovation_score > 0.7:
+            reasoning_parts.append("High innovation needed - performance stagnation detected")
+        elif innovation_score > 0.4:
+            reasoning_parts.append("Moderate innovation - exploring new approaches")
+        else:
+            reasoning_parts.append("Conservative evolution - maintaining effective patterns")
+        
+        strategy_explanations = {
+            'prioritize_visual_exploration': 'Focus on visual-interactive elements for breakthrough',
+            'systematic_action_cycling': 'Methodical exploration of all available actions',
+            'target_rich_environment_exploitation': 'Leverage abundant visual targets for progress',
+            'sparse_environment_systematic_search': 'Comprehensive search in minimal visual context',
+            'adaptive_multi_modal_approach': 'Balanced approach adapting to environmental cues'
+        }
+        
+        if evolved_strategy in strategy_explanations:
+            reasoning_parts.append(strategy_explanations[evolved_strategy])
+        
+        return " | ".join(reasoning_parts)
+    
+    def _analyze_performance_patterns(self, performance_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze patterns in performance data."""
+        if not performance_data:
+            return {'trend': 'no_data'}
+        
+        recent_scores = [p.get('score', 0) for p in performance_data[-5:]]
+        success_rate = sum(1 for p in performance_data[-10:] if p.get('success', False)) / min(10, len(performance_data))
+        
+        return {
+            'recent_scores': recent_scores,
+            'success_rate': success_rate,
+            'trend': 'improving' if len(recent_scores) > 1 and recent_scores[-1] > recent_scores[0] else 'stable'
+        }
+    
+    def _analyze_frame_utilization(self, frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze how well frame data is being utilized."""
+        if not frame_analysis:
+            return {'utilization': 'no_data'}
+        
+        interactive_targets = frame_analysis.get('interactive_targets', [])
+        confidence = frame_analysis.get('confidence', 0.0)
+        
+        return {
+            'targets_available': len(interactive_targets),
+            'analysis_confidence': confidence,
+            'utilization': 'high' if len(interactive_targets) > 3 and confidence > 0.7 else 'moderate'
+        }
+    
+    def _analyze_action_effectiveness(self, available_actions: List[int], 
+                                    performance_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze effectiveness of different actions."""
+        action_stats = {}
+        
+        for session in performance_data[-10:]:  # Last 10 sessions
+            actions = session.get('actions_taken', [])
+            success = session.get('success', False)
+            
+            for action in actions:
+                if action not in action_stats:
+                    action_stats[action] = {'used': 0, 'successful': 0}
+                action_stats[action]['used'] += 1
+                if success:
+                    action_stats[action]['successful'] += 1
+        
+        # Calculate effectiveness for available actions
+        effectiveness = {}
+        for action in available_actions:
+            if action in action_stats:
+                stats = action_stats[action]
+                effectiveness[action] = stats['successful'] / max(stats['used'], 1)
+            else:
+                effectiveness[action] = 0.0
+        
+        return {
+            'action_effectiveness': effectiveness,
+            'most_effective': max(effectiveness.keys(), key=lambda k: effectiveness[k]) if effectiveness else None,
+            'least_effective': min(effectiveness.keys(), key=lambda k: effectiveness[k]) if effectiveness else None
+        }
     
     def _load_current_genome(self) -> SystemGenome:
         """Load current system genome from configuration."""
