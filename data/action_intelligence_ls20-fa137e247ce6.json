@@ -1,0 +1,20 @@
+{
+  "game_id": "ls20-fa137e247ce6",
+  "initial_actions": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "effective_actions": {},
+  "winning_sequences": [],
+  "coordinate_patterns": {
+    "1": {},
+    "2": {},
+    "3": {},
+    "4": {}
+  },
+  "action_transitions": {},
+  "total_sessions_learned": 607,
+  "last_updated": 1757441357.3451688
+}
