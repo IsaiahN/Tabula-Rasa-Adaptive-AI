@@ -150,13 +150,13 @@ class PerformanceOptimizationEngine:
     def __init__(
         self,
         persistence_dir: str = ".",
-        performance_data_dir: str = "performance_optimization_data",
+        performance_data_dir: str = "data/experiments/performance",
         enable_real_time_optimization: bool = True,
         optimization_interval: float = 60.0  # Optimization check interval in seconds
     ):
         self.persistence_dir = Path(persistence_dir)
         self.performance_data_dir = self.persistence_dir / performance_data_dir
-        self.performance_data_dir.mkdir(exist_ok=True)
+        self.performance_data_dir.mkdir(parents=True, exist_ok=True)
         
         self.enable_real_time_optimization = enable_real_time_optimization
         self.optimization_interval = optimization_interval
