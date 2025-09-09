@@ -1382,7 +1382,12 @@ class ContinuousLearningLoop:
                 scorecard_result = await self._open_scorecard()
                 if not scorecard_result:
                     print(f" Failed to open scorecard")
-                    return None
+                    return {
+                        'error': 'Failed to open scorecard',
+                        'state': 'ERROR',
+                        'score': 0,
+                        'available_actions': []
+                    }
                 self.current_scorecard_id = scorecard_result
                 print(f" Opened NEW scorecard: {scorecard_result}")
                 print(f" Scorecard state: created_new={self._created_new_scorecard} -> True")
@@ -1512,7 +1517,12 @@ class ContinuousLearningLoop:
                                 }
                             else:
                                 print(f" No GUID returned for game {game_id}")
-                                return None
+                                return {
+                                    'error': f'No GUID returned for game {game_id}',
+                                    'state': 'ERROR',
+                                    'score': 0,
+                                    'available_actions': []
+                                }
                         elif status == 429:
                             # Handle rate limit exceeded
                             self.rate_limiter.handle_429_response()
@@ -1556,18 +1566,38 @@ class ContinuousLearningLoop:
                                 continue
 
                             print(f" RESET failed: {status} - {error_text}")
-                            return None
+                            return {
+                                'error': f'RESET failed: {status} - {error_text}',
+                                'state': 'ERROR',
+                                'score': 0,
+                                'available_actions': []
+                            }
                     # End of attempt loop - if we reach here and didn't return, try again
                 # Exhausted retries
                 print(f" RESET failed after {max_retries} attempts for {game_id}")
-                return None
+                return {
+                    'error': f'RESET failed after {max_retries} attempts for {game_id}',
+                    'state': 'ERROR',
+                    'score': 0,
+                    'available_actions': []
+                }
                         
         except asyncio.TimeoutError:
             print(f"⏰ API request timeout on RESET {game_id}")
-            return None
+            return {
+                'error': f'API request timeout on RESET {game_id}',
+                'state': 'ERROR',
+                'score': 0,
+                'available_actions': []
+            }
         except Exception as e:
             print(f" Error starting game session for {game_id}: {e}")
-            return None
+            return {
+                'error': f'Error starting game session for {game_id}: {e}',
+                'state': 'ERROR',
+                'score': 0,
+                'available_actions': []
+            }
 
     def _generate_scorecard_tags(self) -> List[str]:
         """
@@ -1667,7 +1697,12 @@ class ContinuousLearningLoop:
                                 return scorecard_id
                             else:
                                 print(f" No card_id returned")
-                                return None
+                                return {
+                                    'error': 'No card_id returned from scorecard API',
+                                    'state': 'ERROR',
+                                    'score': 0,
+                                    'available_actions': []
+                                }
                         elif status == 429:
                             self.rate_limiter.handle_429_response()
                             print(f" Rate limit exceeded opening scorecard - will retry with backoff")
@@ -1681,16 +1716,36 @@ class ContinuousLearningLoop:
                             self.rate_limiter.handle_success_response()
                             error_text = await response.text()
                             print(f" Failed to open scorecard: {status} - {error_text}")
-                            return None
+                            return {
+                                'error': f'Failed to open scorecard: {status} - {error_text}',
+                                'state': 'ERROR',
+                                'score': 0,
+                                'available_actions': []
+                            }
                 print(f" Failed to open scorecard after {max_retries} attempts")
-                return None
+                return {
+                    'error': f'Failed to open scorecard after {max_retries} attempts',
+                    'state': 'ERROR',
+                    'score': 0,
+                    'available_actions': []
+                }
                         
         except asyncio.TimeoutError:
             print(f"⏰ API request timeout opening scorecard")
-            return None
+            return {
+                'error': 'API request timeout opening scorecard',
+                'state': 'ERROR',
+                'score': 0,
+                'available_actions': []
+            }
         except Exception as e:
             print(f" Error opening scorecard: {e}")
-            return None
+            return {
+                'error': f'Error opening scorecard: {e}',
+                'state': 'ERROR',
+                'score': 0,
+                'available_actions': []
+            }
 
     def _reset_scorecard_state(self):
         """Reset scorecard state tracking variables."""
@@ -1759,7 +1814,12 @@ class ContinuousLearningLoop:
         existing_guid = self.current_game_sessions.get(game_id)
         if not existing_guid:
             print(f" No existing session GUID found for {game_id}, cannot perform level reset")
-            return None
+            return {
+                'error': f'No existing session GUID found for {game_id}, cannot perform level reset',
+                'state': 'ERROR',
+                'score': 0,
+                'available_actions': []
+            }
         
         return await self._start_game_session(game_id, existing_guid=existing_guid)
 
@@ -2501,15 +2561,30 @@ class ContinuousLearningLoop:
                                 # Ensure we always return a dictionary
                                 if not isinstance(data, dict):
                                     logger.error(f"API returned non-dict data: {type(data)} - {data}")
-                                    return None
+                                    return {
+                                        'error': f'Invalid response format: {type(data)}',
+                                        'state': 'ERROR',
+                                        'score': 0,
+                                        'available_actions': []
+                                    }
                                 return data
                                 
                             except json.JSONDecodeError as e:
                                 logger.error(f"Failed to parse JSON response: {e}\nResponse: {response_text[:500]}")
-                                return None
+                                return {
+                                    'error': f'JSON decode error: {e}',
+                                    'state': 'ERROR',
+                                    'score': 0,
+                                    'available_actions': []
+                                }
                             except Exception as e:
                                 logger.error(f"Error processing successful response: {e}")
-                                return None
+                                return {
+                                    'error': f'Response processing error: {e}',
+                                    'state': 'ERROR',
+                                    'score': 0,
+                                    'available_actions': []
+                                }
                             
                         elif response.status == 429:
                             # Handle rate limiting with exponential backoff
@@ -2527,7 +2602,12 @@ class ContinuousLearningLoop:
                             if response.status == 401:
                                 logger.critical("Authentication failed - please check your API key")
                                 
-                            return None
+                            return {
+                                'error': f'Client error ({response.status}): {response_text[:200]}',
+                                'state': 'ERROR',
+                                'score': 0,
+                                'available_actions': []
+                            }
                             
                         elif 500 <= response.status < 600:
                             # Server errors (5xx) - retry with backoff
@@ -2543,20 +2623,40 @@ class ContinuousLearningLoop:
                                 return await self._send_enhanced_action(game_id, action_number, x, y, grid_width, grid_height, frame_analysis)
                             else:
                                 logger.error(f"Max retries ({max_retries}) exceeded for server error")
-                                return None
+                                return {
+                                    'error': f'Max retries exceeded for server error ({response.status})',
+                                    'state': 'ERROR',
+                                    'score': 0,
+                                    'available_actions': []
+                                }
                             
                         else:
                             # Handle other status codes
                             logger.warning(f"Unexpected status code {response.status}: {response_text[:500]}")
-                            return None
+                            return {
+                                'error': f'Unexpected status code {response.status}',
+                                'state': 'ERROR',
+                                'score': 0,
+                                'available_actions': []
+                            }
                             
             except Exception as e:
                 logger.error(f"Error building request payload: {e}")
-                return None
+                return {
+                    'error': f'Request payload error: {e}',
+                    'state': 'ERROR',
+                    'score': 0,
+                    'available_actions': []
+                }
                 
         except Exception as e:
             logger.error(f"Unexpected error in _send_enhanced_action: {e}")
-            return None
+            return {
+                'error': f'Unexpected error: {e}',
+                'state': 'ERROR',
+                'score': 0,
+                'available_actions': []
+            }
             
         finally:
             # Always release the rate limiter

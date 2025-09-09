@@ -928,7 +928,7 @@ class FrameAnalyzer:
             after_array = self._normalize_local_frame(after_frame)
             
             # Calculate differences
-            if before_array.shape != after_array.shape:
+            if not np.array_equal(before_array.shape, after_array.shape):
                 return {
                     'changes_detected': True,
                     'change_type': 'frame_size_change',
