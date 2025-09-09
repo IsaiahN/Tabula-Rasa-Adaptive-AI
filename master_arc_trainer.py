@@ -633,16 +633,18 @@ class MasterARCTrainer:
         try:
             # Run continuous learning with minimal settings for quick validation
             config_overrides = {
-                'enable_meta_cognitive_governor': False,
-                'enable_architect_evolution': False,
+                'enable_meta_cognitive_governor': True,  # Keep Governor for testing
+                'enable_architect_evolution': True,      # Keep Architect for testing
                 'enable_coordinates': True,
                 'enable_all_cognitive_systems': False,
-                'max_actions': min(self.config.max_actions, 100),  # Limit actions for quick test
-                'max_cycles': min(self.config.max_cycles, 3),      # Limit cycles for quick test
+                'max_actions': 20,                       # Very short games for quick testing
+                'max_cycles': 1,                         # Single cycle only
                 'target_score': self.config.target_score,
                 'enable_detailed_monitoring': False,
                 'enable_sleep_system': True,
-                'enable_energy_system': True
+                'enable_energy_system': True,
+                'max_games': 2,                          # Limit to 2 games max
+                'max_episodes': 1                        # Single episode per game
             }
             
             return await self._run_continuous_learning(config_overrides)
