@@ -1,0 +1,61 @@
+{
+  "game_id": "unknown",
+  "timestamp": 1757445927,
+  "session_result": {
+    "final_score": 0,
+    "total_actions": 175,
+    "final_state": "GAME_OVER",
+    "effective_actions": [
+      {
+        "action_number": 1,
+        "action_type": "ACTION1",
+        "score_achieved": 0,
+        "effectiveness": 0.5,
+        "attempt_count": 36
+      },
+      {
+        "action_number": 6,
+        "action_type": "ACTION6",
+        "score_achieved": 0,
+        "effectiveness": 0.5,
+        "attempt_count": 62
+      },
+      {
+        "action_number": 2,
+        "action_type": "ACTION2",
+        "score_achieved": 0,
+        "effectiveness": 0.5,
+        "attempt_count": 80
+      },
+      {
+        "action_number": 3,
+        "action_type": "ACTION3",
+        "score_achieved": 0,
+        "effectiveness": 0.5,
+        "attempt_count": 46
+      },
+      {
+        "action_number": 4,
+        "action_type": "ACTION4",
+        "score_achieved": 0,
+        "effectiveness": 0.5,
+        "attempt_count": 68
+      },
+      {
+        "action_number": 5,
+        "action_type": "ACTION5",
+        "score_achieved": 0,
+        "effectiveness": 0.5,
+        "attempt_count": 58
+      },
+      {
+        "action_number": 7,
+        "action_type": "ACTION7",
+        "score_achieved": 0,
+        "effectiveness": 0.5,
+        "attempt_count": 50
+      }
+    ]
+  },
+  "raw_output_snippet": "OK Full Adaptive Learning Agent successfully imported!\r\nAgents module: 2 agents loaded\r\nhttps://three.arcprize.org/api/games\r\n2025-09-09 14:24:56,983 | DEBUG | Starting new HTTPS connection (1): three.arcprize.org:443\r\n2025-09-09 14:24:58,091 | DEBUG | https://three.arcprize.org:443 \"GET /api/games HTTP/1.1\" 200 284\r\n2025-09-09 14:24:58,092 | INFO | Game list: ['vc33-6ae7bf49eea5']\r\n2025-09-09 14:24:58,095 | DEBUG | Starting new HTTPS connection (1): three.arcprize.org:443\r\n2025-09-09 14:24:59,199 | DEBUG | https://three.arcprize.org:443 \"POST /api/scorecard/open HTTP/1.1\" 200 51\r\n2025-09-09 14:24:59,202 | INFO | created new recording for vc33-6ae7bf49eea5.adaptivelearning into recordings\\vc33-6ae7bf49eea5.adaptivelearning.5ffc74fb-7dbe-4ffa-8ece-99abbbe924fa.recording.jsonl\r\n2025-09-09 14:24:59,236 | INFO | Predictive core initialized with lstm architecture\r\n2025-09-09 14:24:59,237 | INFO | DNC memory system initialized and integrated with predictive core\r\n2025-09-09 14:24:59,237 | INFO | Learning progress drive initialized\r\n2025-09-09 14:24:59,238 | INFO | Energy and death management system initialized\r\n2025-09-09 14:24:59,238 | INFO | Goal system initialized in survival phase\r\n2025-09-09 14:25:02,321 | INFO | Action selection system initialized\r\n2025-09-09 14:25:02,321 | INFO | Sleep and dream cycle system initialized\r\n2025-09-09 14:25:02,321 | INFO | Monitoring and metrics system initialized\r\nERROR Agent initialization failed: [WinError 3] The system cannot find the path specified: 'data\\\\meta_learning_data'\r\n2025-09-09 14:25:02,325 | DEBUG | Starting new HTTPS connection (1): three.arcprize.org:443\r\n2025-09-09 14:25:03,298 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/RESET HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:03,316 | INFO | vc33-6ae7bf49eea5 - RESET: count 0, score 0, avg fps 0.0)\r\n2025-09-09 14:25:03,560 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION1 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:03,571 | INFO | vc33-6ae7bf49eea5 - ACTION1: count 1, score 0, avg fps 0.81)\r\n2025-09-09 14:25:03,772 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION6 HTTP/1.1\" 200 8737\r\n2025-09-09 14:25:03,785 | INFO | vc33-6ae7bf49eea5 - ACTION6: count 2, score 0, avg fps 1.37)\r\n2025-09-09 14:25:03,995 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION2 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:04,006 | INFO | vc33-6ae7bf49eea5 - ACTION2: count 3, score 0, avg fps 1.79)\r\n2025-09-09 14:25:04,205 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION3 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:04,220 | INFO | vc33-6ae7bf49eea5 - ACTION3: count 4, score 0, avg fps 2.12)\r\n2025-09-09 14:25:04,464 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION3 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:04,471 | INFO | vc33-6ae7bf49eea5 - ACTION3: count 5, score 0, avg fps 2.34)\r\n2025-09-09 14:25:04,561 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION6 HTTP/1.1\" 200 8737\r\n2025-09-09 14:25:04,573 | INFO | vc33-6ae7bf49eea5 - ACTION6: count 6, score 0, avg fps 2.67)\r\n2025-09-09 14:25:04,658 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION4 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:04,673 | INFO | vc33-6ae7bf49eea5 - ACTION4: count 7, score 0, avg fps 2.98)\r\n2025-09-09 14:25:04,882 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION2 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:04,896 | INFO | vc33-6ae7bf49eea5 - ACTION2: count 8, score 0, avg fps 3.11)\r\n2025-09-09 14:25:05,087 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION5 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:05,101 | INFO | vc33-6ae7bf49eea5 - ACTION5: count 9, score 0, avg fps 3.25)\r\n2025-09-09 14:25:05,296 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION7 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:05,306 | INFO | vc33-6ae7bf49eea5 - ACTION7: count 10, score 0, avg fps 3.36)\r\n2025-09-09 14:25:05,385 | DEBUG | https://three.arcprize.org:443 \"POST /api/cmd/ACTION5 HTTP/1.1\" 200 8725\r\n2025-09-09 14:25:05,398 | INFO ..."
+}

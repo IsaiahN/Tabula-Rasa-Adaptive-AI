@@ -62,6 +62,17 @@ from typing import Dict, Any, List, Optional, Tuple  # Add type hints
 from arc_integration.arc_meta_learning import ARCMetaLearningSystem
 from core.meta_learning import MetaLearningSystem
 from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
+
+# Import Governor and Architect
+try:
+    from core.meta_cognitive_governor import MetaCognitiveGovernor
+    from core.architect import Architect
+    META_COGNITIVE_AVAILABLE = True
+except ImportError as e:
+    META_COGNITIVE_AVAILABLE = False
+    print(f"WARNING: Meta-cognitive systems not available: {e}")
+    MetaCognitiveGovernor = None
+    Architect = None
 # Import FrameAnalyzer
 try:
     from vision.frame_analyzer import FrameAnalyzer
@@ -327,6 +338,34 @@ class ContinuousLearningLoop:
         
         # Initialize frame analyzer for visual intelligence
         self.frame_analyzer = FrameAnalyzer()
+        
+        # Initialize Governor and Architect (Meta-Cognitive Systems)
+        self.governor = None
+        self.architect = None
+        if META_COGNITIVE_AVAILABLE:
+            try:
+                # Initialize Governor (Third Brain)
+                self.governor = MetaCognitiveGovernor(
+                    memory_capacity=1000,
+                    decision_threshold=0.7,
+                    adaptation_rate=0.1
+                )
+                logger.info("🧠 Meta-Cognitive Governor initialized (Third Brain)")
+                
+                # Initialize Architect (Zeroth Brain)
+                self.architect = Architect(
+                    evolution_rate=0.05,
+                    innovation_threshold=0.8,
+                    memory_capacity=500
+                )
+                logger.info("🏗️ Architect initialized (Zeroth Brain)")
+                
+            except Exception as e:
+                logger.warning(f"Failed to initialize meta-cognitive systems: {e}")
+                self.governor = None
+                self.architect = None
+        else:
+            logger.warning("Meta-cognitive systems not available - running without Governor and Architect")
         
         #  CRITICAL FIX: Unified energy system to prevent inconsistencies
         # Initialize primary energy system for proper sleep cycle management
@@ -3404,6 +3443,79 @@ class ContinuousLearningLoop:
         
         print(f" ACTION DECISION PROTOCOL - Available: {available_actions}")
         
+        # 🧠 META-COGNITIVE GOVERNOR INTEGRATION (Third Brain)
+        if self.governor:
+            try:
+                governor_decision = self.governor.make_decision(
+                    available_actions=available_actions,
+                    context=context,
+                    performance_history=self.performance_history,
+                    current_energy=self.current_energy
+                )
+                if governor_decision and 'recommended_action' in governor_decision:
+                    print(f"🧠 GOVERNOR DECISION: {governor_decision['reasoning']}")
+                    print(f"🧠 GOVERNOR RECOMMENDATION: Action {governor_decision['recommended_action']}")
+                    
+                    # Track Governor decision for monitoring
+                    if hasattr(self, 'current_session') and self.current_session:
+                        session_id = getattr(self.current_session, 'session_id', 'unknown')
+                        if not hasattr(self, 'session_results') or not self.session_results:
+                            self.session_results = {}
+                        if 'governor_decisions' not in self.session_results:
+                            self.session_results['governor_decisions'] = []
+                        
+                        self.session_results['governor_decisions'].append({
+                            'timestamp': time.time(),
+                            'game_id': game_id,
+                            'decision': governor_decision,
+                            'confidence': governor_decision.get('confidence', 0.0)
+                        })
+                    
+                    # Apply Governor's recommendation with confidence weighting
+                    if governor_decision['confidence'] > 0.7:
+                        print(f"🧠 HIGH CONFIDENCE: Following Governor recommendation")
+                        return governor_decision['recommended_action']
+                    else:
+                        print(f"🧠 LOW CONFIDENCE: Using Governor as guidance only")
+            except Exception as e:
+                logger.warning(f"Governor decision failed: {e}")
+        
+        # 🏗️ ARCHITECT EVOLUTION INTEGRATION (Zeroth Brain)
+        if self.architect:
+            try:
+                architect_insight = self.architect.evolve_strategy(
+                    available_actions=available_actions,
+                    context=context,
+                    performance_data=self.performance_history,
+                    frame_analysis=frame_analysis
+                )
+                if architect_insight and 'evolved_strategy' in architect_insight:
+                    print(f"🏗️ ARCHITECT INSIGHT: {architect_insight['reasoning']}")
+                    print(f"🏗️ ARCHITECT STRATEGY: {architect_insight['evolved_strategy']}")
+                    
+                    # Track Architect evolution for monitoring
+                    if hasattr(self, 'current_session') and self.current_session:
+                        session_id = getattr(self.current_session, 'session_id', 'unknown')
+                        if not hasattr(self, 'session_results') or not self.session_results:
+                            self.session_results = {}
+                        if 'architect_evolutions' not in self.session_results:
+                            self.session_results['architect_evolutions'] = []
+                        
+                        self.session_results['architect_evolutions'].append({
+                            'timestamp': time.time(),
+                            'game_id': game_id,
+                            'insight': architect_insight,
+                            'innovation_score': architect_insight.get('innovation_score', 0.0)
+                        })
+                    
+                    # Apply Architect's evolved strategy
+                    if architect_insight['innovation_score'] > 0.6:
+                        print(f"🏗️ HIGH INNOVATION: Applying evolved strategy")
+                        # The Architect can influence the decision process
+                        context['architect_strategy'] = architect_insight['evolved_strategy']
+            except Exception as e:
+                logger.warning(f"Architect evolution failed: {e}")
+        
         #  PHASE 1: PRIORITIZE SIMPLER ACTIONS (1-5,7) 
         # These are more predictable and often make direct progress
         simple_actions = [a for a in available_actions if a != 6]
@@ -5134,7 +5246,11 @@ class ContinuousLearningLoop:
                 'grid_sizes_encountered': set()
             },
             'arc3_scoreboard_url': ARC3_SCOREBOARD_URL,
-            'win_highlighted': False
+            'win_highlighted': False,
+            # 🧠 Meta-Cognitive Systems Monitoring
+            'governor_decisions': [],
+            'architect_evolutions': [],
+            'meta_cognitive_active': self.governor is not None and self.architect is not None
         }
         
         logger.info(f"Running continuous learning for session {session_id}")
