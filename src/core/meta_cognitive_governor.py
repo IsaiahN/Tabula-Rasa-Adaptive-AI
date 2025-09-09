@@ -301,6 +301,14 @@ class MetaCognitiveGovernor:
             "arc_trainer*.log"
         ]
         
+        # Archive cleanup configuration
+        self.archive_cleanup_config = {
+            'max_archive_days': 30,  # Keep archives for 30 days
+            'keep_recent': 5,        # Always keep 5 most recent archives
+            'cleanup_frequency': 10, # Clean every 10 governor decisions
+            'max_cleanup_interval': 3600  # Max 1 hour between cleanups
+        }
+        
         # Special handling for master_arc_trainer logs - keep under 100k
         self.master_trainer_threshold = 100000  # 100k lines for master trainer logs
         self.master_trainer_remove_lines = 50000  # Remove 50k lines when threshold exceeded
@@ -433,6 +441,27 @@ class MetaCognitiveGovernor:
             if log_cleanup_results['files_cleaned'] > 0:
                 self.logger.info(f"🧹 Log maintenance: cleaned {log_cleanup_results['files_cleaned']} files")
             
+            # Clean up old archives periodically (every 10th call or when archives are old)
+            if not hasattr(self, '_archive_cleanup_counter'):
+                self._archive_cleanup_counter = 0
+            self._archive_cleanup_counter += 1
+            
+            # Clean archives based on configuration
+            should_clean_archives = (
+                self._archive_cleanup_counter % self.archive_cleanup_config['cleanup_frequency'] == 0 or 
+                not hasattr(self, '_last_archive_cleanup') or 
+                (time.time() - getattr(self, '_last_archive_cleanup', 0)) > self.archive_cleanup_config['max_cleanup_interval']
+            )
+            
+            if should_clean_archives:
+                archive_cleanup_results = self.cleanup_archive_non_improving(
+                    max_archive_days=self.archive_cleanup_config['max_archive_days'],
+                    keep_recent=self.archive_cleanup_config['keep_recent']
+                )
+                if archive_cleanup_results['archives_deleted'] > 0:
+                    self.logger.info(f"🗑️ Archive cleanup: deleted {archive_cleanup_results['archives_deleted']} old archives")
+                self._last_archive_cleanup = time.time()
+            
             # Analyze current system state
             system_analysis = self._analyze_cognitive_systems()
             performance_analysis = self._analyze_performance_trends(current_performance)
@@ -555,6 +584,131 @@ class MetaCognitiveGovernor:
         
         return status
     
+    def cleanup_archive_non_improving(self, max_archive_days: int = 30, keep_recent: int = 5) -> Dict[str, Any]:
+        """
+        Clean up old archives in data/archive_non_improving using git.
+        
+        Args:
+            max_archive_days: Maximum age of archives to keep (in days)
+            keep_recent: Number of most recent archives to always keep
+            
+        Returns:
+            Dictionary with cleanup results
+        """
+        cleanup_results = {
+            'archives_checked': 0,
+            'archives_deleted': 0,
+            'bytes_freed': 0,
+            'errors': []
+        }
+        
+        try:
+            archive_dir = Path("data/archive_non_improving")
+            if not archive_dir.exists():
+                return cleanup_results
+            
+            # Get all archive directories (timestamp-based)
+            archive_dirs = [d for d in archive_dir.iterdir() if d.is_dir() and d.name.startswith('20')]
+            cleanup_results['archives_checked'] = len(archive_dirs)
+            
+            if len(archive_dirs) <= keep_recent:
+                return cleanup_results
+            
+            # Sort by modification time (newest first)
+            archive_dirs.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+            
+            # Keep the most recent ones
+            archives_to_keep = archive_dirs[:keep_recent]
+            archives_to_delete = archive_dirs[keep_recent:]
+            
+            # Filter by age
+            current_time = time.time()
+            max_age_seconds = max_archive_days * 24 * 60 * 60
+            
+            archives_to_delete = [
+                archive for archive in archives_to_delete
+                if (current_time - archive.stat().st_mtime) > max_age_seconds
+            ]
+            
+            if not archives_to_delete:
+                return cleanup_results
+            
+            # Initialize git repo if not already done
+            try:
+                repo = Repo(os.path.abspath("."))
+            except Exception as e:
+                cleanup_results['errors'].append(f"Git repository not available: {e}")
+                return cleanup_results
+            
+            # Delete old archives using git
+            for archive_dir_path in archives_to_delete:
+                try:
+                    # Calculate size before deletion
+                    archive_size = sum(f.stat().st_size for f in archive_dir_path.rglob('*') if f.is_file())
+                    
+                    # Add to git staging
+                    repo.index.add([str(archive_dir_path)])
+                    
+                    # Commit the deletion
+                    commit_message = f"Governor cleanup: Remove old archive {archive_dir_path.name} (age: {int((current_time - archive_dir_path.stat().st_mtime) / 86400)} days)"
+                    repo.index.commit(commit_message)
+                    
+                    # Remove the directory
+                    import shutil
+                    shutil.rmtree(archive_dir_path)
+                    
+                    cleanup_results['archives_deleted'] += 1
+                    cleanup_results['bytes_freed'] += archive_size
+                    
+                    self.logger.info(f"🗑️ Deleted old archive: {archive_dir_path.name} ({archive_size / 1024 / 1024:.1f} MB)")
+                    
+                except Exception as e:
+                    error_msg = f"Error deleting archive {archive_dir_path.name}: {e}"
+                    cleanup_results['errors'].append(error_msg)
+                    self.logger.error(error_msg)
+            
+            if cleanup_results['archives_deleted'] > 0:
+                self.logger.info(f"🧹 Archive cleanup completed: {cleanup_results['archives_deleted']} archives deleted, {cleanup_results['bytes_freed'] / 1024 / 1024:.1f} MB freed")
+                
+                # Log Governor decision
+                self.log_governor_decision({
+                    "decision_type": "archive_cleanup",
+                    "archives_deleted": cleanup_results['archives_deleted'],
+                    "bytes_freed": cleanup_results['bytes_freed'],
+                    "max_archive_days": max_archive_days,
+                    "keep_recent": keep_recent
+                })
+            
+        except Exception as e:
+            error_msg = f"Archive cleanup error: {e}"
+            cleanup_results['errors'].append(error_msg)
+            self.logger.error(error_msg)
+        
+        return cleanup_results
+
+    def force_archive_cleanup(self, max_archive_days: int = None, keep_recent: int = None) -> Dict[str, Any]:
+        """
+        Force immediate cleanup of archives, bypassing normal timing.
+        
+        Args:
+            max_archive_days: Override max archive days (uses config default if None)
+            keep_recent: Override keep recent count (uses config default if None)
+            
+        Returns:
+            Dictionary with cleanup results
+        """
+        max_days = max_archive_days or self.archive_cleanup_config['max_archive_days']
+        keep_count = keep_recent or self.archive_cleanup_config['keep_recent']
+        
+        self.logger.info(f"🔧 Forcing archive cleanup: max_days={max_days}, keep_recent={keep_count}")
+        
+        results = self.cleanup_archive_non_improving(max_archive_days=max_days, keep_recent=keep_count)
+        
+        # Reset the counter to avoid immediate re-cleanup
+        self._last_archive_cleanup = time.time()
+        
+        return results
+
     def manage_log_files(self) -> Dict[str, Any]:
         """Manage log file sizes by implementing rolling cleanup when files exceed threshold."""
         cleanup_results = {

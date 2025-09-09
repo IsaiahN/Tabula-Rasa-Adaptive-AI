@@ -601,7 +601,9 @@ class ContinuousLearningLoop:
             'is_currently_sleeping': False,
             'sleep_cycles_this_session': 0,
             'total_sleep_time': 0.0,
-            'memory_operations_per_cycle': 0
+            'memory_operations_per_cycle': 0,
+            'last_sleep_trigger': [],
+            'sleep_quality_scores': []
         }
         
         # Memory consolidation tracker
@@ -1567,6 +1569,64 @@ class ContinuousLearningLoop:
             print(f" Error starting game session for {game_id}: {e}")
             return None
 
+    def _generate_scorecard_tags(self) -> List[str]:
+        """
+        Generate descriptive tags for scorecard based on current configuration and state.
+        
+        Returns:
+            List of descriptive tags for the scorecard
+        """
+        tags = []
+        
+        # Base system tags
+        tags.extend([
+            "tabula_rasa",
+            "adaptive_learning_agent",
+            "arc_agi_3"
+        ])
+        
+        # Training mode tags
+        if hasattr(self, 'training_mode'):
+            tags.append(f"mode_{self.training_mode}")
+        
+        # System capability tags
+        if getattr(self, 'enable_coordinates', False):
+            tags.append("coordinates_enabled")
+        if getattr(self, 'enable_energy_system', False):
+            tags.append("energy_system")
+        if getattr(self, 'enable_sleep_system', False):
+            tags.append("sleep_consolidation")
+        if getattr(self, 'enable_meta_cognitive_governor', False):
+            tags.append("meta_cognitive_governor")
+        if getattr(self, 'enable_architect_evolution', False):
+            tags.append("architect_evolution")
+        
+        # Performance tags
+        if hasattr(self, 'current_energy'):
+            if self.current_energy > 80:
+                tags.append("high_energy")
+            elif self.current_energy < 40:
+                tags.append("low_energy")
+        
+        # Learning state tags
+        if hasattr(self, 'learned_patterns') and self.learned_patterns:
+            tags.append("has_learned_patterns")
+        
+        # Session tags
+        if hasattr(self, 'session_count'):
+            tags.append(f"session_{self.session_count}")
+        
+        # Timestamp tag for uniqueness
+        import time
+        timestamp = int(time.time())
+        tags.append(f"timestamp_{timestamp}")
+        
+        # Governor state tags
+        if hasattr(self, 'governor') and self.governor:
+            tags.append("governor_managed")
+        
+        return tags
+
     async def _open_scorecard(self) -> Optional[str]:
         """
         Open a new scorecard using the correct ARC-3 API endpoint.
@@ -1581,7 +1641,9 @@ class ContinuousLearningLoop:
                 "Content-Type": "application/json"
             }
             
-            payload = {}  # Empty payload as shown in the API example
+            # Generate descriptive tags based on current configuration and state
+            tags = self._generate_scorecard_tags()
+            payload = {"tags": tags} if tags else {}
             
             print(f" Opening scorecard...")
             
@@ -2371,14 +2433,18 @@ class ContinuousLearningLoop:
                                 if action_number == 6 and x is not None and y is not None and hasattr(self, 'frame_analyzer') and hasattr(self.frame_analyzer, 'log_action6_interaction'):
                                     try:
                                         # Get current game state for before/after analysis
-                                        current_frame = data.get('grid', [])
+                                        current_frame = data.get('frame', [])
                                         score = data.get('score', 0)
                                         available_actions = data.get('available_actions', [])
                                         
                                         # Validate frame data
                                         if not isinstance(current_frame, (list, np.ndarray)) or len(current_frame) == 0:
                                             logger.warning("Invalid or empty frame data received")
-                                            return data
+                                            # Try to get frame from alternative key
+                                            current_frame = data.get('grid', [])
+                                            if not isinstance(current_frame, (list, np.ndarray)) or len(current_frame) == 0:
+                                                logger.warning("No valid frame data found in response")
+                                                return data
                                         
                                         # Create target info from frame analysis if available
                                         target_info = {'object_id': f'coord_{x}_{y}', 'dominant_color': 'unknown'}
@@ -5085,7 +5151,11 @@ class ContinuousLearningLoop:
                 'sleep_cycles_this_session': 0,
                 'current_energy_level': 100.0,
                 'last_sleep_cycle': 0,
-                'total_sleep_cycles': 0
+                'total_sleep_cycles': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'is_currently_sleeping': False,
+                'total_sleep_time': 0.0
             }
         return self.sleep_state_tracker
 

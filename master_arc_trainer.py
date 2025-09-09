@@ -445,8 +445,13 @@ class MasterARCTrainer:
                     test_game_id = games[0].get('game_id', 'ls20-016295f7601e')  # Fallback to known game
                     self.logger.info(f"Testing with game: {test_game_id}")
                     
-                    # Open a test scorecard
-                    scorecard = await self.arc_client.open_scorecard(tags=["test", "tabula_rasa"])
+                    # Open a test scorecard with descriptive tags
+                    test_tags = [
+                        "test", "tabula_rasa", "master_trainer", 
+                        f"mode_{self.config.mode}", "api_connectivity_test",
+                        f"max_cycles_{self.config.max_cycles}", f"max_actions_{self.config.max_actions}"
+                    ]
+                    scorecard = await self.arc_client.open_scorecard(tags=test_tags)
                     self.logger.info(f"Opened test scorecard: {scorecard.card_id}")
                     
                     # Test reset_game with the test game
@@ -461,22 +466,31 @@ class MasterARCTrainer:
                 return True
             except Exception as e:
                 self.logger.error(f"Failed to connect to API: {str(e)}", exc_info=True)
-                if self.arc_client:
+                # Properly close the session before returning
+                try:
                     await self.arc_client.__aexit__(None, None, None)
-                    self.arc_client = None
+                except Exception as close_error:
+                    self.logger.warning(f"Error closing session during cleanup: {close_error}")
+                self.arc_client = None
                 return False
                 
         except Exception as e:
             self.logger.error(f"Error initializing ARC client: {e}")
             if self.arc_client:
-                await self.arc_client.__aexit__(None, None, None)
+                try:
+                    await self.arc_client.__aexit__(None, None, None)
+                except Exception as close_error:
+                    self.logger.warning(f"Error closing session during cleanup: {close_error}")
                 self.arc_client = None
             return False
     
     async def close(self):
         """Clean up resources."""
         if self.arc_client:
-            await self.arc_client.__aexit__(None, None, None)
+            try:
+                await self.arc_client.__aexit__(None, None, None)
+            except Exception as close_error:
+                self.logger.warning(f"Error closing session during cleanup: {close_error}")
             self.arc_client = None
         self.initialized = False
     
@@ -586,7 +600,10 @@ class MasterARCTrainer:
             finally:
                 # Ensure we clean up the client
                 if self.arc_client:
-                    await self.arc_client.__aexit__(None, None, None)
+                    try:
+                        await self.arc_client.__aexit__(None, None, None)
+                    except Exception as close_error:
+                        self.logger.warning(f"Error closing session during cleanup: {close_error}")
                     self.arc_client = None
                 
         except Exception as e:
@@ -619,6 +636,37 @@ class MasterARCTrainer:
             
         except Exception as e:
             self.logger.error(f"Error in maximum intelligence mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_quick_validation(self):
+        """Run quick validation mode with minimal systems for fast testing."""
+        self.logger.info("⚡ Starting QUICK-VALIDATION mode")
+        self.logger.info("   Minimal systems enabled for fast testing")
+        self.logger.info("   Basic cognitive systems only")
+        
+        try:
+            # Run continuous learning with minimal settings for quick validation
+            config_overrides = {
+                'enable_meta_cognitive_governor': False,
+                'enable_architect_evolution': False,
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': False,
+                'max_actions': min(self.config.max_actions, 100),  # Limit actions for quick test
+                'max_cycles': min(self.config.max_cycles, 3),      # Limit cycles for quick test
+                'target_score': self.config.target_score,
+                'enable_detailed_monitoring': False,
+                'enable_sleep_system': True,
+                'enable_energy_system': True
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in quick validation mode: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -705,7 +753,10 @@ class MasterARCTrainer:
             finally:
                 # Ensure we clean up the client
                 if self.arc_client:
-                    await self.arc_client.__aexit__(None, None, None)
+                    try:
+                        await self.arc_client.__aexit__(None, None, None)
+                    except Exception as close_error:
+                        self.logger.warning(f"Error closing session during cleanup: {close_error}")
                     self.arc_client = None
                 
         except Exception as e:
