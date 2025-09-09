@@ -241,6 +241,7 @@ class MetaCognitiveGovernor:
         if m:
             return int(m.group(1))
         return 0
+class MetaCognitiveGovernor:
     """
     The "Third Brain" - Meta-Cognitive Resource Allocator
     
@@ -248,7 +249,8 @@ class MetaCognitiveGovernor:
     high-level decisions about resource allocation between software components.
     """
     
-    def __init__(self, log_file: Optional[str] = None, outcome_tracking_dir: Optional[str] = None,
+    def __init__(self, memory_capacity: int = 1000, decision_threshold: float = 0.7, adaptation_rate: float = 0.1,
+                 log_file: Optional[str] = None, outcome_tracking_dir: Optional[str] = None,
                  persistence_dir: Optional[str] = None):
         self.logger = logging.getLogger(f"{__name__}.Governor")
         self.log_file = log_file
@@ -377,6 +379,195 @@ class MetaCognitiveGovernor:
         self.architect_response_history = []
         
         self.logger.info("🧠 MetaCognitiveGovernor initialized - Third Brain online")
+    
+    def make_decision(self, available_actions: List[int], context: Dict[str, Any], 
+                     performance_history: List[Dict[str, Any]], current_energy: float) -> Dict[str, Any]:
+        """
+        Make a high-level decision about action selection based on meta-cognitive analysis.
+        
+        Args:
+            available_actions: List of available actions
+            context: Current game context including frame analysis
+            performance_history: Historical performance data
+            current_energy: Current energy level
+            
+        Returns:
+            Dictionary containing decision, reasoning, and confidence
+        """
+        try:
+            # Analyze current situation
+            game_id = context.get('game_id', 'unknown')
+            frame_analysis = context.get('frame_analysis', {})
+            
+            # Calculate confidence based on multiple factors
+            confidence = self._calculate_decision_confidence(
+                available_actions, context, performance_history, current_energy
+            )
+            
+            # Make action recommendation based on meta-cognitive analysis
+            recommended_action = self._select_meta_cognitive_action(
+                available_actions, context, performance_history, current_energy
+            )
+            
+            # Generate reasoning
+            reasoning = self._generate_decision_reasoning(
+                recommended_action, available_actions, context, confidence
+            )
+            
+            # Track decision
+            decision_record = {
+                'timestamp': time.time(),
+                'game_id': game_id,
+                'available_actions': available_actions,
+                'recommended_action': recommended_action,
+                'confidence': confidence,
+                'reasoning': reasoning,
+                'energy_level': current_energy
+            }
+            
+            self.decision_history.append(decision_record)
+            self.total_decisions_made += 1
+            
+            return {
+                'recommended_action': recommended_action,
+                'confidence': confidence,
+                'reasoning': reasoning,
+                'meta_analysis': {
+                    'energy_factor': current_energy / 100.0,
+                    'performance_trend': self._analyze_performance_trend(performance_history),
+                    'decision_count': self.total_decisions_made
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Governor decision failed: {e}")
+            # Fallback to first available action with low confidence
+            return {
+                'recommended_action': available_actions[0] if available_actions else 1,
+                'confidence': 0.1,
+                'reasoning': f"Emergency fallback due to error: {e}",
+                'meta_analysis': {'error': str(e)}
+            }
+    
+    def _calculate_decision_confidence(self, available_actions: List[int], context: Dict[str, Any],
+                                     performance_history: List[Dict[str, Any]], current_energy: float) -> float:
+        """Calculate confidence in decision making based on various factors."""
+        base_confidence = 0.5
+        
+        # Energy factor (higher energy = higher confidence)
+        energy_factor = current_energy / 100.0
+        
+        # Performance history factor
+        if performance_history:
+            recent_performance = performance_history[-10:]  # Last 10 sessions
+            success_rate = sum(1 for p in recent_performance if p.get('success', False)) / len(recent_performance)
+            performance_factor = success_rate
+        else:
+            performance_factor = 0.5
+        
+        # Action diversity factor (more actions = more confidence)
+        diversity_factor = min(1.0, len(available_actions) / 7.0)
+        
+        # Frame analysis factor
+        frame_analysis = context.get('frame_analysis', {})
+        analysis_factor = 0.8 if frame_analysis else 0.5
+        
+        # Combine factors
+        confidence = (base_confidence + energy_factor + performance_factor + diversity_factor + analysis_factor) / 5.0
+        
+        return max(0.1, min(1.0, confidence))
+    
+    def _select_meta_cognitive_action(self, available_actions: List[int], context: Dict[str, Any],
+                                    performance_history: List[Dict[str, Any]], current_energy: float) -> int:
+        """Select action based on meta-cognitive analysis."""
+        if not available_actions:
+            return 1
+        
+        # Analyze recent performance to guide action selection
+        if performance_history:
+            # Find most successful actions from recent history
+            recent_sessions = performance_history[-5:]
+            action_success = {}
+            
+            for session in recent_sessions:
+                actions = session.get('actions_taken', [])
+                success = session.get('success', False)
+                score = session.get('score', 0)
+                
+                for action in actions:
+                    if action not in action_success:
+                        action_success[action] = {'count': 0, 'success': 0, 'total_score': 0}
+                    action_success[action]['count'] += 1
+                    if success:
+                        action_success[action]['success'] += 1
+                    action_success[action]['total_score'] += score
+            
+            # Find best performing available action
+            best_action = None
+            best_score = -1
+            
+            for action in available_actions:
+                if action in action_success:
+                    stats = action_success[action]
+                    if stats['count'] > 0:
+                        success_rate = stats['success'] / stats['count']
+                        avg_score = stats['total_score'] / stats['count']
+                        combined_score = success_rate * 0.7 + (avg_score / 100.0) * 0.3
+                        
+                        if combined_score > best_score:
+                            best_score = combined_score
+                            best_action = action
+            
+            if best_action is not None:
+                return best_action
+        
+        # Fallback: prefer ACTION6 if available (visual interaction)
+        if 6 in available_actions:
+            return 6
+        
+        # Otherwise return first available action
+        return available_actions[0]
+    
+    def _generate_decision_reasoning(self, recommended_action: int, available_actions: List[int], 
+                                   context: Dict[str, Any], confidence: float) -> str:
+        """Generate human-readable reasoning for the decision."""
+        game_id = context.get('game_id', 'unknown')
+        frame_analysis = context.get('frame_analysis', {})
+        
+        reasoning_parts = [f"Meta-cognitive analysis for {game_id}"]
+        
+        if recommended_action == 6:
+            reasoning_parts.append("Selected ACTION6 for visual-interactive exploration")
+            if frame_analysis:
+                reasoning_parts.append("Frame analysis available for targeting")
+        else:
+            reasoning_parts.append(f"Selected ACTION{recommended_action} based on performance history")
+        
+        reasoning_parts.append(f"Confidence: {confidence:.2f}")
+        reasoning_parts.append(f"Available options: {available_actions}")
+        
+        return " | ".join(reasoning_parts)
+    
+    def _analyze_performance_trend(self, performance_history: List[Dict[str, Any]]) -> str:
+        """Analyze performance trend from history."""
+        if len(performance_history) < 3:
+            return "insufficient_data"
+        
+        recent_scores = [p.get('score', 0) for p in performance_history[-5:]]
+        older_scores = [p.get('score', 0) for p in performance_history[-10:-5]] if len(performance_history) >= 10 else []
+        
+        if not older_scores:
+            return "improving" if recent_scores[-1] > recent_scores[0] else "stable"
+        
+        recent_avg = sum(recent_scores) / len(recent_scores)
+        older_avg = sum(older_scores) / len(older_scores)
+        
+        if recent_avg > older_avg * 1.1:
+            return "improving"
+        elif recent_avg < older_avg * 0.9:
+            return "declining"
+        else:
+            return "stable"
     
     def initialize_system_monitors(self):
         """Initialize monitors for all cognitive systems."""
