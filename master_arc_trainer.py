@@ -278,12 +278,7 @@ try:
     except Exception as e:
         print(f"Note: Could not load .env file: {e}")
     
-    # Also try to load from .env.template as fallback
-    try:
-        load_dotenv('.env.template')
-        env_files_loaded.append('.env.template')
-    except Exception:
-        pass
+    # No fallback needed - use only .env file
     
     if env_files_loaded:
         print(f"✅ Loaded environment files: {', '.join(env_files_loaded)}")

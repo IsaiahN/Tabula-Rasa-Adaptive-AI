@@ -282,7 +282,7 @@ class ContinuousLearningLoop:
         if not self.api_key:
             raise ValueError(
                 "ARC_API_KEY not found. Please set ARC_API_KEY environment variable "
-                "or copy .env.template to .env and add your API key."
+                "in your .env file."
             )
 
         # Use continuous_learning_data for adaptive learning evaluation results and architect evolution data
