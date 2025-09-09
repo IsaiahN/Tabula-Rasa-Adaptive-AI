@@ -475,6 +475,8 @@ class GoalInventionSystem:
     Implements phased approach starting with survival goals.
     """
     
+    _initialization_logged = False  # Class variable to track if we've already logged initialization
+    
     def __init__(
         self, 
         phase: GoalPhase = GoalPhase.SURVIVAL,
@@ -504,7 +506,10 @@ class GoalInventionSystem:
             }
         }
         
-        logger.info(f"Goal system initialized in {phase.value} phase")
+        # Only log initialization once per class to avoid duplicate messages
+        if not GoalInventionSystem._initialization_logged:
+            logger.info(f"Goal system initialized in {phase.value} phase")
+            GoalInventionSystem._initialization_logged = True
         
     def get_active_goals(self, agent_state: AgentState) -> List[Goal]:
         """Get active goals based on current phase."""

@@ -242,7 +242,7 @@ class AdaptiveLearningAgent:
             environment_bounds=goal_config.get('environment_bounds', (-10, 10, -10, 10))
         )
         
-        logger.info(f"Goal system initialized in {goal_config.get('initial_phase', 'survival')} phase")
+        # Note: Goal system logs its own initialization, so we don't duplicate here
         
     def _init_action_selection(self):
         """Initialize the action selection system."""

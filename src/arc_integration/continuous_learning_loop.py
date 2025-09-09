@@ -586,6 +586,7 @@ class ContinuousLearningLoop:
         # API session management
         self.current_scorecard_id: Optional[str] = None
         self.current_game_sessions: Dict[str, str] = {}  # game_id -> guid mapping
+        self._created_new_scorecard: bool = False  # Track if we created a new scorecard
         
         # 🔧 CRITICAL FIX: Swarm mode tracking for scorecard isolation
         self._swarm_mode_active: bool = False
@@ -1367,6 +1368,16 @@ class ContinuousLearningLoop:
                 if not scorecard_result:
                     print(f"❌ Failed to open scorecard")
                     return None
+                self.current_scorecard_id = scorecard_result
+                print(f"✅ Opened NEW scorecard: {scorecard_result}")
+                print(f"🔍 Scorecard state: created_new={self._created_new_scorecard} -> True")
+                # Mark that we created a new scorecard
+                self._created_new_scorecard = True
+            else:
+                print(f"📊 Using existing scorecard: {self.current_scorecard_id}")
+                print(f"🔍 Scorecard state: created_new={self._created_new_scorecard} -> False")
+                # Mark that we're reusing an existing scorecard
+                self._created_new_scorecard = False
             
             # Step 2: Prepare RESET call
             url = f"{ARC3_BASE_URL}/api/cmd/RESET"
@@ -1618,6 +1629,21 @@ class ContinuousLearningLoop:
             print(f"❌ Error opening scorecard: {e}")
             return None
 
+    def _reset_scorecard_state(self):
+        """Reset scorecard state tracking variables."""
+        self._created_new_scorecard = False
+        # Don't clear current_scorecard_id here - let the cleanup logic handle it
+    
+    def _clear_game_sessions(self):
+        """Clear all game sessions to force fresh starts."""
+        self.current_game_sessions.clear()
+        print("🧹 Cleared all game sessions - next games will start fresh")
+    
+    def _force_close_scorecard(self):
+        """Force close the current scorecard on next cleanup."""
+        self._force_scorecard_close = True
+        print("🔒 Marked scorecard for forced closure")
+    
     async def _close_scorecard(self, scorecard_id: str) -> bool:
         """
         Close a scorecard using the correct ARC-3 API endpoint.
@@ -2450,25 +2476,25 @@ class ContinuousLearningLoop:
                             except Exception as e:
                                 logger.error(f"Error processing successful response: {e}")
                                 return None
-                        
+                            
                         elif response.status == 429:
                             # Handle rate limiting with exponential backoff
                             retry_after = int(response.headers.get('Retry-After', '5'))
                             logger.warning(f"Rate limited (429) - Retry after {retry_after}s")
                             await asyncio.sleep(retry_after)
                             return await self._send_enhanced_action(game_id, action_number, x, y, grid_width, grid_height, frame_analysis)
-                        
+                            
                         elif 400 <= response.status < 500:
                             # Client errors (4xx)
                             error_msg = f"Client error ({response.status}): {response_text[:500]}"
                             logger.error(error_msg)
-                        
+                            
                             # Special handling for 401 Unauthorized
                             if response.status == 401:
                                 logger.critical("Authentication failed - please check your API key")
-                            
+                                
                             return None
-                        
+                            
                         elif 500 <= response.status < 600:
                             # Server errors (5xx) - retry with backoff
                             max_retries = 3
@@ -2484,12 +2510,12 @@ class ContinuousLearningLoop:
                             else:
                                 logger.error(f"Max retries ({max_retries}) exceeded for server error")
                                 return None
-                        
+                            
                         else:
                             # Handle other status codes
                             logger.warning(f"Unexpected status code {response.status}: {response_text[:500]}")
                             return None
-                
+                            
             except Exception as e:
                 logger.error(f"Error building request payload: {e}")
                 return None
@@ -2695,7 +2721,7 @@ class ContinuousLearningLoop:
         try:
             import requests
             response = requests.get("https://three.arcprize.org/api/games", 
-                                  headers={"X-API-Key": self.api_key}, timeout=30)
+                                headers={"X-API-Key": self.api_key}, timeout=30)
             if response.status_code == 200:
                 games = response.json()
                 if isinstance(games, list) and len(games) > 0:
@@ -4130,47 +4156,8 @@ class ContinuousLearningLoop:
             self.available_actions_memory['action6_strategy']['last_progress_action'] = current_action_count
             print(f"📈 Progress detected at action {current_action_count}")
 
-    async def start_training_with_direct_control(self, game_id: str, max_actions: int, session_count: int) -> Dict[str, Any]:
-        """Start training with direct control over the ARC game environment."""
-        logger.info(f"🎮 Starting direct control training for {game_id}")
-        
-        # Initialize session state
-        state = {
-            'game_id': game_id,
-            'actions_taken': 0,
-            'total_reward': 0.0,
-            'game_state': 'IN_PROGRESS',
-            'grid_dimensions': (64, 64)
-        }
-        
-        try:
-            # Main training loop
-            while state['actions_taken'] < max_actions and state['game_state'] == 'IN_PROGRESS':
-                # Simulate action and get result
-                action_result = await self._take_action(state)
-                
-                # Update state
-                state['actions_taken'] += 1
-                state['total_reward'] += action_result.get('reward', 0)
-                state['game_state'] = action_result.get('game_state', 'IN_PROGRESS')
-                
-                # Small delay to prevent overwhelming
-                await asyncio.sleep(0.01)
-                
-            return {
-                'success': True,
-                'final_score': state['total_reward'],
-                'final_state': state['game_state'],
-                'total_actions': state['actions_taken'],
-                'grid_dimensions': state['grid_dimensions']
-            }
-            
-        except Exception as e:
-            logger.error(f"Error in direct control training: {str(e)}", exc_info=True)
-            return {
-                'error': str(e),
-                'success': False
-            }
+    # REMOVED: Duplicate start_training_with_direct_control method (simulation version)
+    # The real implementation is at line 9747
     
     def _get_state_key(self, observation: Dict[str, Any]) -> str:
         """Convert observation to a state key for Q-table lookup."""
@@ -4197,8 +4184,8 @@ class ContinuousLearningLoop:
         
         # Log action selection details for debugging
         logger.debug(f"Action selection - State: {state_key[:30]}... | "
-                   f"Exploration: {exploration_rate:.2f} | "
-                   f"Valid actions: {valid_actions}")
+                f"Exploration: {exploration_rate:.2f} | "
+                f"Valid actions: {valid_actions}")
         
         # Exploration: random valid action
         if random.random() < exploration_rate:
@@ -4725,8 +4712,8 @@ class ContinuousLearningLoop:
                 # Log intelligence summary
                 intel_summary = self._get_action_intelligence_summary(game_id)
                 logger.info(f"🧠 Action Intelligence for {game_id}: "
-                           f"{intel_summary.get('effective_actions', 0)}/{intel_summary.get('total_actions_learned', 0)} effective actions, "
-                           f"{intel_summary.get('coordinate_patterns_learned', 0)} coordinate patterns learned")
+                        f"{intel_summary.get('effective_actions', 0)}/{intel_summary.get('total_actions_learned', 0)} effective actions, "
+                        f"{intel_summary.get('coordinate_patterns_learned', 0)} coordinate patterns learned")
                 
             return result
             
@@ -4961,7 +4948,7 @@ class ContinuousLearningLoop:
             if game_results['episodes']:
                 last_episode = game_results['episodes'][-1]
                 logger.info(f"🏁 Completed training on {game_id} - Final Score: {last_episode.get('final_score', 0)} | "
-                          f"Episodes: {len(game_results['episodes'])} | Errors: {game_results['error_count']}")
+                        f"Episodes: {len(game_results['episodes'])} | Errors: {game_results['error_count']}")
             else:
                 logger.warning(f"⚠️ No successful episodes for {game_id} - {game_results['error_count']} errors")
             
@@ -6292,7 +6279,7 @@ class ContinuousLearningLoop:
                 # Use edge of safe region to push boundaries, not center
                 edge_coord = self._get_safe_region_edge_coordinate(best_region, grid_dims, known_boundaries)
                 print(f"🛡️ ACTION {action} SAFE REGION EDGE: Using boundary coordinate {edge_coord} from region with "
-                      f"{len(best_region['coordinates'])} safe squares to explore new territory")
+                    f"{len(best_region['coordinates'])} safe squares to explore new territory")
                 return edge_coord
         
         # NEW: Check coordinate clusters
@@ -6322,7 +6309,7 @@ class ContinuousLearningLoop:
                 # Use cluster center or nearby coordinate
                 cluster_center = best_cluster['center']
                 print(f"🎯 ACTION {action} CLUSTER: Using cluster center {cluster_center} "
-                      f"(success rate: {best_cluster_rate:.1%}, {len(best_cluster['members'])} members)")
+                    f"(success rate: {best_cluster_rate:.1%}, {len(best_cluster['members'])} members)")
                 return cluster_center
         
         # ORIGINAL: Find best individual success zone if available
@@ -6428,8 +6415,8 @@ class ContinuousLearningLoop:
                 spatial_summary = self.get_spatial_intelligence_summary(game_id)
                 total_safe_areas = spatial_summary.get('safe_regions', 0) + spatial_summary.get('coordinate_clusters', 0)
                 print(f"🎯 ACTION {action} SPATIAL-AWARE: Selected ({x},{y}) avoiding {len(known_boundaries)} boundaries "
-                      f"and {len(boundary_system.get('danger_zones', {}).get(game_id, {}))} danger zones | "
-                      f"Safe areas available: {total_safe_areas}")
+                    f"and {len(boundary_system.get('danger_zones', {}).get(game_id, {}))} danger zones | "
+                    f"Safe areas available: {total_safe_areas}")
                 return coordinates
             
             attempts += 1
@@ -6779,8 +6766,8 @@ class ContinuousLearningLoop:
         danger_zones = spatial_summary.get('danger_zones', 0)
         
         print(f"📊 COORDINATE INTELLIGENCE: Action {action_num} at {coordinates} ({'✅' if success else '❌'}) | "
-              f"Boundaries: {total_boundaries} | Success Zones: {total_success_zones} | "
-              f"Safe Regions: {safe_regions} | Clusters: {clusters} | Danger Zones: {danger_zones}")
+            f"Boundaries: {total_boundaries} | Success Zones: {total_success_zones} | "
+            f"Safe Regions: {safe_regions} | Clusters: {clusters} | Danger Zones: {danger_zones}")
               
         # Update global intelligence for successful coordinates
         if success:
@@ -6798,9 +6785,9 @@ class ContinuousLearningLoop:
         # If this action has attempted this coordinate 3+ times recently without major success
         if len(recent_attempts) >= 3:
             recent_successes = [success for coord, success, score in action_history[-5:] 
-                              if coord == coordinates and success]
+                            if coord == coordinates and success]
             recent_score_improvements = [score for coord, success, score in action_history[-5:] 
-                                       if coord == coordinates and score > 0.1]
+                                    if coord == coordinates and score > 0.1]
             
             # Detect boundary if multiple attempts with low success
             if len(recent_successes) == 0 and len(recent_score_improvements) == 0:
@@ -6819,7 +6806,7 @@ class ContinuousLearningLoop:
                     boundary_data['confidence'] = min(1.0, len(recent_attempts) / 5.0)
                     
                     print(f"🚧 UNIVERSAL BOUNDARY: Action {action_num} detected boundary at {coordinates} "
-                          f"(confidence: {boundary_data['confidence']:.1%})")
+                        f"(confidence: {boundary_data['confidence']:.1%})")
                     
                     # Update global coordinate intelligence
                     self._update_global_coordinate_intelligence(coordinates, action_num, 'boundary')
@@ -6842,7 +6829,7 @@ class ContinuousLearningLoop:
             boundary_system['last_coordinates'][game_id] = None
 
     def _get_intelligent_survey_target(self, game_id: str, grid_dims: Tuple[int, int], 
-                                     known_boundaries: set, safe_regions: dict) -> Optional[Tuple[int, int, str]]:
+                                    known_boundaries: set, safe_regions: dict) -> Optional[Tuple[int, int, str]]:
         """
         Intelligent surveying: Instead of slow traversal through safe zones, jump to explore boundaries.
         
@@ -6948,7 +6935,7 @@ class ContinuousLearningLoop:
         return True
 
     def _get_safe_region_edge_coordinate(self, safe_region: dict, grid_dims: Tuple[int, int], 
-                                       known_boundaries: set) -> Tuple[int, int]:
+                                    known_boundaries: set) -> Tuple[int, int]:
         """
         Get a coordinate at the edge of a safe region to push outward and explore new territory.
         Instead of using the center, find the edge that's most promising for expansion.
@@ -7094,7 +7081,7 @@ class ContinuousLearningLoop:
                 }
                 
                 print(f"🛡️ SAFE REGION DETECTED: {region_id} with {len(group_data['coordinates'])} coordinates, "
-                      f"success rate: {avg_success_rate:.1%}, center: {center}")
+                    f"success rate: {avg_success_rate:.1%}, center: {center}")
         
         # Find coordinate clusters using distance-based clustering
         self._update_coordinate_clusters(new_coordinate, game_id)
@@ -7187,7 +7174,7 @@ class ContinuousLearningLoop:
             clusters[nearest_cluster]['avg_success_rate'] = total_success_rate / len(members)
             
             print(f"🎯 CLUSTER UPDATED: cluster_{nearest_cluster} now has {len(members)} members, "
-                  f"success rate: {clusters[nearest_cluster]['avg_success_rate']:.1%}")
+                f"success rate: {clusters[nearest_cluster]['avg_success_rate']:.1%}")
         else:
             # Create new cluster
             cluster_id = len(clusters)
@@ -7236,7 +7223,7 @@ class ContinuousLearningLoop:
                     }
                     
                     print(f"⚠️ DANGER ZONE: {danger_id} with {len(coords_list)} dangerous coordinates, "
-                          f"avoidance radius: {danger_zones[danger_id]['avoidance_radius']}")
+                        f"avoidance radius: {danger_zones[danger_id]['avoidance_radius']}")
     
     def get_spatial_intelligence_summary(self, game_id: str) -> dict:
         """Get comprehensive spatial intelligence summary for a game."""
@@ -7407,6 +7394,12 @@ class ContinuousLearningLoop:
             swarm_enabled=swarm_enabled
         )
         
+        # Set session ID on main object for display
+        self.session_id = session_id
+        
+        # Reset scorecard state for new session
+        self._reset_scorecard_state()
+        
         # Initialize salience calculator for this session
         self.salience_calculator = SalienceCalculator(
             mode=salience_mode,
@@ -7417,7 +7410,7 @@ class ContinuousLearningLoop:
         
         # 🔧 CONSOLIDATED: Using unified energy system configuration
         logger.info(f"✅ Unified energy system configured: current={self.current_energy:.1f}/100, "
-                   f"sleep_threshold=40.0, energy_costs=standardized")
+                f"sleep_threshold=40.0, energy_costs=standardized")
         
         # Display session startup information
         self._display_session_startup_info(session_id, games, salience_mode)
@@ -9749,42 +9742,45 @@ except Exception:
         
         # 🔧 CRITICAL FIX: Handle per-game scorecard for swarm mode
         original_scorecard_id = self.current_scorecard_id
-        dedicated_scorecard_needed = False
         
-        # Check if we're in swarm mode (multiple concurrent games)
-        # If we don't have a scorecard or multiple games are running, create dedicated scorecard
-        if not self.current_scorecard_id:
-            dedicated_scorecard_needed = True
-            print(f"🆔 [SWARM-FIX] Opening dedicated scorecard for {game_id} (no existing scorecard)")
-        elif hasattr(self, '_swarm_mode_active') and self._swarm_mode_active:
-            dedicated_scorecard_needed = True
-            print(f"🆔 [SWARM-FIX] Opening dedicated scorecard for {game_id} (swarm mode active)")
-        
-        dedicated_scorecard_id = None
-        if dedicated_scorecard_needed:
-            try:
-                dedicated_scorecard_id = await self._open_scorecard()
-                if dedicated_scorecard_id:
-                    # Temporarily use dedicated scorecard for this game
-                    self.current_scorecard_id = dedicated_scorecard_id
-                    print(f"✅ [SWARM-FIX] Using dedicated scorecard {dedicated_scorecard_id} for {game_id}")
-                else:
-                    print(f"❌ [SWARM-FIX] Failed to open dedicated scorecard for {game_id}")
-                    return {"error": "Failed to open dedicated scorecard", "actions_taken": 0}
-            except Exception as e:
-                print(f"❌ [SWARM-FIX] Exception opening scorecard: {e}")
-                return {"error": f"Scorecard exception: {e}", "actions_taken": 0}
+        # Track if we created a new scorecard for this session
+        created_new_scorecard = False
         
         try:
-            # First investigate API to understand available actions
-            investigation = await self.investigate_api_available_actions(game_id)
-            if "error" in investigation:
-                return {"error": f"API investigation failed: {investigation['error']}", "actions_taken": 0}
+            # Check if we have an existing session for this game
+            existing_guid = self.current_game_sessions.get(game_id)
             
-            # Start game session
-            session_data = await self._start_game_session(game_id)
+            # Decide whether to reuse session or start fresh
+            should_reuse_session = (existing_guid and 
+                                  session_count > 0 and 
+                                  session_count % 10 != 0)  # Start fresh every 10 sessions
+            
+            print(f"🔍 Session decision: existing_guid={existing_guid}, session_count={session_count}, should_reuse={should_reuse_session}")
+            
+            if should_reuse_session:
+                # Use level reset for subsequent sessions of the same game
+                print(f"🔄 Using LEVEL RESET for session {session_count} of {game_id} (reusing session)")
+                session_data = await self._start_game_session(game_id, existing_guid=existing_guid)
+            else:
+                # Use new game reset for the first session or when starting fresh
+                if existing_guid:
+                    print(f"🔄 Starting FRESH SESSION for {game_id} (clearing previous session)")
+                    # Clear the old session
+                    del self.current_game_sessions[game_id]
+                else:
+                    print(f"🔄 Using NEW GAME RESET for session {session_count} of {game_id}")
+                session_data = await self._start_game_session(game_id)
+            
             if not session_data:
                 return {"error": "Failed to start game session", "actions_taken": 0}
+            
+            # Extract investigation data from the session data we just got
+            investigation = {
+                'state': session_data.get('state', 'NOT_STARTED'),
+                'score': session_data.get('score', 0),
+                'available_actions': session_data.get('available_actions', [1,2,3,4,5,6,7]),
+                'frame': session_data.get('frame', [])
+            }
             
             # 🔧 CRITICAL FIX: Initialize frame data from session start
             initial_frame = session_data.get('frame', [])
@@ -9839,8 +9835,8 @@ except Exception:
                 })
             
             while (actions_taken < actual_max_actions and 
-                   current_state not in ['WIN', 'GAME_OVER'] and
-                   current_score < 100):  # Reasonable win condition
+                current_state not in ['WIN', 'GAME_OVER'] and
+                current_score < 100):  # Reasonable win condition
                 
                 # CRITICAL: Always check current available actions from the latest response
                 # Increment action counter (use local session counter, not global)
@@ -10052,6 +10048,13 @@ except Exception:
                     if new_available != available_actions:
                         print(f"🔄 Actions: {available_actions} → {new_available}")
                     
+                # CRITICAL: Validate that action_result is a dictionary before processing
+                if not isinstance(action_result, dict):
+                    print(f"❌ CRITICAL ERROR: action_result is not a dict, it's {type(action_result)}: {action_result}")
+                    print(f"❌ This will cause 'str' object has no attribute 'items' error")
+                    # Skip processing this action result
+                    continue
+                    
                     # 🔧 CRITICAL FIX: Use unified energy consumption for consistency
                     # Determine if this was exploration or repetitive behavior
                     is_exploration = selected_action == 6 and hasattr(self, '_progress_tracker')  # ACTION6 is typically exploration
@@ -10090,7 +10093,7 @@ except Exception:
                         self.current_energy = min(100.0, self.current_energy + energy_restoration)
                         print(f"⚡ Energy restored: +{energy_restoration:.1f} → {self.current_energy:.1f}/100")
                     
-                # Track effectiveness for analysis
+                    # Track effectiveness for analysis
                 try:
                     if was_effective:
                         effective_actions.append({
@@ -10114,7 +10117,7 @@ except Exception:
                 except Exception as e:
                     print(f"❌ Error in action tracking: {e}")
                     
-                # Update current state for next iteration
+                    # Update current state for next iteration
                 try:
                     current_state = new_state
                     current_score = new_score
@@ -10130,14 +10133,14 @@ except Exception:
                     # Record failed action
                     try:
                         action_history.append({
-                                'action': selected_action,
-                                'coordinates': (x, y) if x is not None else None,
-                                'before_score': current_score,
-                                'after_score': current_score,
-                                'effective': False,
-                                'state_change': 'FAILED',
-                                'error': True
-                            })
+                            'action': selected_action,
+                            'coordinates': (x, y) if x is not None else None,
+                            'before_score': current_score,
+                            'after_score': current_score,
+                            'effective': False,
+                            'state_change': 'FAILED',
+                            'error': True
+                        })
                     except Exception as e:
                         print(f"❌ Error recording failed action: {e}")
                 
@@ -10152,7 +10155,7 @@ except Exception:
                         action_cost *= 0.8  # Reward effective actions with 20% energy savings
                     else:
                         action_cost *= energy_params.get('effectiveness_multiplier', 1.0)  # Penalize ineffective actions
-                    
+                
                     # Deplete energy
                     self.current_energy = max(0.0, self.current_energy - action_cost)
                 except Exception as e:
@@ -10236,21 +10239,43 @@ except Exception:
                 # Use 0.15s for safety margin (6.67 RPS actual rate)
                 await asyncio.sleep(0.15)
             
-            # Session complete - only close scorecard if we're in swarm mode or at the end of training
+            # Session complete - handle scorecard cleanup based on mode and creation status
             if hasattr(self, 'current_scorecard_id') and self.current_scorecard_id:
-                # Only close if we're in swarm mode (per-game scorecards) or if this is the final session
+                # Determine if we should close the scorecard
+                should_close_scorecard = False
+                
+                # Close if we're in swarm mode (per-game scorecards)
                 if hasattr(self, '_swarm_mode_active') and self._swarm_mode_active:
-                    print(f"🔒 Closing dedicated scorecard {self.current_scorecard_id} for {game_id}...")
+                    should_close_scorecard = True
+                    print(f"🔒 Swarm mode: Closing scorecard {self.current_scorecard_id} for {game_id}...")
+                
+                # Don't close scorecards just because we created them - keep them for reuse
+                # Only close in specific circumstances like swarm mode or final session
+                
+                # Close if this is the final session or we want to start completely fresh
+                elif session_count >= 100:  # Close after 100 sessions to start fresh
+                    should_close_scorecard = True
+                    print(f"🔒 Fresh start: Closing scorecard {self.current_scorecard_id} after {session_count} sessions...")
+                
+                # Close if we're explicitly clearing sessions (e.g., switching games)
+                elif hasattr(self, '_force_scorecard_close') and self._force_scorecard_close:
+                    should_close_scorecard = True
+                    print(f"🔒 Forced close: Closing scorecard {self.current_scorecard_id}...")
+                    self._force_scorecard_close = False  # Reset the flag
+                
+                if should_close_scorecard:
                     try:
                         scorecard_closed = await self._close_scorecard(self.current_scorecard_id)
                         if scorecard_closed:
-                            print(f"✅ Scorecard {self.current_scorecard_id} closed successfully")
+                            print(f"✅ Closed scorecard: {self.current_scorecard_id}")
+                            self.current_scorecard_id = None  # Clear the scorecard ID
                         else:
                             print(f"⚠️ Failed to close scorecard {self.current_scorecard_id}")
                     except Exception as e:
                         print(f"❌ Error closing scorecard: {e}")
                 else:
                     print(f"📊 Keeping scorecard {self.current_scorecard_id} open for continued training")
+                    print(f"🔍 Scorecard kept: created_new={getattr(self, '_created_new_scorecard', False)}, session_count={session_count}")
             
             try:
                 final_result = {
@@ -10296,7 +10321,7 @@ except Exception:
                 print(f"   Memory Operations: {self.global_counters.get('total_memory_operations', 0)}")
                 print(f"   Sleep Cycles: {self.global_counters.get('total_sleep_cycles', 0)}")
                 print(f"   Energy Level: {self.current_energy:.2f}")
-                
+            
                 # Show coordinate intelligence summary if available
                 if hasattr(self, 'enhanced_coordinate_intelligence'):
                     print("🧠 Coordinate Intelligence: ACTIVE")
@@ -10309,6 +10334,9 @@ except Exception:
             
         except Exception as e:
             print(f"   ⚠️ Error in direct control training: {e}")
+            print(f"   ⚠️ Error type: {type(e)}")
+            import traceback
+            print(f"   ⚠️ Traceback: {traceback.format_exc()}")
             return {"error": str(e), "actions_taken": 0}
     
     async def _trigger_enhanced_sleep_with_arc_data(
@@ -10413,8 +10441,8 @@ except Exception:
                 self.global_counters['total_sleep_cycles'] = self.global_counters.get('total_sleep_cycles', 0) + 1
                 
                 print(f"🌅 ENHANCED SLEEP COMPLETE - Patterns: {sleep_result.get('failed_patterns_identified', 0)} failed, "
-                     f"{sleep_result.get('successful_patterns_strengthened', 0)} successful, "
-                     f"Strategies: {sleep_result.get('diversification_strategies_created', 0)}")
+                    f"{sleep_result.get('successful_patterns_strengthened', 0)} successful, "
+                    f"Strategies: {sleep_result.get('diversification_strategies_created', 0)}")
                 
                 return {
                     'success': True,
@@ -10496,8 +10524,8 @@ except Exception:
             await asyncio.sleep(0.2)  # Brief consolidation pause
             
             print(f"🌅 FALLBACK SLEEP COMPLETE - Strengthened: {consolidation_results['successful_patterns_strengthened']}, "
-                  f"Weakened: {consolidation_results['failed_patterns_weakened']}, "
-                  f"Coordinates: {consolidation_results['coordinate_patterns_discovered']}")
+                f"Weakened: {consolidation_results['failed_patterns_weakened']}, "
+                f"Coordinates: {consolidation_results['coordinate_patterns_discovered']}")
             
             return {
                 'success': True,
