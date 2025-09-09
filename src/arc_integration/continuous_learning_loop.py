@@ -3628,10 +3628,10 @@ class ContinuousLearningLoop:
                 if not hasattr(self, '_exploration_cycle'):
                     self._exploration_cycle = {'untried_actions': list(available_actions), 'cycle_active': False}
                 
-                # More aggressive emergency override: trigger after just 8 actions without progress
-                if (len(recent_actions) >= 6 and 
+                # More conservative emergency override: trigger after 15 actions without progress
+                if (len(recent_actions) >= 10 and 
                     len(set(recent_actions)) <= 2 and  # Only 1-2 unique actions used
-                    actions_without_progress >= 8):  # No progress for 8+ actions (reduced from 10)
+                    actions_without_progress >= 15):  # No progress for 15+ actions (increased from 8)
                     
                     print(f" EMERGENCY OVERRIDE: Stuck in action loop {set(recent_actions)} for {actions_without_progress} actions")
                     
