@@ -9800,12 +9800,12 @@ except Exception:
             current_score = investigation.get('score', 0)
             available_actions = investigation.get('available_actions', [1,2,3,4,5,6,7])  # Default fallback
             
-            print(f"🚀 SESSION STARTED:")
+            print(f"   SESSION STARTED:")
             print(f"   GUID: {guid}")
             print(f"   Initial State: {current_state}")
             print(f"   Initial Score: {current_score}")
             print(f"   Available Actions: {available_actions}")
-            print(f"   🎯 TARGET: Win (score ≥ 100) or reach terminal state")
+            print(f"   TARGET: Win (score ≥ 100) or reach terminal state")
             
             # Direct action control loop
             actions_taken = 0
