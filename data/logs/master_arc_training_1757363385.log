@@ -1,0 +1,56 @@
+2025-09-08 15:29:45,615 - INFO - arc_integration.arc_meta_learning - ARC Meta-Learning System initialized
+2025-09-08 15:29:45,615 - INFO - src.arc_integration.continuous_learning_loop - ✅ Enhanced sleep system initialized for memory consolidation
+2025-09-08 15:29:45,616 - INFO - src.arc_integration.continuous_learning_loop - ✅ Using unified energy system (adaptive features integrated)
+2025-09-08 15:29:45,616 - INFO - goals.goal_system - Goal system initialized in survival phase
+2025-09-08 15:29:45,634 - INFO - core.agent - Predictive core initialized with lstm architecture
+2025-09-08 15:29:45,637 - INFO - core.agent - DNC memory system initialized and integrated with predictive core
+2025-09-08 15:29:45,637 - INFO - core.agent - Learning progress drive initialized
+2025-09-08 15:29:45,637 - INFO - core.agent - Energy and death management system initialized
+2025-09-08 15:29:45,638 - INFO - goals.goal_system - Goal system initialized in survival phase
+2025-09-08 15:29:45,638 - INFO - core.agent - Goal system initialized in survival phase
+2025-09-08 15:29:48,154 - INFO - core.agent - Action selection system initialized
+2025-09-08 15:29:48,155 - INFO - core.agent - Sleep and dream cycle system initialized
+2025-09-08 15:29:48,155 - INFO - core.agent - Monitoring and metrics system initialized
+2025-09-08 15:29:48,156 - INFO - core.agent - Meta-learning system initialized
+2025-09-08 15:29:48,157 - INFO - core.agent - Adaptive Learning Agent initialized successfully
+2025-09-08 15:29:48,157 - INFO - src.arc_integration.continuous_learning_loop - Demo agent initialized for monitoring
+2025-09-08 15:29:48,158 - INFO - src.arc_integration.continuous_learning_loop - Continuous Learning Loop initialized with ARC-3 API integration
+2025-09-08 15:29:48,158 - INFO - __main__ - ✅ Coordinate intelligence initialized
+2025-09-08 15:29:48,162 - INFO - src.core.meta_cognitive_governor.Governor - Outcome tracking enabled
+2025-09-08 15:29:48,169 - INFO - src.core.meta_cognitive_governor.Governor - Loaded 0 learned patterns from disk
+2025-09-08 15:29:48,170 - INFO - src.core.meta_cognitive_governor.Governor - Cross-session learning manager initialized with 0 existing patterns
+2025-09-08 15:29:48,170 - INFO - src.core.meta_cognitive_governor.Governor - Cross-session learning enabled
+2025-09-08 15:29:48,173 - INFO - src.core.meta_cognitive_governor.Governor - Meta-cognitive memory management enabled
+2025-09-08 15:29:48,175 - INFO - src.core.meta_cognitive_governor.Governor - Memory pattern optimization enabled - Phase 1 immediate wins
+2025-09-08 15:29:50,866 - INFO - src.core.hierarchical_memory_clusterer - 🗂️ HierarchicalMemoryClusterer initialized for Phase 2
+2025-09-08 15:29:50,867 - INFO - src.core.meta_cognitive_governor.Governor - Hierarchical memory clustering enabled - Phase 2 intelligent clusters
+2025-09-08 15:29:50,873 - INFO - src.core.architect_evolution_engine - 🏗️ Architect Evolution Engine initialized for Phase 3
+2025-09-08 15:29:50,873 - INFO - src.core.architect_evolution_engine -    Autonomous evolution: enabled
+2025-09-08 15:29:50,873 - INFO - src.core.architect_evolution_engine -    Loaded 0 existing insights
+2025-09-08 15:29:50,873 - INFO - src.core.architect_evolution_engine -    Loaded 0 evolution strategies
+2025-09-08 15:29:50,874 - INFO - src.core.meta_cognitive_governor.Governor - Architect Evolution Engine enabled - Phase 3 autonomous evolution
+2025-09-08 15:29:50,882 - INFO - src.core.performance_optimization_engine - ⚡ Initialized 1 adaptive configurations
+2025-09-08 15:29:50,883 - INFO - src.core.performance_optimization_engine - ⚡ Real-time optimization thread started
+2025-09-08 15:29:50,884 - INFO - src.core.performance_optimization_engine - ⚡ Performance Optimization Engine initialized for Phase 4
+2025-09-08 15:29:50,884 - INFO - src.core.performance_optimization_engine -    Real-time optimization: enabled
+2025-09-08 15:29:50,884 - INFO - src.core.performance_optimization_engine -    Optimization interval: 60.0s
+2025-09-08 15:29:50,884 - INFO - src.core.performance_optimization_engine -    Loaded 0 optimization history entries
+2025-09-08 15:29:50,885 - INFO - src.core.performance_optimization_engine -    Adaptive configurations: 1
+2025-09-08 15:29:50,885 - INFO - src.core.meta_cognitive_governor.Governor - Performance Optimization Engine enabled - Phase 4 performance maximization
+2025-09-08 15:29:50,885 - INFO - src.core.meta_cognitive_governor.Governor - 🔍 Initialized 37 cognitive system monitors
+2025-09-08 15:29:50,886 - INFO - src.core.meta_cognitive_governor.Governor - 🧠 MetaCognitiveGovernor initialized - Third Brain online
+2025-09-08 15:29:50,887 - INFO - __main__ - 🧠 Meta-cognitive Governor (Third Brain) initialized
+2025-09-08 15:29:50,887 - INFO - src.core.architect.Architect - Architect memory management enabled
+2025-09-08 15:29:50,889 - INFO - src.core.architect.Architect - ✅ Already on correct branch: Tabula-Rasa-v3
+2025-09-08 15:29:50,890 - INFO - src.core.architect.Architect - ✅ GitIgnore already configured for Architect control
+2025-09-08 15:29:50,890 - INFO - src.core.architect.Architect - 🔬 Architect initialized - Zeroth Brain online
+2025-09-08 15:29:50,891 - INFO - __main__ - 🏗️ Architect (Zeroth Brain) initialized
+2025-09-08 15:29:50,891 - INFO - __main__ - ✅ Core systems initialized successfully
+2025-09-08 15:29:50,891 - INFO - __main__ - 🚀 Starting training mode: quick-validation
+2025-09-08 15:29:50,892 - INFO - __main__ - ⚡ Quick Validation Mode - Rapid testing
+2025-09-08 15:29:50,892 - INFO - src.arc_integration.continuous_learning_loop - ✅ Unified energy system configured: current=95.5/100, sleep_threshold=40.0, energy_costs=standardized
+2025-09-08 15:29:50,892 - INFO - src.arc_integration.continuous_learning_loop - Started training session session_1757363390 with 1 games using lossless mode
+2025-09-08 15:29:50,892 - INFO - src.arc_integration.continuous_learning_loop - Running continuous learning for session session_1757363390
+2025-09-08 15:29:50,893 - WARNING - src.arc_integration.continuous_learning_loop - main.py not found in ARC-AGI-3-Agents: .. Running in standalone mode.
+2025-09-08 15:30:26,945 - ERROR - src.arc_integration.continuous_learning_loop - Error in continuous learning session: 'ContinuousLearningLoop' object has no attribute 'memory_consolidation_tracker'
+2025-09-08 15:30:26,947 - ERROR - __main__ - Could not save results: Object of type set is not JSON serializable
