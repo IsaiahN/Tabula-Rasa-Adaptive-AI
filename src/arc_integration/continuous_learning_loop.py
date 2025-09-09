@@ -30,12 +30,12 @@ except Exception:
     # Leave safe fallbacks if the module isn't available
     def log_action_trace(record):
         try:
-            print("⚠️ action_trace_logger unavailable")
+            print(" action_trace_logger unavailable")
         except Exception:
             pass
     def write_session_trace(game_id, session_result, raw_output=None):
         try:
-            print("⚠️ action_trace_logger unavailable")
+            print(" action_trace_logger unavailable")
         except Exception:
             pass
 
@@ -154,7 +154,7 @@ class RateLimiter:
         if len(self.request_times) >= ARC3_RATE_LIMIT['requests_per_minute']:
             wait_time = 60 - (current_time - self.request_times[0])
             if wait_time > 0:
-                print(f"⏸️ Rate limit: Waiting {wait_time:.1f}s (at {len(self.request_times)}/600 RPM)")
+                print(f"⏸ Rate limit: Waiting {wait_time:.1f}s (at {len(self.request_times)}/600 RPM)")
                 await asyncio.sleep(wait_time)
 
         # Check requests per second limit
@@ -183,12 +183,12 @@ class RateLimiter:
             ARC3_RATE_LIMIT['backoff_max_delay']
         )
 
-        print(f"🚫 Rate limit exceeded (429) - backing off {self.backoff_delay:.1f}s")
+        print(f" Rate limit exceeded (429) - backing off {self.backoff_delay:.1f}s")
 
     def handle_success_response(self):
         """Handle a successful response - reset backoff."""
         if self.consecutive_429s > 0:
-            print(f"✅ Request succeeded - resetting backoff (was {self.backoff_delay:.1f}s)")
+            print(f" Request succeeded - resetting backoff (was {self.backoff_delay:.1f}s)")
         self.consecutive_429s = 0
         self.backoff_delay = 0.0
 
@@ -328,7 +328,7 @@ class ContinuousLearningLoop:
         # Initialize frame analyzer for visual intelligence
         self.frame_analyzer = FrameAnalyzer()
         
-        # 🔧 CRITICAL FIX: Unified energy system to prevent inconsistencies
+        #  CRITICAL FIX: Unified energy system to prevent inconsistencies
         # Initialize primary energy system for proper sleep cycle management
         self.energy_system = EnergySystem()
         self.current_energy = 100.0  # Unified energy state
@@ -343,7 +343,7 @@ class ContinuousLearningLoop:
             'repetitive_penalty': 1.2  # Multiplier for repetitive actions
         }
         
-        # 🔧 CRITICAL FIX: Enhanced sleep system initialization with better error handling
+        #  CRITICAL FIX: Enhanced sleep system initialization with better error handling
         try:
             from core.predictive_core import PredictiveCore
             from core.sleep_system import SleepCycle
@@ -361,21 +361,21 @@ class ContinuousLearningLoop:
             if not hasattr(self.sleep_system, 'is_sleeping'):
                 self.sleep_system.is_sleeping = False
             
-            logger.info("✅ Enhanced sleep system initialized for memory consolidation")
+            logger.info(" Enhanced sleep system initialized for memory consolidation")
             
         except ImportError as e:
-            logger.warning(f"⚠️ Sleep system dependencies not available: {e}")
-            logger.info("💡 Will use enhanced fallback sleep system with memory consolidation")
+            logger.warning(f" Sleep system dependencies not available: {e}")
+            logger.info(" Will use enhanced fallback sleep system with memory consolidation")
             self.sleep_system = None
             
         except Exception as e:
-            logger.warning(f"⚠️ Could not initialize enhanced sleep system: {e}")
-            logger.info("💡 Will use enhanced fallback sleep system with memory consolidation")
+            logger.warning(f" Could not initialize enhanced sleep system: {e}")
+            logger.info(" Will use enhanced fallback sleep system with memory consolidation")
             self.sleep_system = None
         
-        # 🔧 CONSOLIDATED: Adaptive energy system disabled - using unified energy system instead
+        #  CONSOLIDATED: Adaptive energy system disabled - using unified energy system instead
         # The main energy system now handles all adaptive behaviors directly
-        logger.info("✅ Using unified energy system (adaptive features integrated)")
+        logger.info(" Using unified energy system (adaptive features integrated)")
         self.adaptive_energy = None
         self.energy_integration = None
         
@@ -588,13 +588,13 @@ class ContinuousLearningLoop:
         self.current_game_sessions: Dict[str, str] = {}  # game_id -> guid mapping
         self._created_new_scorecard: bool = False  # Track if we created a new scorecard
         
-        # 🔧 CRITICAL FIX: Swarm mode tracking for scorecard isolation
+        #  CRITICAL FIX: Swarm mode tracking for scorecard isolation
         self._swarm_mode_active: bool = False
         # Ensure standalone mode flag exists to avoid AttributeError in session flows
         self.standalone_mode: bool = False
         # Rate limiting for ARC-AGI-3 API compliance
         self.rate_limiter = RateLimiter()
-        print(f"🛡️ Rate limiter initialized: {ARC3_RATE_LIMIT['safe_requests_per_second']} RPS max, 600 RPM limit")
+        print(f" Rate limiter initialized: {ARC3_RATE_LIMIT['safe_requests_per_second']} RPS max, 600 RPM limit")
         
         # Enhanced tracking for sleep states and memory operations
         self.sleep_state_tracker = {
@@ -602,6 +602,19 @@ class ContinuousLearningLoop:
             'sleep_cycles_this_session': 0,
             'total_sleep_time': 0.0,
             'memory_operations_per_cycle': 0
+        }
+        
+        # Memory consolidation tracker
+        self.memory_consolidation_tracker = {
+            'memory_operations_per_cycle': 0,
+            'consolidation_operations_count': 0,
+            'high_salience_memories_strengthened': 0,
+            'low_salience_memories_decayed': 0,
+            'is_consolidating_memories': False,
+            'is_prioritizing_memories': False,
+            'memory_compression_active': False,
+            'last_consolidation_score': 0.0,
+            'total_memory_operations': 0
         }
         
         # Game reset decision tracking
@@ -636,14 +649,14 @@ class ContinuousLearningLoop:
         if total_sleep_cycles > 0:
             # After sleep cycles, maintain the persistent energy level
             self.current_energy = persistent_energy
-            print(f"⚡ Resuming with persistent energy: {self.current_energy:.2f} (after {total_sleep_cycles} sleep cycles)")
+            print(f" Resuming with persistent energy: {self.current_energy:.2f} (after {total_sleep_cycles} sleep cycles)")
         else:
             # Fresh start gets full energy
             self.current_energy = 100.0
-            print(f"⚡ Fresh session starting with full energy: {self.current_energy:.2f}")
+            print(f" Fresh session starting with full energy: {self.current_energy:.2f}")
         
-        # 🎯 SMART ACTION CAP SYSTEM - Prevents infinite loops and analyzes stagnation
-        # 🔧 CRITICAL FIX: Improved action cap system with less aggressive termination
+        #  SMART ACTION CAP SYSTEM - Prevents infinite loops and analyzes stagnation
+        #  CRITICAL FIX: Improved action cap system with less aggressive termination
         self._action_cap_system = {
             'enabled': True,
             'base_cap': 150,  # Increased base actions for more exploration
@@ -664,7 +677,7 @@ class ContinuousLearningLoop:
         except Exception:
             logger.exception("Failed to print action cap system for debugging")
         
-        # 🔧 CRITICAL FIX: Enhanced progress tracking for smarter termination
+        #  CRITICAL FIX: Enhanced progress tracking for smarter termination
         self._progress_tracker = {
             'actions_taken': 0,
             'last_score': 0,
@@ -789,7 +802,7 @@ class ContinuousLearningLoop:
         }
 
     def _unified_energy_consumption(self, action_effective: bool = False, is_exploration: bool = False, is_repetitive: bool = False) -> float:
-        """🔧 CRITICAL FIX: Unified energy consumption method for consistency across all systems.
+        """ CRITICAL FIX: Unified energy consumption method for consistency across all systems.
 
         Returns the updated current energy level after applying costs and modifiers.
         """
@@ -834,7 +847,7 @@ class ContinuousLearningLoop:
             protected_memories = memory_hierarchy.get('protected_memories', [])
             
             # Log the memory hierarchy status
-            print("\n🧠 MEMORY HIERARCHY STATUS:")
+            print("\n MEMORY HIERARCHY STATUS:")
             print(f"  - Total Protected Memories: {len(protected_memories)}")
             
             # Log some sample memories if available
@@ -855,13 +868,13 @@ class ContinuousLearningLoop:
                 print(f"  - Protection Success Rate: {stats.get('success_rate', 0.0) * 100:.1f}%")
                 
         except Exception as e:
-            print(f"⚠️ Error displaying memory hierarchy status: {e}")
+            print(f" Error displaying memory hierarchy status: {e}")
             
         # Log current energy status
-        print(f"⚡ Current Energy: {getattr(self, 'current_energy', 0.0):.1f}/100")
+        print(f" Current Energy: {getattr(self, 'current_energy', 0.0):.1f}/100")
     
     def _should_trigger_sleep_cycle(self, actions_taken: int, recent_effectiveness: float = 0.0) -> bool:
-        """🔧 CRITICAL FIX: Intelligent sleep trigger based on energy, effectiveness, and learning needs."""
+        """ CRITICAL FIX: Intelligent sleep trigger based on energy, effectiveness, and learning needs."""
         
         # Base energy threshold
         if self.current_energy <= 40.0:
@@ -869,20 +882,20 @@ class ContinuousLearningLoop:
         
         # Sleep after long ineffective sequences for consolidation
         if actions_taken > 100 and recent_effectiveness < 0.3:
-            print(f"🌙 Sleep trigger: Long ineffective sequence ({actions_taken} actions, {recent_effectiveness:.1%} effective)")
+            print(f" Sleep trigger: Long ineffective sequence ({actions_taken} actions, {recent_effectiveness:.1%} effective)")
             print(f"[SLEEP] Triggered by ineffective sequence. Progress tracker: {self._progress_tracker}")
             return True
         
         # Periodic consolidation sleep every 200 actions regardless
         if actions_taken % 200 == 0 and actions_taken > 0:
-            print(f"🌙 Sleep trigger: Periodic consolidation at {actions_taken} actions")
+            print(f" Sleep trigger: Periodic consolidation at {actions_taken} actions")
             print(f"[SLEEP] Periodic consolidation. Progress tracker: {self._progress_tracker}")
             return True
         
         # Energy-based trigger with sliding scale
         energy_threshold = 50.0 - (recent_effectiveness * 20)  # Lower threshold if ineffective
         if self.current_energy <= energy_threshold:
-            print(f"🌙 Sleep trigger: Adaptive energy threshold ({energy_threshold:.1f}) reached")
+            print(f" Sleep trigger: Adaptive energy threshold ({energy_threshold:.1f}) reached")
             print(f"[SLEEP] Adaptive energy threshold. Progress tracker: {self._progress_tracker}")
             return True
         
@@ -991,7 +1004,7 @@ class ContinuousLearningLoop:
         # Apply bounds
         capped_value = max(config['min_cap'], min(calculated_cap, config['max_cap']))
         
-        print(f"🎯 SMART CAP: {base_actions} actions available → {capped_value} action limit")
+        print(f" SMART CAP: {base_actions} actions available → {capped_value} action limit")
         return capped_value
     
     def _should_terminate_early(self, current_score: int, actions_taken: int) -> tuple[bool, str]:
@@ -1015,8 +1028,8 @@ class ContinuousLearningLoop:
             if len(tracker['score_history']) > 20:
                 tracker['score_history'] = tracker['score_history'][-20:]
             
-            # 🔧 CRITICAL FIX: Reset stagnation counter on ANY score change, not just improvement
-            print(f"🔄 Score changed from {tracker['last_score']} to {current_score}, resetting stagnation counter")
+            #  CRITICAL FIX: Reset stagnation counter on ANY score change, not just improvement
+            print(f" Score changed from {tracker['last_score']} to {current_score}, resetting stagnation counter")
         else:
             tracker['actions_without_progress'] += 1
         
@@ -1025,7 +1038,7 @@ class ContinuousLearningLoop:
         # Early termination conditions (much more forgiving)
         stagnant_actions = tracker['actions_without_progress']
         
-        # 🔧 CRITICAL FIX: More intelligent stagnation detection
+        #  CRITICAL FIX: More intelligent stagnation detection
         # 1. Base threshold increased, but consider recent improvements
         base_threshold = config['stagnation_threshold']
         
@@ -1034,13 +1047,13 @@ class ContinuousLearningLoop:
             recent_max = max(tracker['score_history'][-3:])
             if recent_max > tracker['score_history'][0] if len(tracker['score_history']) > 1 else 0:
                 base_threshold += config.get('score_improvement_bonus', 30)
-                print(f"🎯 Recent improvement detected, extending patience to {base_threshold} actions")
+                print(f" Recent improvement detected, extending patience to {base_threshold} actions")
         
         # 1. Too many actions without any score progress (much more patient)
         if stagnant_actions >= base_threshold:
             return True, f"No progress for {stagnant_actions} actions (threshold: {base_threshold})"
         
-        # 🔧 CRITICAL FIX: Improved loop detection - only terminate if truly stuck
+        #  CRITICAL FIX: Improved loop detection - only terminate if truly stuck
         # 2. Detect action loops (same action repeated many times) - more forgiving
         if len(tracker['action_pattern_history']) >= config['loop_detection_window']:
             recent_actions = tracker['action_pattern_history'][-config['loop_detection_window']:]
@@ -1072,7 +1085,7 @@ class ContinuousLearningLoop:
             Dictionary with consolidation results
         """
         try:
-            print(f"🌙 ENHANCED SLEEP CONSOLIDATION: {sleep_reason}")
+            print(f" ENHANCED SLEEP CONSOLIDATION: {sleep_reason}")
             
             result = {
                 'success': True,
@@ -1091,15 +1104,15 @@ class ContinuousLearningLoop:
                 result.update(sleep_result)
             else:
                 # Fallback consolidation
-                print(f"⚠️ Enhanced sleep system not available, using fallback consolidation")
+                print(f" Enhanced sleep system not available, using fallback consolidation")
                 result['consolidation_score'] = min(0.5, len(experiences) * 0.1)
                 result['insights_generated'] = max(1, len(experiences) // 3)
                 
-            print(f"✅ Sleep consolidation complete: {result['experiences_processed']} experiences processed")
+            print(f" Sleep consolidation complete: {result['experiences_processed']} experiences processed")
             return result
             
         except Exception as e:
-            print(f"❌ Sleep consolidation failed: {e}")
+            print(f" Sleep consolidation failed: {e}")
             return {'success': False, 'error': str(e)}
 
     def _analyze_stagnation_cause(self, game_id: str, actions_history: List) -> Dict[str, Any]:
@@ -1195,7 +1208,7 @@ class ContinuousLearningLoop:
     def print_rate_limit_status(self):
         """Print current rate limiting status."""
         stats = self.get_rate_limit_stats()
-        print(f"\n📊 RATE LIMIT STATUS:")
+        print(f"\n RATE LIMIT STATUS:")
         print(f"   Total Requests: {stats['total_requests']}")
         print(f"   Rate Limited (429s): {stats['total_429s']}")
         print(f"   Success Rate: {stats['rate_limit_efficiency']:.1%}")
@@ -1232,7 +1245,7 @@ class ContinuousLearningLoop:
                     elif response.status == 429:
                         # Handle rate limit exceeded
                         self.rate_limiter.handle_429_response()
-                        print(f"🚫 Rate limit exceeded getting games - will retry with backoff")
+                        print(f" Rate limit exceeded getting games - will retry with backoff")
                         # Retry after backoff
                         await asyncio.sleep(self.rate_limiter.backoff_delay)
                         return await self.get_available_games()  # Recursive retry
@@ -1302,7 +1315,7 @@ class ContinuousLearningLoop:
         Returns:
             Connection status and sample data
         """
-        print("🔍 VERIFYING ARC-AGI-3 API CONNECTION...")
+        print(" VERIFYING ARC-AGI-3 API CONNECTION...")
         
         # Test 1: Get available games
         games = await self.get_available_games()
@@ -1316,13 +1329,13 @@ class ContinuousLearningLoop:
         }
         
         if verification_results['api_accessible']:
-            print(f"✅ API Connection SUCCESS")
+            print(f" API Connection SUCCESS")
             print(f"   Available Games: {verification_results['total_games_available']}")
             print(f"   Sample Games:")
             for game in verification_results['sample_games']:
                 print(f"     - {game['title']} ({game['game_id']})")
         else:
-            print(f"❌ API Connection FAILED")
+            print(f" API Connection FAILED")
             print(f"   Check API key and internet connection")
         
         # Test 2: Verify ARC-AGI-3-Agents integration
@@ -1330,9 +1343,9 @@ class ContinuousLearningLoop:
         verification_results['arc_agents_available'] = agents_path_exists
         
         if agents_path_exists:
-            print(f"✅ ARC-AGI-3-Agents found at: {self.arc_agents_path}")
+            print(f" ARC-AGI-3-Agents found at: {self.arc_agents_path}")
         else:
-            print(f"❌ ARC-AGI-3-Agents NOT found at: {self.arc_agents_path}")
+            print(f" ARC-AGI-3-Agents NOT found at: {self.arc_agents_path}")
             print(f"   Clone from: https://github.com/neoneye/ARC-AGI-3-Agents")
         
         return verification_results
@@ -1366,16 +1379,16 @@ class ContinuousLearningLoop:
             if not self.current_scorecard_id:
                 scorecard_result = await self._open_scorecard()
                 if not scorecard_result:
-                    print(f"❌ Failed to open scorecard")
+                    print(f" Failed to open scorecard")
                     return None
                 self.current_scorecard_id = scorecard_result
-                print(f"✅ Opened NEW scorecard: {scorecard_result}")
-                print(f"🔍 Scorecard state: created_new={self._created_new_scorecard} -> True")
+                print(f" Opened NEW scorecard: {scorecard_result}")
+                print(f" Scorecard state: created_new={self._created_new_scorecard} -> True")
                 # Mark that we created a new scorecard
                 self._created_new_scorecard = True
             else:
-                print(f"📊 Using existing scorecard: {self.current_scorecard_id}")
-                print(f"🔍 Scorecard state: created_new={self._created_new_scorecard} -> False")
+                print(f" Using existing scorecard: {self.current_scorecard_id}")
+                print(f" Scorecard state: created_new={self._created_new_scorecard} -> False")
                 # Mark that we're reusing an existing scorecard
                 self._created_new_scorecard = False
             
@@ -1396,35 +1409,23 @@ class ContinuousLearningLoop:
             if existing_guid:
                 # Level Reset - reset within existing game session
                 payload["guid"] = existing_guid
-                print(f"🔄 LEVEL RESET for {game_id}")
+                print(f" LEVEL RESET for {game_id}")
             else:
                 # New Game - start fresh game session
-                print(f"🔄 NEW GAME RESET for {game_id}")
+                print(f" NEW GAME RESET for {game_id}")
             
             # Apply rate limiting
             await self.rate_limiter.acquire()
             
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=ARC3_RATE_LIMIT['request_timeout'])) as session:
-                # Implement limited retries for transient errors and add preflight runner availability checks
+                # Implement limited retries for transient errors
                 max_retries = 3
                 attempt = 0
                 base_backoff = 1.0
                 while attempt < max_retries:
                     attempt += 1
 
-                    # Preflight: check runner availability heuristically to avoid wasted RESET attempts
-                    try:
-                        runners_ok = await self._check_runner_availability(game_id)
-                        if not runners_ok:
-                            # If preflight says no runners, sleep with jitter and retry
-                            jitter = random.uniform(0.5, 1.5)
-                            wait = min(base_backoff * (2 ** (attempt - 1)) + jitter, ARC3_RATE_LIMIT['backoff_max_delay'])
-                            print(f"⚠️ Preflight indicates no available runners for {game_id}. Backing off {wait:.1f}s (attempt {attempt}/{max_retries})")
-                            await asyncio.sleep(wait)
-                            continue
-                    except Exception:
-                        # If preflight failed for any reason, proceed with attempt anyway
-                        pass
+                    # Proceed directly with the API call - no preflight check needed
 
                     async with session.post(url, headers=headers, json=payload) as response:
                         status = response.status
@@ -1441,7 +1442,7 @@ class ContinuousLearningLoop:
                                     log_action_trace({'ts': time.time(), 'event': 'guid_assigned', 'game_id': game_id, 'guid': guid})
                                 except Exception:
                                     pass
-                                print(f"✅ {reset_type} successful: {game_id}")
+                                print(f" {reset_type} successful: {game_id}")
 
                                 # Initialize position tracking for ACTION 6 directional movement
                                 if not existing_guid:  # Only for new games, not level resets
@@ -1454,7 +1455,7 @@ class ContinuousLearningLoop:
                                     # Start ACTION 6 position at center of grid for directional movement
                                     self._current_game_x = grid_width // 2
                                     self._current_game_y = grid_height // 2
-                                    print(f"🎯 Initialized ACTION 6 position at center: ({self._current_game_x},{self._current_game_y}) for {grid_width}x{grid_height} grid")
+                                    print(f" Initialized ACTION 6 position at center: ({self._current_game_x},{self._current_game_y}) for {grid_width}x{grid_height} grid")
 
                                     # Clear boundary data for new games - boundaries are game-specific
                                     universal_boundary = self.available_actions_memory['universal_boundary_detection']
@@ -1463,7 +1464,7 @@ class ContinuousLearningLoop:
                                     # Clear universal boundary data
                                     if game_id in universal_boundary['boundary_data']:
                                         old_boundaries = len(universal_boundary['boundary_data'][game_id])
-                                        print(f"🧹 Cleared {old_boundaries} previous universal boundary mappings for new game {game_id}")
+                                        print(f" Cleared {old_boundaries} previous universal boundary mappings for new game {game_id}")
 
                                     # Initialize fresh universal boundary detection for this game
                                     universal_boundary['boundary_data'][game_id] = {}
@@ -1483,7 +1484,7 @@ class ContinuousLearningLoop:
                                     legacy_boundary['stuck_count'][game_id] = 0
                                     legacy_boundary['current_direction'][game_id] = 'right'
 
-                                    print(f"🌐 Initialized universal boundary detection system for {game_id}")
+                                    print(f" Initialized universal boundary detection system for {game_id}")
 
                                     # ENHANCED: Reset frame analyzer tracking for new game including exploration phase
                                     if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
@@ -1492,10 +1493,10 @@ class ContinuousLearningLoop:
                                                 self.frame_analyzer.reset_for_new_game(game_id)
                                             else:
                                                 self.frame_analyzer.reset_coordinate_tracking()
-                                            print(f"🎯 Reset frame analyzer tracking for new game {game_id}")
+                                            print(f" Reset frame analyzer tracking for new game {game_id}")
                                         except Exception as e:
-                                            print(f"⚠️ Failed to reset frame analyzer: {e}")
-                                    print(f"🔄 All actions will now benefit from boundary awareness and coordinate intelligence")
+                                            print(f" Failed to reset frame analyzer: {e}")
+                                    print(f" All actions will now benefit from boundary awareness and coordinate intelligence")
 
                                 return {
                                     'guid': guid,
@@ -1508,12 +1509,12 @@ class ContinuousLearningLoop:
                                     'reset_type': reset_type.lower().replace(' ', '_')
                                 }
                             else:
-                                print(f"❌ No GUID returned for game {game_id}")
+                                print(f" No GUID returned for game {game_id}")
                                 return None
                         elif status == 429:
                             # Handle rate limit exceeded
                             self.rate_limiter.handle_429_response()
-                            print(f"🚫 Rate limit exceeded on RESET {game_id} - will retry with backoff")
+                            print(f" Rate limit exceeded on RESET {game_id} - will retry with backoff")
                             await asyncio.sleep(self.rate_limiter.backoff_delay)
                             continue  # Retry loop
                         elif 500 <= status < 600:
@@ -1521,7 +1522,7 @@ class ContinuousLearningLoop:
                             backoff = min(base_backoff * (2 ** (attempt - 1)), ARC3_RATE_LIMIT['backoff_max_delay'])
                             jitter = random.uniform(0.2, 1.0)
                             wait = backoff + jitter
-                            print(f"⚠️ Server error on RESET {game_id}: {status} - attempt {attempt}/{max_retries}, backing off {wait:.1f}s")
+                            print(f" Server error on RESET {game_id}: {status} - attempt {attempt}/{max_retries}, backing off {wait:.1f}s")
                             await asyncio.sleep(wait)
                             continue
                         else:
@@ -1548,22 +1549,22 @@ class ContinuousLearningLoop:
                                 backoff = min(base_backoff * (2 ** (attempt - 1)), ARC3_RATE_LIMIT['backoff_max_delay'])
                                 jitter = random.uniform(0.5, 1.5)
                                 wait = backoff + jitter
-                                print(f"⚠️ No available game backend for {game_id} (server message). Retrying after {wait:.1f}s (attempt {attempt}/{max_retries})")
+                                print(f" No available game backend for {game_id} (server message). Retrying after {wait:.1f}s (attempt {attempt}/{max_retries})")
                                 await asyncio.sleep(wait)
                                 continue
 
-                            print(f"❌ RESET failed: {status} - {error_text}")
+                            print(f" RESET failed: {status} - {error_text}")
                             return None
                     # End of attempt loop - if we reach here and didn't return, try again
                 # Exhausted retries
-                print(f"❌ RESET failed after {max_retries} attempts for {game_id}")
+                print(f" RESET failed after {max_retries} attempts for {game_id}")
                 return None
                         
         except asyncio.TimeoutError:
             print(f"⏰ API request timeout on RESET {game_id}")
             return None
         except Exception as e:
-            print(f"❌ Error starting game session for {game_id}: {e}")
+            print(f" Error starting game session for {game_id}: {e}")
             return None
 
     async def _open_scorecard(self) -> Optional[str]:
@@ -1582,7 +1583,7 @@ class ContinuousLearningLoop:
             
             payload = {}  # Empty payload as shown in the API example
             
-            print(f"🔄 Opening scorecard...")
+            print(f" Opening scorecard...")
             
             # Apply rate limiting
             await self.rate_limiter.acquire()
@@ -1600,33 +1601,33 @@ class ContinuousLearningLoop:
                             scorecard_id = result.get('card_id')
                             if scorecard_id:
                                 self.current_scorecard_id = scorecard_id
-                                print(f"✅ Scorecard opened: {scorecard_id}")
+                                print(f" Scorecard opened: {scorecard_id}")
                                 return scorecard_id
                             else:
-                                print(f"❌ No card_id returned")
+                                print(f" No card_id returned")
                                 return None
                         elif status == 429:
                             self.rate_limiter.handle_429_response()
-                            print(f"🚫 Rate limit exceeded opening scorecard - will retry with backoff")
+                            print(f" Rate limit exceeded opening scorecard - will retry with backoff")
                             await asyncio.sleep(self.rate_limiter.backoff_delay)
                             continue
                         elif 500 <= status < 600:
-                            print(f"⚠️ Server error opening scorecard: {status} (attempt {attempt}/{max_retries})")
+                            print(f" Server error opening scorecard: {status} (attempt {attempt}/{max_retries})")
                             await asyncio.sleep(min(self.rate_limiter.backoff_delay or 1.0, ARC3_RATE_LIMIT['backoff_max_delay']))
                             continue
                         else:
                             self.rate_limiter.handle_success_response()
                             error_text = await response.text()
-                            print(f"❌ Failed to open scorecard: {status} - {error_text}")
+                            print(f" Failed to open scorecard: {status} - {error_text}")
                             return None
-                print(f"❌ Failed to open scorecard after {max_retries} attempts")
+                print(f" Failed to open scorecard after {max_retries} attempts")
                 return None
                         
         except asyncio.TimeoutError:
             print(f"⏰ API request timeout opening scorecard")
             return None
         except Exception as e:
-            print(f"❌ Error opening scorecard: {e}")
+            print(f" Error opening scorecard: {e}")
             return None
 
     def _reset_scorecard_state(self):
@@ -1637,12 +1638,12 @@ class ContinuousLearningLoop:
     def _clear_game_sessions(self):
         """Clear all game sessions to force fresh starts."""
         self.current_game_sessions.clear()
-        print("🧹 Cleared all game sessions - next games will start fresh")
+        print(" Cleared all game sessions - next games will start fresh")
     
     def _force_close_scorecard(self):
         """Force close the current scorecard on next cleanup."""
         self._force_scorecard_close = True
-        print("🔒 Marked scorecard for forced closure")
+        print(" Marked scorecard for forced closure")
     
     async def _close_scorecard(self, scorecard_id: str) -> bool:
         """
@@ -1663,24 +1664,24 @@ class ContinuousLearningLoop:
             
             payload = {"card_id": scorecard_id}
             
-            print(f"🔄 Closing scorecard: {scorecard_id}")
+            print(f" Closing scorecard: {scorecard_id}")
             
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, headers=headers, json=payload) as response:
                     if response.status == 200:
                         result = await response.json()
-                        print(f"✅ Closed scorecard: {scorecard_id}")
+                        print(f" Closed scorecard: {scorecard_id}")
                         return True
                     elif response.status == 404:
-                        print(f"⚠️ Scorecard {scorecard_id} already closed or not found - continuing")
+                        print(f" Scorecard {scorecard_id} already closed or not found - continuing")
                         return True  # Treat as success since it's already gone
                     else:
                         error_text = await response.text()
-                        print(f"❌ Failed to close scorecard: {response.status} - {error_text}")
+                        print(f" Failed to close scorecard: {response.status} - {error_text}")
                         return False
                         
         except Exception as e:
-            print(f"❌ Error closing scorecard: {e}")
+            print(f" Error closing scorecard: {e}")
             return False
 
     async def _reset_level(self, game_id: str) -> Optional[Dict[str, Any]]:
@@ -1695,7 +1696,7 @@ class ContinuousLearningLoop:
         """
         existing_guid = self.current_game_sessions.get(game_id)
         if not existing_guid:
-            print(f"❌ No existing session GUID found for {game_id}, cannot perform level reset")
+            print(f" No existing session GUID found for {game_id}, cannot perform level reset")
             return None
         
         return await self._start_game_session(game_id, existing_guid=existing_guid)
@@ -1891,43 +1892,6 @@ class ContinuousLearningLoop:
             except Exception:
                 pass
 
-    async def _check_runner_availability(self, game_id: str) -> bool:
-        """Best-effort preflight check to see if the server/runners are available.
-
-        Returns True if health-check suggests runners available, False otherwise.
-        This method is non-blocking in the sense that failures cause a False return
-        but won't raise exceptions.
-        """
-        health_urls = [f"{ARC3_BASE_URL}/api/health", f"{ARC3_BASE_URL}/api/runner/status"]
-        headers = {"X-API-Key": self.api_key}
-        try:
-            await self.rate_limiter.acquire()
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5.0)) as session:
-                for url in health_urls:
-                    try:
-                        async with session.get(url, headers=headers) as resp:
-                            if resp.status == 200:
-                                # If JSON, look for common keys
-                                try:
-                                    j = await resp.json()
-                                    # Heuristic: if runners_count or available_runners present and >0
-                                    if isinstance(j, dict):
-                                        if j.get('runners_available') or j.get('available_runners') or j.get('runners_count', 0) > 0:
-                                            return True
-                                        # If health indicates OK, accept it
-                                        if j.get('status', '').lower() in ('ok', 'healthy', 'available'):
-                                            return True
-                                except Exception:
-                                    # Non-JSON 200 is still a good sign
-                                    return True
-                            elif resp.status in (204,):
-                                return True
-                    except Exception:
-                        # Try next health URL
-                        continue
-        except Exception:
-            pass
-        return False
 
     def _safe_coordinate_fallback(self, grid_width: int, grid_height: int, reason: str = "bounds check failed") -> Tuple[int, int]:
         """Return a safe coordinate (center) when bounds are invalid."""
@@ -1998,7 +1962,7 @@ class ContinuousLearningLoop:
         # Enhanced success detection patterns
         success_patterns = [
             r'\b(win|victory|success|solved|correct|passed)\b',
-            r'✅',
+            r'',
             r'\btrue\b.*answer',
             r'answer.*\bcorrect\b',
             r'result.*\btrue\b',
@@ -2055,12 +2019,12 @@ class ContinuousLearningLoop:
         return result
     
     def _safe_coordinate_fallback(self, grid_width: int, grid_height: int, reason: str = "bounds check failed") -> Tuple[int, int]:
-        """🔧 CRITICAL FIX: Generate safe fallback coordinates that are guaranteed to be in bounds."""
+        """ CRITICAL FIX: Generate safe fallback coordinates that are guaranteed to be in bounds."""
         # Use center coordinates as safe fallback, but ensure they're valid
         center_x = max(0, min(grid_width - 1, grid_width // 2))
         center_y = max(0, min(grid_height - 1, grid_height // 2))
         
-        print(f"🔧 SAFE FALLBACK: Using ({center_x},{center_y}) for {grid_width}x{grid_height} grid - {reason}")
+        print(f" SAFE FALLBACK: Using ({center_x},{center_y}) for {grid_width}x{grid_height} grid - {reason}")
         return (center_x, center_y)
     
     def _analyze_frame_for_action_selection(self, response_data: Dict[str, Any], game_id: str) -> Dict[str, Any]:
@@ -2164,7 +2128,7 @@ class ContinuousLearningLoop:
                                 'complexity_level': 'high' if complexity_score > 0.5 else 'medium' if complexity_score > 0.2 else 'low'
                             }
             except Exception as frame_error:
-                print(f"⚠️ Frame structure analysis failed: {frame_error}")
+                print(f" Frame structure analysis failed: {frame_error}")
                 frame_array = None
             
             # Store frame analysis for game loop usage
@@ -2172,7 +2136,7 @@ class ContinuousLearningLoop:
                 self._last_frame_analysis = {}
             self._last_frame_analysis[game_id] = enhanced_analysis
             
-            logger.debug(f"🔍 Frame analysis for {game_id}: {len(enhanced_analysis)} analysis types completed")
+            logger.debug(f" Frame analysis for {game_id}: {len(enhanced_analysis)} analysis types completed")
             return enhanced_analysis
             
         except Exception as e:
@@ -2199,7 +2163,7 @@ class ContinuousLearningLoop:
         
         last_available = self._last_available_actions.get(game_id, [])
         if current_available != last_available:
-            print(f"🎮 Available Actions for {game_id}: {current_available}")
+            print(f" Available Actions for {game_id}: {current_available}")
             self._last_available_actions[game_id] = current_available
         
         # Use intelligent action selection with frame analysis context
@@ -2214,7 +2178,7 @@ class ContinuousLearningLoop:
         # Add to action history
         self.available_actions_memory['action_history'].append(selected_action)
         
-        logger.debug(f"🎯 Selected action {selected_action} from available {available} for {game_id} (with frame analysis)")
+        logger.debug(f" Selected action {selected_action} from available {available} for {game_id} (with frame analysis)")
         return selected_action
     
     async def _send_enhanced_action(
@@ -2230,14 +2194,14 @@ class ContinuousLearningLoop:
         """Send action with proper validation, coordinate optimization, effectiveness tracking, and rate limiting."""
         # Enhanced API key validation
         if not hasattr(self, 'api_key') or not self.api_key:
-            error_msg = "❌ CRITICAL: No API key found in _send_enhanced_action! Check environment variables and initialization."
+            error_msg = " CRITICAL: No API key found in _send_enhanced_action! Check environment variables and initialization."
             print(error_msg)
             logger.error(error_msg)
             # Try to reload API key as a fallback
             try:
                 self.api_key = os.getenv('ARC_API_KEY')
                 if self.api_key:
-                    print("🔑 Reloaded API key from environment")
+                    print(" Reloaded API key from environment")
                 else:
                     return None
             except Exception as e:
@@ -2246,7 +2210,7 @@ class ContinuousLearningLoop:
         
         # Log API key status (first 4 and last 4 chars for security)
         key_display = f"{self.api_key[:4]}...{self.api_key[-4:]}" if self.api_key else "MISSING"
-        logger.debug(f"🔑 API Key: {key_display} (length: {len(self.api_key) if self.api_key else 0})")
+        logger.debug(f" API Key: {key_display} (length: {len(self.api_key) if self.api_key else 0})")
         
         # Enhanced session validation with recovery attempt
         if not hasattr(self, 'current_game_sessions') or not isinstance(self.current_game_sessions, dict):
@@ -2284,11 +2248,11 @@ class ContinuousLearningLoop:
                     x, y = self._enhance_coordinate_selection_with_frame_analysis(
                         action_number, (grid_width, grid_height), game_id, frame_analysis
                     )
-                    logger.info(f"🎯 Frame-enhanced coordinates for action {action_number}: ({x},{y})")
+                    logger.info(f" Frame-enhanced coordinates for action {action_number}: ({x},{y})")
                 else:
                     # Fallback to learned coordinate optimization
                     x, y = self._optimize_coordinates_for_action(action_number, (grid_width, grid_height), game_id)
-                    logger.info(f"🎯 Optimized coordinates for action {action_number}: ({x},{y})")
+                    logger.info(f" Optimized coordinates for action {action_number}: ({x},{y})")
             
             # Verify coordinates are within actual grid bounds
             if not self._verify_grid_bounds(x, y, grid_width, grid_height):
@@ -2391,7 +2355,7 @@ class ContinuousLearningLoop:
                                 
                                 # Only show available_actions if they changed
                                 if current_available != last_available:
-                                    print(f"🎮 Available Actions Changed for {game_id}: {current_available}")
+                                    print(f" Available Actions Changed for {game_id}: {current_available}")
                                     # Store the new available actions
                                     if not hasattr(self, '_last_available_actions'):
                                         self._last_available_actions = {}
@@ -2550,7 +2514,7 @@ class ContinuousLearningLoop:
                             # Handle nested list format by using normalized numpy array
                             raw_color = int(norm_arr[y, x])
                             
-                            # 🔧 CRITICAL FIX: Ensure clicked_color is always an integer
+                            #  CRITICAL FIX: Ensure clicked_color is always an integer
                             if isinstance(raw_color, list):
                                 # If it's a list, take the first element or convert appropriately
                                 clicked_color = raw_color[0] if raw_color else 0
@@ -2563,7 +2527,7 @@ class ContinuousLearningLoop:
                                 except (ValueError, TypeError):
                                     clicked_color = 0
                             
-                            print(f"🔍 COLOR EXTRACTION: raw_color={raw_color} (type={type(raw_color)}) -> clicked_color={clicked_color} (type={type(clicked_color)})")
+                            print(f" COLOR EXTRACTION: raw_color={raw_color} (type={type(raw_color)}) -> clicked_color={clicked_color} (type={type(clicked_color)})")
                             
                             # Calculate frame changes for exploration record
                             frame_changes = {}
@@ -2576,7 +2540,7 @@ class ContinuousLearningLoop:
                                     frame_changes = {'changes_detected': False, 'error': str(e)}
                             
                             # Mark this color as explored
-                            print(f"🔍 CALLING mark_color_explored for color {clicked_color} at ({x},{y})")
+                            print(f" CALLING mark_color_explored for color {clicked_color} at ({x},{y})")
                             self.frame_analyzer.mark_color_explored(
                                 color=clicked_color,
                                 coordinate=(x, y),
@@ -2585,11 +2549,11 @@ class ContinuousLearningLoop:
                                 frame_changes=frame_changes
                             )
                             
-                            print(f"🔍 EXPLORATION: Color {clicked_color} tested at ({x},{y}) - {'✅ Effective' if api_success or score_change != 0 else '❌ No effect'}")
+                            print(f" EXPLORATION: Color {clicked_color} tested at ({x},{y}) - {' Effective' if api_success or score_change != 0 else ' No effect'}")
                         except Exception as e:
-                            print(f"⚠️ EXPLORATION ERROR: Failed to mark color explored: {e}")
+                            print(f" EXPLORATION ERROR: Failed to mark color explored: {e}")
                     else:
-                        # 🔧 CRITICAL FIX: Better error reporting for frame validation failures
+                        #  CRITICAL FIX: Better error reporting for frame validation failures
                         frame_height = len(current_frame) if current_frame else 0
                     # Use canonical dimensions when possible
                     if current_frame is None:
@@ -2607,17 +2571,17 @@ class ContinuousLearningLoop:
                                 frame_width = 0
                         except Exception:
                             frame_width = 0
-                        print(f"⚠️ EXPLORATION: Invalid coordinates ({x},{y}) for frame analysis")
+                        print(f" EXPLORATION: Invalid coordinates ({x},{y}) for frame analysis")
                         print(f"   Frame dimensions: {frame_height}x{frame_width}")
                         print(f"   Frame valid: {current_frame is not None}")
                         print(f"   Coordinates in bounds: x={0 <= x < frame_width if frame_width > 0 else False}, y={0 <= y < frame_height if frame_height > 0 else False}")
                     
                     if not exploration_active:
-                        print(f"🔍 EXPLORATION: Phase not active (exploration_phase={getattr(self.frame_analyzer, 'exploration_phase', 'MISSING')})")
+                        print(f" EXPLORATION: Phase not active (exploration_phase={getattr(self.frame_analyzer, 'exploration_phase', 'MISSING')})")
                     else:
-                        print(f"🔍 EXPLORATION: Missing mark_color_explored method")
+                        print(f" EXPLORATION: Missing mark_color_explored method")
                     
-                    print(f"📊 ACTION6 interaction logged: {interaction_id} at ({x},{y}) with score change {score_change:+}")
+                    print(f" ACTION6 interaction logged: {interaction_id} at ({x},{y}) with score change {score_change:+}")
                     
                     # Store current state for next comparison
                     self._last_score = score
@@ -2672,7 +2636,7 @@ class ContinuousLearningLoop:
                                 
                                 # Only show available_actions if they changed
                                 if current_available != last_available:
-                                    print(f"🎮 Available Actions Changed for {game_id}: {current_available}")
+                                    print(f" Available Actions Changed for {game_id}: {current_available}")
                                     # Store the new available actions
                                     if not hasattr(self, '_last_available_actions'):
                                         self._last_available_actions = {}
@@ -2694,7 +2658,7 @@ class ContinuousLearningLoop:
                                 # Handle rate limit exceeded - this is the critical case for actions!
                                 self.rate_limiter.handle_429_response()
                                 error_text = await response.text()
-                                print(f"🚫 ACTION {action_number} rate limited (429) - backing off {self.rate_limiter.backoff_delay:.1f}s")
+                                print(f" ACTION {action_number} rate limited (429) - backing off {self.rate_limiter.backoff_delay:.1f}s")
                                 logger.warning(f"Rate limit hit on ACTION{action_number} for {game_id}: {error_text}")
                                 
                                 # Wait for backoff then retry
@@ -2703,7 +2667,7 @@ class ContinuousLearningLoop:
                         else:
                             self.rate_limiter.handle_success_response()  # Not a rate limit issue
                             error_text = await response.text()
-                            print(f"❌ ACTION {action_number} FAILED: {response.status}")
+                            print(f" ACTION {action_number} FAILED: {response.status}")
                             logger.warning(f"Action {action_number} failed for {game_id}: {response.status} - {error_text}")
                             
                             # Record failure if coordinates were used
@@ -2725,16 +2689,16 @@ class ContinuousLearningLoop:
             if response.status_code == 200:
                 games = response.json()
                 if isinstance(games, list) and len(games) > 0:
-                    print(f"✅ API Connection OK: {len(games)} games available")
+                    print(f" API Connection OK: {len(games)} games available")
                     return True
                 else:
-                    print(f"⚠️ API returned empty game list: {games}")
+                    print(f" API returned empty game list: {games}")
                     return False
             else:
-                print(f"❌ API Error: {response.status_code}")
+                print(f" API Error: {response.status_code}")
                 return False
         except Exception as e:
-            print(f"❌ API Connection Failed: {e}")
+            print(f" API Connection Failed: {e}")
             return False
 
     async def _train_on_game(
@@ -2772,8 +2736,8 @@ class ContinuousLearningLoop:
         skill_phase = energy_params['skill_phase']
         actions_until_sleep = int(self.current_energy / energy_params['action_energy_cost'])
         
-        print(f"🧠 Training Start Status: Win Rate {current_win_rate:.1%} | Phase: {skill_phase} | Energy: {self.current_energy:.1f}% | ~{actions_until_sleep} actions until sleep")
-        print(f"⚡ Current Energy Profile: {energy_params['action_energy_cost']:.1f} energy/action | Sleep threshold: {energy_params['sleep_trigger_threshold']:.0f}%")
+        print(f" Training Start Status: Win Rate {current_win_rate:.1%} | Phase: {skill_phase} | Energy: {self.current_energy:.1f}% | ~{actions_until_sleep} actions until sleep")
+        print(f" Current Energy Profile: {energy_params['action_energy_cost']:.1f} energy/action | Sleep threshold: {energy_params['sleep_trigger_threshold']:.0f}%")
         
         print(f"Using API Key: {self.api_key[:8]}...{self.api_key[-4:]}")
         print(f"ARC-AGI-3-Agents path: {self.arc_agents_path}")
@@ -2813,20 +2777,20 @@ class ContinuousLearningLoop:
                             best_score = current_score
                             print(f"New best score for {game_id}: {best_score}")
                             
-                        # 🏆 PRESERVE WINNING MEMORIES - Mark as high-priority, hard to delete
+                        #  PRESERVE WINNING MEMORIES - Mark as high-priority, hard to delete
                         self._preserve_winning_memories(session_result, current_score, game_id)
                     
-                    # 📈 CHECK FOR LEVEL PROGRESSION - Only preserve NEW breakthroughs
+                    #  CHECK FOR LEVEL PROGRESSION - Only preserve NEW breakthroughs
                     if session_result.get('level_progressed', False):
                         new_level = session_result.get('current_level', 1)
                         previous_best = self.game_level_records.get(game_id, {}).get('highest_level', 0)
                         
                         if new_level > previous_best:
-                            print(f"🎉 TRUE LEVEL BREAKTHROUGH! {game_id} advanced from level {previous_best} to {new_level}")
+                            print(f" TRUE LEVEL BREAKTHROUGH! {game_id} advanced from level {previous_best} to {new_level}")
                             # This is a real breakthrough - preserve with hierarchical priority
                             self._preserve_breakthrough_memories(session_result, current_score, game_id, new_level, previous_best)
                         else:
-                            print(f"📊 Level {new_level} maintained on {game_id} (no new breakthrough)")
+                            print(f" Level {new_level} maintained on {game_id} (no new breakthrough)")
                     else:
                         consecutive_failures += 1
                         
@@ -2872,24 +2836,24 @@ class ContinuousLearningLoop:
                     # Check for boredom and handle curriculum advancement
                     boredom_results = self._check_and_handle_boredom(session_count)
                     if boredom_results['boredom_detected']:
-                        print(f"🧠 Boredom detected: {boredom_results['reason']}")
+                        print(f" Boredom detected: {boredom_results['reason']}")
                         if boredom_results['curriculum_advanced']:
-                            print(f"📈 Curriculum complexity advanced to level {boredom_results['new_complexity']}")
+                            print(f" Curriculum complexity advanced to level {boredom_results['new_complexity']}")
                     
                     # Integrate goal invention system - discover emergent goals from patterns
                     goal_results = self._process_emergent_goals(session_result, game_results, learning_progress)
                     if goal_results['new_goals_discovered']:
-                        print(f"🎯 Discovered {len(goal_results['new_goals'])} new emergent goals")
+                        print(f" Discovered {len(goal_results['new_goals'])} new emergent goals")
                         for goal in goal_results['new_goals']:
                             print(f"   New goal: {goal.description} (priority: {goal.priority:.2f})")
                     
                     # CRITICAL: Enhanced terminal state handling with retry logic
                     if game_state in ['WIN', 'GAME_OVER']:
-                        print(f"🎯 Game {game_id} reached terminal state: {game_state}")
+                        print(f" Game {game_id} reached terminal state: {game_state}")
                         
                         # If it's GAME_OVER and we haven't tried many sessions, try contrarian strategy
                         if game_state == 'GAME_OVER' and session_count < 2 and current_score < 10:
-                            print(f"🔄 Early GAME_OVER detected - activating contrarian strategy for retry")
+                            print(f" Early GAME_OVER detected - activating contrarian strategy for retry")
                             self.contrarian_strategy_active = True
                             # Don't break, let it try one more session with different strategy
                         else:
@@ -2903,7 +2867,7 @@ class ContinuousLearningLoop:
                     # Enhanced delay between episodes for rate limit compliance
                     # ARC-3 games involve many API calls, so be conservative
                     episode_delay = 3.0  # Increased from 2.0 to 3.0 seconds
-                    print(f"⏸️ Rate limit compliance: waiting {episode_delay}s between episodes")
+                    print(f"⏸ Rate limit compliance: waiting {episode_delay}s between episodes")
                     await asyncio.sleep(episode_delay)
                         
                 else:
@@ -2925,7 +2889,7 @@ class ContinuousLearningLoop:
                     
                     # Enhanced backoff for failures to respect rate limits
                     failure_delay = min(10.0, 5.0 + (consecutive_failures * 2.0))  # Progressive backoff
-                    print(f"⏸️ Failure backoff: waiting {failure_delay}s after {consecutive_failures} failures")
+                    print(f"⏸ Failure backoff: waiting {failure_delay}s after {consecutive_failures} failures")
                     await asyncio.sleep(failure_delay)
                     
             except Exception as e:
@@ -2936,7 +2900,7 @@ class ContinuousLearningLoop:
                     break
                 # Enhanced error backoff to prevent rapid retry cycles that could hit rate limits
                 error_delay = min(15.0, 5.0 + (consecutive_failures * 3.0))  # Even longer backoff for errors
-                print(f"⏸️ Error backoff: waiting {error_delay}s after error #{consecutive_failures}")
+                print(f"⏸ Error backoff: waiting {error_delay}s after error #{consecutive_failures}")
                 await asyncio.sleep(error_delay)
                 
         # Calculate final performance metrics
@@ -3019,7 +2983,7 @@ class ContinuousLearningLoop:
     
     def _enhance_coordinate_selection_with_frame_analysis(self, action_number: int, grid_dimensions: Tuple[int, int], game_id: str, frame_analysis: Dict[str, Any]) -> Tuple[int, int]:
         """
-        🎯 ADVANCED VISUAL-INTERACTIVE ACTION6 TARGETING SYSTEM
+         ADVANCED VISUAL-INTERACTIVE ACTION6 TARGETING SYSTEM
         
         NEW PARADIGM: ACTION6(x,y) = "touch/interact with object at (x,y)" 
         NOT movement - it's a universal targeting system for touching visual elements.
@@ -3032,8 +2996,8 @@ class ContinuousLearningLoop:
             # For non-ACTION6, use existing logic
             return self._optimize_coordinates_for_action(action_number, grid_dimensions, game_id)
         
-        # 🧠 ADVANCED VISUAL TARGETING for ACTION6
-        print(f"🎯 VISUAL-INTERACTIVE ACTION6 TARGETING - Analyzing frame for touchable objects...")
+        #  ADVANCED VISUAL TARGETING for ACTION6
+        print(f" VISUAL-INTERACTIVE ACTION6 TARGETING - Analyzing frame for touchable objects...")
         
         try:
             # Get current frame from the game state if available
@@ -3054,42 +3018,42 @@ class ContinuousLearningLoop:
                     target_x = max(0, min(grid_width - 1, int(target_x)))
                     target_y = max(0, min(grid_height - 1, int(target_y)))
                     
-                    print(f"🎯 VISUAL TARGET SELECTED: ({target_x},{target_y}) - {reason} (confidence: {confidence:.2f})")
-                    print(f"   📱 Touching/interacting with visual element at pixel ({target_x},{target_y})")
+                    print(f" VISUAL TARGET SELECTED: ({target_x},{target_y}) - {reason} (confidence: {confidence:.2f})")
+                    print(f"    Touching/interacting with visual element at pixel ({target_x},{target_y})")
                     
                     # ENHANCED: Show movement tracking information
                     if hasattr(self.frame_analyzer, 'get_movement_analysis'):
                         try:
                             movement_info = self.frame_analyzer.get_movement_analysis()
                             if movement_info['tracked_objects'] > 0:
-                                print(f"   🎮 Objects tracked: {movement_info['tracked_objects']} | Moving: {movement_info['moving_objects']} | Static: {movement_info['static_objects']}")
+                                print(f"    Objects tracked: {movement_info['tracked_objects']} | Moving: {movement_info['moving_objects']} | Static: {movement_info['static_objects']}")
                             
                             # Show avoidance info if coordinate was previously tried
                             coord_key = (target_x, target_y)
                             if hasattr(self.frame_analyzer, 'tried_coordinates') and coord_key in self.frame_analyzer.tried_coordinates:
                                 try_count = self.frame_analyzer.coordinate_results.get(coord_key, {}).get('try_count', 0)
                                 success_count = self.frame_analyzer.coordinate_results.get(coord_key, {}).get('success_count', 0)
-                                print(f"   📊 Coordinate history: {try_count} attempts, {success_count} successes")
+                                print(f"    Coordinate history: {try_count} attempts, {success_count} successes")
                         except Exception as e:
                             pass
                     
                     # Log target type for learning
                     if len(targeting_analysis['interactive_targets']) > 0:
                         target_types = [t['type'] for t in targeting_analysis['interactive_targets'][:3]]
-                        print(f"   🎮 Target types found: {target_types}")
+                        print(f"    Target types found: {target_types}")
                     
                     return target_x, target_y
                 else:
-                    print("🔍 No clear visual targets detected - using systematic exploration...")
+                    print(" No clear visual targets detected - using systematic exploration...")
             else:
-                print("⚠️ No frame data available for visual analysis")
+                print(" No frame data available for visual analysis")
                 
         except Exception as e:
-            print(f"⚠️ Visual targeting analysis failed: {e}")
+            print(f" Visual targeting analysis failed: {e}")
         
-        # 🗺️ FALLBACK: SYSTEMATIC EXPLORATION MODE
+        #  FALLBACK: SYSTEMATIC EXPLORATION MODE
         # When no clear visual targets, use intelligent exploration pattern
-        print("🗺️ EXPLORATORY MODE: Systematic tapping pattern for discovery...")
+        print(" EXPLORATORY MODE: Systematic tapping pattern for discovery...")
         
         # Use enhanced coordinate intelligence if available for exploration
         if hasattr(self, 'enhanced_coordinate_intelligence') and hasattr(self, 'use_enhanced_coordinate_selection'):
@@ -3098,25 +3062,25 @@ class ContinuousLearningLoop:
                     exploration_coord = self.enhanced_coordinate_intelligence.get_intelligent_coordinates(
                         action_number, grid_dimensions, game_id
                     )
-                    print(f"🧭 INTELLIGENT EXPLORATION: Tapping at ({exploration_coord[0]},{exploration_coord[1]})")
+                    print(f" INTELLIGENT EXPLORATION: Tapping at ({exploration_coord[0]},{exploration_coord[1]})")
                     return exploration_coord
                 except Exception as e:
-                    print(f"⚠️ Enhanced exploration failed: {e}")
+                    print(f" Enhanced exploration failed: {e}")
         
         # Final fallback: strategic grid exploration
         explore_x, explore_y = self._generate_exploration_coordinates(grid_dimensions, game_id)
-        print(f"🎯 SYSTEMATIC EXPLORATION: Tapping at ({explore_x},{explore_y}) to discover interactions")
+        print(f" SYSTEMATIC EXPLORATION: Tapping at ({explore_x},{explore_y}) to discover interactions")
         
         return explore_x, explore_y
     
     def _generate_exploration_coordinates(self, grid_dimensions: Tuple[int, int], game_id: str) -> Tuple[int, int]:
-        """🔧 ENHANCED: Generate systematic exploration coordinates with stuck coordinate avoidance."""
+        """ ENHANCED: Generate systematic exploration coordinates with stuck coordinate avoidance."""
         grid_width, grid_height = grid_dimensions
         
-        # 🔧 CRITICAL FIX: Integrate stuck coordinate avoidance from frame analyzer
+        #  CRITICAL FIX: Integrate stuck coordinate avoidance from frame analyzer
         # Check if frame analyzer has coordinate avoidance data
         if hasattr(self.frame_analyzer, 'should_avoid_coordinate'):
-            print(f"🛡️ Using coordinate avoidance system for exploration")
+            print(f" Using coordinate avoidance system for exploration")
             
             # Try to get coordinates that avoid stuck areas
             max_attempts = 20
@@ -3145,10 +3109,10 @@ class ContinuousLearningLoop:
                 
                 # Check if this coordinate should be avoided
                 if not self.frame_analyzer.should_avoid_coordinate(candidate_x, candidate_y):
-                    print(f"✅ Selected non-stuck coordinate: ({candidate_x},{candidate_y}) after {attempt + 1} attempts")
+                    print(f" Selected non-stuck coordinate: ({candidate_x},{candidate_y}) after {attempt + 1} attempts")
                     return (candidate_x, candidate_y)
                 else:
-                    print(f"⚠️ Avoiding stuck coordinate: ({candidate_x},{candidate_y}) - attempt {attempt + 1}")
+                    print(f" Avoiding stuck coordinate: ({candidate_x},{candidate_y}) - attempt {attempt + 1}")
                 
                 attempt += 1
             
@@ -3157,11 +3121,11 @@ class ContinuousLearningLoop:
                 emergency_coord = self.frame_analyzer.get_emergency_diversification_target(
                     [], grid_dimensions  # Empty frame for now, focus on coordinate avoidance
                 )
-                print(f"🚨 Using emergency diversification target: {emergency_coord}")
+                print(f" Using emergency diversification target: {emergency_coord}")
                 return emergency_coord
         
         # Fallback to original systematic exploration if no avoidance system available
-        print(f"⚠️ No coordinate avoidance available, using basic systematic exploration")
+        print(f" No coordinate avoidance available, using basic systematic exploration")
         
         # Get exploration history for this game
         if not hasattr(self, 'action6_exploration_history'):
@@ -3254,7 +3218,7 @@ class ContinuousLearningLoop:
 
     def _select_intelligent_action_with_relevance(self, available_actions: List[int], context: Dict[str, Any]) -> int:
         """
-        🎯 ADVANCED ACTION6 DECISION PROTOCOL - Visual-Interactive Agent
+         ADVANCED ACTION6 DECISION PROTOCOL - Visual-Interactive Agent
         
         NEW PROTOCOL IMPLEMENTATION:
         1. FIRST: Always prefer simpler actions (1-5,7) if they might progress
@@ -3268,14 +3232,14 @@ class ContinuousLearningLoop:
         action_count = len(self.available_actions_memory['action_history'])
         frame_analysis = context.get('frame_analysis', {})
         
-        print(f"🎯 ACTION DECISION PROTOCOL - Available: {available_actions}")
+        print(f" ACTION DECISION PROTOCOL - Available: {available_actions}")
         
-        # 🚀 PHASE 1: PRIORITIZE SIMPLER ACTIONS (1-5,7) 
+        #  PHASE 1: PRIORITIZE SIMPLER ACTIONS (1-5,7) 
         # These are more predictable and often make direct progress
         simple_actions = [a for a in available_actions if a != 6]
         
         if simple_actions:
-            print(f"✅ SIMPLE ACTIONS AVAILABLE: {simple_actions} - Prioritizing over ACTION6")
+            print(f" SIMPLE ACTIONS AVAILABLE: {simple_actions} - Prioritizing over ACTION6")
             
             # ENHANCED DIVERSIFICATION SYSTEM: Force systematic exploration when stuck
             actions_without_progress = getattr(self, '_actions_without_progress', 0)
@@ -3291,23 +3255,23 @@ class ContinuousLearningLoop:
                     len(set(recent_actions)) <= 2 and  # Only 1-2 unique actions used
                     actions_without_progress >= 8):  # No progress for 8+ actions (reduced from 10)
                     
-                    print(f"🚨 EMERGENCY OVERRIDE: Stuck in action loop {set(recent_actions)} for {actions_without_progress} actions")
+                    print(f" EMERGENCY OVERRIDE: Stuck in action loop {set(recent_actions)} for {actions_without_progress} actions")
                     
                     # Start systematic exploration cycle
                     if not self._exploration_cycle['cycle_active']:
-                        print(f"🔄 STARTING SYSTEMATIC EXPLORATION CYCLE")
+                        print(f" STARTING SYSTEMATIC EXPLORATION CYCLE")
                         self._exploration_cycle['untried_actions'] = [a for a in available_actions if a not in set(recent_actions[-5:])]
                         self._exploration_cycle['cycle_active'] = True
                     
                     # Try next untested action in cycle
                     if self._exploration_cycle['untried_actions']:
                         forced_action = self._exploration_cycle['untried_actions'].pop(0)
-                        print(f"🎯 FORCED EXPLORATION: Trying action {forced_action} (unused in recent loop)")
+                        print(f" FORCED EXPLORATION: Trying action {forced_action} (unused in recent loop)")
                         self._actions_without_progress = 0  # Reset counter
                         return forced_action
                     else:
                         # All actions tried, fall back to ACTION 6 if available
-                        print(f"⚡ EXPLORATION COMPLETE: All actions tried, forcing ACTION6")
+                        print(f" EXPLORATION COMPLETE: All actions tried, forcing ACTION6")
                         self._exploration_cycle['cycle_active'] = False
                         self._actions_without_progress = 0
                         if 6 in available_actions:
@@ -3319,9 +3283,9 @@ class ContinuousLearningLoop:
                     
             # Fallback emergency override for extended stagnation  
             if actions_without_progress >= 15:  # Extended stagnation fallback
-                print(f"🚨 EXTENDED STAGNATION: {actions_without_progress} actions without progress")
+                print(f" EXTENDED STAGNATION: {actions_without_progress} actions without progress")
                 if 6 in available_actions:
-                    print(f"⚡ STAGNATION OVERRIDE: Forcing ACTION6")
+                    print(f" STAGNATION OVERRIDE: Forcing ACTION6")
                     self._actions_without_progress = 0
                     return 6
             
@@ -3350,23 +3314,23 @@ class ContinuousLearningLoop:
                         if action_frequency > 0.6:  # Used more than 60% of the time
                             repetition_penalty = 0.8 + (action_frequency - 0.6) * 3.0  # Very heavy penalty
                             final_score = max(0.01, base_score - repetition_penalty)
-                            print(f"⚠️ HEAVY REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f} → {final_score:.3f})")
+                            print(f" HEAVY REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f} → {final_score:.3f})")
                         elif action_frequency > 0.4:  # Used more than 40% of the time  
                             repetition_penalty = 0.3 + (action_frequency - 0.4) * 1.5  # Moderate penalty
                             final_score = max(0.01, base_score - repetition_penalty)
-                            print(f"⚠️ MODERATE REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f} → {final_score:.3f})")
+                            print(f" MODERATE REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f} → {final_score:.3f})")
                     
                     if final_score > best_simple_score:
                         best_simple_score = final_score
                         best_simple_action = action
                         
                 except Exception as e:
-                    print(f"⚠️ Error scoring action {action}: {e}")
+                    print(f" Error scoring action {action}: {e}")
                     continue
             
             # If we found a decent simple action, use it
             if best_simple_action and best_simple_score > 0.2:  # Reasonable threshold
-                print(f"🎮 SELECTING SIMPLE ACTION {best_simple_action} (score: {best_simple_score:.3f})")
+                print(f" SELECTING SIMPLE ACTION {best_simple_action} (score: {best_simple_score:.3f})")
                 
                 # Track selected actions for loop detection
                 if not hasattr(self, '_last_selected_actions'):
@@ -3380,11 +3344,11 @@ class ContinuousLearningLoop:
                 # Check if we've been using this action too much
                 recent_actions = self._last_selected_actions[-10:] if len(self._last_selected_actions) >= 10 else self._last_selected_actions
                 if recent_actions.count(best_simple_action) >= 7:  # Used 7+ times in last 10 actions
-                    print(f"🚨 FORCED DIVERSIFICATION: Action {best_simple_action} used {recent_actions.count(best_simple_action)}/10 times - trying different action")
+                    print(f" FORCED DIVERSIFICATION: Action {best_simple_action} used {recent_actions.count(best_simple_action)}/10 times - trying different action")
                     # Find least used action in recent history
                     action_usage = {a: recent_actions.count(a) for a in simple_actions}
                     diversification_action = min(simple_actions, key=lambda a: action_usage.get(a, 0))
-                    print(f"🔄 DIVERSIFICATION ACTION: {diversification_action} (used {action_usage.get(diversification_action, 0)}/10 times)")
+                    print(f" DIVERSIFICATION ACTION: {diversification_action} (used {action_usage.get(diversification_action, 0)}/10 times)")
                     
                     if not hasattr(self, '_last_selected_actions'):
                         self._last_selected_actions = []
@@ -3395,7 +3359,7 @@ class ContinuousLearningLoop:
                     return diversification_action
                 else:
                     # Use the low-score action for now
-                    print(f"🎮 SELECTING LOW-SCORE SIMPLE ACTION {best_simple_action} (score: {best_simple_score:.3f})")
+                    print(f" SELECTING LOW-SCORE SIMPLE ACTION {best_simple_action} (score: {best_simple_score:.3f})")
                     
                     if not hasattr(self, '_last_selected_actions'):
                         self._last_selected_actions = []
@@ -3405,18 +3369,18 @@ class ContinuousLearningLoop:
                     
                     return best_simple_action
             else:
-                print(f"⚠️ Simple actions available but low scores - considering ACTION6...")
+                print(f" Simple actions available but low scores - considering ACTION6...")
         
-        # 🎯 PHASE 2: ACTION6 VISUAL-INTERACTIVE ANALYSIS
+        #  PHASE 2: ACTION6 VISUAL-INTERACTIVE ANALYSIS
         # Only if ACTION6 is available AND (no good simple actions OR ACTION6 is only option)
         if 6 in available_actions:
-            print(f"🎯 ACTION6 VISUAL-INTERACTIVE ANALYSIS - Frame analysis: {'✅' if frame_analysis else '❌'}")
+            print(f" ACTION6 VISUAL-INTERACTIVE ANALYSIS - Frame analysis: {'' if frame_analysis else ''}")
             
             # Store current frame for visual analysis
             current_frame = context.get('frame')
             if current_frame:
                 setattr(self, 'current_frame_data', current_frame)
-                print(f"📱 Frame data stored for visual targeting analysis")
+                print(f" Frame data stored for visual targeting analysis")
             
             # Check if ACTION6 is strategically appropriate  
             progress_stagnant = self._is_progress_stagnant(action_count)
@@ -3426,7 +3390,7 @@ class ContinuousLearningLoop:
             visual_targeting_bonus = 0.0
             if frame_analysis:
                 visual_targeting_bonus = self._calculate_frame_analysis_bonus_action6(frame_analysis)
-                print(f"🔍 Visual targeting bonus: +{visual_targeting_bonus:.3f}")
+                print(f" Visual targeting bonus: +{visual_targeting_bonus:.3f}")
             
             # Calculate final ACTION6 score
             action6_final_score = action6_strategic_score * (1.0 + visual_targeting_bonus)
@@ -3434,7 +3398,7 @@ class ContinuousLearningLoop:
             # Decision logic
             if not simple_actions:
                 # ACTION6 is only option
-                print(f"📱 ACTION6 ONLY OPTION - Using visual-interactive targeting")
+                print(f" ACTION6 ONLY OPTION - Using visual-interactive targeting")
                 # Track selected actions for loop detection
                 if not hasattr(self, '_last_selected_actions'):
                     self._last_selected_actions = []
@@ -3442,8 +3406,8 @@ class ContinuousLearningLoop:
                 if len(self._last_selected_actions) > 50:
                     self._last_selected_actions = self._last_selected_actions[-50:]
                 return 6
-            elif action6_final_score > 0.15:  # 🔧 REDUCED THRESHOLD: Lower barrier for ACTION6 selection
-                print(f"🎯 ACTION6 HIGH PRIORITY - Visual targeting score: {action6_final_score:.3f}")
+            elif action6_final_score > 0.15:  #  REDUCED THRESHOLD: Lower barrier for ACTION6 selection
+                print(f" ACTION6 HIGH PRIORITY - Visual targeting score: {action6_final_score:.3f}")
                 # Track selected actions for loop detection
                 if not hasattr(self, '_last_selected_actions'):
                     self._last_selected_actions = []
@@ -3451,8 +3415,8 @@ class ContinuousLearningLoop:
                 if len(self._last_selected_actions) > 50:
                     self._last_selected_actions = self._last_selected_actions[-50:]
                 return 6  
-            elif progress_stagnant and action6_final_score > 0.05:  # 🔧 LOWER STAGNATION THRESHOLD
-                print(f"🔄 PROGRESS STAGNANT - Using ACTION6 as visual reset (score: {action6_final_score:.3f})")
+            elif progress_stagnant and action6_final_score > 0.05:  #  LOWER STAGNATION THRESHOLD
+                print(f" PROGRESS STAGNANT - Using ACTION6 as visual reset (score: {action6_final_score:.3f})")
                 # Track selected actions for loop detection
                 if not hasattr(self, '_last_selected_actions'):
                     self._last_selected_actions = []
@@ -3461,12 +3425,12 @@ class ContinuousLearningLoop:
                     self._last_selected_actions = self._last_selected_actions[-50:]
                 return 6
             else:
-                print(f"⚠️ ACTION6 score too low ({action6_final_score:.3f}) - using best simple action")
+                print(f" ACTION6 score too low ({action6_final_score:.3f}) - using best simple action")
                 
                 # Fallback to best simple action even if score is low
                 if simple_actions:
                     fallback_action = simple_actions[0]  # Just pick first available
-                    print(f"🔄 FALLBACK: Using simple action {fallback_action}")
+                    print(f" FALLBACK: Using simple action {fallback_action}")
                     # Track selected actions for loop detection
                     if not hasattr(self, '_last_selected_actions'):
                         self._last_selected_actions = []
@@ -3475,8 +3439,8 @@ class ContinuousLearningLoop:
                         self._last_selected_actions = self._last_selected_actions[-50:]
                     return fallback_action
         
-        # 🚨 EMERGENCY FALLBACK - Select least recently used action
-        print("🚨 EMERGENCY FALLBACK - No clear action choice")
+        #  EMERGENCY FALLBACK - Select least recently used action
+        print(" EMERGENCY FALLBACK - No clear action choice")
         if available_actions:
             # Count recent usage of each action to avoid repetition
             if not hasattr(self, '_last_selected_actions'):
@@ -3489,7 +3453,7 @@ class ContinuousLearningLoop:
             
             # Select the least used action in recent history
             emergency_action = min(available_actions, key=lambda a: action_usage_count.get(a, 0))
-            print(f"⚡ Emergency selection: ACTION{emergency_action} (least used: {action_usage_count.get(emergency_action, 0)}/10 recent)")
+            print(f" Emergency selection: ACTION{emergency_action} (least used: {action_usage_count.get(emergency_action, 0)}/10 recent)")
             
             # Track selected actions for loop detection
             self._last_selected_actions.append(emergency_action)
@@ -3497,7 +3461,7 @@ class ContinuousLearningLoop:
                 self._last_selected_actions = self._last_selected_actions[-50:]
             return emergency_action
         else:
-            print("❌ NO AVAILABLE ACTIONS - This should not happen!")
+            print(" NO AVAILABLE ACTIONS - This should not happen!")
             return 1  # Ultimate fallback
     
     def _calculate_comprehensive_action_score(self, action: int, game_id: str, frame_analysis: Dict[str, Any]) -> float:
@@ -3535,7 +3499,7 @@ class ContinuousLearningLoop:
             return max(0.0, min(1.0, final_score))  # Clamp to [0,1]
             
         except Exception as e:
-            print(f"⚠️ Error calculating score for action {action}: {e}")
+            print(f" Error calculating score for action {action}: {e}")
             return 0.3  # Safe fallback score
 
     def _calculate_frame_analysis_bonus_action6(self, frame_analysis: Dict[str, Any]) -> float:
@@ -3584,7 +3548,7 @@ class ContinuousLearningLoop:
                 return f'{float(s):.3f}' if s is not None else '0.000'
             except (ValueError, TypeError):
                 return str(s)
-        print(f"🎲 ACTION SELECTION SCORES: {[(a, format_score(s)) for a, s in action_scores.items()]}")
+        print(f" ACTION SELECTION SCORES: {[(a, format_score(s)) for a, s in action_scores.items()]}")
         
         # Ensure all scores are numeric before proceeding
         numeric_scores = {}
@@ -3592,7 +3556,7 @@ class ContinuousLearningLoop:
             try:
                 numeric_scores[action] = float(score) if score is not None else 0.0
             except (ValueError, TypeError):
-                print(f"⚠️ Warning: Non-numeric score {score} for action {action}, using 0.0")
+                print(f" Warning: Non-numeric score {score} for action {action}, using 0.0")
                 numeric_scores[action] = 0.0
         action_scores = numeric_scores
         
@@ -3623,13 +3587,13 @@ class ContinuousLearningLoop:
                 return str(w)
         
         weights_to_display = action_weights if score_range > 0 else [1.0] * len(action_scores)
-        print(f"⚖️  ANTI-BIAS WEIGHTS: {[(a, safe_format_weight(w)) for a, w in zip(action_scores.keys(), weights_to_display)]}")
-        print(f"🎯 SELECTED ACTION: {selected_action} (WEIGHTED RANDOM with 20% minimum weight per action)")
-        print(f"�️ ANTI-BIAS: All actions guaranteed minimum 20% selection chance")
+        print(f"  ANTI-BIAS WEIGHTS: {[(a, safe_format_weight(w)) for a, w in zip(action_scores.keys(), weights_to_display)]}")
+        print(f" SELECTED ACTION: {selected_action} (WEIGHTED RANDOM with 20% minimum weight per action)")
+        print(f" ANTI-BIAS: All actions guaranteed minimum 20% selection chance")
         
         # Log strategic decisions for ACTION 6
         if selected_action == 6:
-            print(f"🎯 ACTION 6 STRATEGIC USE: Progress stagnant={progress_stagnant}, Actions since progress={action_count - self.available_actions_memory['action6_strategy']['last_progress_action']}")
+            print(f" ACTION 6 STRATEGIC USE: Progress stagnant={progress_stagnant}, Actions since progress={action_count - self.available_actions_memory['action6_strategy']['last_progress_action']}")
         
         # Update usage tracking
         self._update_action_usage_tracking(selected_action, action_count)
@@ -3638,7 +3602,7 @@ class ContinuousLearningLoop:
 
     def _calculate_action6_strategic_score(self, current_action_count: int, progress_stagnant: bool) -> float:
         """
-        🔧 ENHANCED: Calculate strategic score for ACTION 6 with more balanced usage.
+         ENHANCED: Calculate strategic score for ACTION 6 with more balanced usage.
         
         ACTION 6 should be used when:
         1. Simple actions aren't making sufficient progress
@@ -3648,20 +3612,20 @@ class ContinuousLearningLoop:
         """
         strategy = self.available_actions_memory['action6_strategy']
         
-        # 🔧 CRITICAL FIX: More balanced base score for ACTION6
+        #  CRITICAL FIX: More balanced base score for ACTION6
         base_score = 0.3 if progress_stagnant else 0.15  # Much higher base score
         
         # Give ACTION6 a fair chance even when progress is being made
         if not progress_stagnant:
             base_score = 0.1  # Still allow ACTION6 during normal gameplay
         
-        # 🔧 REDUCED RESTRICTIONS: More lenient usage requirements
+        #  REDUCED RESTRICTIONS: More lenient usage requirements
         actions_since_start = current_action_count
         min_actions_threshold = max(5, strategy['min_actions_before_use'] // 3)  # Reduced from 15 to 5
         if actions_since_start < min_actions_threshold:
             return 0.05  # Still available but with lower priority
         
-        # 🔧 REDUCED COOLDOWN: More frequent ACTION6 usage
+        #  REDUCED COOLDOWN: More frequent ACTION6 usage
         actions_since_last_action6 = current_action_count - strategy['last_action6_used']
         cooldown_threshold = max(2, strategy['action6_cooldown'] // 2)  # Reduced cooldown
         if actions_since_last_action6 < cooldown_threshold:
@@ -3682,18 +3646,18 @@ class ContinuousLearningLoop:
         # Emergency boost if we've been stuck for a very long time
         if actions_since_progress > strategy['progress_stagnation_threshold'] * 2:
             strategic_score *= 1.5  # Emergency mini-reset mode
-            print(f"🚨 ACTION 6 EMERGENCY MODE: Stuck for {actions_since_progress} actions")
+            print(f" ACTION 6 EMERGENCY MODE: Stuck for {actions_since_progress} actions")
         
         return min(strategic_score, 0.2)  # Cap at 0.2 to prevent over-use
 
     def _is_progress_stagnant(self, current_action_count: int) -> bool:
         """
-        🔧 ENHANCED: Determine if progress has stagnated with better detection.
+         ENHANCED: Determine if progress has stagnated with better detection.
         """
         strategy = self.available_actions_memory['action6_strategy']
         actions_since_progress = current_action_count - strategy['last_progress_action']
         
-        # 🔧 SMARTER STAGNATION DETECTION: Consider both time and action diversity
+        #  SMARTER STAGNATION DETECTION: Consider both time and action diversity
         basic_stagnation = actions_since_progress >= strategy['progress_stagnation_threshold']
         
         # Also check if we're repeating the same actions without progress
@@ -3733,13 +3697,13 @@ class ContinuousLearningLoop:
                     if success_rate > 0.8 and self._has_recent_meaningful_progress():
                         old_modifier = data['current_modifier']
                         data['current_modifier'] = min(0.4, data['current_modifier'] + 0.005)
-                        print(f"🎯 ACTION 6 minimal relevance increase: {old_modifier:.3f} → {data['current_modifier']:.3f} (rare meaningful progress detected)")
+                        print(f" ACTION 6 minimal relevance increase: {old_modifier:.3f} → {data['current_modifier']:.3f} (rare meaningful progress detected)")
                     else:
                         # Continuous slow decay to prevent ACTION 6 spam
                         old_modifier = data['current_modifier']
                         data['current_modifier'] = max(0.05, data['current_modifier'] * 0.98)  # Lowered floor to 0.05
                         if old_modifier != data['current_modifier']:
-                            print(f"🎯 ACTION 6 relevance decay: {old_modifier:.3f} → {data['current_modifier']:.3f} (preventing coordinate spam)")
+                            print(f" ACTION 6 relevance decay: {old_modifier:.3f} → {data['current_modifier']:.3f} (preventing coordinate spam)")
                         
                 else:
                     # Normal actions can gain relevance from success
@@ -3809,7 +3773,7 @@ class ContinuousLearningLoop:
             meaningful_progress = has_win or has_score_improvement or has_level_progress
             
             if meaningful_progress:
-                print(f"🎯 Meaningful progress detected: win={has_win}, score={has_score_improvement}, level={has_level_progress}")
+                print(f" Meaningful progress detected: win={has_win}, score={has_score_improvement}, level={has_level_progress}")
             
             return meaningful_progress
         
@@ -3888,7 +3852,7 @@ class ContinuousLearningLoop:
         # Check energy level - sleep if below threshold
         energy_threshold = 30.0  # Sleep if energy is below 30%
         if agent_state.get('energy', 100.0) < energy_threshold:
-            logger.info(f"🔋 Low energy detected ({agent_state.get('energy'):.1f}%), triggering sleep")
+            logger.info(f" Low energy detected ({agent_state.get('energy'):.1f}%), triggering sleep")
             return True
             
         # Check for learning saturation - if learning progress has plateaued
@@ -3899,17 +3863,17 @@ class ContinuousLearningLoop:
                 # Calculate average progress over last few episodes
                 avg_recent_progress = sum(recent_progress) / len(recent_progress)
                 if avg_recent_progress < 0.01:  # Minimal progress
-                    logger.info("📉 Learning plateau detected, triggering sleep for memory consolidation")
+                    logger.info(" Learning plateau detected, triggering sleep for memory consolidation")
                     return True
                     
         # Check for high failure rate
         if agent_state.get('consecutive_failures', 0) >= 3:
-            logger.info("❌ Multiple consecutive failures, triggering sleep to reset strategies")
+            logger.info(" Multiple consecutive failures, triggering sleep to reset strategies")
             return True
             
         # Random chance to sleep based on session count (encourages exploration)
         if session_count > 10 and random.random() < 0.1:  # 10% chance after 10 sessions
-            logger.info("🎲 Random sleep trigger to encourage exploration")
+            logger.info(" Random sleep trigger to encourage exploration")
             return True
             
         return False
@@ -3945,7 +3909,7 @@ class ContinuousLearningLoop:
                 'confidence': 0.9,
                 'details': f'Consecutive failures: {consecutive_failures}'
             })
-            logger.info(f"🔄 Activating contrarian strategy due to high failure rate ({consecutive_failures} failures)")
+            logger.info(f" Activating contrarian strategy due to high failure rate ({consecutive_failures} failures)")
             return decision
             
         # Check if we're in a local optima (repeating same actions)
@@ -3961,7 +3925,7 @@ class ContinuousLearningLoop:
                     'confidence': 0.8,
                     'details': f'Repeated action {last_action} {action_repeats} times in last 5 actions'
                 })
-                logger.info(f"🔄 Activating contrarian strategy due to action repetition")
+                logger.info(f" Activating contrarian strategy due to action repetition")
                 return decision
                 
         # Random chance to try contrarian approach (encourages exploration)
@@ -3972,7 +3936,7 @@ class ContinuousLearningLoop:
                 'confidence': 0.5,
                 'details': 'Random activation to encourage exploration'
             })
-            logger.info("🎲 Randomly activating contrarian strategy")
+            logger.info(" Randomly activating contrarian strategy")
             
         return decision
         
@@ -4006,7 +3970,7 @@ class ContinuousLearningLoop:
         
         for strategy, weight in available_strategies:
             if upto + weight >= r:
-                logger.info(f"🔄 Switching to new strategy: {strategy}")
+                logger.info(f" Switching to new strategy: {strategy}")
                 self.current_strategy = strategy
                 return strategy
             upto += weight
@@ -4071,7 +4035,7 @@ class ContinuousLearningLoop:
                 result['actions_taken'] = actions
                 
                 if actions:
-                    logger.info(f"😴 Boredom detected! Taking actions: {', '.join(actions)}")
+                    logger.info(f" Boredom detected! Taking actions: {', '.join(actions)}")
                 
         return result
         
@@ -4108,7 +4072,7 @@ class ContinuousLearningLoop:
                 'confidence': 0.9,
                 'details': f'Consecutive failures: {agent_state.get("consecutive_failures")}'
             })
-            logger.info(f"🔄 Resetting game {game_id} due to high failure rate")
+            logger.info(f" Resetting game {game_id} due to high failure rate")
             return decision
             
         # Check for stuck state (no progress in last N actions)
@@ -4121,7 +4085,7 @@ class ContinuousLearningLoop:
                     'confidence': 0.8,
                     'details': f'No progress in {actions_since_progress} actions'
                 })
-                logger.info(f"🔄 Resetting game {game_id} due to stuck state")
+                logger.info(f" Resetting game {game_id} due to stuck state")
                 return decision
                 
         # Check for low energy
@@ -4132,7 +4096,7 @@ class ContinuousLearningLoop:
                 'confidence': 0.7,
                 'details': f'Energy level: {agent_state.get("energy"):.1f}%'
             })
-            logger.info(f"🔄 Resetting game {game_id} due to low energy")
+            logger.info(f" Resetting game {game_id} due to low energy")
             return decision
             
         # Random chance to reset (encourages exploration)
@@ -4143,7 +4107,7 @@ class ContinuousLearningLoop:
                 'confidence': 0.5,
                 'details': 'Random reset to encourage exploration'
             })
-            logger.info(f"🔄 Random reset triggered for game {game_id}")
+            logger.info(f" Random reset triggered for game {game_id}")
             
         return decision
 
@@ -4154,7 +4118,7 @@ class ContinuousLearningLoop:
         """
         if action_result.get('progress_made', False):  # Would be set based on score increase, state improvement, etc.
             self.available_actions_memory['action6_strategy']['last_progress_action'] = current_action_count
-            print(f"📈 Progress detected at action {current_action_count}")
+            print(f" Progress detected at action {current_action_count}")
 
     # REMOVED: Duplicate start_training_with_direct_control method (simulation version)
     # The real implementation is at line 9747
@@ -4190,14 +4154,14 @@ class ContinuousLearningLoop:
         # Exploration: random valid action
         if random.random() < exploration_rate:
             action = random.choice(valid_actions)
-            logger.debug(f"🔍 Exploring: action {action}")
+            logger.debug(f" Exploring: action {action}")
         else:
             # Exploitation: best action from Q-table
             q_values = self.q_table[state_key]
             # Mask invalid actions by setting their Q-values to -inf
             masked_q = [q if i in valid_actions else -float('inf') for i, q in enumerate(q_values)]
             action = np.argmax(masked_q)
-            logger.debug(f"🎯 Exploiting: action {action} (Q={q_values[action]:.2f})")
+            logger.debug(f" Exploiting: action {action} (Q={q_values[action]:.2f})")
             
         # Track action history
         self.action_history.append(action)
@@ -4217,10 +4181,10 @@ class ContinuousLearningLoop:
         if done:
             if game_state == 'WIN':
                 reward += 10.0  # Large reward for winning
-                logger.info("🏆 Won the game!")
+                logger.info(" Won the game!")
             elif game_state == 'GAME_OVER':
                 reward -= 5.0  # Penalty for losing
-                logger.warning("💥 Game over!")
+                logger.warning(" Game over!")
         
         # Penalize action repetition
         try:
@@ -4282,7 +4246,7 @@ class ContinuousLearningLoop:
         """
         Enhanced version that runs COMPLETE mastery sessions with up to 100K actions until WIN/GAME_OVER.
         """
-        logger.info(f"🚀 Starting mastery session {session_count} for game {game_id}")
+        logger.info(f" Starting mastery session {session_count} for game {game_id}")
         start_time = time.time()
         
         try:
@@ -4341,7 +4305,7 @@ class ContinuousLearningLoop:
             stdout_text = ""
             stderr_text = ""
             
-            logger.info(f"🎮 Starting complete mastery session {session_count} for {game_id} (max actions: {max_actions_per_session})")
+            logger.info(f" Starting complete mastery session {session_count} for {game_id} (max actions: {max_actions_per_session})")
             
             # Display current win rate-based energy status
             current_win_rate = self._calculate_current_win_rate()
@@ -4349,14 +4313,14 @@ class ContinuousLearningLoop:
             skill_phase = energy_params['skill_phase']
             actions_until_sleep = int(self.current_energy / energy_params['action_energy_cost'])
             
-            print(f"🧠 Agent Status: Win Rate {current_win_rate:.1%} | Phase: {skill_phase} | Energy: {self.current_energy:.1f}% | Actions until sleep: ~{actions_until_sleep}")
-            print(f"⚡ Energy Config: {energy_params['action_energy_cost']:.1f} per action | Sleep at {energy_params['sleep_trigger_threshold']:.0f}% energy")
+            print(f" Agent Status: Win Rate {current_win_rate:.1%} | Phase: {skill_phase} | Energy: {self.current_energy:.1f}% | Actions until sleep: ~{actions_until_sleep}")
+            print(f" Energy Config: {energy_params['action_energy_cost']:.1f} per action | Sleep at {energy_params['sleep_trigger_threshold']:.0f}% energy")
             
             # Enhanced option: Choose between external main.py and direct control
             use_direct_control = True  # Set to True to use our enhanced action selection
             
             if use_direct_control:
-                print(f"🎯 Using DIRECT API CONTROL with enhanced action selection")
+                print(f" Using DIRECT API CONTROL with enhanced action selection")
                 # Use our direct API control with intelligent action selection
                 try:
                     game_session_result = await self.start_training_with_direct_control(
@@ -4364,8 +4328,8 @@ class ContinuousLearningLoop:
                     )
                     
                     if "error" in game_session_result:
-                        print(f"❌ Direct control failed: {game_session_result['error']}")
-                        print(f"🔄 Falling back to external main.py")
+                        print(f" Direct control failed: {game_session_result['error']}")
+                        print(f" Falling back to external main.py")
                         use_direct_control = False  # Fall back to external method
                     else:
                         # Convert direct control result to expected format
@@ -4374,19 +4338,19 @@ class ContinuousLearningLoop:
                         final_state = game_session_result.get('final_state', 'UNKNOWN')
                         effective_actions = game_session_result.get('effective_actions', [])
                         
-                        print(f"🎯 Direct Control Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                        print(f"🎯 Effective Actions Found: {len(effective_actions)}")
+                        print(f" Direct Control Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
+                        print(f" Effective Actions Found: {len(effective_actions)}")
                 except Exception as e:
-                    print(f"❌ Direct control exception: {e}")
-                    print(f"🔄 Falling back to external main.py")
+                    print(f" Direct control exception: {e}")
+                    print(f" Falling back to external main.py")
                     use_direct_control = False  # Fall back to external method
             
             if not use_direct_control:
-                print(f"🔄 Using EXTERNAL main.py (fallback mode)")
+                print(f" Using EXTERNAL main.py (fallback mode)")
                 # Original external main.py approach
             
             # VERBOSE: Show memory state before mastery session
-            print(f"📊 PRE-SESSION MEMORY STATUS:")  # Updated naming
+            print(f" PRE-SESSION MEMORY STATUS:")  # Updated naming
             pre_memory_status = self._get_memory_consolidation_status()
             pre_sleep_status = self._get_current_sleep_state_info()
             
@@ -4407,21 +4371,21 @@ class ContinuousLearningLoop:
             if estimated_complexity == 'high' and current_energy < 80.0:
                 energy_boost = 20.0
                 current_energy = min(100.0, current_energy + energy_boost)
-                print(f"⚡ Energy boost: +{energy_boost:.2f} for predicted high-complexity game -> {current_energy:.2f}")
+                print(f" Energy boost: +{energy_boost:.2f} for predicted high-complexity game -> {current_energy:.2f}")
                 self._update_energy_level(current_energy)
             elif estimated_complexity == 'medium' and current_energy < 60.0:
                 energy_boost = 10.0
                 current_energy = min(100.0, current_energy + energy_boost)
-                print(f"⚡ Energy boost: +{energy_boost:.2f} for predicted medium-complexity game -> {current_energy:.2f}")
+                print(f" Energy boost: +{energy_boost:.2f} for predicted medium-complexity game -> {current_energy:.2f}")
                 self._update_energy_level(current_energy)
             
             # Reset game at start of episode if needed
             if reset_decision['should_reset']:
-                print(f"🔄 Resetting game {game_id}")
+                print(f" Resetting game {game_id}")
                 self._record_reset_decision(reset_decision)
             
             # Run complete game session (not individual actions)
-            print(f"🎮 Starting complete game session for {game_id}")
+            print(f" Starting complete game session for {game_id}")
             
             # Build command for complete game session
             cmd = [
@@ -4453,7 +4417,7 @@ class ContinuousLearningLoop:
                     pass
                 elif self.standalone_mode:
                     # Standalone mode - use internal logic instead of external main.py
-                    print(f"🔄 Running in standalone mode (no external ARC-AGI-3-Agents)")
+                    print(f" Running in standalone mode (no external ARC-AGI-3-Agents)")
                     
                     # Simulate some training progress for testing
                     await asyncio.sleep(2)  # Simulate processing time
@@ -4466,11 +4430,11 @@ class ContinuousLearningLoop:
                     stdout_text = f"STANDALONE_MODE: Game {game_id} completed successfully"
                     stderr_text = ""
                     
-                    print(f"🎯 Standalone Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                    print(f"🎯 Effective Actions Found: {len(effective_actions)}")
+                    print(f" Standalone Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
+                    print(f" Effective Actions Found: {len(effective_actions)}")
                 else:
                     # Execute external main.py
-                    print(f"🚀 Executing complete game session: {' '.join(cmd)}")
+                    print(f" Executing complete game session: {' '.join(cmd)}")
                     process = await asyncio.create_subprocess_exec(
                         *cmd,
                         cwd=str(self.arc_agents_path),
@@ -4490,7 +4454,7 @@ class ContinuousLearningLoop:
                             stdout_text = stdout.decode('utf-8', errors='ignore') if stdout else ""
                             stderr_text = stderr.decode('utf-8', errors='ignore') if stderr else ""
                             
-                            print(f"✅ Complete game session finished")
+                            print(f" Complete game session finished")
                             
                             # Enhanced logging: Extract and show action details from game output
                             self._log_action_details_from_output(stdout_text, game_id)
@@ -4502,8 +4466,8 @@ class ContinuousLearningLoop:
                             final_state = game_results.get('final_state', 'UNKNOWN')
                             effective_actions = game_results.get('effective_actions', [])
                             
-                            print(f"🎯 Game Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                            print(f"🎯 Effective Actions Found: {len(effective_actions)}")
+                            print(f" Game Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
+                            print(f" Effective Actions Found: {len(effective_actions)}")
                             
                         except asyncio.TimeoutError:
                             print(f"⏰ Complete game session timed out after 30 minutes - killing process")
@@ -4521,7 +4485,7 @@ class ContinuousLearningLoop:
                     # For standalone mode, results were already set above
                     
             except Exception as e:
-                print(f"❌ Error during complete game session: {e}")
+                print(f" Error during complete game session: {e}")
                 # Comprehensive error state with null safety
                 total_score = 0
                 episode_actions = 0
@@ -4531,14 +4495,14 @@ class ContinuousLearningLoop:
                 stderr_text = ""
                 
                 # Log the error for debugging
-                print(f"❌ Game session error details: Game={game_id}, Error={str(e)}")
+                print(f" Game session error details: Game={game_id}, Error={str(e)}")
                 
                 # Check if this is an API connectivity issue
                 if "connection" in str(e).lower() or "timeout" in str(e).lower():
-                    print("⚠️ Possible API connectivity issue - validating connection...")
+                    print(" Possible API connectivity issue - validating connection...")
                     api_valid = await self._validate_api_connection()
                     if not api_valid:
-                        print("💡 Consider checking ARC_API_KEY and network connectivity")
+                        print(" Consider checking ARC_API_KEY and network connectivity")
             
             # Now process the complete game session results
             # Dynamic energy system based on game complexity and learning opportunities
@@ -4547,7 +4511,7 @@ class ContinuousLearningLoop:
             # Calculate energy parameters based on current skill level
             energy_params = self._calculate_win_rate_adaptive_energy_parameters()
             
-            print(f"🎯 ENERGY PHASE: {energy_params['learning_phase']}")
+            print(f" ENERGY PHASE: {energy_params['learning_phase']}")
             print(f"   {energy_params['description']}")
             print(f"   Expected actions before sleep: ~{energy_params['expected_actions_before_sleep']}")
             
@@ -4555,7 +4519,7 @@ class ContinuousLearningLoop:
             base_action_cost = energy_params.get('action_energy_cost', 4.5)  # Safe default
             if base_action_cost is None:
                 base_action_cost = 4.5  # Fallback to beginner intensive level
-                print("⚠️ Action energy cost was None, using fallback value")
+                print(" Action energy cost was None, using fallback value")
                 
             effectiveness_ratio = len(effective_actions) / max(1, episode_actions)
             
@@ -4563,16 +4527,16 @@ class ContinuousLearningLoop:
             if effectiveness_ratio < 0.1:  # Less than 10% effectiveness
                 ineffectiveness_penalty = energy_params['effectiveness_multiplier']
                 base_action_cost *= ineffectiveness_penalty
-                print(f"⚡ Ineffectiveness penalty: {ineffectiveness_penalty:.1f}x (effectiveness: {effectiveness_ratio:.1%})")
+                print(f" Ineffectiveness penalty: {ineffectiveness_penalty:.1f}x (effectiveness: {effectiveness_ratio:.1%})")
             else:
                 # Reward effective actions with slight energy savings
                 effectiveness_bonus = max(0.8, 1.0 - (effectiveness_ratio * 0.2))  # Up to 20% savings
                 base_action_cost *= effectiveness_bonus
-                print(f"⚡ Effectiveness bonus: {effectiveness_bonus:.1f}x (effectiveness: {effectiveness_ratio:.1%})")
+                print(f" Effectiveness bonus: {effectiveness_bonus:.1f}x (effectiveness: {effectiveness_ratio:.1%})")
             
             # Calculate final energy cost with safety checks
             if base_action_cost is None or episode_actions is None:
-                print("⚠️ Energy calculation error: base_action_cost or episode_actions is None")
+                print(" Energy calculation error: base_action_cost or episode_actions is None")
                 energy_cost = 0.0  # Safe fallback
                 base_action_cost = base_action_cost or 4.5
                 episode_actions = episode_actions or 0
@@ -4585,7 +4549,7 @@ class ContinuousLearningLoop:
                 
             remaining_energy = max(0.0, current_energy - energy_cost)
             
-            print(f"⚡ Energy: {current_energy:.2f} -> {remaining_energy:.2f}")
+            print(f" Energy: {current_energy:.2f} -> {remaining_energy:.2f}")
             print(f"   Cost: {energy_cost:.3f} (base: {base_action_cost:.3f} × {episode_actions} actions)")
             print(f"   Game complexity: {episode_actions} actions -> {'Low' if episode_actions <= 21 else 'Medium' if episode_actions <= 100 else 'High'}")
             
@@ -4602,12 +4566,12 @@ class ContinuousLearningLoop:
             sleep_triggered = False
             if self.current_energy <= sleep_threshold:
                 skill_phase = energy_params['skill_phase']
-                print(f"😴 Sleep triggered: {sleep_reason}")
+                print(f" Sleep triggered: {sleep_reason}")
                 print(f"   Energy {self.current_energy:.2f} <= threshold {sleep_threshold:.2f} | Skill Phase: {skill_phase}")
                 print(f"   Win Rate: {self._calculate_current_win_rate():.1%} | Action Cost: {energy_params['action_energy_cost']:.1f}")
                 
                 sleep_result = await self._trigger_sleep_cycle(effective_actions)
-                print(f"🌅 Sleep completed: {sleep_result}")
+                print(f" Sleep completed: {sleep_result}")
                 sleep_triggered = True
                 
                 # Adaptive energy replenishment based on learning quality
@@ -4616,38 +4580,38 @@ class ContinuousLearningLoop:
                 # Bonus energy for effective learning
                 if len(effective_actions) > 0:
                     learning_bonus = min(30.0, len(effective_actions) * 5.0)  # Up to 30 energy points bonus
-                    print(f"⚡ Learning bonus: +{learning_bonus:.2f} energy for {len(effective_actions)} effective actions")
+                    print(f" Learning bonus: +{learning_bonus:.2f} energy for {len(effective_actions)} effective actions")
                 else:
                     learning_bonus = 0.0
                 
                 # Bonus energy for complex games (they teach more)
                 if episode_actions > 500:
                     complexity_bonus = 20.0  # 20 energy bonus for complex games
-                    print(f"⚡ Complexity bonus: +{complexity_bonus:.2f} energy for {episode_actions}-action game")
+                    print(f" Complexity bonus: +{complexity_bonus:.2f} energy for {episode_actions}-action game")
                 elif episode_actions > 200:
                     complexity_bonus = 10.0  # 10 energy bonus for medium games
-                    print(f"⚡ Complexity bonus: +{complexity_bonus:.2f} energy for {episode_actions}-action game")
+                    print(f" Complexity bonus: +{complexity_bonus:.2f} energy for {episode_actions}-action game")
                 else:
                     complexity_bonus = 0.0
                 
                 total_replenishment = base_replenishment + learning_bonus + complexity_bonus
                 # Ensure current_energy is not None before arithmetic operations
                 if self.current_energy is None:
-                    print("⚠️ Warning: current_energy was None, resetting to 100.0")
+                    print(" Warning: current_energy was None, resetting to 100.0")
                     self.current_energy = 100.0
                 self.current_energy = min(100.0, self.current_energy + total_replenishment)
                 skill_phase = energy_params['skill_phase']
                 actions_until_next_sleep = int(self.current_energy / energy_params['action_energy_cost'])
                 
-                print(f"⚡ Energy replenished: {total_replenishment:.2f} total -> {self.current_energy:.2f}")
-                print(f"🎯 Ready for ~{actions_until_next_sleep} actions until next sleep cycle ({skill_phase} phase)")
+                print(f" Energy replenished: {total_replenishment:.2f} total -> {self.current_energy:.2f}")
+                print(f" Ready for ~{actions_until_next_sleep} actions until next sleep cycle ({skill_phase} phase)")
             else:
-                print(f"⚡ Sleep not needed: Energy {self.current_energy:.2f} > threshold {energy_params['sleep_trigger_threshold']:.2f} ({energy_params['skill_phase']} phase)")
+                print(f" Sleep not needed: Energy {self.current_energy:.2f} > threshold {energy_params['sleep_trigger_threshold']:.2f} ({energy_params['skill_phase']} phase)")
             
             # Update energy level in system - use current energy from per-action depletion
             # The per-action energy system has already managed energy during gameplay
             final_energy = max(0.0, self.current_energy)  # Use energy from per-action management
-            print(f"⚡ Energy level updated to {final_energy:.2f}")
+            print(f" Energy level updated to {final_energy:.2f}")
             self._update_energy_level(final_energy)
             
             # Update game complexity history for future energy allocation
@@ -4656,7 +4620,7 @@ class ContinuousLearningLoop:
             effective_actions = effective_actions if effective_actions is not None else []
             effectiveness_ratio = min(1.0, len(effective_actions) / max(1, episode_actions))  # Cap at 100%
             self._update_game_complexity_history(game_id, episode_actions, effectiveness_ratio)
-            print(f"📈 Updated complexity history for {game_id}: {episode_actions} actions, {effectiveness_ratio:.2%} effective")
+            print(f" Updated complexity history for {game_id}: {episode_actions} actions, {effectiveness_ratio:.2%} effective")
             
             # Build comprehensive episode result
             episode_duration = time.time() - episode_start_time
@@ -4711,7 +4675,7 @@ class ContinuousLearningLoop:
                 
                 # Log intelligence summary
                 intel_summary = self._get_action_intelligence_summary(game_id)
-                logger.info(f"🧠 Action Intelligence for {game_id}: "
+                logger.info(f" Action Intelligence for {game_id}: "
                         f"{intel_summary.get('effective_actions', 0)}/{intel_summary.get('total_actions_learned', 0)} effective actions, "
                         f"{intel_summary.get('coordinate_patterns_learned', 0)} coordinate patterns learned")
                 
@@ -4746,12 +4710,12 @@ class ContinuousLearningLoop:
         max_episodes_per_game: int = 20
     ) -> Dict[str, Any]:
         """Run multiple games concurrently for faster learning (SWARM mode)."""
-        print(f"\n🔥 SWARM MODE ACTIVATED")
+        print(f"\n SWARM MODE ACTIVATED")
         print(f"Concurrent Games: {min(max_concurrent, len(games))}")
         print(f"Total Games: {len(games)}")
         print("="*60)
         
-        # 🔧 CRITICAL FIX: Set swarm mode flag to enable per-game scorecard isolation
+        #  CRITICAL FIX: Set swarm mode flag to enable per-game scorecard isolation
         self._swarm_mode_active = True
         
         swarm_results = {
@@ -4769,7 +4733,7 @@ class ContinuousLearningLoop:
         total_start_time = time.time()
         
         for batch_idx, batch in enumerate(game_batches, 1):
-            print(f"\n🎯 SWARM BATCH {batch_idx}/{len(game_batches)}")
+            print(f"\n SWARM BATCH {batch_idx}/{len(game_batches)}")
             print(f"Games: {', '.join(batch)}")
             
             # Run games in this batch concurrently
@@ -4795,7 +4759,7 @@ class ContinuousLearningLoop:
                     swarm_results['games_completed'][game_id] = result
                     win_rate = result.get('final_performance', {}).get('win_rate', 0)
                     grid_size = result.get('final_performance', {}).get('grid_size', 'unknown')
-                    print(f"✅ {game_id}: {win_rate:.1%} win rate | Grid: {grid_size}")
+                    print(f" {game_id}: {win_rate:.1%} win rate | Grid: {grid_size}")
         
         total_duration = time.time() - total_start_time
         
@@ -4824,7 +4788,7 @@ class ContinuousLearningLoop:
                 'average_batch_size': len(games) / len(game_batches)
             }
         
-        print(f"\n🏆 SWARM MODE COMPLETE")
+        print(f"\n SWARM MODE COMPLETE")
         print(f"Duration: {total_duration/60:.1f} minutes")
         print(f"Games/Hour: {swarm_results['overall_performance'].get('games_per_hour', 0):.1f}")
         print(f"Overall Win Rate: {swarm_results['overall_performance'].get('overall_win_rate', 0):.1%}")
@@ -4832,9 +4796,9 @@ class ContinuousLearningLoop:
         # Show rate limiting statistics
         self.print_rate_limit_status()
         
-        # 🔧 CRITICAL FIX: Cleanup swarm mode flag
+        #  CRITICAL FIX: Cleanup swarm mode flag
         self._swarm_mode_active = False
-        print(f"🔧 [SWARM-FIX] Swarm mode deactivated, scorecard isolation disabled")
+        print(f" [SWARM-FIX] Swarm mode deactivated, scorecard isolation disabled")
         
         return swarm_results
     
@@ -4884,7 +4848,7 @@ class ContinuousLearningLoop:
             while episode_count <= max_episodes:
                 try:
                     # Run the enhanced mastery session with detailed logging
-                    logger.info(f"🚀 Starting episode {episode_count}/{max_episodes} for {game_id}")
+                    logger.info(f" Starting episode {episode_count}/{max_episodes} for {game_id}")
                     episode_result = await self._run_real_arc_mastery_session_enhanced(
                         game_id, episode_count
                     )
@@ -4902,7 +4866,7 @@ class ContinuousLearningLoop:
                         if hasattr(self, '_update_action_tracking'):
                             self._update_action_tracking(episode_result)
                         
-                        logger.info(f"✅ Episode {episode_count} completed successfully for {game_id}")
+                        logger.info(f" Episode {episode_count} completed successfully for {game_id}")
                     else:
                         # Log the error with proper type checking
                         if isinstance(episode_result, dict):
@@ -4912,7 +4876,7 @@ class ContinuousLearningLoop:
                         else:
                             error_msg = f"Episode result was unexpected type {type(episode_result)}: {episode_result}"
                         
-                        logger.error(f"❌ Episode {episode_count} failed for {game_id}: {error_msg}")
+                        logger.error(f" Episode {episode_count} failed for {game_id}: {error_msg}")
                         
                         # Track errors
                         game_results['error_count'] += 1
@@ -4920,7 +4884,7 @@ class ContinuousLearningLoop:
                         
                 except asyncio.TimeoutError as e:
                     error_msg = f"Episode {episode_count} timed out after 5 minutes: {str(e)}"
-                    logger.error(f"⏱️ {error_msg}", exc_info=True)
+                    logger.error(f"⏱ {error_msg}", exc_info=True)
                     
                     # Track errors
                     game_results['error_count'] += 1
@@ -4928,7 +4892,7 @@ class ContinuousLearningLoop:
                     
                 except Exception as e:
                     error_msg = f"Unexpected error in episode {episode_count}: {str(e)}"
-                    logger.error(f"❌ {error_msg}", exc_info=True)
+                    logger.error(f" {error_msg}", exc_info=True)
                     
                     # Track errors
                     game_results['error_count'] += 1
@@ -4947,10 +4911,10 @@ class ContinuousLearningLoop:
             # Log final results for this game
             if game_results['episodes']:
                 last_episode = game_results['episodes'][-1]
-                logger.info(f"🏁 Completed training on {game_id} - Final Score: {last_episode.get('final_score', 0)} | "
+                logger.info(f" Completed training on {game_id} - Final Score: {last_episode.get('final_score', 0)} | "
                         f"Episodes: {len(game_results['episodes'])} | Errors: {game_results['error_count']}")
             else:
-                logger.warning(f"⚠️ No successful episodes for {game_id} - {game_results['error_count']} errors")
+                logger.warning(f" No successful episodes for {game_id} - {game_results['error_count']} errors")
             
             return game_results
             
@@ -4964,7 +4928,7 @@ class ContinuousLearningLoop:
             game_results['success'] = False
             
             # Log detailed error information
-            logger.error(f"❌ Training failed for {game_id} after {len(game_results.get('episodes', []))} episodes")
+            logger.error(f" Training failed for {game_id} after {len(game_results.get('episodes', []))} episodes")
             if game_results.get('error_messages'):
                 logger.error(f"Previous errors: {', '.join(game_results['error_messages'][-5:])}")
                 
@@ -5008,7 +4972,7 @@ class ContinuousLearningLoop:
         try:
             # Check if SWARM mode should be used based on configuration
             if session.swarm_enabled and len(session.games_to_play) > 2:
-                print(f"\n🔥 SWARM MODE ENABLED for {len(session.games_to_play)} games")
+                print(f"\n SWARM MODE ENABLED for {len(session.games_to_play)} games")
                 swarm_results = await self.run_swarm_mode(
                     session.games_to_play,
                     max_concurrent=3,
@@ -5030,7 +4994,7 @@ class ContinuousLearningLoop:
                 
             else:
                 # Use sequential training for smaller sessions
-                print(f"\n📋 SEQUENTIAL MODE for {len(session.games_to_play)} games")
+                print(f"\n SEQUENTIAL MODE for {len(session.games_to_play)} games")
                 session_results['swarm_mode_used'] = False
                 
                 total_games = len(session.games_to_play)
@@ -5218,13 +5182,13 @@ class ContinuousLearningLoop:
         status_flags = self.get_system_status_flags()
         active_systems = []
         if status_flags['is_consolidating_memories']:
-            active_systems.append("🧠CONSOLIDATING")
+            active_systems.append("CONSOLIDATING")
         if status_flags['is_prioritizing_memories']:
-            active_systems.append("⚡PRIORITIZING")
+            active_systems.append("PRIORITIZING")
         if status_flags['memory_compression_active']:
-            active_systems.append("🗜️COMPRESSING")
+            active_systems.append("COMPRESSING")
         if status_flags['is_sleeping']:
-            active_systems.append("😴SLEEPING")
+            active_systems.append("SLEEPING")
             
         if active_systems:
             print(f"Active: {' | '.join(active_systems)}")
@@ -5256,7 +5220,7 @@ class ContinuousLearningLoop:
         
         # Grid size information - CRITICAL NEW FEATURE
         if grid_summary.get('dynamic_sizing_verified'):
-            print(f"✅ Dynamic Grid Sizing: {grid_summary.get('unique_sizes', 0)} different sizes detected")
+            print(f" Dynamic Grid Sizing: {grid_summary.get('unique_sizes', 0)} different sizes detected")
             print(f"   Sizes: {', '.join(grid_summary.get('sizes_encountered', []))}")
         else:
             sizes = grid_summary.get('sizes_encountered', ['64x64'])
@@ -5265,7 +5229,7 @@ class ContinuousLearningLoop:
         # SWARM mode info if used
         if session_results.get('swarm_mode_used'):
             swarm_info = session_results.get('swarm_results', {}).get('swarm_efficiency', {})
-            print(f"🔥 SWARM Mode: {swarm_info.get('games_per_hour', 0):.1f} games/hour | Concurrent speedup enabled")
+            print(f" SWARM Mode: {swarm_info.get('games_per_hour', 0):.1f} games/hour | Concurrent speedup enabled")
         
         print(f"Learning Efficiency: {overall_perf.get('learning_efficiency', 0):.2f} | Knowledge Transfer: {overall_perf.get('knowledge_transfer_score', 0):.2f}")
         
@@ -5290,19 +5254,19 @@ class ContinuousLearningLoop:
         system_status = self.get_system_status_flags()
         memory_status = self.get_sleep_and_memory_status()
         
-        print(f"\n🧠 SYSTEM STATUS:")
+        print(f"\n SYSTEM STATUS:")
         print(f"Sleep Cycles: {memory_status['sleep_status']['sleep_cycles_this_session']} | Memory Consolidations: {system_status['is_consolidating_memories']}")
         print(f"Memory Prioritization: {system_status['is_prioritizing_memories']} | Compression: {system_status['memory_compression_active']}")
         
         if system_status['has_made_reset_decisions']:
             reset_stats = memory_status['game_reset_status']
-            print(f"🔄 Game Resets: {reset_stats['total_reset_decisions']} decisions | Success Rate: {reset_stats['reset_success_rate']:.1%}")
+            print(f" Game Resets: {reset_stats['total_reset_decisions']} decisions | Success Rate: {reset_stats['reset_success_rate']:.1%}")
             if reset_stats['last_reset_reason']:
                 print(f"   Last Reset: {reset_stats['last_reset_reason']}")
         
         # Highlight if this was a winning session
         if overall_win_rate > 0.3:
-            print("🏆 SUBMIT TO LEADERBOARD - STRONG PERFORMANCE DETECTED!")
+            print(" SUBMIT TO LEADERBOARD - STRONG PERFORMANCE DETECTED!")
         
         # Display memory hierarchy status
         self._display_memory_hierarchy_status()
@@ -5511,7 +5475,7 @@ class ContinuousLearningLoop:
             try:
                 with open(intelligence_file, 'r') as f:
                     intelligence = json.load(f)
-                logger.info(f"🧠 Loaded action intelligence for {game_id}: {len(intelligence.get('effective_actions', {}))} effective actions")
+                logger.info(f" Loaded action intelligence for {game_id}: {len(intelligence.get('effective_actions', {}))} effective actions")
                 return intelligence
             except Exception as e:
                 logger.warning(f"Failed to load action intelligence for {game_id}: {e}")
@@ -5569,30 +5533,30 @@ class ContinuousLearningLoop:
         try:
             with open(intelligence_file, 'w') as f:
                 json.dump(game_intelligence, f, indent=2)
-            logger.info(f"💾 Saved action intelligence for {game_id}: {len(effective_actions)} effective actions")
+            logger.info(f" Saved action intelligence for {game_id}: {len(effective_actions)} effective actions")
         except Exception as e:
             logger.error(f"Failed to save action intelligence for {game_id}: {e}")
 
     def display_action_intelligence_summary(self, game_id: Optional[str] = None):
         """Display a summary of learned action intelligence."""
-        print(f"\n🧠 ACTION INTELLIGENCE SUMMARY")
+        print(f"\n ACTION INTELLIGENCE SUMMARY")
         print("="*50)
         
         learning_stats = self.available_actions_memory['action_learning_stats']
-        print(f"📊 Global Learning Stats:")
+        print(f" Global Learning Stats:")
         print(f"   Total Observations: {learning_stats['total_observations']}")
         print(f"   Movements Tracked: {learning_stats['movements_tracked']}")
         print(f"   Effects Catalogued: {learning_stats['effects_catalogued']}")
         print(f"   Game Contexts Learned: {learning_stats['game_contexts_learned']}")
         
-        print(f"\n🎯 ACTION MAPPINGS:")
+        print(f"\n ACTION MAPPINGS:")
         for action, mapping in self.available_actions_memory['action_semantic_mapping'].items():
             print(f"\n  ACTION{action}:")
             print(f"    Description: {self.get_action_description(action, game_id)}")
             
             # Show movement patterns
             movements = mapping['grid_movement_patterns']
-            if any(movements.values()):
+            if movements and any(movements.values()):
                 dominant_move = max(movements.items(), key=lambda x: x[1])
                 if dominant_move[1] > 0:
                     print(f"    Dominant Movement: {dominant_move[0]} ({dominant_move[1]} observations)")
@@ -5647,7 +5611,7 @@ class ContinuousLearningLoop:
         if action_taken is not None:
             self._analyze_action_effectiveness(action_taken, response_data)
         
-        logger.debug(f"🎯 Available actions updated for {game_id}: {available_actions}")
+        logger.debug(f" Available actions updated for {game_id}: {available_actions}")
     
     def _initialize_game_actions(self, game_id: str, initial_actions: List[int]):
         """Initialize action memory for a new game."""
@@ -5702,7 +5666,7 @@ class ContinuousLearningLoop:
         self.available_actions_memory['winning_action_sequences'] = cached_intel.get('winning_sequences', [])
         self.available_actions_memory['action_transitions'] = cached_intel.get('action_transitions', {})
         
-        logger.info(f"🎮 Initialized actions for {game_id}: {initial_actions} (loaded {len(cached_intel.get('effective_actions', {}))} cached patterns)")
+        logger.info(f" Initialized actions for {game_id}: {initial_actions} (loaded {len(cached_intel.get('effective_actions', {}))} cached patterns)")
 
     def _record_action_transition(self, action_taken: int, new_available_actions: List[int]):
         """Record transition from one action to available next actions."""
@@ -5771,7 +5735,7 @@ class ContinuousLearningLoop:
                 if movement in mapping['grid_movement_patterns']:
                     mapping['grid_movement_patterns'][movement] += 1
                     self.available_actions_memory['action_learning_stats']['movements_tracked'] += 1
-                    print(f"🧠 ACTION{action} learned movement: {movement} (total: {mapping['grid_movement_patterns'][movement]})")
+                    print(f" ACTION{action} learned movement: {movement} (total: {mapping['grid_movement_patterns'][movement]})")
         else:
             # For ACTION6, track coordinate-based behavior
             if 'coordinate_based' in mapping['grid_movement_patterns']:
@@ -5785,7 +5749,7 @@ class ContinuousLearningLoop:
             else:
                 mapping['common_effects'][effect] = 1
                 self.available_actions_memory['action_learning_stats']['effects_catalogued'] += 1
-                print(f"🧠 ACTION{action} learned new effect: {effect}")
+                print(f" ACTION{action} learned new effect: {effect}")
         
         # Learn game-specific roles
         if game_id and success:
@@ -5794,7 +5758,7 @@ class ContinuousLearningLoop:
                 if game_id not in mapping['game_specific_roles']:
                     mapping['game_specific_roles'][game_id] = {'role': role, 'confidence': 0.1}
                     self.available_actions_memory['action_learning_stats']['game_contexts_learned'] += 1
-                    print(f"🧠 ACTION{action} role in {game_id}: {role}")
+                    print(f" ACTION{action} role in {game_id}: {role}")
                 else:
                     # Increase confidence if consistent
                     current_role = mapping['game_specific_roles'][game_id]
@@ -5915,7 +5879,7 @@ class ContinuousLearningLoop:
         
         # Add movement pattern info
         movements = mapping['grid_movement_patterns']
-        if movements:
+        if movements and any(movements.values()):
             dominant_movement = max(movements.items(), key=lambda x: x[1])
             if dominant_movement[1] > 5:  # At least 5 observations
                 description += f" | Learned: {dominant_movement[0]} movement"
@@ -5928,7 +5892,7 @@ class ContinuousLearningLoop:
         
         # Add common effects
         effects = mapping['common_effects']
-        if effects:
+        if effects and any(effects.values()):
             top_effect = max(effects.items(), key=lambda x: x[1])
             if top_effect[1] > 3:  # At least 3 observations
                 description += f" | Common effect: {top_effect[0]}"
@@ -6000,7 +5964,7 @@ class ContinuousLearningLoop:
                     action_frequency = recent_actions.count(action) / len(recent_actions)
                     if action_frequency > 0.6:  # Used more than 60% of the time
                         repetition_penalty = 0.5 + (action_frequency - 0.6) * 2.0  # Heavy penalty
-                        print(f"⚠️ REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f})")
+                        print(f" REPETITION PENALTY: Action {action} used {action_frequency:.1%} recently (-{repetition_penalty:.2f})")
                     elif action_frequency > 0.4:  # Used more than 40% of the time  
                         repetition_penalty = 0.2 + (action_frequency - 0.4) * 1.0  # Moderate penalty
             
@@ -6083,8 +6047,9 @@ class ContinuousLearningLoop:
             total_movements = sum(movements.values())
             if total_movements > 5:  # Need sufficient observations
                 # Bonus for consistent movement patterns
-                dominant_pattern = max(movements.items(), key=lambda x: x[1])
-                consistency = dominant_pattern[1] / total_movements
+                if movements:
+                    dominant_pattern = max(movements.items(), key=lambda x: x[1])
+                    consistency = dominant_pattern[1] / total_movements
                 
                 if consistency > 0.6:  # 60%+ consistency
                     pattern_bonuses = {
@@ -6141,14 +6106,14 @@ class ContinuousLearningLoop:
     def _log_action_details_from_output(self, stdout_text: str, game_id: str):
         """Extract and log action details from game session output."""
         try:
-            print(f"\n🔍 ACTION ANALYSIS for {game_id}:")
+            print(f"\n ACTION ANALYSIS for {game_id}:")
             
             # Look for API action calls in the output
             api_action_pattern = r'(ACTION[1-7].*?(?:success|failed|error))'
             api_actions = re.findall(api_action_pattern, stdout_text, re.IGNORECASE | re.DOTALL)
             
             if api_actions:
-                print(f"   📡 API Actions Found: {len(api_actions)}")
+                print(f"    API Actions Found: {len(api_actions)}")
                 for i, action in enumerate(api_actions[:10]):  # Show first 10 actions
                     action_clean = re.sub(r'\s+', ' ', action.strip())
                     if len(action_clean) > 100:
@@ -6162,7 +6127,7 @@ class ContinuousLearningLoop:
             available_matches = re.findall(available_pattern, stdout_text, re.IGNORECASE)
             
             if available_matches:
-                print(f"   🎮 Available Actions Seen:")
+                print(f"    Available Actions Seen:")
                 unique_available = list(set(available_matches))
                 for i, actions in enumerate(unique_available[:5]):  # Show first 5 unique sets
                     print(f"      {i+1}. [{actions}]")
@@ -6175,7 +6140,7 @@ class ContinuousLearningLoop:
             
             if states:
                 unique_states = list(set(states))
-                print(f"   🎯 Game States: {', '.join(unique_states)}")
+                print(f"    Game States: {', '.join(unique_states)}")
             
             # Look for scores
             score_pattern = r'score[:\s]*(\d+)'
@@ -6183,12 +6148,12 @@ class ContinuousLearningLoop:
             
             if scores:
                 score_progression = [int(s) for s in scores[-10:]]  # Last 10 scores
-                print(f"   📊 Score Progression: {' → '.join(map(str, score_progression))}")
+                print(f"    Score Progression: {' → '.join(map(str, score_progression))}")
             
             print()  # Add spacing
             
         except Exception as e:
-            print(f"   ⚠️ Error analyzing action details: {e}")
+            print(f"    Error analyzing action details: {e}")
 
     def _optimize_coordinates_for_action(self, action: int, grid_dims: Tuple[int, int], game_id: str = 'unknown') -> Tuple[int, int]:
         """Universal coordinate optimization with enhanced intelligence when available."""
@@ -6201,7 +6166,7 @@ class ContinuousLearningLoop:
                     intelligent_coord = self.enhanced_coordinate_intelligence.get_intelligent_coordinates(action, grid_dims, game_id)
                     return intelligent_coord
                 except Exception as e:
-                    print(f"⚠️ Enhanced coordinate intelligence failed: {e}, falling back to standard system")
+                    print(f" Enhanced coordinate intelligence failed: {e}, falling back to standard system")
         
         # Special strategic coordinate selection for ACTION 6 with full directional system
         if action == 6:
@@ -6250,7 +6215,7 @@ class ContinuousLearningLoop:
             
             if best_survey_target:
                 survey_x, survey_y, survey_reason = best_survey_target
-                print(f"🗺️ ACTION {action} INTELLIGENT SURVEY: Jumping to {(survey_x, survey_y)} - {survey_reason}")
+                print(f" ACTION {action} INTELLIGENT SURVEY: Jumping to {(survey_x, survey_y)} - {survey_reason}")
                 return (survey_x, survey_y)
             
             # Only use safe regions if no interesting survey targets exist
@@ -6278,7 +6243,7 @@ class ContinuousLearningLoop:
             if best_region:
                 # Use edge of safe region to push boundaries, not center
                 edge_coord = self._get_safe_region_edge_coordinate(best_region, grid_dims, known_boundaries)
-                print(f"🛡️ ACTION {action} SAFE REGION EDGE: Using boundary coordinate {edge_coord} from region with "
+                print(f" ACTION {action} SAFE REGION EDGE: Using boundary coordinate {edge_coord} from region with "
                     f"{len(best_region['coordinates'])} safe squares to explore new territory")
                 return edge_coord
         
@@ -6308,7 +6273,7 @@ class ContinuousLearningLoop:
             if best_cluster:
                 # Use cluster center or nearby coordinate
                 cluster_center = best_cluster['center']
-                print(f"🎯 ACTION {action} CLUSTER: Using cluster center {cluster_center} "
+                print(f" ACTION {action} CLUSTER: Using cluster center {cluster_center} "
                     f"(success rate: {best_cluster_rate:.1%}, {len(best_cluster['members'])} members)")
                 return cluster_center
         
@@ -6336,7 +6301,7 @@ class ContinuousLearningLoop:
                         best_success_rate = success_rate
             
             if best_zone:
-                print(f"🎯 ACTION {action} SUCCESS ZONE: Using proven coordinates {best_zone} (success rate: {best_success_rate:.1%})")
+                print(f" ACTION {action} SUCCESS ZONE: Using proven coordinates {best_zone} (success rate: {best_success_rate:.1%})")
                 return best_zone
         
         # Generate exploration coordinates avoiding boundaries
@@ -6414,7 +6379,7 @@ class ContinuousLearningLoop:
             if not too_close:
                 spatial_summary = self.get_spatial_intelligence_summary(game_id)
                 total_safe_areas = spatial_summary.get('safe_regions', 0) + spatial_summary.get('coordinate_clusters', 0)
-                print(f"🎯 ACTION {action} SPATIAL-AWARE: Selected ({x},{y}) avoiding {len(known_boundaries)} boundaries "
+                print(f" ACTION {action} SPATIAL-AWARE: Selected ({x},{y}) avoiding {len(known_boundaries)} boundaries "
                     f"and {len(boundary_system.get('danger_zones', {}).get(game_id, {}))} danger zones | "
                     f"Safe areas available: {total_safe_areas}")
                 return coordinates
@@ -6423,7 +6388,7 @@ class ContinuousLearningLoop:
         
         # Fallback - use center if all else fails
         fallback_x, fallback_y = grid_width // 2, grid_height // 2
-        print(f"🎯 ACTION {action} FALLBACK: Using center ({fallback_x},{fallback_y}) after boundary avoidance")
+        print(f" ACTION {action} FALLBACK: Using center ({fallback_x},{fallback_y}) after boundary avoidance")
         return (fallback_x, fallback_y)
 
     def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int], game_id: str = None) -> Tuple[int, int]:
@@ -6456,7 +6421,7 @@ class ContinuousLearningLoop:
             
             if survey_target:
                 survey_x, survey_y, survey_reason = survey_target
-                print(f"🗺️ ACTION 6 INTELLIGENT SURVEY: {survey_reason}")
+                print(f" ACTION 6 INTELLIGENT SURVEY: {survey_reason}")
                 
                 # Update position tracking for future moves  
                 setattr(self, '_current_game_x', survey_x)
@@ -6512,7 +6477,7 @@ class ContinuousLearningLoop:
                 'action': 6
             }
             
-            print(f"🚧 ACTION 6 BOUNDARY: Hit {boundary_type} at ({new_x},{new_y}) - pivoting direction")
+            print(f" ACTION 6 BOUNDARY: Hit {boundary_type} at ({new_x},{new_y}) - pivoting direction")
         
         # PIVOT TO NEW DIRECTION if boundary hit
         if hit_boundary:
@@ -6532,7 +6497,7 @@ class ContinuousLearningLoop:
             pivot_y = max(0, min(pivot_y, grid_height - 1))
             
             new_x, new_y = pivot_x, pivot_y
-            print(f"🔄 ACTION 6 PIVOT: Direction {current_direction} → {next_direction}, coordinates ({current_x},{current_y}) → ({new_x},{new_y})")
+            print(f" ACTION 6 PIVOT: Direction {current_direction} → {next_direction}, coordinates ({current_x},{current_y}) → ({new_x},{new_y})")
         
         # Update tracking data - ensure last_coordinates is initialized for this game
         if game_id not in boundary_system['last_coordinates']:
@@ -6556,7 +6521,7 @@ class ContinuousLearningLoop:
         if coord_key in boundary_system['coordinate_attempts'][game_id]:
             consecutive_stuck = boundary_system['coordinate_attempts'][game_id][coord_key].get('consecutive_stuck', 0)
             if consecutive_stuck > 10:  # Stuck at same coordinates for 10+ attempts
-                print(f"🚨 COORDINATE STAGNATION DETECTED at ({new_x},{new_y}) - FORCING MOVEMENT")
+                print(f" COORDINATE STAGNATION DETECTED at ({new_x},{new_y}) - FORCING MOVEMENT")
                 
                 # Force jump to a completely different region
                 import random
@@ -6575,7 +6540,7 @@ class ContinuousLearningLoop:
                 # Reset direction to explore from new position
                 directional_system['current_direction'][game_id] = random.choice(['right', 'down', 'left', 'up'])
                 
-                print(f"🔀 EMERGENCY JUMP: Moved to ({new_x},{new_y}), new direction: {directional_system['current_direction'][game_id]}")
+                print(f" EMERGENCY JUMP: Moved to ({new_x},{new_y}), new direction: {directional_system['current_direction'][game_id]}")
                 
                 # Update tracking for new position
                 self._current_game_x = new_x
@@ -6589,7 +6554,7 @@ class ContinuousLearningLoop:
         if hit_boundary:
             direction_display = f"{current_direction.upper()}→{boundary_system['current_direction'][game_id].upper()}"
         
-        print(f"🎯 ACTION 6 BOUNDARY-AWARE: {direction_display} from ({current_x},{current_y}) → ({new_x},{new_y}) | Boundaries mapped: {num_boundaries}")
+        print(f" ACTION 6 BOUNDARY-AWARE: {direction_display} from ({current_x},{current_y}) → ({new_x},{new_y}) | Boundaries mapped: {num_boundaries}")
         
         return (new_x, new_y)
     
@@ -6671,7 +6636,7 @@ class ContinuousLearningLoop:
                     x, y, success, score_improvement
                 )
             except Exception as e:
-                print(f"⚠️ Frame analyzer tracking failed: {e}")
+                print(f" Frame analyzer tracking failed: {e}")
         
         # Record using universal coordinate intelligence system
         self.record_action_result(action, coordinates, success, score_improvement, game_id)
@@ -6765,7 +6730,7 @@ class ContinuousLearningLoop:
         clusters = spatial_summary.get('coordinate_clusters', 0)
         danger_zones = spatial_summary.get('danger_zones', 0)
         
-        print(f"📊 COORDINATE INTELLIGENCE: Action {action_num} at {coordinates} ({'✅' if success else '❌'}) | "
+        print(f" COORDINATE INTELLIGENCE: Action {action_num} at {coordinates} ({'' if success else ''}) | "
             f"Boundaries: {total_boundaries} | Success Zones: {total_success_zones} | "
             f"Safe Regions: {safe_regions} | Clusters: {clusters} | Danger Zones: {danger_zones}")
               
@@ -6805,7 +6770,7 @@ class ContinuousLearningLoop:
                     boundary_data['attempts_when_detected'] += len(recent_attempts)
                     boundary_data['confidence'] = min(1.0, len(recent_attempts) / 5.0)
                     
-                    print(f"🚧 UNIVERSAL BOUNDARY: Action {action_num} detected boundary at {coordinates} "
+                    print(f" UNIVERSAL BOUNDARY: Action {action_num} detected boundary at {coordinates} "
                         f"(confidence: {boundary_data['confidence']:.1%})")
                     
                     # Update global coordinate intelligence
@@ -6827,6 +6792,10 @@ class ContinuousLearningLoop:
             boundary_system['success_zone_mapping'][game_id] = {}
         if game_id not in boundary_system['last_coordinates']:
             boundary_system['last_coordinates'][game_id] = None
+        if 'current_direction' not in boundary_system:
+            boundary_system['current_direction'] = {}
+        if game_id not in boundary_system['current_direction']:
+            boundary_system['current_direction'][game_id] = 'right'  # Default direction
 
     def _get_intelligent_survey_target(self, game_id: str, grid_dims: Tuple[int, int], 
                                     known_boundaries: set, safe_regions: dict) -> Optional[Tuple[int, int, str]]:
@@ -6848,10 +6817,13 @@ class ContinuousLearningLoop:
             region_coords = region_data['coordinates']
             
             # Find the extremes of this safe region
-            min_x = min(coord[0] for coord in region_coords)
-            max_x = max(coord[0] for coord in region_coords)
-            min_y = min(coord[1] for coord in region_coords)
-            max_y = max(coord[1] for coord in region_coords)
+            if region_coords:
+                min_x = min(coord[0] for coord in region_coords)
+                max_x = max(coord[0] for coord in region_coords)
+                min_y = min(coord[1] for coord in region_coords)
+                max_y = max(coord[1] for coord in region_coords)
+            else:
+                min_x = max_x = min_y = max_y = 0
             
             # Create jump targets that extend beyond the safe region
             jump_targets = [
@@ -6944,10 +6916,13 @@ class ContinuousLearningLoop:
         region_coords = safe_region['coordinates']
         
         # Find the bounding box of the safe region
-        min_x = min(coord[0] for coord in region_coords)
-        max_x = max(coord[0] for coord in region_coords)
-        min_y = min(coord[1] for coord in region_coords)
-        max_y = max(coord[1] for coord in region_coords)
+        if region_coords:
+            min_x = min(coord[0] for coord in region_coords)
+            max_x = max(coord[0] for coord in region_coords)
+            min_y = min(coord[1] for coord in region_coords)
+            max_y = max(coord[1] for coord in region_coords)
+        else:
+            min_x = max_x = min_y = max_y = 0
         
         # Define edge candidates - coordinates just outside the safe region
         edge_candidates = []
@@ -7009,7 +6984,7 @@ class ContinuousLearningLoop:
             boundary_data['actions_that_detected'].add(action_num)
             boundary_data['total_detections'] += 1
             
-            print(f"🌍 GLOBAL BOUNDARY: {coordinates} detected across {len(boundary_data['games_detected_in'])} games by {len(boundary_data['actions_that_detected'])} actions")
+            print(f" GLOBAL BOUNDARY: {coordinates} detected across {len(boundary_data['games_detected_in'])} games by {len(boundary_data['actions_that_detected'])} actions")
             
         elif event_type == 'success':
             if coord_str not in global_intel['universal_success_zones']:
@@ -7080,7 +7055,7 @@ class ContinuousLearningLoop:
                     'last_updated': time.time()
                 }
                 
-                print(f"🛡️ SAFE REGION DETECTED: {region_id} with {len(group_data['coordinates'])} coordinates, "
+                print(f" SAFE REGION DETECTED: {region_id} with {len(group_data['coordinates'])} coordinates, "
                     f"success rate: {avg_success_rate:.1%}, center: {center}")
         
         # Find coordinate clusters using distance-based clustering
@@ -7173,7 +7148,7 @@ class ContinuousLearningLoop:
             )
             clusters[nearest_cluster]['avg_success_rate'] = total_success_rate / len(members)
             
-            print(f"🎯 CLUSTER UPDATED: cluster_{nearest_cluster} now has {len(members)} members, "
+            print(f" CLUSTER UPDATED: cluster_{nearest_cluster} now has {len(members)} members, "
                 f"success rate: {clusters[nearest_cluster]['avg_success_rate']:.1%}")
         else:
             # Create new cluster
@@ -7186,7 +7161,7 @@ class ContinuousLearningLoop:
                 'created_time': time.time()
             }
             
-            print(f"🌟 NEW CLUSTER: cluster_{cluster_id} created at {new_coordinate}")
+            print(f" NEW CLUSTER: cluster_{cluster_id} created at {new_coordinate}")
     
     def _update_danger_zones(self, game_id: str):
         """Update danger zones from boundary data."""
@@ -7222,7 +7197,7 @@ class ContinuousLearningLoop:
                         'last_updated': time.time()
                     }
                     
-                    print(f"⚠️ DANGER ZONE: {danger_id} with {len(coords_list)} dangerous coordinates, "
+                    print(f" DANGER ZONE: {danger_id} with {len(coords_list)} dangerous coordinates, "
                         f"avoidance radius: {danger_zones[danger_id]['avoidance_radius']}")
     
     def get_spatial_intelligence_summary(self, game_id: str) -> dict:
@@ -7305,7 +7280,7 @@ class ContinuousLearningLoop:
                     state = json.load(f)
                     self.session_history = state.get('session_history', [])
                     self.global_performance_metrics = state.get('global_performance_metrics', self.global_performance_metrics)
-                    logger.info(f"📂 Loaded previous state: {len(self.session_history)} sessions")
+                    logger.info(f" Loaded previous state: {len(self.session_history)} sessions")
             except Exception as e:
                 logger.warning(f"Failed to load previous state: {e}")
 
@@ -7408,8 +7383,8 @@ class ContinuousLearningLoop:
             compression_threshold=0.15
         )
         
-        # 🔧 CONSOLIDATED: Using unified energy system configuration
-        logger.info(f"✅ Unified energy system configured: current={self.current_energy:.1f}/100, "
+        #  CONSOLIDATED: Using unified energy system configuration
+        logger.info(f" Unified energy system configured: current={self.current_energy:.1f}/100, "
                 f"sleep_threshold=40.0, energy_costs=standardized")
         
         # Display session startup information
@@ -7503,29 +7478,6 @@ class ContinuousLearningLoop:
         self._game_complexity = complexity
 
 
-# ===== Compatibility shim =====
-# Some utility methods were accidentally defined at module level (they
-# expect 'self' as the first argument). To preserve backward compatibility
-# and avoid AttributeError at runtime, attach those functions as methods
-# onto the ContinuousLearningLoop class at import time.
-try:
-    import inspect as _inspect
-    for _name, _obj in list(globals().items()):
-        if _inspect.isfunction(_obj):
-            try:
-                _sig = _inspect.signature(_obj)
-                _params = list(_sig.parameters.keys())
-                if _params and _params[0] == 'self':
-                    # Only attach if the class doesn't already provide it
-                    if not hasattr(ContinuousLearningLoop, _name):
-                        setattr(ContinuousLearningLoop, _name, _obj)
-            except Exception:
-                # Ignore any functions we cannot introspect
-                continue
-except Exception:
-    # Best-effort shim - failure here is non-fatal; missing methods will
-    # continue to raise AttributeError which will be logged elsewhere.
-    pass
 
     # ====== SLEEP STATE AND MEMORY CONSOLIDATION METHODS ======
     
@@ -7639,7 +7591,7 @@ except Exception:
             boredom_results['new_strategy'] = new_strategy
         
         if boredom_results['boredom_detected']:
-            logger.info(f"🧠 Boredom detected ({boredom_results['boredom_type']}): {boredom_results['reason']}")
+            logger.info(f" Boredom detected ({boredom_results['boredom_type']}): {boredom_results['reason']}")
         
         return boredom_results
     
@@ -7688,7 +7640,7 @@ except Exception:
             # Mark that we should try random/experimental actions
             self.available_actions_memory['experiment_mode'] = True
             self.available_actions_memory['experiment_started'] = time.time()
-            logger.info(f"🧪 Action experimentation triggered for {current_game}")
+            logger.info(f" Action experimentation triggered for {current_game}")
     
     def _switch_action_strategy(self) -> str:
         """Switch to a new action strategy to break ineffective patterns."""
@@ -7700,7 +7652,7 @@ except Exception:
         new_strategy = random.choice(available_strategies)
         
         self.training_state['current_strategy'] = new_strategy
-        logger.info(f"🔄 Strategy switched: {current_strategy} → {new_strategy}")
+        logger.info(f" Strategy switched: {current_strategy} → {new_strategy}")
         
         return new_strategy
 
@@ -7756,7 +7708,7 @@ except Exception:
         ]
         
         if len(effective_actions) > 0:
-            logger.info(f"🌙 Mid-game consolidating {len(effective_actions)} effective actions")
+            logger.info(f" Mid-game consolidating {len(effective_actions)} effective actions")
             
             # Quick memory consolidation (shorter than post-episode sleep)
             try:
@@ -7778,17 +7730,17 @@ except Exception:
                             # Use action index as memory index for salience update
                             pass  # Memory operations disabled
                     
-                    logger.info(f"✨ Mid-game consolidation completed in {consolidation_duration:.1f}s")
+                    logger.info(f" Mid-game consolidation completed in {consolidation_duration:.1f}s")
                 
             except Exception as e:
                 logger.warning(f"Mid-game sleep error: {e}")
         
         # Partial energy restoration (not full like post-episode)
         if hasattr(self, 'energy_system'):
-            # 🔧 CONSOLIDATED: Use unified energy system
+            #  CONSOLIDATED: Use unified energy system
             restored_energy = min(100.0, self.current_energy + 20.0)  # Small restoration
             self.current_energy = restored_energy
-            logger.info(f"⚡ Energy restored: {self.current_energy - 20.0:.2f} → {restored_energy:.2f}")
+            logger.info(f" Energy restored: {self.current_energy - 20.0:.2f} → {restored_energy:.2f}")
 
     async def _simulate_mid_game_consolidation(self, effective_actions: List[Dict], total_actions: int) -> None:
         """Simulate mid-game consolidation points as if sleep occurred during gameplay.
@@ -7804,7 +7756,7 @@ except Exception:
         consolidation_points = max(1, total_actions // 150)  # Every 150 actions
         actions_per_consolidation = len(effective_actions) // max(1, consolidation_points)
         
-        logger.info(f"🔄 Simulating {consolidation_points} mid-game consolidation points for {total_actions} actions")
+        logger.info(f" Simulating {consolidation_points} mid-game consolidation points for {total_actions} actions")
         
         # Process effective actions in chunks as if consolidated during gameplay
         for i in range(consolidation_points):
@@ -7815,7 +7767,7 @@ except Exception:
             if not action_chunk:
                 continue
                 
-            logger.info(f"  🌙 Consolidation point {i+1}: {len(action_chunk)} actions")
+            logger.info(f"   Consolidation point {i+1}: {len(action_chunk)} actions")
             
             # Strengthen memories for this chunk with success weighting
             try:
@@ -7960,7 +7912,7 @@ except Exception:
         # Apply success multiplier for memory prioritization
         final_effectiveness = base_effectiveness * success_multiplier
         
-        # 🔧 CONSOLIDATED: Update unified energy system with session performance
+        #  CONSOLIDATED: Update unified energy system with session performance
         success = session_result.get('success', False)
         score_improvement = current_score - session_result.get('initial_score', 0)
         
@@ -7977,7 +7929,7 @@ except Exception:
         
         # Check if unified energy system suggests sleep
         if self._should_trigger_sleep_cycle(actions_taken, final_effectiveness):
-            logger.info(f"🌙 Unified energy system suggests sleep: energy={final_energy:.1f}/100")
+            logger.info(f" Unified energy system suggests sleep: energy={final_energy:.1f}/100")
         
         return min(final_effectiveness, 5.0)  # Cap but allow high values for wins
     
@@ -8175,7 +8127,7 @@ except Exception:
             if self.goal_system.check_phase_transition():
                 goal_results['phase_transition'] = True
                 new_phase = self.goal_system.current_phase
-                print(f"🚀 Goal system transitioned to {new_phase.value} phase!")
+                print(f" Goal system transitioned to {new_phase.value} phase!")
                 
         except Exception as e:
             logger.warning(f"Goal processing failed: {e}")
@@ -8283,7 +8235,7 @@ except Exception:
                 
                 low_salience_decayed = len(low_salience_experiences)
                 if protected_count > 0:
-                    print(f"   🛡️ Protected {protected_count} winning memories from salience decay")
+                    print(f"    Protected {protected_count} winning memories from salience decay")
                 
                 consolidation_ops += low_salience_decayed
                 
@@ -8378,7 +8330,7 @@ except Exception:
                     'confidence': min(0.9, consecutive_failures * 0.2),
                     'strategy_type': 'memory_inverse'
                 })
-                print(f"🔄 CONTRARIAN MODE ACTIVATED: {contrarian_decision['reason']}")
+                print(f" CONTRARIAN MODE ACTIVATED: {contrarian_decision['reason']}")
                 print(f"   Confidence: {contrarian_decision['confidence']:.1%}")
         
         return contrarian_decision
@@ -8395,7 +8347,7 @@ except Exception:
             cmd.extend(['--strategy', 'contrarian'])
             cmd.extend(['--invert-memory-patterns', 'true'])
             
-        print(f"🔄 Applied contrarian strategy: {contrarian_decision['strategy_type']}")
+        print(f" Applied contrarian strategy: {contrarian_decision['strategy_type']}")
         return cmd
     
     def _evaluate_game_reset_decision(self, game_id: str, episode_count: int, agent_state: Dict[str, Any]) -> Dict[str, Any]:
@@ -8781,20 +8733,20 @@ except Exception:
             
             result['effective_actions'] = effective_actions
             
-            print(f"📊 Parsed game session: {result['total_actions']} actions, {len(effective_actions)} effective, final score {result['final_score']}")
+            print(f" Parsed game session: {result['total_actions']} actions, {len(effective_actions)} effective, final score {result['final_score']}")
             try:
                 write_session_trace(result.get('game_id', 'unknown'), result, stdout_text)
             except Exception:
                 pass
             
         except Exception as e:
-            print(f"⚠️ Error parsing complete game session: {e}")
+            print(f" Error parsing complete game session: {e}")
         
         return result
 
     async def _trigger_sleep_cycle(self, effective_actions: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Trigger a sleep cycle to process and consolidate effective actions with real memory operations."""
-        print(f"💤 SLEEP CYCLE INITIATED - Processing {len(effective_actions)} effective actions...")
+        print(f" SLEEP CYCLE INITIATED - Processing {len(effective_actions)} effective actions...")
         
         sleep_result = {
             'actions_processed': len(effective_actions),
@@ -8808,25 +8760,25 @@ except Exception:
         
         try:
             # 1. LOAD AND PRIORITIZE EXISTING MEMORIES
-            print(f"🧠 Phase 1: Loading and prioritizing existing memories...")
+            print(f" Phase 1: Loading and prioritizing existing memories...")
             relevant_memories = await self._load_prioritized_memories()
             sleep_result['priority_memories_loaded'] = len(relevant_memories)
             print(f"   Loaded {len(relevant_memories)} prioritized memories")
             
             # 2. GARBAGE COLLECT IRRELEVANT MEMORIES  
-            print(f"🗑️ Phase 2: Garbage collecting irrelevant memories...")
+            print(f" Phase 2: Garbage collecting irrelevant memories...")
             deleted_count = await self._garbage_collect_memories()
             sleep_result['memories_deleted'] = deleted_count
             print(f"   Deleted {deleted_count} irrelevant memories")
             
             # 3. COMBINE/COMPRESS SIMILAR MEMORIES
-            print(f"🔗 Phase 3: Combining similar memory patterns...")
+            print(f" Phase 3: Combining similar memory patterns...")
             combined_count = await self._combine_similar_memories()
             sleep_result['memories_combined'] = combined_count
             print(f"   Combined {combined_count} similar memory clusters")
             
             # 4. STRENGTHEN EFFECTIVE ACTION MEMORIES
-            print(f"💪 Phase 4: Strengthening effective action memories...")
+            print(f" Phase 4: Strengthening effective action memories...")
             for action in effective_actions:
                 effectiveness = action.get('effectiveness', 0)
                 if effectiveness > 0.1:  # Much lower threshold to capture more learnings - from 0.3 to 0.1
@@ -8834,25 +8786,25 @@ except Exception:
                     sleep_result['memories_strengthened'] += 1
             
             # 5. GENERATE INSIGHTS FROM MEMORY PATTERNS
-            print(f"🔍 Phase 5: Generating insights from memory patterns...")
+            print(f" Phase 5: Generating insights from memory patterns...")
             if len(effective_actions) >= 2 or len(relevant_memories) >= 5:
                 insights = await self._generate_memory_insights(effective_actions, relevant_memories)
                 sleep_result['insights_generated'] = len(insights)
                 for insight in insights:
-                    print(f"💡 Insight: {insight}")
+                    print(f" Insight: {insight}")
             
             # 6. PREPARE MEMORY GUIDANCE FOR NEXT GAME
-            print(f"🎯 Phase 6: Preparing memory-informed guidance...")
+            print(f" Phase 6: Preparing memory-informed guidance...")
             guidance = await self._prepare_memory_guidance(relevant_memories, effective_actions)
             sleep_result['guidance_prepared'] = len(guidance)
             print(f"   Prepared {len(guidance)} guidance points for next game")
             
-            print(f"💤 SLEEP CYCLE COMPLETED:")
-            print(f"   📚 {sleep_result['priority_memories_loaded']} memories loaded")
-            print(f"   🗑️ {sleep_result['memories_deleted']} memories deleted")  
-            print(f"   🔗 {sleep_result['memories_combined']} memories combined")
-            print(f"   💪 {sleep_result['memories_strengthened']} memories strengthened")
-            print(f"   💡 {sleep_result['insights_generated']} insights generated")
+            print(f" SLEEP CYCLE COMPLETED:")
+            print(f"    {sleep_result['priority_memories_loaded']} memories loaded")
+            print(f"    {sleep_result['memories_deleted']} memories deleted")  
+            print(f"    {sleep_result['memories_combined']} memories combined")
+            print(f"    {sleep_result['memories_strengthened']} memories strengthened")
+            print(f"    {sleep_result['insights_generated']} insights generated")
             
             # UPDATE GLOBAL COUNTERS - THIS IS THE FIX!
             self._update_global_counters(
@@ -8864,7 +8816,7 @@ except Exception:
             )
             
         except Exception as e:
-            print(f"⚠️ Error during sleep cycle: {e}")
+            print(f" Error during sleep cycle: {e}")
         
         return sleep_result
 
@@ -8874,7 +8826,7 @@ except Exception:
         effectiveness = action.get('effectiveness', 0)
         score = action.get('score_achieved', 0)
         
-        print(f"🧠 Strengthening memory: {action_type} (effectiveness: {effectiveness:.2f}, score: {score})")
+        print(f" Strengthening memory: {action_type} (effectiveness: {effectiveness:.2f}, score: {score})")
         
         # This would integrate with the existing memory system
         # For now, we track it for the learning system
@@ -8921,7 +8873,7 @@ except Exception:
                 insights.append(f"Total effective score contribution: {total_score}")
             
         except Exception as e:
-            print(f"⚠️ Error generating insights: {e}")
+            print(f" Error generating insights: {e}")
         
         return insights
 
@@ -8937,7 +8889,7 @@ except Exception:
         if hasattr(self, 'sleep_system') and self.sleep_system:
             try:
                 # This would integrate with the actual energy system
-                print(f"⚡ Energy level updated to {self.current_energy:.2f}")
+                print(f" Energy level updated to {self.current_energy:.2f}")
             except:
                 pass
 
@@ -9029,7 +8981,7 @@ except Exception:
                                 memory_data['file_age'] = os.path.getmtime(memory_file)
                                 memories.append(memory_data)
                         except Exception as e:
-                            print(f"   ⚠️ Failed to load {memory_file}: {e}")
+                            print(f"    Failed to load {memory_file}: {e}")
             
             # Prioritize memories by relevance (recent + effective)
             def priority_score(memory):
@@ -9043,7 +8995,7 @@ except Exception:
             return memories[:10]
             
         except Exception as e:
-            print(f"   ⚠️ Error loading memories: {e}")
+            print(f"    Error loading memories: {e}")
             return []
 
     async def _garbage_collect_memories(self) -> int:
@@ -9086,17 +9038,17 @@ except Exception:
                             if should_delete:
                                 os.remove(memory_file)
                                 deleted_count += 1
-                                print(f"   🗑️ Deleted {memory_file.name} (age: {file_age_days:.1f}d, size: {file_size_kb:.1f}KB)")
+                                print(f"    Deleted {memory_file.name} (age: {file_age_days:.1f}d, size: {file_size_kb:.1f}KB)")
                             elif is_protected:
-                                print(f"   🛡️ Protected {memory_file.name} from deletion (winning memory)")
+                                print(f"    Protected {memory_file.name} from deletion (winning memory)")
                                 
                         except Exception as e:
-                            print(f"   ⚠️ Failed to process {memory_file}: {e}")
+                            print(f"    Failed to process {memory_file}: {e}")
             
             return deleted_count
             
         except Exception as e:
-            print(f"   ⚠️ Error during garbage collection: {e}")
+            print(f"    Error during garbage collection: {e}")
             return 0
 
     async def _combine_similar_memories(self) -> int:
@@ -9157,12 +9109,12 @@ except Exception:
                             pass
                     
                     combined_count += 1
-                    print(f"   🔗 Combined {len(memories)} memories into {combined_file.name}")
+                    print(f"    Combined {len(memories)} memories into {combined_file.name}")
             
             return combined_count
             
         except Exception as e:
-            print(f"   ⚠️ Error combining memories: {e}")
+            print(f"    Error combining memories: {e}")
             return 0
 
     async def _strengthen_action_memory_with_context(self, action: Dict[str, Any], context_memories: List[Dict[str, Any]]) -> None:
@@ -9174,7 +9126,7 @@ except Exception:
             effectiveness = action.get('effectiveness', 0)
             score = action.get('score_achieved', 0)
             
-            print(f"   💪 Strengthening: {action_type} (effectiveness: {effectiveness:.2f}, score: {score})")
+            print(f"    Strengthening: {action_type} (effectiveness: {effectiveness:.2f}, score: {score})")
             
             # Create enhanced memory entry
             enhanced_memory = {
@@ -9200,7 +9152,7 @@ except Exception:
                 self.effective_action_memories = self.effective_action_memories[-50:]
                 
         except Exception as e:
-            print(f"   ⚠️ Error strengthening memory: {e}")
+            print(f"    Error strengthening memory: {e}")
 
     async def _generate_memory_insights(self, effective_actions: List[Dict[str, Any]], memories: List[Dict[str, Any]]) -> List[str]:
         """Generate insights from memory patterns and current effective actions."""
@@ -9236,7 +9188,7 @@ except Exception:
                 insights.append("Memory consolidation: Linking current learnings with historical patterns")
                 
         except Exception as e:
-            print(f"   ⚠️ Error generating insights: {e}")
+            print(f"    Error generating insights: {e}")
         
         return insights
 
@@ -9264,7 +9216,7 @@ except Exception:
             guidance.append("Energy management: Monitor action effectiveness to optimize sleep timing")
             
         except Exception as e:
-            print(f"   ⚠️ Error preparing guidance: {e}")
+            print(f"    Error preparing guidance: {e}")
         
         return guidance
 
@@ -9339,17 +9291,17 @@ except Exception:
                 preservation_strength = 0.95  # Nearly permanent
                 min_salience_floor = 0.8  # Very high minimum
                 protection_duration = 1000  # Much longer protection
-                print(f"🏆 CRITICAL MEMORY PRESERVATION: Level progression memories (strength: {preservation_strength})")
+                print(f" CRITICAL MEMORY PRESERVATION: Level progression memories (strength: {preservation_strength})")
             elif score >= 4:  # High score achievement
                 preservation_strength = 0.85
                 min_salience_floor = 0.6
                 protection_duration = 500
-                print(f"🏆 HIGH-VALUE MEMORY PRESERVATION: Score {score} memories (strength: {preservation_strength})")
+                print(f" HIGH-VALUE MEMORY PRESERVATION: Score {score} memories (strength: {preservation_strength})")
             elif score >= 1:  # Any positive score
                 preservation_strength = 0.75
                 min_salience_floor = 0.4
                 protection_duration = 200
-                print(f"🏆 WINNING MEMORY PRESERVATION: Score {score} memories (strength: {preservation_strength})")
+                print(f" WINNING MEMORY PRESERVATION: Score {score} memories (strength: {preservation_strength})")
             else:
                 return  # No preservation for zero scores
             
@@ -9400,7 +9352,7 @@ except Exception:
                 if mem['protection_expires'] > current_time
             ]
             
-            print(f"✨ Protected {winning_memory_count} winning memories from deletion (expires in {protection_duration}s)")
+            print(f" Protected {winning_memory_count} winning memories from deletion (expires in {protection_duration}s)")
             
         except Exception as e:
             logger.warning(f"Failed to preserve winning memories: {e}")
@@ -9433,7 +9385,7 @@ except Exception:
             # Progressive duration: Higher tiers last longer
             protection_duration = 200 + (tier * 200)  # 400, 600, 800, 1000, 1200
             
-            print(f"🏆 LEVEL {new_level} BREAKTHROUGH! Tier {tier} Protection (strength: {preservation_strength:.2f}, floor: {min_salience_floor:.1f})")
+            print(f" LEVEL {new_level} BREAKTHROUGH! Tier {tier} Protection (strength: {preservation_strength:.2f}, floor: {min_salience_floor:.1f})")
             
             # Demote previous level memories if this is a higher tier
             if previous_level > 0:
@@ -9492,10 +9444,10 @@ except Exception:
             }
             self.game_level_records[game_id]['breakthroughs'].append(breakthrough_record)
             
-            print(f"🎯 Preserved {breakthrough_memory_count} Tier {tier} breakthrough memories (Level {new_level})")
+            print(f" Preserved {breakthrough_memory_count} Tier {tier} breakthrough memories (Level {new_level})")
             
         except Exception as e:
-            print(f"⚠️ Error in breakthrough memory preservation: {e}")
+            print(f" Error in breakthrough memory preservation: {e}")
 
     def _demote_previous_level_memories(self, game_id: str, previous_level: int, new_tier: int):
         """
@@ -9525,10 +9477,10 @@ except Exception:
                     demoted_count += 1
             
             if demoted_count > 0:
-                print(f"📉 Demoted {demoted_count} Level {previous_level} memories (still protected but lower priority)")
+                print(f" Demoted {demoted_count} Level {previous_level} memories (still protected but lower priority)")
                 
         except Exception as e:
-            print(f"⚠️ Error in memory demotion: {e}")
+            print(f" Error in memory demotion: {e}")
     
     def _is_memory_protected(self, memory_filename: str) -> bool:
         """Check if a memory file is protected from deletion using hierarchical system."""
@@ -9594,7 +9546,7 @@ except Exception:
                     tier_summary[tier]['levels'].add(level)
             
             if active_count > 0:
-                print(f"\n🏛️ MEMORY HIERARCHY STATUS ({active_count} protected memories):")
+                print(f"\n MEMORY HIERARCHY STATUS ({active_count} protected memories):")
                 for tier in sorted(tier_summary.keys(), reverse=True):
                     info = tier_summary[tier]
                     strength = 0.70 + (tier * 0.05)
@@ -9682,10 +9634,6 @@ except Exception:
             
         except Exception as e:
             logger.warning(f"Error getting protection floor: {e}")
-            return 0.0
-            
-        except Exception as e:
-            logger.warning(f"Error getting protection floor: {e}")
             return 0.1
 
     async def investigate_api_available_actions(self, game_id: str) -> Dict[str, Any]:
@@ -9701,12 +9649,12 @@ except Exception:
                 return {"error": "No GUID received"}
             
             # Extract information from the session data (no additional API call needed)
-            print(f"\n🔍 API INVESTIGATION for {game_id}:")
-            print(f"   📡 Session Data Keys: {list(session_data.keys())}")
-            print(f"   🎮 Game State: {session_data.get('state', 'UNKNOWN')}")
-            print(f"   🎯 Available Actions: {session_data.get('available_actions', [])}")
-            print(f"   🏁 Score: {session_data.get('score', 0)}")
-            print(f"   � GUID: {guid}")
+            print(f"\n API INVESTIGATION for {game_id}:")
+            print(f"    Session Data Keys: {list(session_data.keys())}")
+            print(f"    Game State: {session_data.get('state', 'UNKNOWN')}")
+            print(f"    Available Actions: {session_data.get('available_actions', [])}")
+            print(f"    Score: {session_data.get('score', 0)}")
+            print(f"    GUID: {guid}")
             
             # Return the investigation results
             investigation_result = {
@@ -9722,12 +9670,12 @@ except Exception:
                 "api_endpoint_used": "RESET command (no additional call needed)"
             }
             
-            print(f"   ✅ Investigation successful - ready for direct control")
+            print(f"    Investigation successful - ready for direct control")
             return investigation_result
-                        
+            
         except Exception as e:
             error_msg = f"API investigation failed: {str(e)}"
-            print(f"   ❌ {error_msg}")
+            print(f"    {error_msg}")
             return {"error": error_msg}
 
     async def start_training_with_direct_control(
@@ -9737,10 +9685,10 @@ except Exception:
         session_count: int = 0
     ) -> Dict[str, Any]:
         """Run training session with direct API action control instead of external main.py."""
-        print(f"\n🎯 STARTING DIRECT CONTROL TRAINING for {game_id}")
+        print(f"\n STARTING DIRECT CONTROL TRAINING for {game_id}")
         print(f"   Max Actions: {max_actions_per_game}, Session: {session_count}")
         
-        # 🔧 CRITICAL FIX: Handle per-game scorecard for swarm mode
+        #  CRITICAL FIX: Handle per-game scorecard for swarm mode
         original_scorecard_id = self.current_scorecard_id
         
         # Track if we created a new scorecard for this session
@@ -9755,20 +9703,20 @@ except Exception:
                                   session_count > 0 and 
                                   session_count % 10 != 0)  # Start fresh every 10 sessions
             
-            print(f"🔍 Session decision: existing_guid={existing_guid}, session_count={session_count}, should_reuse={should_reuse_session}")
+            print(f" Session decision: existing_guid={existing_guid}, session_count={session_count}, should_reuse={should_reuse_session}")
             
             if should_reuse_session:
                 # Use level reset for subsequent sessions of the same game
-                print(f"🔄 Using LEVEL RESET for session {session_count} of {game_id} (reusing session)")
+                print(f" Using LEVEL RESET for session {session_count} of {game_id} (reusing session)")
                 session_data = await self._start_game_session(game_id, existing_guid=existing_guid)
             else:
                 # Use new game reset for the first session or when starting fresh
                 if existing_guid:
-                    print(f"🔄 Starting FRESH SESSION for {game_id} (clearing previous session)")
+                    print(f" Starting FRESH SESSION for {game_id} (clearing previous session)")
                     # Clear the old session
                     del self.current_game_sessions[game_id]
                 else:
-                    print(f"🔄 Using NEW GAME RESET for session {session_count} of {game_id}")
+                    print(f" Using NEW GAME RESET for session {session_count} of {game_id}")
                 session_data = await self._start_game_session(game_id)
             
             if not session_data:
@@ -9782,18 +9730,18 @@ except Exception:
                 'frame': session_data.get('frame', [])
             }
             
-            # 🔧 CRITICAL FIX: Initialize frame data from session start
+            #  CRITICAL FIX: Initialize frame data from session start
             initial_frame = session_data.get('frame', [])
             if initial_frame:
                 self._last_frame = initial_frame
                 try:
                     arr_init, (iw, ih) = self._normalize_frame(initial_frame)
                     if arr_init is not None:
-                        print(f"🎯 Initialized frame data: {arr_init.shape[0]}x{arr_init.shape[1]}")
+                        print(f" Initialized frame data: {arr_init.shape[0]}x{arr_init.shape[1]}")
                     else:
-                        print(f"🎯 Initialized frame data: unknown (fallback)")
+                        print(f" Initialized frame data: unknown (fallback)")
                 except Exception:
-                    print(f"🎯 Initialized frame data: unknown (error)")
+                    print(f" Initialized frame data: unknown (error)")
             
             guid = session_data.get('guid')
             current_state = investigation.get('state', 'NOT_STARTED')
@@ -9813,12 +9761,12 @@ except Exception:
             action_history = []
             last_score_check = 0  # Track when we last displayed score progress
             
-            # 🎯 SMART ACTION CAP - Calculate dynamic limit based on game complexity
+            #  SMART ACTION CAP - Calculate dynamic limit based on game complexity
             if hasattr(self, '_action_cap_system') and self._action_cap_system['enabled']:
                 dynamic_action_cap = self._calculate_dynamic_action_cap(available_actions)
                 # Use the lower of the dynamic cap or the provided max
                 actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
-                print(f"🧠 SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, original: {max_actions_per_game})")
+                print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, original: {max_actions_per_game})")
             else:
                 actual_max_actions = max_actions_per_game
             
@@ -9843,34 +9791,34 @@ except Exception:
                 actions_taken += 1
                 
                 print("=" * 80)
-                print(f"🎯 ACTION {actions_taken}/{actual_max_actions} | Game: {game_id} | Score: {current_score}")
+                print(f" ACTION {actions_taken}/{actual_max_actions} | Game: {game_id} | Score: {current_score}")
                 print("=" * 80)
                 
                 # Check if we've reached the action limit
                 if actions_taken >= actual_max_actions:
-                    print(f"🛑 REACHED SMART ACTION LIMIT ({actual_max_actions}) - Stopping session")
+                    print(f" REACHED SMART ACTION LIMIT ({actual_max_actions}) - Stopping session")
                     if hasattr(self, '_progress_tracker'):
                         self._progress_tracker['termination_reason'] = f"Reached smart action cap ({actual_max_actions})"
                     break
                 
                 if not available_actions:
-                    print("⚠️  No available actions - stopping game loop")
+                    print("  No available actions - stopping game loop")
                     break
                     
-                print(f"📋 Available: {available_actions}")
+                print(f" Available: {available_actions}")
                 
-                # 🎯 SMART EARLY TERMINATION - Check if we should stop due to lack of progress
+                #  SMART EARLY TERMINATION - Check if we should stop due to lack of progress
                 if hasattr(self, '_should_terminate_early'):
                     should_terminate, termination_reason = self._should_terminate_early(current_score, actions_taken)
                     if should_terminate:
-                        print(f"🛑 EARLY TERMINATION: {termination_reason}")
+                        print(f" EARLY TERMINATION: {termination_reason}")
                         if hasattr(self, '_progress_tracker'):
                             self._progress_tracker['termination_reason'] = termination_reason
                         
                         # Analyze why we got stuck
                         if hasattr(self, '_analyze_stagnation_cause'):
                             stagnation_analysis = self._analyze_stagnation_cause(game_id, action_history)
-                            print(f"📊 STAGNATION ANALYSIS:")
+                            print(f" STAGNATION ANALYSIS:")
                             print(f"   Patterns: {stagnation_analysis.get('stagnation_patterns', [])}")
                             print(f"   Effectiveness: {stagnation_analysis.get('action_effectiveness', {})}")
                             print(f"   Suggested Fixes: {stagnation_analysis.get('suggested_fixes', [])}")
@@ -9892,11 +9840,11 @@ except Exception:
                         self.global_counters['total_memory_operations'] = self.global_counters.get('total_memory_operations', 0) + 1
                     
                 except Exception as e:
-                    print(f"❌ Error in action selection: {e}")
+                    print(f" Error in action selection: {e}")
                     selected_action = None
                 
                 if selected_action is None:
-                    print("❌ Action selection failed - stopping game loop")
+                    print(" Action selection failed - stopping game loop")
                     break
                 
                 # Update action pattern history for loop detection
@@ -9907,7 +9855,7 @@ except Exception:
                         self._progress_tracker['action_pattern_history'] = self._progress_tracker['action_pattern_history'][-15:]
                 
                 if selected_action is None:
-                    print("❌ Action selection failed - stopping game loop")
+                    print(" Action selection failed - stopping game loop")
                     break
                 
                 # Get frame analysis for enhanced action execution
@@ -9916,33 +9864,33 @@ except Exception:
                 else:
                     current_frame_analysis = {}
                 
-                # 🔧 CRITICAL FIX: Get actual frame dimensions from latest action result with proper structure handling
+                #  CRITICAL FIX: Get actual frame dimensions from latest action result with proper structure handling
                 actual_frame = None
                 
                 # First try to get frame from latest action result (most current)
                 if hasattr(self, '_last_frame') and self._last_frame:
                     actual_frame = self._last_frame
-                    print(f"🎯 Using frame from last action result")
+                    print(f" Using frame from last action result")
                 # Fallback to session data if no recent frame
                 elif session_data.get('frame'):
                     actual_frame = session_data.get('frame', [])
-                    print(f"🎯 Using frame from session data")
+                    print(f" Using frame from session data")
                 # Last resort: investigation data
                 elif investigation.get('frame'):
                     actual_frame = investigation.get('frame', [])
-                    print(f"🎯 Using frame from investigation data")
+                    print(f" Using frame from investigation data")
                 
-                # 🔧 CRITICAL FIX: Normalize frame into a 2D numpy array and derive grid dims
+                #  CRITICAL FIX: Normalize frame into a 2D numpy array and derive grid dims
                 normalized_arr, dims = self._normalize_frame(actual_frame)
                 if normalized_arr is not None:
                     # Store canonical current frame data as 2D numpy array (height, width)
                     # Note: normalize returns (width, height) dims tuple
                     self.current_frame_data = normalized_arr
                     actual_grid_dims = dims
-                    print(f"🎯 Using actual frame dimensions: {actual_grid_dims} (W×H) - normalized frame stored")
+                    print(f" Using actual frame dimensions: {actual_grid_dims} (W×H) - normalized frame stored")
                 else:
                     actual_grid_dims = (64, 64)
-                    print(f"⚠️ No frame data available after normalization, using fallback dimensions: {actual_grid_dims}")
+                    print(f" No frame data available after normalization, using fallback dimensions: {actual_grid_dims}")
                 
                 # Optimize coordinates if needed (for ACTION6)
                 x, y = None, None
@@ -9954,32 +9902,32 @@ except Exception:
                     else:
                         x, y = self._optimize_coordinates_for_action(selected_action, actual_grid_dims, game_id)
                     
-                    # 🔧 CRITICAL FIX: Validate coordinates before action execution
+                    #  CRITICAL FIX: Validate coordinates before action execution
                     if x is not None and y is not None:
                         if not self._verify_grid_bounds(x, y, actual_grid_dims[0], actual_grid_dims[1]):
-                            print(f"❌ COORDINATE ERROR: ({x},{y}) out of bounds for {actual_grid_dims}, using safe fallback")
+                            print(f" COORDINATE ERROR: ({x},{y}) out of bounds for {actual_grid_dims}, using safe fallback")
                             # Use safe fallback coordinates
                             x, y = self._safe_coordinate_fallback(actual_grid_dims[0], actual_grid_dims[1], "coordinate out of bounds")
                     elif selected_action == 6:
                         # If no coordinates were generated for ACTION6, create safe ones
-                        print(f"⚠️ No coordinates generated for ACTION6, using safe fallback")
+                        print(f" No coordinates generated for ACTION6, using safe fallback")
                         x, y = self._safe_coordinate_fallback(actual_grid_dims[0], actual_grid_dims[1], "no coordinates generated")
                 
                 coord_display = f" at ({x},{y})" if x is not None else ""
-                print(f"🚀 EXECUTING: Action {selected_action}{coord_display}")
+                print(f" EXECUTING: Action {selected_action}{coord_display}")
                 
                 # Show intelligent action description (more concise)
                 action_desc = self.get_action_description(selected_action, game_id)
                 if "Learned:" in action_desc:
                     # Extract just the key learning info
                     learned_info = action_desc.split("Learned:")[-1].strip()
-                    print(f"   💡 {learned_info[:80]}..." if len(learned_info) > 80 else f"   💡 {learned_info}")
+                    print(f"    {learned_info[:80]}..." if len(learned_info) > 80 else f"    {learned_info}")
                 elif self.available_actions_memory['action_learning_stats']['total_observations'] > 0:
                     # Show basic stats
                     total_attempts = self.available_actions_memory['action_effectiveness'].get(selected_action, {}).get('attempts', 0)
                     if total_attempts > 0:
                         success_rate = self.available_actions_memory['action_effectiveness'][selected_action]['success_rate']
-                        print(f"   📊 Success: {success_rate:.1%} ({total_attempts} tries)")
+                        print(f"    Success: {success_rate:.1%} ({total_attempts} tries)")
                 
                 # Execute the action with actual grid dimensions
                 try:
@@ -9992,7 +9940,7 @@ except Exception:
                         self.global_counters['total_memory_operations'] = self.global_counters.get('total_memory_operations', 0) + 1
                     
                 except Exception as e:
-                    print(f"❌ Action execution error: {e}")
+                    print(f" Action execution error: {e}")
                     action_result = None
                 
                 # Ensure tracking lists exist
@@ -10012,12 +9960,12 @@ except Exception:
                         # CRITICAL: Extract available actions from API response
                         new_available = action_result.get('available_actions', available_actions)
                     except Exception as e:
-                        print(f"❌ Error processing action result: {e}")
+                        print(f" Error processing action result: {e}")
                         new_state = current_state
                         new_score = current_score
                         new_available = available_actions
                     
-                    # 🔧 CRITICAL FIX: Update frame data from action result with proper dimension handling
+                    #  CRITICAL FIX: Update frame data from action result with proper dimension handling
                     new_frame = action_result.get('frame') or action_result.get('grid', [])
                     if new_frame:
                         session_data['frame'] = new_frame
@@ -10028,9 +9976,9 @@ except Exception:
                         if normalized_new is not None:
                             self.current_frame_data = normalized_new
                             frame_width, frame_height = new_dims
-                            print(f"🎯 Updated frame data: {frame_width}x{frame_height} (W×H) - normalized and stored")
+                            print(f" Updated frame data: {frame_width}x{frame_height} (W×H) - normalized and stored")
                         else:
-                            print(f"🎯 Updated frame data: Invalid frame structure after normalization")
+                            print(f" Updated frame data: Invalid frame structure after normalization")
                     
                     # Track effectiveness
                     score_improvement = new_score - current_score
@@ -10038,24 +9986,24 @@ except Exception:
                     
                     # Clean result display
                     if score_improvement > 0:
-                        print(f"✅ RESULT: Score {current_score} → {new_score} (+{score_improvement:.1f}) | State: {new_state}")
+                        print(f" RESULT: Score {current_score} → {new_score} (+{score_improvement:.1f}) | State: {new_state}")
                     elif score_improvement < 0:
-                        print(f"❌ RESULT: Score {current_score} → {new_score} ({score_improvement:.1f}) | State: {new_state}")
+                        print(f" RESULT: Score {current_score} → {new_score} ({score_improvement:.1f}) | State: {new_state}")
                     else:
-                        print(f"➡️  RESULT: Score unchanged ({new_score}) | State: {new_state}")
+                        print(f"  RESULT: Score unchanged ({new_score}) | State: {new_state}")
                     
                     # Update available actions for next iteration
                     if new_available != available_actions:
-                        print(f"🔄 Actions: {available_actions} → {new_available}")
+                        print(f" Actions: {available_actions} → {new_available}")
                     
                 # CRITICAL: Validate that action_result is a dictionary before processing
                 if not isinstance(action_result, dict):
-                    print(f"❌ CRITICAL ERROR: action_result is not a dict, it's {type(action_result)}: {action_result}")
-                    print(f"❌ This will cause 'str' object has no attribute 'items' error")
+                    print(f" CRITICAL ERROR: action_result is not a dict, it's {type(action_result)}: {action_result}")
+                    print(f" This will cause 'str' object has no attribute 'items' error")
                     # Skip processing this action result
                     continue
                     
-                    # 🔧 CRITICAL FIX: Use unified energy consumption for consistency
+                    #  CRITICAL FIX: Use unified energy consumption for consistency
                     # Determine if this was exploration or repetitive behavior
                     is_exploration = selected_action == 6 and hasattr(self, '_progress_tracker')  # ACTION6 is typically exploration
                     is_repetitive = (not was_effective and actions_taken > 100)
@@ -10069,9 +10017,9 @@ except Exception:
                     
                     # Show energy status more concisely
                     if remaining_energy < 50:
-                        print(f"⚡ Energy: {remaining_energy:.1f}/100 {'🔴' if remaining_energy < 20 else '🟡' if remaining_energy < 40 else '🟢'}")
+                        print(f" Energy: {remaining_energy:.1f}/100 {'' if remaining_energy < 20 else '🟡' if remaining_energy < 40 else '🟢'}")
                     
-                    # 🔧 CRITICAL FIX: Intelligent sleep trigger system
+                    #  CRITICAL FIX: Intelligent sleep trigger system
                     # Calculate recent effectiveness for smart sleep decisions
                     recent_effective_count = sum(1 for action in action_history[-20:] if action.get('effective', False))
                     recent_effectiveness = recent_effective_count / max(1, len(action_history[-20:]))
@@ -10080,18 +10028,18 @@ except Exception:
                     should_sleep = self._should_trigger_sleep_cycle(actions_taken, recent_effectiveness)
                     
                     if should_sleep:
-                        print(f"😴 SLEEP TRIGGER: Low energy ({remaining_energy:.1f}) after {actions_taken} actions")
+                        print(f" SLEEP TRIGGER: Low energy ({remaining_energy:.1f}) after {actions_taken} actions")
                         
                         # Execute enhanced sleep cycle with current data
                         sleep_result = await self._trigger_enhanced_sleep_with_arc_data(
                             action_history, effective_actions, game_id
                         )
-                        print(f"🌅 Sleep completed: {sleep_result}")
+                        print(f" Sleep completed: {sleep_result}")
                         
                         # Restore energy using unified system
                         energy_restoration = 25.0
                         self.current_energy = min(100.0, self.current_energy + energy_restoration)
-                        print(f"⚡ Energy restored: +{energy_restoration:.1f} → {self.current_energy:.1f}/100")
+                        print(f" Energy restored: +{energy_restoration:.1f} → {self.current_energy:.1f}/100")
                     
                     # Track effectiveness for analysis
                 try:
@@ -10115,7 +10063,7 @@ except Exception:
                         'state_change': f"{current_state} → {new_state}"
                     })
                 except Exception as e:
-                    print(f"❌ Error in action tracking: {e}")
+                    print(f" Error in action tracking: {e}")
                     
                     # Update current state for next iteration
                 try:
@@ -10127,7 +10075,7 @@ except Exception:
                     if 'frame' in action_result:
                         session_data['frame'] = action_result['frame']
                 except Exception as e:
-                    print(f"❌ Error updating state: {e}")
+                    print(f" Error updating state: {e}")
                     
                 else:
                     # Record failed action
@@ -10142,7 +10090,7 @@ except Exception:
                             'error': True
                         })
                     except Exception as e:
-                        print(f"❌ Error recording failed action: {e}")
+                        print(f" Error recording failed action: {e}")
                 
                 # WIN RATE-BASED PER-ACTION ENERGY DEPLETION
                 try:
@@ -10159,18 +10107,18 @@ except Exception:
                     # Deplete energy
                     self.current_energy = max(0.0, self.current_energy - action_cost)
                 except Exception as e:
-                    print(f"❌ Error in energy depletion: {e}")
+                    print(f" Error in energy depletion: {e}")
                 
                 # Display energy status periodically
                 if actions_taken % 5 == 0:  # Every 5 actions
-                    energy_emoji = "🟢" if self.current_energy > 70 else "🟡" if self.current_energy > 40 else "🔴"
-                    print(f"⚡ Energy: {self.current_energy:.1f}/100 {energy_emoji}")
+                    energy_emoji = "🟢" if self.current_energy > 70 else "🟡" if self.current_energy > 40 else ""
+                    print(f" Energy: {self.current_energy:.1f}/100 {energy_emoji}")
                 
                 # Check for immediate sleep trigger due to low energy
                 sleep_threshold = energy_params['sleep_trigger_threshold']
                 if self.current_energy <= sleep_threshold:
-                    print(f"😴 SLEEP TRIGGER: Low energy ({self.current_energy:.1f}) after {actions_taken} actions")
-                    print(f"🌙 ENHANCED SLEEP CONSOLIDATION STARTING...")
+                    print(f" SLEEP TRIGGER: Low energy ({self.current_energy:.1f}) after {actions_taken} actions")
+                    print(f" ENHANCED SLEEP CONSOLIDATION STARTING...")
                     
                     # Trigger sleep consolidation
                     if hasattr(self, 'sleep_system') and self.sleep_system:
@@ -10193,21 +10141,21 @@ except Exception:
                             if sleep_result and sleep_result.get('success', False):
                                 # Ensure current_energy is not None before arithmetic operations
                                 if self.current_energy is None:
-                                    print("⚠️ Warning: current_energy was None during restoration, resetting to 60.0")
+                                    print(" Warning: current_energy was None during restoration, resetting to 60.0")
                                     self.current_energy = 60.0
                                 energy_restoration = min(40.0, 100.0 - self.current_energy)  # Restore up to 40 energy
                                 self.current_energy += energy_restoration
-                                print(f"⚡ Energy restored: {self.current_energy - energy_restoration:.1f} → {self.current_energy:.1f}")
+                                print(f" Energy restored: {self.current_energy - energy_restoration:.1f} → {self.current_energy:.1f}")
                             
                         except Exception as e:
-                            print(f"⚠️ Sleep consolidation error: {e}")
+                            print(f" Sleep consolidation error: {e}")
                             # Fallback: restore some energy anyway
                             self.current_energy = min(100.0, self.current_energy + 25.0)
                     else:
                         # Simple energy restoration if no sleep system
-                        print("⚠️ Skipping memory consolidation - no predictive core available")
+                        print(" Skipping memory consolidation - no predictive core available")
                         self.current_energy = min(100.0, self.current_energy + 25.0)
-                        print(f"⚡ Energy restored to: {self.current_energy:.1f}/100")
+                        print(f" Energy restored to: {self.current_energy:.1f}/100")
                 
                 
                 # Track actions without progress for emergency override
@@ -10220,19 +10168,19 @@ except Exception:
                         # Progress made - reset counter
                         self._actions_without_progress = 0
                 except Exception as e:
-                    print(f"❌ Error tracking progress: {e}")
+                    print(f" Error tracking progress: {e}")
                 
                 # Display score progress every 10 actions
                 try:
                     if actions_taken % 10 == 0 or actions_taken - last_score_check >= 10:
                         score_change = current_score - investigation.get('score', 0)
                         effectiveness_pct = len(effective_actions)/max(1,actions_taken)*100
-                        print(f"📊 Progress #{actions_taken}: Score {current_score} (+{score_change}) | Effective: {len(effective_actions)}/{actions_taken} ({effectiveness_pct:.0f}%)")
+                        print(f" Progress #{actions_taken}: Score {current_score} (+{score_change}) | Effective: {len(effective_actions)}/{actions_taken} ({effectiveness_pct:.0f}%)")
                         if current_score == investigation.get('score', 0):
-                            print(f"   ⚠️  No progress in {actions_taken} actions")
+                            print(f"     No progress in {actions_taken} actions")
                         last_score_check = actions_taken
                 except Exception as e:
-                    print(f"❌ Error displaying progress: {e}")
+                    print(f" Error displaying progress: {e}")
                 
                 # Rate-limit compliant delay between actions
                 # With 8 RPS limit, we need at least 0.125s between requests
@@ -10247,7 +10195,7 @@ except Exception:
                 # Close if we're in swarm mode (per-game scorecards)
                 if hasattr(self, '_swarm_mode_active') and self._swarm_mode_active:
                     should_close_scorecard = True
-                    print(f"🔒 Swarm mode: Closing scorecard {self.current_scorecard_id} for {game_id}...")
+                    print(f" Swarm mode: Closing scorecard {self.current_scorecard_id} for {game_id}...")
                 
                 # Don't close scorecards just because we created them - keep them for reuse
                 # Only close in specific circumstances like swarm mode or final session
@@ -10255,27 +10203,27 @@ except Exception:
                 # Close if this is the final session or we want to start completely fresh
                 elif session_count >= 100:  # Close after 100 sessions to start fresh
                     should_close_scorecard = True
-                    print(f"🔒 Fresh start: Closing scorecard {self.current_scorecard_id} after {session_count} sessions...")
+                    print(f" Fresh start: Closing scorecard {self.current_scorecard_id} after {session_count} sessions...")
                 
                 # Close if we're explicitly clearing sessions (e.g., switching games)
                 elif hasattr(self, '_force_scorecard_close') and self._force_scorecard_close:
                     should_close_scorecard = True
-                    print(f"🔒 Forced close: Closing scorecard {self.current_scorecard_id}...")
+                    print(f" Forced close: Closing scorecard {self.current_scorecard_id}...")
                     self._force_scorecard_close = False  # Reset the flag
                 
                 if should_close_scorecard:
                     try:
                         scorecard_closed = await self._close_scorecard(self.current_scorecard_id)
                         if scorecard_closed:
-                            print(f"✅ Closed scorecard: {self.current_scorecard_id}")
+                            print(f" Closed scorecard: {self.current_scorecard_id}")
                             self.current_scorecard_id = None  # Clear the scorecard ID
                         else:
-                            print(f"⚠️ Failed to close scorecard {self.current_scorecard_id}")
+                            print(f" Failed to close scorecard {self.current_scorecard_id}")
                     except Exception as e:
-                        print(f"❌ Error closing scorecard: {e}")
+                        print(f" Error closing scorecard: {e}")
                 else:
-                    print(f"📊 Keeping scorecard {self.current_scorecard_id} open for continued training")
-                    print(f"🔍 Scorecard kept: created_new={getattr(self, '_created_new_scorecard', False)}, session_count={session_count}")
+                    print(f" Keeping scorecard {self.current_scorecard_id} open for continued training")
+                    print(f" Scorecard kept: created_new={getattr(self, '_created_new_scorecard', False)}, session_count={session_count}")
             
             try:
                 final_result = {
@@ -10294,7 +10242,7 @@ except Exception:
                     )
                 }
             except Exception as e:
-                print(f"❌ Error creating final result: {e}")
+                print(f" Error creating final result: {e}")
                 final_result = {
                     'final_score': 0,
                     'final_state': 'ERROR',
@@ -10308,7 +10256,7 @@ except Exception:
             # Clean session summary
             try:
                 print("\n" + "="*80)
-                print("🏁 SESSION COMPLETE")
+                print(" SESSION COMPLETE")
                 print("="*80)
                 print(f"Game: {game_id}")
                 print(f"Final Score: {current_score} | State: {current_state}")
@@ -10317,26 +10265,26 @@ except Exception:
                 print(f"Result: {final_result['termination_reason']}")
                 
                 # Show post-session memory status
-                print(f"\n📊 POST-SESSION MEMORY STATUS:")
+                print(f"\n POST-SESSION MEMORY STATUS:")
                 print(f"   Memory Operations: {self.global_counters.get('total_memory_operations', 0)}")
                 print(f"   Sleep Cycles: {self.global_counters.get('total_sleep_cycles', 0)}")
                 print(f"   Energy Level: {self.current_energy:.2f}")
             
                 # Show coordinate intelligence summary if available
                 if hasattr(self, 'enhanced_coordinate_intelligence'):
-                    print("🧠 Coordinate Intelligence: ACTIVE")
+                    print(" Coordinate Intelligence: ACTIVE")
                 
                 print("="*80)
             except Exception as e:
-                print(f"❌ Error in session summary: {e}")
+                print(f" Error in session summary: {e}")
             
             return final_result
             
         except Exception as e:
-            print(f"   ⚠️ Error in direct control training: {e}")
-            print(f"   ⚠️ Error type: {type(e)}")
+            print(f"    Error in direct control training: {e}")
+            print(f"    Error type: {type(e)}")
             import traceback
-            print(f"   ⚠️ Traceback: {traceback.format_exc()}")
+            print(f"    Traceback: {traceback.format_exc()}")
             return {"error": str(e), "actions_taken": 0}
     
     async def _trigger_enhanced_sleep_with_arc_data(
@@ -10405,7 +10353,7 @@ except Exception:
                 replay_buffer = self._create_replay_buffer_from_actions(action_history)
                 
                 # Execute enhanced sleep cycle
-                print(f"🌙 ENHANCED SLEEP CONSOLIDATION STARTING...")
+                print(f" ENHANCED SLEEP CONSOLIDATION STARTING...")
                 sleep_result = self.sleep_system.execute_sleep_cycle(
                     replay_buffer=replay_buffer,
                     arc_data=arc_data,
@@ -10417,12 +10365,12 @@ except Exception:
                 
                 # ENHANCED: Run Frame Analyzer Sleep Consolidation
                 if self.frame_analyzer and hasattr(self.frame_analyzer, 'consolidate_learning_during_sleep'):
-                    print(f"🔍 VISUAL INTELLIGENCE CONSOLIDATION...")
+                    print(f" VISUAL INTELLIGENCE CONSOLIDATION...")
                     visual_consolidation = self.frame_analyzer.consolidate_learning_during_sleep()
                     
-                    print(f"   📝 Visual Hypotheses Generated: {visual_consolidation['new_hypotheses_generated']}")
-                    print(f"   🎯 Visual Patterns Discovered: {visual_consolidation['patterns_discovered']}")
-                    print(f"   💡 Visual Learning Insights: {len(visual_consolidation['learning_insights'])}")
+                    print(f"    Visual Hypotheses Generated: {visual_consolidation['new_hypotheses_generated']}")
+                    print(f"    Visual Patterns Discovered: {visual_consolidation['patterns_discovered']}")
+                    print(f"    Visual Learning Insights: {len(visual_consolidation['learning_insights'])}")
                     
                     # Log visual insights for debugging
                     for insight in visual_consolidation['learning_insights']:
@@ -10431,16 +10379,16 @@ except Exception:
                     # Get and apply visual recommendations for next actions
                     visual_recommendations = self.frame_analyzer.get_actionable_recommendations()
                     if visual_recommendations:
-                        print(f"   🎯 Top Visual Recommendation: {visual_recommendations[0]['recommendation']}")
+                        print(f"    Top Visual Recommendation: {visual_recommendations[0]['recommendation']}")
                         print(f"      Confidence: {visual_recommendations[0]['confidence']:.1%}")
                         print(f"      Reasoning: {visual_recommendations[0]['reasoning']}")
                 else:
-                    print(f"   ⚠️ Frame analyzer not available for visual consolidation")
+                    print(f"    Frame analyzer not available for visual consolidation")
                 
                 # Update sleep cycle counter
                 self.global_counters['total_sleep_cycles'] = self.global_counters.get('total_sleep_cycles', 0) + 1
                 
-                print(f"🌅 ENHANCED SLEEP COMPLETE - Patterns: {sleep_result.get('failed_patterns_identified', 0)} failed, "
+                print(f" ENHANCED SLEEP COMPLETE - Patterns: {sleep_result.get('failed_patterns_identified', 0)} failed, "
                     f"{sleep_result.get('successful_patterns_strengthened', 0)} successful, "
                     f"Strategies: {sleep_result.get('diversification_strategies_created', 0)}")
                 
@@ -10468,9 +10416,9 @@ except Exception:
             }
     
     async def _fallback_sleep_result(self) -> Dict[str, Any]:
-        """🔧 CRITICAL FIX: Enhanced fallback sleep with memory consolidation when advanced system is unavailable."""
+        """ CRITICAL FIX: Enhanced fallback sleep with memory consolidation when advanced system is unavailable."""
         
-        print(f"🌙 ENHANCED FALLBACK SLEEP STARTING...")
+        print(f" ENHANCED FALLBACK SLEEP STARTING...")
         
         # Perform basic memory consolidation operations
         consolidation_results = {
@@ -10488,7 +10436,7 @@ except Exception:
                 total_observations = action_memory.get('action_learning_stats', {}).get('total_observations', 0)
                 
                 if total_observations > 0:
-                    print(f"   📊 Consolidating {total_observations} action observations...")
+                    print(f"    Consolidating {total_observations} action observations...")
                     
                     # Strengthen successful patterns
                     effectiveness_data = action_memory.get('action_effectiveness', {})
@@ -10506,13 +10454,13 @@ except Exception:
             
             # 2. Consolidate coordinate intelligence if frame analyzer exists
             if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
-                print(f"   🔍 Running basic visual consolidation...")
+                print(f"    Running basic visual consolidation...")
                 
                 # Simple pattern discovery in explored coordinates
                 if hasattr(self, '_progress_tracker'):
                     explored_coords = getattr(self._progress_tracker, 'explored_coordinates', set())
                     if len(explored_coords) > 10:
-                        print(f"      🎯 Analyzed {len(explored_coords)} coordinate patterns")
+                        print(f"       Analyzed {len(explored_coords)} coordinate patterns")
                         consolidation_results['coordinate_patterns_discovered'] = len(explored_coords) // 10
             
             # 3. Update global memory counters
@@ -10523,7 +10471,7 @@ except Exception:
             # 4. Basic rest period for system consolidation
             await asyncio.sleep(0.2)  # Brief consolidation pause
             
-            print(f"🌅 FALLBACK SLEEP COMPLETE - Strengthened: {consolidation_results['successful_patterns_strengthened']}, "
+            print(f" FALLBACK SLEEP COMPLETE - Strengthened: {consolidation_results['successful_patterns_strengthened']}, "
                 f"Weakened: {consolidation_results['failed_patterns_weakened']}, "
                 f"Coordinates: {consolidation_results['coordinate_patterns_discovered']}")
             
@@ -10608,10 +10556,35 @@ except Exception:
         most_frequent = max(action_frequency.items(), key=lambda x: x[1]) if action_frequency else (None, 0)
         
         return {
-            'pattern_type': 'repetitive_loop' if most_frequent[1] > len(recent_actions) * 0.6 else 'diverse_exploration',
+            'pattern_type': 'repetitive_loop' if most_frequent[1] > len(recent_actions) * 0.6 else 'diverse_exploration',                 
             'dominant_action': most_frequent[0],
-            'dominance_ratio': most_frequent[1] / max(1, len(recent_actions)),
+            'dominance_ratio': most_frequent[1] / max(1, len(recent_actions)),                                                            
             'action_diversity': len(set(recent_actions)),
             'total_actions_analyzed': len(recent_actions)
         }
+
+
+# ===== Compatibility shim =====
+# Some utility methods were accidentally defined at module level (they
+# expect 'self' as the first argument). To preserve backward compatibility
+# and avoid AttributeError at runtime, attach those functions as methods
+# onto the ContinuousLearningLoop class at import time.
+try:
+    import inspect as _inspect
+    for _name, _obj in list(globals().items()):
+        if _inspect.isfunction(_obj) or _inspect.iscoroutinefunction(_obj):
+            try:
+                _sig = _inspect.signature(_obj)
+                _params = list(_sig.parameters.keys())
+                if _params and _params[0] == 'self':
+                    # Only attach if the class doesn't already provide it
+                    if not hasattr(ContinuousLearningLoop, _name):
+                        setattr(ContinuousLearningLoop, _name, _obj)
+            except Exception:
+                # Ignore any functions we cannot introspect
+                continue
+except Exception:
+    # Best-effort shim - failure here is non-fatal; missing methods will
+    # continue to raise AttributeError which will be logged elsewhere.
+    pass
 
