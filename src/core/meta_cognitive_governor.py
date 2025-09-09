@@ -292,6 +292,15 @@ class MetaCognitiveGovernor:
         except ImportError:
             self.logger.warning("Memory pattern optimizer not available")
         
+        # Log file management system
+        self.log_cleanup_threshold = 10000  # Lines
+        self.log_cleanup_remove_lines = 5000  # Lines to remove when threshold exceeded
+        self.log_cleanup_patterns = [
+            "master_arc_trainer*.log",
+            "governor_decisions*.log",
+            "arc_trainer*.log"
+        ]
+        
         # Hierarchical memory clustering (Phase 2 enhancement)
         self.memory_clusterer = None
         try:
@@ -415,6 +424,11 @@ class MetaCognitiveGovernor:
         start_time = time.time()
         
         try:
+            # Manage log files first (low priority maintenance)
+            log_cleanup_results = self.manage_log_files()
+            if log_cleanup_results['files_cleaned'] > 0:
+                self.logger.info(f"🧹 Log maintenance: cleaned {log_cleanup_results['files_cleaned']} files")
+            
             # Analyze current system state
             system_analysis = self._analyze_cognitive_systems()
             performance_analysis = self._analyze_performance_trends(current_performance)
@@ -536,6 +550,89 @@ class MetaCognitiveGovernor:
                                    if data['activation_count'] > 0 and data['efficiency_ratio'] < 0.5]
         
         return status
+    
+    def manage_log_files(self) -> Dict[str, Any]:
+        """Manage log file sizes by implementing rolling cleanup when files exceed threshold."""
+        cleanup_results = {
+            'files_checked': 0,
+            'files_cleaned': 0,
+            'lines_removed': 0,
+            'errors': []
+        }
+        
+        try:
+            # Find all log files matching our patterns
+            log_files = []
+            for pattern in self.log_cleanup_patterns:
+                # Search in data/logs directory
+                log_dir = Path("data/logs")
+                if log_dir.exists():
+                    log_files.extend(log_dir.glob(pattern))
+                
+                # Also search in current directory
+                log_files.extend(Path(".").glob(pattern))
+            
+            cleanup_results['files_checked'] = len(log_files)
+            
+            for log_file in log_files:
+                try:
+                    result = self._cleanup_log_file(log_file)
+                    if result['cleaned']:
+                        cleanup_results['files_cleaned'] += 1
+                        cleanup_results['lines_removed'] += result['lines_removed']
+                        self.logger.info(f"🧹 Cleaned log file {log_file.name}: removed {result['lines_removed']} lines")
+                except Exception as e:
+                    error_msg = f"Error cleaning {log_file}: {e}"
+                    cleanup_results['errors'].append(error_msg)
+                    self.logger.error(error_msg)
+            
+            if cleanup_results['files_cleaned'] > 0:
+                self.logger.info(f"📊 Log cleanup completed: {cleanup_results['files_cleaned']} files cleaned, {cleanup_results['lines_removed']} lines removed")
+            
+        except Exception as e:
+            error_msg = f"Log management error: {e}"
+            cleanup_results['errors'].append(error_msg)
+            self.logger.error(error_msg)
+        
+        return cleanup_results
+    
+    def _cleanup_log_file(self, log_file: Path) -> Dict[str, Any]:
+        """Clean up a single log file by removing old lines if it exceeds threshold."""
+        result = {
+            'cleaned': False,
+            'lines_removed': 0,
+            'original_lines': 0,
+            'final_lines': 0
+        }
+        
+        try:
+            # Count lines in file
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                lines = f.readlines()
+            
+            result['original_lines'] = len(lines)
+            
+            # Check if file exceeds threshold
+            if len(lines) <= self.log_cleanup_threshold:
+                return result
+            
+            # Remove first N lines (oldest entries)
+            lines_to_remove = min(self.log_cleanup_remove_lines, len(lines) - 1000)  # Keep at least 1000 lines
+            cleaned_lines = lines[lines_to_remove:]
+            
+            # Write cleaned content back to file
+            with open(log_file, 'w', encoding='utf-8') as f:
+                f.writelines(cleaned_lines)
+            
+            result['cleaned'] = True
+            result['lines_removed'] = lines_to_remove
+            result['final_lines'] = len(cleaned_lines)
+            
+        except Exception as e:
+            self.logger.error(f"Error cleaning log file {log_file}: {e}")
+            result['error'] = str(e)
+        
+        return result
     
     def create_architect_request(self, issue_type: str, 
                                problem_description: str,

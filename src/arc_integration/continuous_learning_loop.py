@@ -2432,6 +2432,10 @@ class ContinuousLearningLoop:
                                     except Exception as e:
                                         logger.error(f"Error in frame analysis logging: {e}")
                                 
+                                # Ensure we always return a dictionary
+                                if not isinstance(data, dict):
+                                    logger.error(f"API returned non-dict data: {type(data)} - {data}")
+                                    return None
                                 return data
                                 
                             except json.JSONDecodeError as e:
@@ -10000,8 +10004,17 @@ class ContinuousLearningLoop:
                 if not isinstance(action_result, dict):
                     print(f" CRITICAL ERROR: action_result is not a dict, it's {type(action_result)}: {action_result}")
                     print(f" This will cause 'str' object has no attribute 'items' error")
-                    # Skip processing this action result
-                    continue
+                    # Convert string error to proper error dictionary
+                    if isinstance(action_result, str):
+                        action_result = {
+                            'error': action_result,
+                            'state': 'ERROR',
+                            'score': 0,
+                            'available_actions': []
+                        }
+                    else:
+                        # Skip processing this action result
+                        continue
                     
                     #  CRITICAL FIX: Use unified energy consumption for consistency
                     # Determine if this was exploration or repetitive behavior
