@@ -253,7 +253,8 @@ signal.signal(signal.SIGTERM, signal_handler)
 # Import core systems
 try:
     from dotenv import load_dotenv
-    from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop
+    
+    # Import only what's needed immediately to avoid circular imports
     from src.core.salience_system import SalienceMode
     from src.core.energy_system import EnergySystem
     
@@ -264,6 +265,9 @@ try:
     except ImportError:
         COORDINATE_SYSTEM_AVAILABLE = False
         print("WARNING: Coordinate intelligence not available")  # Use ASCII characters
+    
+    # Lazy import for ContinuousLearningLoop to prevent circular imports
+    ContinuousLearningLoop = None
     
     # Load environment configuration
     load_dotenv('.env')
@@ -276,18 +280,17 @@ except ImportError as e:
 @dataclass
 class MasterTrainingConfig:
     """Unified configuration for all training modes."""
-    
+
     # Core settings
-    mode: str = "maximum-intelligence"
-    api_key: str = ""
-    arc_agents_path: str = ""
-    
-    # Training parameters
+    mode: str = 'maximum-intelligence'  # Training mode
+    api_key: Optional[str] = None  # ARC API key
+    arc_agents_path: Optional[str] = None  # Path to arc-agents directory
+    local_mode: bool = False  # Use local mock client for testing
     max_actions: int = 500
     max_cycles: int = 50
     target_score: float = 85.0
     session_duration: int = 60  # minutes
-    
+
     # Memory settings
     memory_size: int = 512
     memory_word_size: int = 64
@@ -357,6 +360,8 @@ class MasterARCTrainer:
         self.architect = None
         self.session_results = {}
         self.performance_history = []
+        self.arc_client = None
+        self.initialized = False
         
         # Meta-cognitive monitoring data
         self.governor_decisions = []
@@ -369,451 +374,244 @@ class MasterARCTrainer:
         # Initialize core systems
         self._initialize_systems()
     
+    async def initialize_client(self):
+        """Initialize the ARC API client and test the connection."""
+        try:
+            import os
+            
+            # Check if we should use the mock client
+            if self.config.local_mode:
+                from arc_integration.mock_arc_client import MockARCClient
+                self.logger.info("Initializing MOCK ARC client for local testing...")
+                self.arc_client = MockARCClient(api_key="mock-api-key")
+            else:
+                from arc_integration.arc_api_client import ARCClient, DEFAULT_BASE_URL
+                self.logger.info("Initializing REAL ARC API client...")
+                
+                # Debug: Log environment variables
+                self.logger.info(f"Environment variables: {os.environ.get('ARC_API_KEY', 'Not found')}")
+                self.logger.info(f"Config API key: {'*' * 8 + self.config.api_key[-4:] if self.config.api_key else 'Not set'}")
+                
+                # Initialize the real client
+                self.arc_client = ARCClient(api_key=self.config.api_key)
+            
+            # Test the connection using async context manager
+            self.logger.info("Testing connection...")
+            await self.arc_client.__aenter__()
+            
+            # Test API connectivity with a simple request
+            try:
+                # Try to reset the game as a simple health check
+                self.logger.info("Testing API connectivity with reset_game...")
+                game_state = await self.arc_client.reset_game()
+                self.logger.info(f"Successfully connected to {'MOCK' if self.config.local_mode else 'ARC'} API. Game ID: {game_state.game_id}")
+                self.initialized = True
+                return True
+            except Exception as e:
+                self.logger.error(f"Failed to connect to API: {str(e)}", exc_info=True)
+                if self.arc_client:
+                    await self.arc_client.__aexit__(None, None, None)
+                    self.arc_client = None
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error initializing ARC client: {e}")
+            if self.arc_client:
+                await self.arc_client.__aexit__(None, None, None)
+                self.arc_client = None
+            return False
+    
+    async def close(self):
+        """Clean up resources."""
+        if self.arc_client:
+            await self.arc_client.__aexit__(None, None, None)
+            self.arc_client = None
+        self.initialized = False
+    
     def _setup_logging(self):
         """Setup comprehensive logging."""
         log_level = logging.DEBUG if self.config.debug_mode else (
             logging.INFO if self.config.verbose else logging.WARNING
         )
-
-        if not self.config.no_logs:
-            # Use centralized setup to ensure UTF-8 encoding and rotation
-            log_filename = f'data/logs/master_arc_training_{int(time.time())}.log'
-            setup_logging(log_path=log_filename, level=log_level)
-
-        self.logger = logging.getLogger(__name__)
+        
+        # Configure the root logger
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.StreamHandler(),
+                logging.FileHandler('training.log')
+            ]
+        )
+        
+        # Set up module-level logger
+        self.logger = logging.getLogger('MasterARCTrainer')
+        self.logger.setLevel(log_level)
+        
+        # Disable noisy loggers
+        for logger_name in ['matplotlib', 'PIL']:
+            logging.getLogger(logger_name).setLevel(logging.WARNING)
     
     def _initialize_systems(self):
-        """Initialize core training systems."""
+        """Initialize core systems and components."""
+        self.logger.info("Initializing core systems...")
+        
         try:
-            # Initialize continuous learning loop first
-            self.continuous_loop = ContinuousLearningLoop(
-                api_key=self.config.api_key,
-                tabula_rasa_path=str(Path(__file__).parent),
-                arc_agents_path=self.config.arc_agents_path
-            )
-            
-            # Initialize coordinate system after continuous loop
-            if COORDINATE_SYSTEM_AVAILABLE and self.config.enable_coordinates:
-                try:
-                    self.coordinate_manager = EnhancedCoordinateIntelligence(self.continuous_loop)
-                    self.logger.info("✅ Coordinate intelligence initialized")
-                except Exception as e:
-                    self.logger.warning(f"⚠️ Could not initialize coordinate intelligence: {e}")
-                    self.coordinate_manager = None
-            else:
+            # Initialize coordinate system if enabled
+            if self.config.enable_coordinates and COORDINATE_SYSTEM_AVAILABLE:
+                from enhanced_coordinate_intelligence import EnhancedCoordinateIntelligence
+                # We'll initialize the coordinate manager later when we have the continuous loop
                 self.coordinate_manager = None
+                self.logger.info("Coordinate system will be initialized with continuous loop")
             
-            # Initialize meta-cognitive systems
-            if META_COGNITIVE_AVAILABLE:
-                # Initialize Governor (Third Brain - runtime supervisor)
-                if self.config.enable_meta_cognitive_governor:
-                    try:
-                        # Enhanced Governor with outcome tracking and cross-session learning
-                        self.governor = MetaCognitiveGovernor(
-                            log_file="data/logs/meta_cognitive_governor.log",
-                            outcome_tracking_dir="data/meta_learning_data",
-                            persistence_dir="data"
-                        )
-                        self.logger.info("🧠 Meta-cognitive Governor (Third Brain) initialized")
-                    except Exception as e:
-                        self.logger.warning(f"⚠️ Could not initialize Governor: {e}")
-                        self.governor = None
+            # Initialize meta-cognitive governor if enabled
+            if self.config.enable_meta_cognitive_governor:
+                try:
+                    from src.core.meta_cognitive_governor import MetaCognitiveGovernor
+                    self.governor = MetaCognitiveGovernor()
+                    self.logger.info("Meta-cognitive governor initialized")
+                except ImportError as e:
+                    self.logger.warning(f"Could not initialize meta-cognitive governor: {e}")
+                    self.governor = None
+            
+            # Initialize architect if enabled
+            if self.config.enable_architect_evolution:
+                try:
+                    from src.core.architect import Architect
+                    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    repo_path = os.path.join(base_path, 'architect_evolution_data')
+                    os.makedirs(repo_path, exist_ok=True)
+                    self.architect = Architect(base_path=base_path, repo_path=repo_path)
+                    self.logger.info("Architect system initialized")
+                except Exception as e:
+                    self.logger.warning(f"Could not initialize Architect: {e}")
+                    self.architect = None
                 
-                # Initialize Architect (Zeroth Brain - self-improvement)
-                if self.config.enable_architect_evolution:
-                    try:
-                        # Architect needs base_path and repo_path
-                        repo_path = str(Path(__file__).parent)
-                        self.architect = Architect(base_path=repo_path, repo_path=repo_path)
-                        self.logger.info("🏗️ Architect (Zeroth Brain) initialized")
-                    except Exception as e:
-                        self.logger.warning(f"⚠️ Could not initialize Architect: {e}")
-                        self.architect = None
-            else:
-                self.governor = None
-                self.architect = None
-            
-            self.logger.info("✅ Core systems initialized successfully")
+            self.logger.info("Core systems initialization complete")
             
         except Exception as e:
-            self.logger.error(f"❌ System initialization failed: {e}")
+            self.logger.error(f"Error initializing systems: {e}")
             raise
     
-    async def run_training(self) -> Dict[str, Any]:
-        """Main training execution based on mode."""
-        
-        mode_map = {
-            # Modern unified modes
-            'maximum-intelligence': self._run_maximum_intelligence,
-            'research-lab': self._run_research_lab,
-            'quick-validation': self._run_quick_validation,
-            'showcase-demo': self._run_showcase_demo,
-            'system-comparison': self._run_system_comparison,
-            'minimal-debug': self._run_minimal_debug,
-            'meta-cognitive-training': self._run_meta_cognitive_training,
-            'continuous-training': self._run_continuous_training,
-            
-            # Legacy compatibility modes
-            'sequential': self._run_sequential,
-            'swarm': self._run_swarm, 
-            'continuous': self._run_continuous,
-            'test': self._run_quick_validation,  # Map test to quick-validation
-            'training': self._run_maximum_intelligence,  # Map training to max intelligence
-            'demo': self._run_showcase_demo,  # Map demo to showcase
-        }
-        
-        handler = mode_map.get(self.config.mode)
-        if not handler:
-            raise ValueError(f"Unknown mode: {self.config.mode}")
-        
-        self.logger.info(f"🚀 Starting training mode: {self.config.mode}")
-        
+    async def run_training(self):
+        """Main training execution based on mode with enhanced client handling."""
         try:
-            results = await handler()
-            results['mode'] = self.config.mode
-            results['timestamp'] = datetime.now().isoformat()
+            # Initialize the API client for all modes except those that don't need it
+            if self.config.mode not in ['minimal-debug', 'system-comparison']:
+                if not await self.initialize_client():
+                    raise ConnectionError("Failed to initialize ARC API client. Check your API key and network connection.")
             
-            # Save results
-            self._save_results(results)
-            
-            return results
-            
-        except Exception as e:
-            self.logger.error(f"❌ Training failed in mode {self.config.mode}: {e}")
-            return {
-                'success': False,
-                'error': str(e),
-                'mode': self.config.mode,
-                'timestamp': datetime.now().isoformat()
-            }
-    
-    async def _run_maximum_intelligence(self) -> Dict[str, Any]:
-        """Run with all cognitive systems enabled (default mode)."""
-        self.logger.info("🧠 Maximum Intelligence Mode - All systems enabled")
-        
-        # Initialize performance tracking
-        current_performance = {
-            'win_rate': 0.0,
-            'avg_score': 0.0,
-            'completion_time': 0.0
-        }
-        
-        # Consult Governor for initial configuration
-        governor_recommendation = await self._consult_governor("general", current_performance)
-        if governor_recommendation:
-            self.logger.info(f"🧠 Governor consultation: {governor_recommendation}")
-        
-        # Run Architect evolution cycle if enabled
-        evolution_result = await self._run_architect_evolution()
-        if evolution_result.get('success', False):
-            self.logger.info(f"🏗️ Architect evolution completed: {evolution_result}")
-        
-        # Configure for maximum performance
-        loop_config = {
-            'max_actions_per_game': self.config.max_actions,
-            'target_score': self.config.target_score,
-            'salience_mode': SalienceMode.DECAY_COMPRESSION if self.config.salience_mode == 'decay_compression' else SalienceMode.LOSSLESS,
-            'enable_all_advanced_features': True,
-            'enable_meta_cognitive_oversight': True
-        }
-        
-        # Apply governor recommendations if available
-        if governor_recommendation and governor_recommendation.get('changes'):
-            for key, value in governor_recommendation['changes'].items():
-                if key in loop_config:
-                    loop_config[key] = value
-                    self.logger.info(f"🧠 Applied Governor recommendation: {key} = {value}")
-        
-        # Run training with meta-cognitive oversight
-        results = await self._run_continuous_learning(loop_config)
-        
-        # Add meta-cognitive information to results
-        if governor_recommendation:
-            results['governor_consultation'] = governor_recommendation
-        if evolution_result.get('success', False):
-            results['architect_evolution'] = evolution_result
-        
-        return results
-    
-    async def _run_quick_validation(self) -> Dict[str, Any]:
-        """Run quick validation for testing purposes."""
-        self.logger.info("⚡ Quick Validation Mode - Rapid testing")
-        
-        # Configure for quick testing
-        loop_config = {
-            'max_actions_per_game': min(100, self.config.max_actions),
-            'max_cycles': min(5, self.config.max_cycles),
-            'target_score': 50.0,  # Lower target for quick tests
-            'session_duration': min(5, self.config.session_duration),  # 5 minute max
-        }
-        
-        # Limit games if specified
-        if self.config.games:
-            games = self.config.games.split(',')[:3]  # Max 3 games for quick test
-            loop_config['games'] = games
-        
-        return await self._run_continuous_learning(loop_config)
-    
-    async def _run_research_lab(self) -> Dict[str, Any]:
-        """Run research and experimentation mode."""
-        self.logger.info("🔬 Research Lab Mode - Experimentation enabled")
-        
-        if self.config.compare_systems:
-            return await self._run_system_comparison()
-        
-        # Research configuration with experimentation
-        loop_config = {
-            'max_actions_per_game': self.config.max_actions,
-            'enable_experimentation': True,
-            'save_detailed_logs': True,
-            'enable_performance_tracking': True
-        }
-        
-        return await self._run_continuous_learning(loop_config)
-    
-    async def _run_showcase_demo(self) -> Dict[str, Any]:
-        """Run demonstration mode showcasing capabilities."""
-        self.logger.info("🎭 Showcase Demo Mode - Demonstrating capabilities")
-        
-        # Demo configuration
-        loop_config = {
-            'max_actions_per_game': 200,  # Shorter for demo
-            'verbose_output': True,
-            'show_decision_process': True,
-            'session_duration': 10  # 10 minute demo
-        }
-        
-        return await self._run_continuous_learning(loop_config)
-    
-    async def _run_system_comparison(self) -> Dict[str, Any]:
-        """Run system comparison tests."""
-        self.logger.info("⚖️ System Comparison Mode")
-        
-        # This would run multiple configurations and compare
-        # For now, simplified version
-        results = {
-            'success': True,
-            'comparison_results': {
-                'basic_system': {'win_rate': 0.45, 'avg_score': 42.0},
-                'enhanced_system': {'win_rate': 0.62, 'avg_score': 58.0},
-                'maximum_intelligence': {'win_rate': 0.78, 'avg_score': 71.0}
-            }
-        }
-        
-        return results
-    
-    async def _run_minimal_debug(self) -> Dict[str, Any]:
-        """Run minimal debug mode with essential features only."""
-        self.logger.info("🐛 Minimal Debug Mode - Essential features only")
-        
-        loop_config = {
-            'max_actions_per_game': 50,
-            'max_cycles': 3,
-            'disable_advanced_features': True,
-            'basic_mode_only': True
-        }
-        
-        return await self._run_continuous_learning(loop_config)
-    
-    async def _run_meta_cognitive_training(self) -> Dict[str, Any]:
-        """Run comprehensive meta-cognitive training with detailed monitoring."""
-        header_text = f"{Fore.BLUE}{'='*80}\n🧠 META-COGNITIVE ARC TRAINING SESSION\nSession ID: {self.session_id}\n{'='*80}{Style.RESET_ALL}"
-        safe_print(header_text, self.config.enable_colored_output)
-        
-        self.logger.info("Meta-Cognitive Training Mode - Comprehensive monitoring")
-        
-        # Show system status
-        await self._show_meta_cognitive_status()
-        
-        # Training configuration optimized for meta-cognitive demonstration
-        loop_config = {
-            'max_actions_per_game': self.config.max_actions,
-            'target_score': self.config.target_score,
-            'salience_mode': SalienceMode.DECAY_COMPRESSION,
-            'enable_all_advanced_features': True,
-            'enable_meta_cognitive_oversight': True,
-            'enable_detailed_monitoring': True
-        }
-        
-        # Run multiple mastery sessions to demonstrate evolution
-        session_results = []
-        mastery_sessions = min(self.config.max_cycles, 5)  # Cap at 5 for demo
-        
-        for session in range(mastery_sessions):
-            session_text = f"\n{Fore.MAGENTA}📈 Mastery Session {session + 1}/{mastery_sessions}{Style.RESET_ALL}"
-            safe_print(session_text, self.config.enable_colored_output)
-            
-            # Simulate progressive performance with more realistic modeling
-            current_performance = {
-                'win_rate': min(0.2 + (session * 0.1), 0.8),  # More gradual improvement
-                'avg_score': 30 + (session * 8),  # Realistic score progression
-                'learning_efficiency': max(0.8 - (session * 0.05), 0.4),  # Gradual efficiency decline
-                'session': session + 1
-            }
-            
-            # Governor consultation
-            governor_recommendation = await self._consult_governor_detailed(
-                f"mastery_session_{session + 1}", 
-                current_performance
-            )
-            
-            # Check for Architect intervention
-            if current_performance['learning_efficiency'] < 0.5 and session >= 2:
-                await self._trigger_architect_intervention(current_performance, session + 1)
-            
-            # Autonomous evolution every 3 sessions
-            if (session + 1) % 3 == 0:
-                await self._run_autonomous_evolution(session + 1)
-            
-            # Run actual training for this session
-            session_config = loop_config.copy()
-            session_config['max_cycles'] = 1  # One cycle per session
-            session_result = await self._run_continuous_learning(session_config)
-            
-            session_results.append({
-                'session': session + 1,
-                'performance': current_performance,
-                'governor_recommendation': governor_recommendation,
-                'training_result': session_result
-            })
-        
-        # Show comprehensive results
-        await self._show_comprehensive_results(session_results)
-        
-        # Save detailed meta-cognitive logs
-        if self.config.save_meta_cognitive_logs:
-            await self._save_meta_cognitive_logs(session_results)
-        
-        return {
-            'success': True,
-            'mode': 'meta-cognitive-training',
-            'session_results': session_results,
-            'governor_decisions': self.governor_decisions,
-            'architect_evolutions': self.architect_evolutions,
-            'session_id': self.session_id
-        }
-    
-    async def _run_sequential(self) -> Dict[str, Any]:
-        """Legacy sequential mode (backward compatibility)."""
-        self.logger.info("📊 Sequential Mode (Legacy)")
-        return await self._run_maximum_intelligence()
-    
-    async def _run_swarm(self) -> Dict[str, Any]:
-        """Legacy swarm mode (backward compatibility)."""
-        self.logger.info("🐝 Swarm Mode (Legacy)")
-        loop_config = {'enable_swarm_processing': True}
-        return await self._run_continuous_learning(loop_config)
-    
-    async def _run_continuous(self) -> Dict[str, Any]:
-        """Legacy continuous mode (backward compatibility)."""
-        self.logger.info("🔄 Continuous Mode (Legacy)")
-        return await self._run_maximum_intelligence()
-    
-    async def _run_continuous_training(self) -> Dict[str, Any]:
-        """Windows-compatible continuous training mode."""
-        self.logger.info("🔄 Continuous Training Mode (Windows Compatible)")
-        
-        # Setup Windows logging
-        setup_windows_logging()
-        
-        # Create and start continuous runner
-        runner = ContinuousTrainingRunner(dashboard_mode='console', config=self.config)
-        
-        try:
-            await runner.start_continuous_training()
-            return {
-                'success': True,
-                'mode': 'continuous-training',
-                'sessions_completed': runner.session_count,
-                'runtime_minutes': (time.time() - runner.start_time) / 60,
-                'timestamp': datetime.now().isoformat()
-            }
-        except KeyboardInterrupt:
-            safe_print(f"\n{Fore.YELLOW}INTERRUPTED: Continuous training stopped by user{Style.RESET_ALL}")
-            return {
-                'success': True,
-                'mode': 'continuous-training',
-                'sessions_completed': runner.session_count,
-                'interrupted': True,
-                'timestamp': datetime.now().isoformat()
-            }
-        except Exception as e:
-            self.logger.error(f"Continuous training failed: {e}")
-            return {
-                'success': False,
-                'mode': 'continuous-training',
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
-            }
-    
-    async def _run_continuous_learning(self, config_overrides: Dict = None) -> Dict[str, Any]:
-        """Core continuous learning execution."""
-        if not self.continuous_loop:
-            raise RuntimeError("Continuous learning loop not initialized")
-        
-        # Apply configuration overrides
-        if config_overrides:
-            for key, value in config_overrides.items():
-                if hasattr(self.continuous_loop, key):
-                    setattr(self.continuous_loop, key, value)
-        
-        # Run the continuous learning loop
-        try:
-            # Generate session ID and start training session
-            import time
-            session_id = f"master_training_{int(time.time())}"
-            
-            # Get session parameters from config overrides or defaults
-            games = None
-            if config_overrides and 'games' in config_overrides:
-                games = config_overrides['games']
-            elif self.config.games:
-                # Parse games from config if provided as string
-                if isinstance(self.config.games, str):
-                    games = [g.strip() for g in self.config.games.split(',') if g.strip()]
+            try:
+                if self.config.mode == 'maximum-intelligence':
+                    return await self._run_maximum_intelligence()
+                elif self.config.mode == 'quick-validation':
+                    return await self._run_quick_validation()
+                elif self.config.mode == 'research-lab':
+                    return await self._run_research_lab()
+                elif self.config.mode == 'showcase-demo':
+                    return await self._run_showcase_demo()
+                elif self.config.mode == 'system-comparison':
+                    return await self._run_system_comparison()
+                elif self.config.mode == 'minimal-debug':
+                    return await self._run_minimal_debug()
+                elif self.config.mode == 'meta-cognitive-training':
+                    return await self._run_meta_cognitive_training()
+                elif self.config.mode == 'sequential':
+                    return await self._run_sequential()
+                elif self.config.mode == 'swarm':
+                    return await self._run_swarm()
+                elif self.config.mode == 'continuous':
+                    return await self._run_continuous()
                 else:
-                    games = self.config.games
-            
-            # If no games specified, fetch from ARC API
-            if not games:
-                self.logger.info("No games specified, fetching from ARC-AGI-3 API...")
-                try:
-                    available_games = await self.continuous_loop.get_available_games()
-                    if available_games:
-                        # Select a reasonable number of games for training
-                        import random
-                        games = random.sample(available_games, min(6, len(available_games)))
-                        games = [game['game_id'] for game in games]
-                        self.logger.info(f"Selected {len(games)} games from ARC API: {games}")
-                    else:
-                        self.logger.warning("No games available from ARC API, using minimal fallback")
-                        games = ['ls20-016295f7601e']  # Use one known good game
-                except Exception as e:
-                    self.logger.error(f"Failed to fetch games from ARC API: {e}")
-                    games = ['ls20-016295f7601e']  # Fallback to known game
-            
-            max_cycles = config_overrides.get('max_cycles', 5) if config_overrides else 5
-            
-            # Start training session first (this creates the session)
-            actual_session_id = self.continuous_loop.start_training_session(
-                games=games,
-                max_mastery_sessions_per_game=max_cycles,
-                salience_mode=SalienceMode.LOSSLESS
-            )
-            
-            # Now run continuous learning with the created session
-            results = await self.continuous_loop.run_continuous_learning(actual_session_id)
-            return {
-                'success': True,
-                'results': results,
-                'config_used': config_overrides or {}
-            }
+                    raise ValueError(f"Unknown training mode: {self.config.mode}")
+                    
+            finally:
+                # Ensure we clean up the client
+                if self.arc_client:
+                    await self.arc_client.__aexit__(None, None, None)
+                    self.arc_client = None
+                
         except Exception as e:
-            self.logger.error(f"❌ Continuous learning failed: {e}")
+            self.logger.error(f"Error in run_training: {e}", exc_info=True)
             return {
                 'success': False,
                 'error': str(e),
-                'config_used': config_overrides or {}
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_continuous_learning(self, config_overrides: Dict = None):
+        """Core continuous learning execution with enhanced client handling."""
+        try:
+            # Initialize the API client
+            if not await self.initialize_client():
+                raise ConnectionError("Failed to initialize ARC API client. Check your API key and network connection.")
+            
+            try:
+                # Lazy import to prevent circular imports
+                global ContinuousLearningLoop
+                if ContinuousLearningLoop is None:
+                    from arc_integration.continuous_learning_loop import ContinuousLearningLoop as CL
+                    ContinuousLearningLoop = CL
+                
+                self.logger.info("Creating ContinuousLearningLoop instance...")
+                
+                # Create and initialize the training loop with the client
+                self.continuous_loop = ContinuousLearningLoop(
+                    config={
+                        **self.config.__dict__,
+                        **(config_overrides or {})
+                    }
+                )
+                
+                # Initialize coordinate manager with the continuous loop if needed
+                if self.config.enable_coordinates and COORDINATE_SYSTEM_AVAILABLE and self.coordinate_manager is None:
+                    from enhanced_coordinate_intelligence import EnhancedCoordinateIntelligence
+                    self.coordinate_manager = EnhancedCoordinateIntelligence(self.continuous_loop)
+                    self.logger.info("Coordinate system initialized with continuous loop")
+                
+                # Inject the initialized client if the loop accepts it
+                if hasattr(self.continuous_loop, 'arc_client'):
+                    self.continuous_loop.arc_client = self.arc_client
+                
+                self.logger.info("Starting training loop...")
+                
+                # Start the training loop
+                await self.continuous_loop.run()
+                
+                # Save results if available
+                if hasattr(self.continuous_loop, 'get_results'):
+                    self.session_results = self.continuous_loop.get_results()
+                    self.performance_history.append(self.session_results)
+                else:
+                    self.session_results = {'status': 'completed', 'mode': 'continuous'}
+                
+                return {
+                    'success': True,
+                    'mode': 'continuous',
+                    'results': self.session_results,
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+            except Exception as e:
+                self.logger.error(f"Error in training loop: {e}", exc_info=True)
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+            finally:
+                # Ensure we clean up the client
+                if self.arc_client:
+                    await self.arc_client.__aexit__(None, None, None)
+                    self.arc_client = None
+                
+        except Exception as e:
+            self.logger.error(f"Error in continuous learning: {e}", exc_info=True)
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
             }
     
     def _save_results(self, results: Dict[str, Any]):
@@ -1555,6 +1353,7 @@ Examples:
                        help='Enable detailed meta-cognitive monitoring')
     parser.add_argument('--disable-all-advanced', action='store_true',
                        help='Disable ALL advanced features (basic mode)')
+    parser.add_argument('--local', action='store_true', help='Use local mock client for testing')
     
     # Testing and validation
     parser.add_argument('--games', help='Comma-separated list of game IDs')
@@ -1580,6 +1379,32 @@ Examples:
     
     return parser
 
+def validate_api_key(api_key: str) -> None:
+    """Validate the API key and provide helpful error messages if missing."""
+    if not api_key:
+        error_msg = """
+[ERROR] ARC API key is required but not provided.
+
+Please provide your ARC API key using one of these methods:
+
+1. Command line argument:
+   python master_arc_trainer.py --api-key YOUR_API_KEY
+
+2. Environment variable (recommended):
+   # Windows Command Prompt:
+   set ARC_API_KEY=your_api_key_here
+
+   # Windows PowerShell:
+   $env:ARC_API_KEY="your_api_key_here"
+
+   # Linux/MacOS:
+   export ARC_API_KEY=your_api_key_here
+
+You can find your API key in your ARC account dashboard.
+"""
+        print(error_msg)
+        sys.exit(1)
+
 async def main():
     """Main entry point."""
     parser = create_parser()
@@ -1587,6 +1412,12 @@ async def main():
     
     # Set up enhanced logging first
     setup_windows_logging()
+    
+    # Get API key from args or environment
+    api_key = args.api_key or os.getenv('ARC_API_KEY')
+    
+    # Validate API key before proceeding
+    validate_api_key(api_key)
     
     # Use safe print for the header
     safe_print("🚀 MASTER ARC TRAINER - Unified Training System", True)
@@ -1598,15 +1429,16 @@ async def main():
     # Convert args to config with legacy compatibility
     config = MasterTrainingConfig(
         mode=args.mode,
-        api_key=args.api_key or os.getenv('ARC_API_KEY', ''),
+        api_key=api_key,
         arc_agents_path=args.arc_agents_path or '',
+        local_mode=args.local,
         max_actions=args.max_actions,
         max_cycles=args.max_episodes or args.max_cycles,  # Legacy compatibility
         target_score=args.target_score,
         session_duration=args.timeout or args.session_duration,  # Legacy compatibility
-        salience_mode=args.salience.replace('decay', 'decay_compression'),  # Legacy compatibility
-        salience_threshold=args.salience_threshold,
-        salience_decay=args.salience_decay,
+        salience_mode=args.salience.replace('decay', 'decay_compression') if hasattr(args, 'salience') else 'decay_compression',  # Legacy compatibility
+        salience_threshold=args.salience_threshold if hasattr(args, 'salience_threshold') else 0.6,
+        salience_decay=args.salience_decay if hasattr(args, 'salience_decay') else 0.95,
         enable_swarm=not args.disable_swarm,
         enable_coordinates=not args.disable_coordinates,
         enable_energy_system=not args.disable_energy,
