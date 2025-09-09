@@ -1,0 +1,8 @@
+2025-09-08 01:11:05,420 - WARNING - src.arc_integration.continuous_learning_loop - Game as66-821a4dcad9c2 had 5 consecutive failures at episode 1
+2025-09-08 01:11:05,420 - WARNING - src.arc_integration.continuous_learning_loop - Game lp85-2e205bbe3622 had 5 consecutive failures at episode 1
+2025-09-08 01:11:05,421 - WARNING - src.arc_integration.continuous_learning_loop - Game ft09-f340c8e5138e had 5 consecutive failures at episode 1
+2025-09-08 01:11:13,456 - WARNING - src.arc_integration.continuous_learning_loop - Game sp80-5f3511b239b8 had 5 consecutive failures at episode 1
+2025-09-08 01:11:13,458 - WARNING - src.arc_integration.continuous_learning_loop - Game ls20-fa137e247ce6 had 5 consecutive failures at episode 1
+2025-09-08 01:11:13,459 - WARNING - src.arc_integration.continuous_learning_loop - Game vc33-58ec4396715d had 5 consecutive failures at episode 1
+2025-09-08 01:11:13,460 - ERROR - src.arc_integration.continuous_learning_loop - Error in continuous learning session: get expected at least 1 argument, got 0
+2025-09-08 01:11:13,462 - ERROR - __main__ - Could not save results: Object of type set is not JSON serializable
