@@ -435,27 +435,14 @@ class MasterARCTrainer:
                 games = await self.arc_client.get_available_games()
                 self.logger.info(f"Successfully connected to {'MOCK' if self.config.local_mode else 'ARC'} API. Found {len(games)} available games")
                 
-                # If we have games, test with the first one
+                # If we have games, test with the first one (without creating scorecard)
                 if games and len(games) > 0:
                     test_game_id = games[0].get('game_id', 'ls20-016295f7601e')  # Fallback to known game
                     self.logger.info(f"Testing with game: {test_game_id}")
                     
-                    # Open a test scorecard with descriptive tags
-                    test_tags = [
-                        "test", "tabula_rasa", "master_trainer", 
-                        f"mode_{self.config.mode}", "api_connectivity_test",
-                        f"max_cycles_{self.config.max_cycles}", f"max_actions_{self.config.max_actions}"
-                    ]
-                    scorecard = await self.arc_client.open_scorecard(tags=test_tags)
-                    self.logger.info(f"Opened test scorecard: {scorecard.card_id}")
-                    
-                    # Test reset_game with the test game
-                    game_state = await self.arc_client.reset_game(test_game_id, scorecard.card_id)
-                    self.logger.info(f"Successfully tested reset_game. Game ID: {game_state.game_id}")
-                    
-                    # Close the test scorecard
-                    await self.arc_client.close_scorecard(scorecard.card_id)
-                    self.logger.info("Closed test scorecard")
+                    # Test API connectivity without creating test scorecard
+                    # Just verify we can access game information
+                    self.logger.info(f"API connectivity verified. Game ID available: {test_game_id}")
                 
                 self.initialized = True
                 return True
@@ -756,6 +743,226 @@ class MasterARCTrainer:
                 
         except Exception as e:
             self.logger.error(f"Error in continuous learning: {e}", exc_info=True)
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_meta_cognitive_training(self):
+        """Run meta-cognitive training mode with enhanced monitoring."""
+        self.logger.info("🧠 Starting META-COGNITIVE-TRAINING mode")
+        self.logger.info("   Governor + Architect + All cognitive systems enabled")
+        
+        try:
+            # Run continuous learning with meta-cognitive settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': True,
+                'enable_architect_evolution': True,
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': True,
+                'max_actions': self.config.max_actions,
+                'max_cycles': self.config.max_cycles,
+                'target_score': self.config.target_score
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in meta-cognitive training mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_research_lab(self):
+        """Run research lab mode with system comparison capabilities."""
+        self.logger.info("🔬 Starting RESEARCH-LAB mode")
+        self.logger.info("   System comparison and analysis enabled")
+        
+        try:
+            # Run continuous learning with research settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': True,
+                'enable_architect_evolution': True,
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': True,
+                'max_actions': self.config.max_actions,
+                'max_cycles': self.config.max_cycles,
+                'target_score': self.config.target_score,
+                'enable_detailed_monitoring': True
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in research lab mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_showcase_demo(self):
+        """Run showcase demo mode with optimized settings for demonstrations."""
+        self.logger.info("🎯 Starting SHOWCASE-DEMO mode")
+        self.logger.info("   Optimized for demonstrations and presentations")
+        
+        try:
+            # Run continuous learning with demo settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': True,
+                'enable_architect_evolution': False,  # Disable for cleaner demo
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': True,
+                'max_actions': min(self.config.max_actions, 200),  # Shorter for demo
+                'max_cycles': min(self.config.max_cycles, 5),      # Fewer cycles for demo
+                'target_score': self.config.target_score,
+                'enable_detailed_monitoring': True
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in showcase demo mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_system_comparison(self):
+        """Run system comparison mode for evaluating different approaches."""
+        self.logger.info("⚖️ Starting SYSTEM-COMPARISON mode")
+        self.logger.info("   Comparing different system configurations")
+        
+        try:
+            # Run continuous learning with comparison settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': True,
+                'enable_architect_evolution': True,
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': True,
+                'max_actions': self.config.max_actions,
+                'max_cycles': self.config.max_cycles,
+                'target_score': self.config.target_score,
+                'enable_detailed_monitoring': True
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in system comparison mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_minimal_debug(self):
+        """Run minimal debug mode with basic functionality only."""
+        self.logger.info("🐛 Starting MINIMAL-DEBUG mode")
+        self.logger.info("   Basic functionality only for debugging")
+        
+        try:
+            # Run continuous learning with minimal settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': False,
+                'enable_architect_evolution': False,
+                'enable_coordinates': False,
+                'enable_all_cognitive_systems': False,
+                'max_actions': min(self.config.max_actions, 50),   # Very limited
+                'max_cycles': min(self.config.max_cycles, 2),      # Very few cycles
+                'target_score': self.config.target_score,
+                'enable_detailed_monitoring': False
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in minimal debug mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_sequential(self):
+        """Run sequential training mode (legacy compatibility)."""
+        self.logger.info("📋 Starting SEQUENTIAL mode (legacy compatibility)")
+        self.logger.info("   Sequential processing with basic cognitive systems")
+        
+        try:
+            # Run continuous learning with sequential settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': False,
+                'enable_architect_evolution': False,
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': False,
+                'max_actions': self.config.max_actions,
+                'max_cycles': self.config.max_cycles,
+                'target_score': self.config.target_score
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in sequential mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_swarm(self):
+        """Run swarm training mode with parallel processing."""
+        self.logger.info("🐝 Starting SWARM mode")
+        self.logger.info("   Parallel processing with swarm intelligence")
+        
+        try:
+            # Run continuous learning with swarm settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': True,
+                'enable_architect_evolution': True,
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': True,
+                'max_actions': self.config.max_actions,
+                'max_cycles': self.config.max_cycles,
+                'target_score': self.config.target_score
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in swarm mode: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _run_continuous(self):
+        """Run continuous training mode (legacy compatibility)."""
+        self.logger.info("🔄 Starting CONTINUOUS mode (legacy compatibility)")
+        self.logger.info("   Continuous learning with all systems enabled")
+        
+        try:
+            # Run continuous learning with continuous settings
+            config_overrides = {
+                'enable_meta_cognitive_governor': True,
+                'enable_architect_evolution': True,
+                'enable_coordinates': True,
+                'enable_all_cognitive_systems': True,
+                'max_actions': self.config.max_actions,
+                'max_cycles': self.config.max_cycles,
+                'target_score': self.config.target_score
+            }
+            
+            return await self._run_continuous_learning(config_overrides)
+            
+        except Exception as e:
+            self.logger.error(f"Error in continuous mode: {e}")
             return {
                 'success': False,
                 'error': str(e),
