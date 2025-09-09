@@ -2342,7 +2342,7 @@ class ContinuousLearningLoop:
                                     return None
                                 
                                 # Track available actions changes with validation
-                                current_available = data.get('actions', [])
+                                current_available = data.get('available_actions', [])
                                 if not isinstance(current_available, list):
                                     logger.warning(f"Invalid actions format in response: {current_available}")
                                     current_available = []
@@ -2373,7 +2373,7 @@ class ContinuousLearningLoop:
                                         # Get current game state for before/after analysis
                                         current_frame = data.get('grid', [])
                                         score = data.get('score', 0)
-                                        available_actions = data.get('actions', [])
+                                        available_actions = data.get('available_actions', [])
                                         
                                         # Validate frame data
                                         if not isinstance(current_frame, (list, np.ndarray)) or len(current_frame) == 0:
@@ -2627,7 +2627,7 @@ class ContinuousLearningLoop:
                                     return None
                                 
                                 # Track available actions changes with validation
-                                current_available = data.get('actions', [])
+                                current_available = data.get('available_actions', [])
                                 if not isinstance(current_available, list):
                                     logger.warning(f"Invalid actions format in response: {current_available}")
                                     current_available = []

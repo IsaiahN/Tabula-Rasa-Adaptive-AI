@@ -78,16 +78,10 @@ class FrameAnalyzer:
                 try:
                     arr_local, (w_local, h_local) = self._normalize_local_frame(frame)
                     if arr_local is None:
-                        return {
-                            'movement_detected': False,
-                            'agent_position': None
-                        }
+                        return np.zeros((64, 64), dtype=int)
                     arr = arr_local
                 except Exception:
-                    return {
-                        'movement_detected': False,
-                        'agent_position': None
-                    }
+                    return np.zeros((64, 64), dtype=int)
                 else:
                     arr = np.array(frame)
 
@@ -246,13 +240,22 @@ class FrameAnalyzer:
                     analysis['confidence'] = 0.4  # Medium confidence for smart exploration
             
             # Store visual feature summary
-            analysis['visual_features'] = {
-                'unique_colors': len(np.unique(frame_array)),
-                'max_brightness': int(np.max(frame_array)),
-                'min_brightness': int(np.min(frame_array)),
-                'color_variance': float(np.var(frame_array)),
-                'frame_size': frame_array.shape
-            }
+            if frame_array.size > 0:
+                analysis['visual_features'] = {
+                    'unique_colors': len(np.unique(frame_array)),
+                    'max_brightness': int(np.max(frame_array)),
+                    'min_brightness': int(np.min(frame_array)),
+                    'color_variance': float(np.var(frame_array)),
+                    'frame_size': frame_array.shape
+                }
+            else:
+                analysis['visual_features'] = {
+                    'unique_colors': 0,
+                    'max_brightness': 0,
+                    'min_brightness': 0,
+                    'color_variance': 0.0,
+                    'frame_size': (0, 0)
+                }
             
             # Update frame history
             self.previous_frame = frame_array.copy()
