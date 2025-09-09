@@ -200,7 +200,7 @@ class FrameAnalyzer:
                 
                 # Only trigger emergency mode if we have a significant number of stuck attempts
                 # and we're not making progress
-                if total_stuck_attempts > 200:
+                if total_stuck_attempts > 500:
                     emergency_mode = True
                     print(f"🚨 EMERGENCY MODE: {total_stuck_attempts} attempts at stuck coordinates")
                     

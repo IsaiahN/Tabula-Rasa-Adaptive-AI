@@ -699,18 +699,31 @@ class MasterARCTrainer:
                 
                 self.logger.info("Starting training loop...")
                 
-                # Get available games and run in swarm mode
-                games = await self.continuous_loop.get_available_games()
-                if games:
-                    game_ids = [game.get('game_id') for game in games[:5]]  # Use first 5 games
-                    self.logger.info(f"Running swarm mode with {len(game_ids)} games: {game_ids}")
-                    await self.continuous_loop.run_swarm_mode(
-                        games=game_ids,
-                        max_concurrent=2,
-                        max_episodes_per_game=10
-                    )
+                # Use specified games or get available games
+                if self.config.games:
+                    # Parse games parameter (comma-separated list)
+                    game_ids = [game.strip() for game in self.config.games.split(',')]
+                    self.logger.info(f"Using specified games: {game_ids}")
                 else:
-                    self.logger.warning("No games available, skipping training")
+                    # Get available games from API
+                    games = await self.continuous_loop.get_available_games()
+                    if games:
+                        game_ids = [game.get('game_id') for game in games[:5]]  # Use first 5 games
+                        self.logger.info(f"Using available games: {game_ids}")
+                    else:
+                        self.logger.warning("No games available, skipping training")
+                        return {
+                            'success': False,
+                            'error': 'No games available',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                
+                # Run in swarm mode with specified games
+                await self.continuous_loop.run_swarm_mode(
+                    games=game_ids,
+                    max_concurrent=2,
+                    max_episodes_per_game=10
+                )
                 
                 # Save results if available
                 if hasattr(self.continuous_loop, 'get_results'):
