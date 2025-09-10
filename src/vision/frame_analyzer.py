@@ -389,7 +389,7 @@ class FrameAnalyzer:
             from sklearn.cluster import KMeans
             
             # Determine optimal number of clusters based on frame complexity
-            n_colors = min(20, max(5, len(np.unique(pixels.view(np.void, dtype=pixels.dtype))))
+            n_colors = min(20, max(5, len(np.unique(pixels.view(np.void, dtype=pixels.dtype)))))
             
             kmeans = KMeans(n_clusters=n_colors, random_state=42, n_init=10)
             kmeans.fit(pixels)

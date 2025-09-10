@@ -10902,6 +10902,64 @@ class ContinuousLearningLoop:
                 was_effective = False
 
                 if action_result:
+                    # 🧠 GOVERNOR ERROR HANDLING - Check for API errors that need Governor intervention
+                    if self.governor and 'error' in action_result:
+                        governor_error_response = self.governor.handle_api_error(
+                            error_response=action_result,
+                            game_id=game_id,
+                            context={
+                                'game_id': game_id,
+                                'current_state': current_state,
+                                'current_score': current_score,
+                                'selected_action': selected_action,
+                                'coordinates': (x, y) if x is not None else None
+                            }
+                        )
+                        
+                        if governor_error_response:
+                            print(f"🧠 GOVERNOR ERROR HANDLING: {governor_error_response['reasoning']}")
+                            
+                            # Handle RESET recommendation
+                            if governor_error_response.get('recommended_action') == 'RESET':
+                                print(f"🔄 GOVERNOR RECOMMENDING RESET for {game_id}")
+                                try:
+                                    reset_result = await self._start_game_session(game_id)
+                                    if reset_result and 'error' not in reset_result:
+                                        print(f"✅ RESET successful - game {game_id} started")
+                                        # Update state with reset result
+                                        new_state = reset_result.get('state', current_state)
+                                        new_score = reset_result.get('score', current_score)
+                                        new_available = reset_result.get('available_actions', available_actions)
+                                        # Update frame data
+                                        if 'frame' in reset_result:
+                                            session_data['frame'] = reset_result['frame']
+                                            self._last_frame = reset_result['frame']
+                                        # Continue with the session
+                                        continue
+                                    else:
+                                        print(f"❌ RESET failed: {reset_result.get('error', 'Unknown error')}")
+                                        # Fall through to normal error handling
+                                except Exception as e:
+                                    print(f"❌ RESET execution error: {e}")
+                                    # Fall through to normal error handling
+                            
+                            # Handle WAIT recommendation (rate limiting)
+                            elif governor_error_response.get('recommended_action') == 'WAIT':
+                                wait_time = 5.0  # Default wait time
+                                print(f"⏳ GOVERNOR RECOMMENDING WAIT for {wait_time}s due to rate limiting")
+                                await asyncio.sleep(wait_time)
+                                continue
+                            
+                            # Handle STOP recommendation (authentication error)
+                            elif governor_error_response.get('recommended_action') == 'STOP':
+                                print(f"🛑 GOVERNOR RECOMMENDING STOP due to authentication error")
+                                return {
+                                    'error': 'Authentication failed - stopping session',
+                                    'state': 'ERROR',
+                                    'score': 0,
+                                    'available_actions': []
+                                }
+                    
                     try:
                         # Update state from response
                         new_state = action_result.get('state', current_state)

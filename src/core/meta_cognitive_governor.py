@@ -2657,6 +2657,96 @@ class MetaCognitiveGovernor:
         
         return insights
 
+    def handle_api_error(self, error_response: Dict[str, Any], game_id: str, context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Handle API errors and provide Governor recommendations for recovery.
+        
+        Args:
+            error_response: Error response from API call
+            game_id: Current game ID
+            context: Current game context
+            
+        Returns:
+            Governor recommendation for error recovery or None
+        """
+        error_text = error_response.get('error', '')
+        error_status = error_response.get('status', 0)
+        
+        # Handle GAME_NOT_STARTED_ERROR specifically
+        if 'GAME_NOT_STARTED_ERROR' in error_text or 'has not been started' in error_text:
+            self.logger.info(f"🎯 Governor detected GAME_NOT_STARTED_ERROR for {game_id} - recommending RESET")
+            
+            return {
+                'recommended_action': 'RESET',
+                'confidence': 0.95,
+                'reasoning': f'Game {game_id} is available but not started - RESET required to begin playing',
+                'error_type': 'GAME_NOT_STARTED_ERROR',
+                'recovery_action': 'send_reset_command',
+                'meta_analysis': {
+                    'error_detected': True,
+                    'error_type': 'GAME_NOT_STARTED_ERROR',
+                    'game_id': game_id,
+                    'requires_reset': True
+                }
+            }
+        
+        # Handle other 400 errors that might need RESET
+        elif error_status == 400 and ('not available' in error_text.lower() or 'invalid game' in error_text.lower()):
+            self.logger.warning(f"🎯 Governor detected game availability issue for {game_id} - considering RESET")
+            
+            return {
+                'recommended_action': 'RESET',
+                'confidence': 0.7,
+                'reasoning': f'Game {game_id} appears unavailable or invalid - RESET may resolve the issue',
+                'error_type': 'GAME_AVAILABILITY_ERROR',
+                'recovery_action': 'send_reset_command',
+                'meta_analysis': {
+                    'error_detected': True,
+                    'error_type': 'GAME_AVAILABILITY_ERROR',
+                    'game_id': game_id,
+                    'requires_reset': True
+                }
+            }
+        
+        # Handle authentication errors
+        elif error_status == 401:
+            self.logger.critical(f"🎯 Governor detected authentication error for {game_id}")
+            
+            return {
+                'recommended_action': 'STOP',
+                'confidence': 1.0,
+                'reasoning': 'Authentication failed - check API key configuration',
+                'error_type': 'AUTHENTICATION_ERROR',
+                'recovery_action': 'check_api_key',
+                'meta_analysis': {
+                    'error_detected': True,
+                    'error_type': 'AUTHENTICATION_ERROR',
+                    'game_id': game_id,
+                    'requires_manual_intervention': True
+                }
+            }
+        
+        # Handle rate limiting
+        elif error_status == 429:
+            self.logger.warning(f"🎯 Governor detected rate limiting for {game_id}")
+            
+            return {
+                'recommended_action': 'WAIT',
+                'confidence': 0.9,
+                'reasoning': 'Rate limited - wait before retrying',
+                'error_type': 'RATE_LIMIT_ERROR',
+                'recovery_action': 'wait_and_retry',
+                'meta_analysis': {
+                    'error_detected': True,
+                    'error_type': 'RATE_LIMIT_ERROR',
+                    'game_id': game_id,
+                    'requires_wait': True
+                }
+            }
+        
+        # For other errors, return None to let the system handle normally
+        return None
+
     def _generate_integrated_recommendations(self, analysis_results: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate integrated recommendations from memory, pattern, and cluster analysis"""
         recommendations = []
