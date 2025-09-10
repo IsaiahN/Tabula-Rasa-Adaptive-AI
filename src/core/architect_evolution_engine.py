@@ -80,7 +80,7 @@ class ArchitectEvolutionEngine:
     def __init__(
         self, 
         persistence_dir: str = ".", 
-        evolution_data_dir: str = "architect_evolution_data",
+        evolution_data_dir: str = "data/architecture/evolution",
         enable_autonomous_evolution: bool = True
     ):
         self.persistence_dir = Path(persistence_dir)
