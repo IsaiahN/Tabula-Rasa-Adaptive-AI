@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 class EnergyConfig:
     """Configuration for adaptive energy management."""
     max_energy: float = 100.0
-    base_depletion_rate: float = 0.01  # Energy per second when unlimited actions
-    action_based_depletion: float = 0.1  # Energy per action when actions are limited
-    sleep_trigger_threshold: float = 40.0  # Default sleep threshold
-    min_sleep_threshold: float = 20.0  # Minimum threshold (emergency sleep)
-    max_sleep_threshold: float = 60.0  # Maximum threshold (early strategic sleep)
+    base_depletion_rate: float = 0.005  # Reduced from 0.01 to 0.005 - Energy per second when unlimited actions
+    action_based_depletion: float = 0.05  # Reduced from 0.1 to 0.05 - Energy per action when actions are limited
+    sleep_trigger_threshold: float = 30.0  # Reduced from 40.0 to 30.0 - Default sleep threshold
+    min_sleep_threshold: float = 15.0  # Reduced from 20.0 to 15.0 - Minimum threshold (emergency sleep)
+    max_sleep_threshold: float = 50.0  # Reduced from 60.0 to 50.0 - Maximum threshold (early strategic sleep)
     
     # Time-based sleep for unlimited actions (in minutes)
     time_based_sleep_interval: float = 5.0  # Sleep every 5 minutes by default

@@ -361,7 +361,7 @@ class SalienceCalculator:
         High-salience memories get their neural pathways massively strengthened
         during sleep. Low-salience memories are allowed to decay rapidly.
         """
-        return salience > 0.6
+        return salience > 0.4  # Reduced from 0.6 to 0.4 for less aggressive consolidation
     
     def get_consolidation_strength(self, salience: float) -> float:
         """
@@ -372,11 +372,11 @@ class SalienceCalculator:
         """
         if salience > 0.8:
             return 3.0  # Massive strengthening for breakthrough experiences
-        elif salience > 0.6:
+        elif salience > 0.4:  # Reduced from 0.6 to 0.4
             return 2.0  # Strong consolidation for important experiences
-        elif salience > 0.4:
-            return 1.0  # Normal consolidation
         elif salience > 0.2:
+            return 1.0  # Normal consolidation
+        elif salience > 0.1:
             return 0.5  # Weak consolidation
         else:
             return 0.1  # Allow to decay rapidly

@@ -332,7 +332,7 @@ class ContinuousLearningLoop:
         self.arc_meta_learning = ARCMetaLearningSystem(
             base_meta_learning=base_meta_learning,
             pattern_memory_size=1500,
-            insight_threshold=0.6,
+            insight_threshold=0.4,  # Reduced from 0.6 to 0.4 for less aggressive avoidance
             cross_validation_threshold=3
         )
         
@@ -8573,7 +8573,7 @@ class ContinuousLearningLoop:
             # Simulate memory prioritization
             if self.salience_calculator:
                 # Get high salience experiences for priority processing
-                high_salience_count = len(self.salience_calculator.get_high_salience_experiences(threshold=0.6))
+                high_salience_count = len(self.salience_calculator.get_high_salience_experiences(threshold=0.4))  # Reduced from 0.6 to 0.4
                 medium_salience_count = len(self.salience_calculator.get_high_salience_experiences(threshold=0.3)) - high_salience_count
                 
                 return {
