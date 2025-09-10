@@ -1936,6 +1936,246 @@ class ContinuousLearningLoop:
         
         return None
 
+    def _check_frame_changes(self, before_state: Dict, after_state: Dict) -> Optional[Dict[str, Any]]:
+        """Check for frame changes and movement between states."""
+        try:
+            before_frame = before_state.get('frame', [])
+            after_frame = after_state.get('frame', [])
+            
+            if not before_frame or not after_frame:
+                return None
+            
+            # Use frame analyzer to detect changes
+            if hasattr(self, 'frame_analyzer') and hasattr(self.frame_analyzer, '_analyze_frame_changes'):
+                frame_changes = self.frame_analyzer._analyze_frame_changes(before_frame, after_frame)
+                
+                if frame_changes.get('changes_detected', False):
+                    # Enhanced change detection
+                    change_type = frame_changes.get('change_type', 'unknown')
+                    num_pixels_changed = frame_changes.get('num_pixels_changed', 0)
+                    change_locations = frame_changes.get('change_locations', [])
+                    
+                    # Determine if this represents movement
+                    movement_detected = self._detect_movement_pattern(change_locations, num_pixels_changed)
+                    
+                    # Classify the type of change
+                    change_classification = self._classify_change_type(change_type, num_pixels_changed, movement_detected)
+                    
+                    return {
+                        'change_type': change_classification,
+                        'description': f"{change_classification}: {num_pixels_changed} pixels changed",
+                        'movement_detected': movement_detected,
+                        'num_pixels_changed': num_pixels_changed,
+                        'change_locations': change_locations[:10],  # Limit for storage
+                        'change_percentage': frame_changes.get('change_percentage', 0.0)
+                    }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error checking frame changes: {e}")
+            return None
+    
+    def _detect_movement_pattern(self, change_locations: List[Tuple[int, int]], num_pixels_changed: int) -> bool:
+        """Detect if pixel changes represent object movement rather than just color changes."""
+        try:
+            if not change_locations or num_pixels_changed < 3:
+                return False
+            
+            # Calculate spatial distribution of changes
+            if len(change_locations) >= 2:
+                x_coords = [loc[0] for loc in change_locations]
+                y_coords = [loc[1] for loc in change_locations]
+                
+                # Check if changes are clustered (indicating object movement)
+                x_variance = np.var(x_coords) if len(x_coords) > 1 else 0
+                y_variance = np.var(y_coords) if len(y_coords) > 1 else 0
+                
+                # Movement typically shows moderate clustering (not too spread out, not too tight)
+                total_variance = x_variance + y_variance
+                is_clustered = 5 < total_variance < 100  # Reasonable clustering range
+                
+                # Check for directional patterns (movement often has direction)
+                if len(change_locations) >= 3:
+                    # Calculate if changes form a line or have directional bias
+                    x_trend = np.polyfit(range(len(x_coords)), x_coords, 1)[0] if len(x_coords) > 1 else 0
+                    y_trend = np.polyfit(range(len(y_coords)), y_coords, 1)[0] if len(y_coords) > 1 else 0
+                    
+                    has_direction = abs(x_trend) > 0.5 or abs(y_trend) > 0.5
+                else:
+                    has_direction = False
+                
+                return is_clustered and (has_direction or num_pixels_changed > 10)
+            
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Movement pattern detection failed: {e}")
+            return False
+    
+    def _classify_change_type(self, change_type: str, num_pixels_changed: int, movement_detected: bool) -> str:
+        """Classify the type of frame change."""
+        if movement_detected:
+            if num_pixels_changed > 50:
+                return 'major_movement'
+            elif num_pixels_changed > 10:
+                return 'object_movement'
+            else:
+                return 'small_movement'
+        elif change_type == 'frame_size_change':
+            return 'frame_resize'
+        elif num_pixels_changed > 100:
+            return 'major_visual_change'
+        elif num_pixels_changed > 20:
+            return 'moderate_change'
+        else:
+            return 'minor_change'
+    
+    def _update_action_effectiveness(self, action_number: int, frame_changed: Dict, score_change: float):
+        """Update action effectiveness based on frame changes."""
+        try:
+            if not hasattr(self, 'available_actions_memory'):
+                return
+            
+            action_effectiveness = self.available_actions_memory.get('action_effectiveness', {})
+            if action_number not in action_effectiveness:
+                action_effectiveness[action_number] = {
+                    'attempts': 0, 'successes': 0, 'success_rate': 0.0,
+                    'frame_changes': 0, 'movement_detected': 0, 'score_changes': 0
+                }
+            
+            stats = action_effectiveness[action_number]
+            stats['attempts'] += 1
+            
+            # Count frame changes as positive indicators
+            if frame_changed:
+                stats['frame_changes'] += 1
+                if frame_changed.get('movement_detected', False):
+                    stats['movement_detected'] += 1
+                    stats['successes'] += 1  # Movement is a success indicator
+            
+            # Count score changes as success
+            if score_change > 0:
+                stats['score_changes'] += 1
+                stats['successes'] += 1
+            
+            # Update success rate
+            stats['success_rate'] = stats['successes'] / stats['attempts'] if stats['attempts'] > 0 else 0.0
+            
+        except Exception as e:
+            logger.error(f"Error updating action effectiveness: {e}")
+    
+    def _reset_stagnation_counter(self, game_id: str):
+        """Reset stagnation counter for a game when movement is detected."""
+        try:
+            if not hasattr(self, 'available_actions_memory'):
+                return
+            
+            # Reset various stagnation tracking
+            if 'action_stagnation' not in self.available_actions_memory:
+                self.available_actions_memory['action_stagnation'] = {}
+            
+            self.available_actions_memory['action_stagnation'][game_id] = {
+                'consecutive_no_change': 0,
+                'last_progress_action': 0,
+                'stagnant_actions': []
+            }
+            
+        except Exception as e:
+            logger.error(f"Error resetting stagnation counter: {e}")
+    
+    def _increment_stagnation_counter(self, game_id: str, action_number: int):
+        """Increment stagnation counter when no frame changes are detected."""
+        try:
+            if not hasattr(self, 'available_actions_memory'):
+                return
+            
+            if 'action_stagnation' not in self.available_actions_memory:
+                self.available_actions_memory['action_stagnation'] = {}
+            
+            if game_id not in self.available_actions_memory['action_stagnation']:
+                self.available_actions_memory['action_stagnation'][game_id] = {
+                    'consecutive_no_change': 0,
+                    'last_progress_action': 0,
+                    'stagnant_actions': []
+                }
+            
+            stagnation = self.available_actions_memory['action_stagnation'][game_id]
+            stagnation['consecutive_no_change'] += 1
+            stagnation['stagnant_actions'].append(action_number)
+            
+            # Keep only recent stagnant actions
+            if len(stagnation['stagnant_actions']) > 10:
+                stagnation['stagnant_actions'] = stagnation['stagnant_actions'][-10:]
+            
+        except Exception as e:
+            logger.error(f"Error incrementing stagnation counter: {e}")
+    
+    def _check_action_stagnation(self, game_id: str, available_actions: List[int]) -> Dict[str, Any]:
+        """Check for action stagnation and recommend switching strategies."""
+        try:
+            if not hasattr(self, 'available_actions_memory'):
+                return {'should_switch': False, 'reason': 'No memory system available'}
+            
+            stagnation = self.available_actions_memory.get('action_stagnation', {}).get(game_id, {})
+            consecutive_no_change = stagnation.get('consecutive_no_change', 0)
+            stagnant_actions = stagnation.get('stagnant_actions', [])
+            
+            # Check if we should switch actions
+            should_switch = False
+            reason = ""
+            recommended_actions = available_actions.copy()
+            
+            # Switch if too many consecutive actions with no frame changes
+            if consecutive_no_change >= 5:
+                should_switch = True
+                reason = f"No frame changes for {consecutive_no_change} consecutive actions"
+                
+                # Get actions that haven't been tried recently
+                recent_actions = stagnant_actions[-5:] if len(stagnant_actions) >= 5 else stagnant_actions
+                untried_actions = [a for a in available_actions if a not in recent_actions]
+                
+                if untried_actions:
+                    recommended_actions = untried_actions
+                else:
+                    # If all actions have been tried, prioritize different action types
+                    action_effectiveness = self.available_actions_memory.get('action_effectiveness', {})
+                    effective_actions = []
+                    for action in available_actions:
+                        if action in action_effectiveness:
+                            success_rate = action_effectiveness[action].get('success_rate', 0.0)
+                            if success_rate > 0.1:  # Actions with some success
+                                effective_actions.append(action)
+                    
+                    if effective_actions:
+                        recommended_actions = effective_actions
+                    else:
+                        # Fallback: try actions in different order
+                        recommended_actions = available_actions[::-1]  # Reverse order
+            
+            # Switch if same action repeated too many times
+            elif len(stagnant_actions) >= 3:
+                last_three = stagnant_actions[-3:]
+                if len(set(last_three)) == 1:  # Same action repeated 3 times
+                    should_switch = True
+                    reason = f"Action {last_three[0]} repeated 3 times with no frame changes"
+                    
+                    # Exclude the repeated action
+                    repeated_action = last_three[0]
+                    recommended_actions = [a for a in available_actions if a != repeated_action]
+            
+            return {
+                'should_switch': should_switch,
+                'reason': reason,
+                'consecutive_no_change': consecutive_no_change,
+                'stagnant_actions': stagnant_actions,
+                'recommended_actions': recommended_actions
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking action stagnation: {e}")
+            return {'should_switch': False, 'reason': f'Error: {e}'}
+
     def _normalize_frame(self, frame: Any) -> Tuple[Optional['np.ndarray'], Tuple[int, int]]:
         """
         Normalize various frame representations into a 2D numpy array and return (array, (width, height)).
@@ -2594,6 +2834,23 @@ class ContinuousLearningLoop:
                                         # Store current state for next comparison
                                         self._last_score = score
                                         self._last_frame = current_frame
+                                        
+                                        # ENHANCED: Check for frame changes and movement
+                                        frame_changed = self._check_frame_changes(before_state, after_state)
+                                        if frame_changed:
+                                            logger.info(f"🎯 FRAME CHANGE DETECTED: {frame_changed['change_type']} - {frame_changed['description']}")
+                                            
+                                            # Update action effectiveness based on frame changes
+                                            self._update_action_effectiveness(action_number, frame_changed, score_change)
+                                            
+                                            # Reset stagnation counter if we see movement
+                                            if frame_changed.get('movement_detected', False):
+                                                self._reset_stagnation_counter(game_id)
+                                                logger.info(f"🔄 STAGNATION RESET: Movement detected, resetting counter for {game_id}")
+                                        else:
+                                            # No frame change - increment stagnation counter
+                                            self._increment_stagnation_counter(game_id, action_number)
+                                            logger.warning(f"⚠️ NO FRAME CHANGE: Action {action_number} produced no visual changes")
                                         
                                     except Exception as e:
                                         logger.error(f"Error in frame analysis logging: {e}")
@@ -3539,6 +3796,14 @@ class ContinuousLearningLoop:
         
         print(f" ACTION DECISION PROTOCOL - Available: {available_actions}")
         
+        # 🔄 STAGNATION DETECTION AND ACTION SWITCHING
+        stagnation_info = self._check_action_stagnation(game_id, available_actions)
+        if stagnation_info['should_switch']:
+            print(f"🔄 STAGNATION DETECTED: {stagnation_info['reason']}")
+            print(f"🔄 SWITCHING FROM: {stagnation_info['stagnant_actions']} TO: {stagnation_info['recommended_actions']}")
+            # Force selection from recommended actions
+            available_actions = stagnation_info['recommended_actions']
+        
         # 🧠 META-COGNITIVE GOVERNOR INTEGRATION (Third Brain)
         if self.governor:
             try:
@@ -4419,7 +4684,8 @@ class ContinuousLearningLoop:
         
     def _evaluate_game_reset_decision(self, game_id: str, session_count: int, agent_state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Determine if the current game state should be reset based on the agent's state and history.
+        CONSERVATIVE RESET DECISION: Only reset when truly stuck and Governor approves.
+        Focus on pathfinding and strategy refinement rather than frequent resets.
         
         Args:
             game_id: ID of the current game
@@ -4434,60 +4700,357 @@ class ContinuousLearningLoop:
             'reason': 'none',
             'confidence': 0.0,
             'game_id': game_id,
-            'session_count': session_count
+            'session_count': session_count,
+            'governor_approval': False
         }
         
-        # Don't reset too frequently - at minimum every 3 episodes
-        min_episodes_between_reset = 3
-        if session_count % min_episodes_between_reset != 0:
+        # MUCH MORE CONSERVATIVE: Only consider reset every 10+ episodes
+        min_episodes_between_reset = 10
+        if session_count < min_episodes_between_reset:
             return decision
-            
-        # Check for consecutive failures
-        if agent_state.get('consecutive_failures', 0) >= 5:
-            decision.update({
-                'should_reset': True,
-                'reason': 'high_failure_rate',
-                'confidence': 0.9,
-                'details': f'Consecutive failures: {agent_state.get("consecutive_failures")}'
-            })
-            logger.info(f" Resetting game {game_id} due to high failure rate")
+        
+        # Track reset attempts to prevent excessive resets
+        if not hasattr(self, 'reset_attempt_tracker'):
+            self.reset_attempt_tracker = {}
+        
+        if game_id not in self.reset_attempt_tracker:
+            self.reset_attempt_tracker[game_id] = {
+                'total_resets': 0,
+                'last_reset_episode': 0,
+                'consecutive_reset_failures': 0
+            }
+        
+        tracker = self.reset_attempt_tracker[game_id]
+        
+        # Don't reset if we've already tried recently and it didn't help
+        if tracker['consecutive_reset_failures'] >= 2:
             return decision
-            
-        # Check for stuck state (no progress in last N actions)
-        if hasattr(self, 'last_progress_action') and hasattr(self, 'current_action_count'):
-            actions_since_progress = self.current_action_count - getattr(self, 'last_progress_action', 0)
-            if actions_since_progress > 50:  # If no progress in last 50 actions
-                decision.update({
-                    'should_reset': True,
-                    'reason': 'stuck_state',
-                    'confidence': 0.8,
-                    'details': f'No progress in {actions_since_progress} actions'
-                })
-                logger.info(f" Resetting game {game_id} due to stuck state")
-                return decision
-                
-        # Check for low energy
-        if agent_state.get('energy', 100.0) < 20.0:
-            decision.update({
-                'should_reset': True,
-                'reason': 'low_energy',
-                'confidence': 0.7,
-                'details': f'Energy level: {agent_state.get("energy"):.1f}%'
-            })
-            logger.info(f" Resetting game {game_id} due to low energy")
+        
+        # Check for EXTREME stagnation - only reset if truly stuck
+        extreme_stagnation = self._check_extreme_stagnation(game_id, agent_state)
+        if not extreme_stagnation['is_stuck']:
             return decision
-            
-        # Random chance to reset (encourages exploration)
-        if session_count > 10 and random.random() < 0.05:  # 5% chance after 10 sessions
-            decision.update({
-                'should_reset': True,
-                'reason': 'random_exploration',
-                'confidence': 0.5,
-                'details': 'Random reset to encourage exploration'
-            })
-            logger.info(f" Random reset triggered for game {game_id}")
-            
+        
+        # GOVERNOR APPROVAL REQUIRED for any reset
+        governor_approval = self._get_governor_reset_approval(game_id, extreme_stagnation, agent_state)
+        if not governor_approval['approved']:
+            return decision
+        
+        # Only reset if we have a clear pathfinding strategy
+        pathfinding_strategy = self._evaluate_pathfinding_strategy(game_id, agent_state)
+        if not pathfinding_strategy['has_clear_strategy']:
+            return decision
+        
+        # Final conservative check: Only reset if we've tried all other strategies
+        if not self._have_tried_all_strategies(game_id):
+            return decision
+        
+        decision.update({
+            'should_reset': True,
+            'reason': extreme_stagnation['reason'],
+            'confidence': governor_approval['confidence'],
+            'governor_approval': True,
+            'pathfinding_strategy': pathfinding_strategy['strategy'],
+            'details': f"Governor approved reset: {extreme_stagnation['reason']}"
+        })
+        
+        # Update tracking
+        tracker['total_resets'] += 1
+        tracker['last_reset_episode'] = session_count
+        
+        logger.warning(f"🔄 CONSERVATIVE RESET APPROVED for {game_id}: {extreme_stagnation['reason']}")
         return decision
+    
+    def _check_extreme_stagnation(self, game_id: str, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Check for extreme stagnation that truly warrants a reset."""
+        stagnation_info = {
+            'is_stuck': False,
+            'reason': 'none',
+            'severity': 0.0
+        }
+        
+        # Check frame stagnation (no visual changes for many actions)
+        if hasattr(self, 'available_actions_memory'):
+            stagnation = self.available_actions_memory.get('action_stagnation', {}).get(game_id, {})
+            consecutive_no_change = stagnation.get('consecutive_no_change', 0)
+            
+            # Only reset if NO frame changes for 20+ consecutive actions
+            if consecutive_no_change >= 20:
+                stagnation_info.update({
+                    'is_stuck': True,
+                    'reason': f'extreme_frame_stagnation_{consecutive_no_change}_actions',
+                    'severity': min(1.0, consecutive_no_change / 30.0)
+                })
+                return stagnation_info
+        
+        # Check for complete action failure (all actions tried with no success)
+        if hasattr(self, 'available_actions_memory'):
+            action_effectiveness = self.available_actions_memory.get('action_effectiveness', {})
+            total_attempts = sum(stats.get('attempts', 0) for stats in action_effectiveness.values())
+            total_successes = sum(stats.get('successes', 0) for stats in action_effectiveness.values())
+            
+            if total_attempts > 50 and total_successes == 0:
+                stagnation_info.update({
+                    'is_stuck': True,
+                    'reason': f'complete_action_failure_{total_attempts}_attempts_0_successes',
+                    'severity': 1.0
+                })
+                return stagnation_info
+        
+        # Check for score regression (getting worse over time)
+        if hasattr(self, 'performance_history') and len(self.performance_history) > 10:
+            recent_scores = [p.get('score', 0) for p in self.performance_history[-10:]]
+            if len(recent_scores) >= 5:
+                score_trend = np.polyfit(range(len(recent_scores)), recent_scores, 1)[0]
+                if score_trend < -2.0:  # Significant negative trend
+                    stagnation_info.update({
+                        'is_stuck': True,
+                        'reason': f'score_regression_trend_{score_trend:.2f}',
+                        'severity': min(1.0, abs(score_trend) / 5.0)
+                    })
+                    return stagnation_info
+        
+        return stagnation_info
+    
+    def _get_governor_reset_approval(self, game_id: str, stagnation_info: Dict, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Get Governor approval for reset decision."""
+        approval = {
+            'approved': False,
+            'confidence': 0.0,
+            'reasoning': 'No Governor available'
+        }
+        
+        if not hasattr(self, 'governor') or not self.governor:
+            return approval
+        
+        try:
+            # Create context for Governor decision
+            context = {
+                'game_id': game_id,
+                'stagnation_info': stagnation_info,
+                'agent_state': agent_state,
+                'reset_request': True
+            }
+            
+            # Ask Governor for reset approval
+            governor_decision = self.governor.make_decision(
+                available_actions=[],  # No actions available for reset decision
+                context=context,
+                performance_history=self.performance_history,
+                current_energy=agent_state.get('energy', 100.0)
+            )
+            
+            if governor_decision and governor_decision.get('confidence', 0) > 0.8:
+                approval.update({
+                    'approved': True,
+                    'confidence': governor_decision.get('confidence', 0.0),
+                    'reasoning': governor_decision.get('reasoning', 'Governor approved reset')
+                })
+            
+        except Exception as e:
+            logger.error(f"Error getting Governor reset approval: {e}")
+        
+        return approval
+    
+    def _evaluate_pathfinding_strategy(self, game_id: str, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate if we have a clear pathfinding strategy before resetting."""
+        strategy = {
+            'has_clear_strategy': False,
+            'strategy': 'none',
+            'confidence': 0.0
+        }
+        
+        # Check if we have learned any successful patterns
+        if hasattr(self, 'available_actions_memory'):
+            action_effectiveness = self.available_actions_memory.get('action_effectiveness', {})
+            
+            # Look for actions with some success
+            successful_actions = []
+            for action, stats in action_effectiveness.items():
+                if stats.get('success_rate', 0) > 0.1:  # At least 10% success rate
+                    successful_actions.append(action)
+            
+            if successful_actions:
+                strategy.update({
+                    'has_clear_strategy': True,
+                    'strategy': f'learned_successful_actions_{successful_actions}',
+                    'confidence': max(stats.get('success_rate', 0) for stats in action_effectiveness.values())
+                })
+                return strategy
+        
+        # Check if we have frame analysis insights
+        if hasattr(self, '_last_frame_analysis'):
+            frame_analysis = self._last_frame_analysis.get(game_id, {})
+            if frame_analysis.get('targets') or frame_analysis.get('interactive_elements'):
+                strategy.update({
+                    'has_clear_strategy': True,
+                    'strategy': 'frame_analysis_insights',
+                    'confidence': 0.6
+                })
+                return strategy
+        
+        return strategy
+    
+    def _have_tried_all_strategies(self, game_id: str) -> bool:
+        """Check if we've tried all available strategies before resetting."""
+        if not hasattr(self, 'available_actions_memory'):
+            return True  # If no memory, assume we've tried everything
+        
+        # Check if we've tried all available actions
+        action_effectiveness = self.available_actions_memory.get('action_effectiveness', {})
+        if len(action_effectiveness) < 5:  # Haven't tried enough actions
+            return False
+        
+        # Check if we've tried different action sequences
+        if hasattr(self, 'available_actions_memory'):
+            action_sequences = self.available_actions_memory.get('action_sequences', [])
+            if len(action_sequences) < 3:  # Haven't tried enough sequences
+                return False
+        
+        return True
+    
+    def _initialize_pathfinding_system(self):
+        """Initialize the pathfinding system for strategy discovery and refinement."""
+        if not hasattr(self, 'pathfinding_system'):
+            self.pathfinding_system = {
+                'winning_strategies': {},  # game_id -> [strategy_objects]
+                'strategy_refinement': {},  # strategy_id -> refinement_data
+                'path_discovery': {},  # game_id -> discovery_progress
+                'strategy_replication': {},  # strategy_id -> replication_attempts
+                'efficiency_tracking': {}  # strategy_id -> efficiency_metrics
+            }
+    
+    def _discover_winning_path(self, game_id: str, action_sequence: List[int], score_progression: List[float]) -> Optional[Dict[str, Any]]:
+        """Discover and record winning action paths for strategy refinement."""
+        self._initialize_pathfinding_system()
+        
+        # Only record if we achieved a significant score increase
+        if len(score_progression) < 3:
+            return None
+        
+        score_increase = score_progression[-1] - score_progression[0]
+        if score_increase < 5.0:  # Minimum score increase to consider
+            return None
+        
+        # Create strategy object
+        strategy_id = f"{game_id}_strategy_{len(self.pathfinding_system['winning_strategies'].get(game_id, []))}"
+        strategy = {
+            'id': strategy_id,
+            'game_id': game_id,
+            'action_sequence': action_sequence.copy(),
+            'score_progression': score_progression.copy(),
+            'total_score_increase': score_increase,
+            'efficiency': score_increase / len(action_sequence),  # Score per action
+            'discovery_timestamp': time.time(),
+            'replication_attempts': 0,
+            'successful_replications': 0,
+            'refinement_level': 0
+        }
+        
+        # Store strategy
+        if game_id not in self.pathfinding_system['winning_strategies']:
+            self.pathfinding_system['winning_strategies'][game_id] = []
+        
+        self.pathfinding_system['winning_strategies'][game_id].append(strategy)
+        
+        # Initialize refinement tracking
+        self.pathfinding_system['strategy_refinement'][strategy_id] = {
+            'original_efficiency': strategy['efficiency'],
+            'refinement_attempts': 0,
+            'best_efficiency': strategy['efficiency'],
+            'refinement_history': []
+        }
+        
+        logger.info(f"🎯 WINNING PATH DISCOVERED: {strategy_id} - {len(action_sequence)} actions, +{score_increase:.1f} score, efficiency: {strategy['efficiency']:.2f}")
+        
+        return strategy
+    
+    def _refine_winning_strategy(self, strategy_id: str, new_attempt: Dict[str, Any]) -> Dict[str, Any]:
+        """Refine a winning strategy to achieve the same result with fewer actions."""
+        if strategy_id not in self.pathfinding_system['strategy_refinement']:
+            return {'refined': False, 'reason': 'Strategy not found'}
+        
+        refinement_data = self.pathfinding_system['strategy_refinement'][strategy_id]
+        refinement_data['refinement_attempts'] += 1
+        
+        # Check if this attempt is more efficient
+        new_efficiency = new_attempt.get('efficiency', 0)
+        if new_efficiency > refinement_data['best_efficiency']:
+            refinement_data['best_efficiency'] = new_efficiency
+            refinement_data['refinement_history'].append({
+                'attempt': refinement_data['refinement_attempts'],
+                'efficiency': new_efficiency,
+                'action_sequence': new_attempt.get('action_sequence', []),
+                'timestamp': time.time()
+            })
+            
+            logger.info(f"🔧 STRATEGY REFINED: {strategy_id} - New efficiency: {new_efficiency:.2f} (was {refinement_data['original_efficiency']:.2f})")
+            
+            return {
+                'refined': True,
+                'new_efficiency': new_efficiency,
+                'improvement': new_efficiency - refinement_data['original_efficiency'],
+                'refinement_level': len(refinement_data['refinement_history'])
+            }
+        
+        return {'refined': False, 'reason': 'No improvement in efficiency'}
+    
+    def _get_best_strategy_for_game(self, game_id: str) -> Optional[Dict[str, Any]]:
+        """Get the best known strategy for a game based on efficiency."""
+        if game_id not in self.pathfinding_system['winning_strategies']:
+            return None
+        
+        strategies = self.pathfinding_system['winning_strategies'][game_id]
+        if not strategies:
+            return None
+        
+        # Return the most efficient strategy
+        best_strategy = max(strategies, key=lambda s: s['efficiency'])
+        return best_strategy
+    
+    def _should_attempt_strategy_replication(self, game_id: str) -> bool:
+        """Determine if we should attempt to replicate a known winning strategy."""
+        best_strategy = self._get_best_strategy_for_game(game_id)
+        if not best_strategy:
+            return False
+        
+        # Only attempt replication if we have a reasonably efficient strategy
+        if best_strategy['efficiency'] < 0.5:  # Less than 0.5 score per action
+            return False
+        
+        # Don't replicate too frequently
+        strategy_id = best_strategy['id']
+        if strategy_id in self.pathfinding_system['strategy_replication']:
+            last_attempt = self.pathfinding_system['strategy_replication'][strategy_id].get('last_attempt', 0)
+            if time.time() - last_attempt < 300:  # 5 minutes between attempts
+                return False
+        
+        return True
+    
+    def _execute_strategy_replication(self, game_id: str, strategy: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a known winning strategy to test its replicability."""
+        strategy_id = strategy['id']
+        
+        # Track replication attempt
+        if strategy_id not in self.pathfinding_system['strategy_replication']:
+            self.pathfinding_system['strategy_replication'][strategy_id] = {
+                'total_attempts': 0,
+                'successful_attempts': 0,
+                'last_attempt': 0
+            }
+        
+        replication_data = self.pathfinding_system['strategy_replication'][strategy_id]
+        replication_data['total_attempts'] += 1
+        replication_data['last_attempt'] = time.time()
+        
+        logger.info(f"🔄 REPLICATING STRATEGY: {strategy_id} - Attempt {replication_data['total_attempts']}")
+        
+        return {
+            'strategy_id': strategy_id,
+            'action_sequence': strategy['action_sequence'],
+            'expected_efficiency': strategy['efficiency'],
+            'replication_attempt': replication_data['total_attempts']
+        }
 
     def _update_progress_tracking(self, action_result: Dict[str, Any], current_action_count: int):
         """

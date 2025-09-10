@@ -379,6 +379,143 @@ class FrameAnalyzer:
         
         return objects
     
+    def _get_clustered_colors(self, frame_array: np.ndarray) -> List[np.ndarray]:
+        """Enhanced color clustering with noise reduction and better grouping."""
+        try:
+            # Reshape frame to 2D array of pixels
+            pixels = frame_array.reshape(-1, frame_array.shape[-1])
+            
+            # Use K-means clustering for color quantization
+            from sklearn.cluster import KMeans
+            
+            # Determine optimal number of clusters based on frame complexity
+            n_colors = min(20, max(5, len(np.unique(pixels.view(np.void, dtype=pixels.dtype))))
+            
+            kmeans = KMeans(n_clusters=n_colors, random_state=42, n_init=10)
+            kmeans.fit(pixels)
+            
+            # Get cluster centers (representative colors)
+            clustered_colors = kmeans.cluster_centers_.astype(int)
+            
+            # Filter out very similar colors
+            unique_colors = []
+            for color in clustered_colors:
+                is_unique = True
+                for existing_color in unique_colors:
+                    if np.linalg.norm(color - existing_color) < 10:  # Similarity threshold
+                        is_unique = False
+                        break
+                if is_unique:
+                    unique_colors.append(color)
+            
+            return unique_colors
+            
+        except Exception as e:
+            logger.warning(f"Color clustering failed, using simple unique colors: {e}")
+            # Fallback to simple unique colors
+            unique_colors = np.unique(frame_array.reshape(-1, frame_array.shape[-1]), axis=0)
+            return unique_colors
+    
+    def _create_color_mask_with_tolerance(self, frame_array: np.ndarray, target_color: np.ndarray, tolerance: int = 5) -> np.ndarray:
+        """Create a mask for a color with tolerance for slight variations."""
+        try:
+            # Calculate color distance for each pixel
+            color_diff = np.linalg.norm(frame_array - target_color, axis=2)
+            return color_diff <= tolerance
+        except Exception as e:
+            logger.warning(f"Color mask creation failed: {e}")
+            return np.zeros(frame_array.shape[:2], dtype=bool)
+    
+    def _classify_color_object_enhanced(self, color: np.ndarray, width: int, height: int, area: int, mask: np.ndarray) -> str:
+        """Enhanced object classification based on color, size, and shape."""
+        try:
+            # Color-based classification
+            if len(color) >= 3:
+                r, g, b = color[:3]
+                
+                # Red objects (often interactive)
+                if r > 200 and g < 100 and b < 100:
+                    return 'red_interactive'
+                
+                # Green objects (often goals or positive elements)
+                if g > 200 and r < 100 and b < 100:
+                    return 'green_goal'
+                
+                # Blue objects (often structural)
+                if b > 200 and r < 100 and g < 100:
+                    return 'blue_structural'
+                
+                # White objects (often boundaries or highlights)
+                if r > 200 and g > 200 and b > 200:
+                    return 'white_boundary'
+                
+                # Dark objects (often obstacles)
+                if r < 50 and g < 50 and b < 50:
+                    return 'dark_obstacle'
+            
+            # Size-based classification
+            if area < 5:
+                return 'small_object'
+            elif area < 20:
+                return 'medium_object'
+            else:
+                return 'large_object'
+                
+        except Exception as e:
+            logger.warning(f"Object classification failed: {e}")
+            return 'unknown_object'
+    
+    def _calculate_object_movement(self, x: int, y: int, color: np.ndarray, area: int) -> Optional[Tuple[float, float]]:
+        """Calculate movement vector for an object based on its characteristics."""
+        try:
+            # Create object signature for tracking
+            obj_signature = f"{color.tolist()}_{area}"
+            
+            if obj_signature in self.color_object_tracker:
+                tracker = self.color_object_tracker[obj_signature]
+                if len(tracker['positions']) > 1:
+                    # Calculate movement from last position
+                    last_pos = tracker['positions'][-1]
+                    current_pos = (x, y)
+                    
+                    movement_x = current_pos[0] - last_pos[0]
+                    movement_y = current_pos[1] - last_pos[1]
+                    
+                    return (movement_x, movement_y)
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Movement calculation failed: {e}")
+            return None
+    
+    def _calculate_object_stability(self, x: int, y: int, color: np.ndarray, area: int) -> float:
+        """Calculate how stable an object is (higher = more stable)."""
+        try:
+            obj_signature = f"{color.tolist()}_{area}"
+            
+            if obj_signature in self.color_object_tracker:
+                tracker = self.color_object_tracker[obj_signature]
+                positions = tracker['positions']
+                
+                if len(positions) < 2:
+                    return 0.5  # Neutral stability for new objects
+                
+                # Calculate position variance
+                positions_array = np.array(positions)
+                variance = np.var(positions_array, axis=0)
+                total_variance = np.sum(variance)
+                
+                # Convert to stability score (0-1, higher = more stable)
+                stability = max(0, 1 - (total_variance / 100))  # Normalize variance
+                return min(1.0, stability)
+            
+            return 0.5  # Neutral for new objects
+            
+        except Exception as e:
+            logger.warning(f"Stability calculation failed: {e}")
+            return 0.5
+    
     def _update_color_object_tracking(self, object_id: str, x: float, y: float, color: int, size: int):
         """Track color object movements over time."""
         current_time = len(self.frame_history)
