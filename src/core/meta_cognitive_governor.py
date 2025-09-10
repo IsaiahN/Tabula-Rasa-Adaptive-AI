@@ -102,6 +102,11 @@ class ArchitectRequest:
     performance_data: Dict[str, Any]
     suggested_research_directions: List[str]
     priority: float  # 0.0 to 1.0
+    frame_data: Optional[Dict[str, Any]] = None  # Enhanced with frame analysis
+    memory_context: Optional[Dict[str, Any]] = None  # Enhanced with memory context
+    object_analysis: Optional[Dict[str, Any]] = None  # Enhanced with object analysis
+    learning_progress: Optional[float] = None  # Current learning progress
+    energy_state: Optional[Dict[str, Any]] = None  # Current energy state
 
 class CognitiveSystemMonitor:
     """Monitors individual cognitive systems for cost-benefit analysis."""
@@ -384,10 +389,11 @@ class MetaCognitiveGovernor:
                      performance_history: List[Dict[str, Any]], current_energy: float) -> Dict[str, Any]:
         """
         Make a high-level decision about action selection based on meta-cognitive analysis.
+        Enhanced to utilize frame data, object analysis, and memory context.
         
         Args:
             available_actions: List of available actions
-            context: Current game context including frame analysis
+            context: Current game context including frame analysis, object data, memory context
             performance_history: Historical performance data
             current_energy: Current energy level
             
@@ -395,17 +401,26 @@ class MetaCognitiveGovernor:
             Dictionary containing decision, reasoning, and confidence
         """
         try:
-            # Analyze current situation
+            # Analyze current situation with enhanced data utilization
             game_id = context.get('game_id', 'unknown')
             frame_analysis = context.get('frame_analysis', {})
+            object_analysis = context.get('object_analysis', {})
+            memory_context = context.get('memory_context', {})
             
-            # Calculate confidence based on multiple factors
-            confidence = self._calculate_decision_confidence(
-                available_actions, context, performance_history, current_energy
+            # Enhanced analysis using all available data
+            visual_insights = self._analyze_visual_context(frame_analysis)
+            object_insights = self._analyze_object_context(object_analysis)
+            memory_insights = self._analyze_memory_context(memory_context)
+            energy_insights = self._analyze_energy_context(current_energy)
+            
+            # Calculate confidence based on multiple factors with enhanced data
+            confidence = self._calculate_enhanced_decision_confidence(
+                available_actions, context, performance_history, current_energy,
+                visual_insights, object_insights, memory_insights, energy_insights
             )
             
-            # Make action recommendation based on meta-cognitive analysis
-            recommended_action = self._select_meta_cognitive_action(
+            # Make action recommendation based on enhanced meta-cognitive analysis
+            recommended_action = self._select_enhanced_meta_cognitive_action(
                 available_actions, context, performance_history, current_energy
             )
             
@@ -1284,21 +1299,203 @@ class MetaCognitiveGovernor:
     
     def create_architect_request(self, issue_type: str, 
                                problem_description: str,
-                               performance_data: Dict[str, Any]) -> ArchitectRequest:
-        """Create a request for the Architect to address systemic issues."""
+                               performance_data: Dict[str, Any],
+                               frame_data: Optional[Dict[str, Any]] = None,
+                               memory_context: Optional[Dict[str, Any]] = None,
+                               object_analysis: Optional[Dict[str, Any]] = None,
+                               learning_progress: Optional[float] = None,
+                               energy_state: Optional[Dict[str, Any]] = None) -> ArchitectRequest:
+        """Create a request for the Architect to address systemic issues with enhanced context."""
         request = ArchitectRequest(
             issue_type=issue_type,
             persistent_problem=problem_description,
             failed_solutions=self._get_failed_solutions_history(issue_type),
             performance_data=performance_data,
             suggested_research_directions=self._suggest_research_directions(issue_type),
-            priority=self._calculate_issue_priority(issue_type, performance_data)
+            priority=self._calculate_issue_priority(issue_type, performance_data),
+            frame_data=frame_data,
+            memory_context=memory_context,
+            object_analysis=object_analysis,
+            learning_progress=learning_progress,
+            energy_state=energy_state
         )
         
         self.pending_architect_requests.append(request)
-        self.logger.warning(f"🔬 Architect request created: {issue_type}")
+        self.logger.warning(f"🔬 Enhanced Architect request created: {issue_type} with context data")
         
         return request
+    
+    def _analyze_visual_context(self, frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze visual context from frame analysis data."""
+        insights = {
+            'has_interactive_targets': False,
+            'target_quality': 0.0,
+            'environment_complexity': 0.0,
+            'visual_clarity': 0.0
+        }
+        
+        if not frame_analysis:
+            return insights
+        
+        # Analyze interactive targets
+        targets = frame_analysis.get('interactive_targets', [])
+        insights['has_interactive_targets'] = len(targets) > 0
+        insights['target_quality'] = len(targets) / 10.0  # Normalize to 0-1
+        
+        # Analyze environment complexity
+        total_objects = frame_analysis.get('total_objects', 0)
+        insights['environment_complexity'] = min(1.0, total_objects / 20.0)
+        
+        # Analyze visual clarity
+        clarity_score = frame_analysis.get('clarity_score', 0.5)
+        insights['visual_clarity'] = clarity_score
+        
+        return insights
+    
+    def _analyze_object_context(self, object_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze object context for decision making."""
+        insights = {
+            'object_diversity': 0.0,
+            'interaction_potential': 0.0,
+            'spatial_relationships': 0.0,
+            'novel_objects': 0.0
+        }
+        
+        if not object_analysis:
+            return insights
+        
+        # Analyze object diversity
+        object_types = object_analysis.get('object_types', [])
+        insights['object_diversity'] = min(1.0, len(set(object_types)) / 10.0)
+        
+        # Analyze interaction potential
+        interactive_objects = object_analysis.get('interactive_objects', [])
+        insights['interaction_potential'] = min(1.0, len(interactive_objects) / 5.0)
+        
+        # Analyze spatial relationships
+        spatial_data = object_analysis.get('spatial_relationships', {})
+        insights['spatial_relationships'] = min(1.0, len(spatial_data) / 10.0)
+        
+        # Analyze novel objects
+        novel_objects = object_analysis.get('novel_objects', [])
+        insights['novel_objects'] = min(1.0, len(novel_objects) / 3.0)
+        
+        return insights
+    
+    def _analyze_memory_context(self, memory_context: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze memory context for decision making."""
+        insights = {
+            'recent_success_rate': 0.0,
+            'learning_progress': 0.0,
+            'pattern_recognition': 0.0,
+            'memory_consolidation': 0.0
+        }
+        
+        if not memory_context:
+            return insights
+        
+        # Analyze recent success rate
+        recent_actions = memory_context.get('recent_actions', [])
+        if recent_actions:
+            successful_actions = sum(1 for action in recent_actions if action.get('success', False))
+            insights['recent_success_rate'] = successful_actions / len(recent_actions)
+        
+        # Analyze learning progress
+        learning_data = memory_context.get('learning_progress', {})
+        insights['learning_progress'] = learning_data.get('current_progress', 0.0)
+        
+        # Analyze pattern recognition
+        patterns = memory_context.get('recognized_patterns', [])
+        insights['pattern_recognition'] = min(1.0, len(patterns) / 5.0)
+        
+        # Analyze memory consolidation
+        consolidation_strength = memory_context.get('consolidation_strength', 0.5)
+        insights['memory_consolidation'] = consolidation_strength
+        
+        return insights
+    
+    def _analyze_energy_context(self, current_energy: float) -> Dict[str, Any]:
+        """Analyze energy context for decision making."""
+        insights = {
+            'energy_level': current_energy / 100.0,  # Normalize to 0-1
+            'needs_conservation': current_energy < 30.0,
+            'can_explore': current_energy > 50.0,
+            'energy_trend': 0.0  # Would need historical data for trend
+        }
+        
+        return insights
+    
+    def _calculate_enhanced_decision_confidence(self, available_actions: List[int], 
+                                              context: Dict[str, Any], 
+                                              performance_history: List[Dict[str, Any]], 
+                                              current_energy: float,
+                                              visual_insights: Dict[str, Any],
+                                              object_insights: Dict[str, Any],
+                                              memory_insights: Dict[str, Any],
+                                              energy_insights: Dict[str, Any]) -> float:
+        """Calculate decision confidence using enhanced data analysis."""
+        base_confidence = 0.5
+        
+        # Visual confidence factors
+        if visual_insights['has_interactive_targets']:
+            base_confidence += 0.2
+        if visual_insights['visual_clarity'] > 0.7:
+            base_confidence += 0.1
+        
+        # Object confidence factors
+        if object_insights['interaction_potential'] > 0.5:
+            base_confidence += 0.15
+        if object_insights['object_diversity'] > 0.6:
+            base_confidence += 0.1
+        
+        # Memory confidence factors
+        if memory_insights['recent_success_rate'] > 0.6:
+            base_confidence += 0.15
+        if memory_insights['learning_progress'] > 0.3:
+            base_confidence += 0.1
+        
+        # Energy confidence factors
+        if energy_insights['can_explore']:
+            base_confidence += 0.1
+        if energy_insights['needs_conservation']:
+            base_confidence -= 0.1
+        
+        return min(1.0, max(0.0, base_confidence))
+    
+    def _select_enhanced_meta_cognitive_action(self, available_actions: List[int], 
+                                             context: Dict[str, Any], 
+                                             performance_history: List[Dict[str, Any]], 
+                                             current_energy: float) -> int:
+        """Select action using enhanced meta-cognitive analysis."""
+        # Enhanced action selection based on comprehensive data analysis
+        if not available_actions:
+            return 0
+        
+        # Get enhanced insights
+        frame_analysis = context.get('frame_analysis', {})
+        object_analysis = context.get('object_analysis', {})
+        memory_context = context.get('memory_context', {})
+        
+        visual_insights = self._analyze_visual_context(frame_analysis)
+        object_insights = self._analyze_object_context(object_analysis)
+        memory_insights = self._analyze_memory_context(memory_context)
+        energy_insights = self._analyze_energy_context(current_energy)
+        
+        # Enhanced decision logic
+        if energy_insights['needs_conservation']:
+            # Conservative actions when energy is low
+            return available_actions[0]  # Simple action
+        
+        if visual_insights['has_interactive_targets'] and object_insights['interaction_potential'] > 0.5:
+            # High interaction potential - explore
+            return available_actions[-1] if len(available_actions) > 1 else available_actions[0]
+        
+        if memory_insights['learning_progress'] > 0.5 and not memory_insights['recent_success_rate'] > 0.7:
+            # High learning progress but low success - try different approach
+            return available_actions[len(available_actions)//2] if len(available_actions) > 2 else available_actions[0]
+        
+        # Default to balanced exploration
+        return available_actions[len(available_actions)//2] if len(available_actions) > 1 else available_actions[0]
     
     def has_persistent_issues(self) -> bool:
         """Check if there are persistent issues that require architectural changes."""

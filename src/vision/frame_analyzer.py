@@ -172,6 +172,18 @@ class FrameAnalyzer:
             shape_targets = self._find_geometric_shapes(frame_array)
             targets.extend(shape_targets)
             
+            # 3.5. EDGE DETECTION - Find edge features that might be interactive
+            edge_targets = self._find_edge_features(frame_array)
+            targets.extend(edge_targets)
+            
+            # 3.6. PATTERN BREAK DETECTION - Find breaks in patterns
+            pattern_break_targets = self._find_pattern_breaks(frame_array)
+            targets.extend(pattern_break_targets)
+            
+            # 3.7. SYMMETRY DETECTION - Find symmetry points
+            symmetry_targets = self._find_symmetry_points(frame_array)
+            targets.extend(symmetry_targets)
+            
             # 4. FRAME DIFFERENCING - Objects that changed
             if self.previous_frame is not None:
                 change_targets = self._find_frame_changes(frame_array, self.previous_frame)
@@ -481,6 +493,138 @@ class FrameAnalyzer:
             
         return targets
     
+    def _find_edge_features(self, frame_array: np.ndarray) -> List[Dict]:
+        """Find edge features that might indicate interactive elements."""
+        targets = []
+        
+        try:
+            # Simple edge detection using gradient magnitude
+            if len(frame_array.shape) == 3:
+                gray = np.mean(frame_array, axis=2)
+            else:
+                gray = frame_array
+            
+            # Calculate gradients
+            grad_x = np.gradient(gray.astype(float), axis=1)
+            grad_y = np.gradient(gray.astype(float), axis=0)
+            gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
+            
+            # Find high gradient points
+            threshold = np.percentile(gradient_magnitude, 85)  # Top 15% of gradients
+            edge_points = np.where(gradient_magnitude > threshold)
+            
+            for y, x in zip(edge_points[0], edge_points[1]):
+                if 5 <= x < 59 and 5 <= y < 59:  # Avoid edges
+                    targets.append({
+                        'x': int(x),
+                        'y': int(y),
+                        'type': 'edge_feature',
+                        'confidence': min(0.9, gradient_magnitude[y, x] / np.max(gradient_magnitude)),
+                        'reason': f'Edge feature with gradient {gradient_magnitude[y, x]:.2f}'
+                    })
+                    
+        except Exception as e:
+            pass
+            
+        return targets
+    
+    def _find_pattern_breaks(self, frame_array: np.ndarray) -> List[Dict]:
+        """Find breaks in patterns that might indicate interactive boundaries."""
+        targets = []
+        
+        try:
+            if len(frame_array.shape) == 3:
+                gray = np.mean(frame_array, axis=2)
+            else:
+                gray = frame_array
+            
+            # Look for horizontal and vertical pattern breaks
+            for direction in ['horizontal', 'vertical']:
+                if direction == 'horizontal':
+                    # Check for horizontal pattern breaks
+                    for y in range(2, len(gray) - 2):
+                        for x in range(2, len(gray[0]) - 2):
+                            # Check if this row breaks a pattern
+                            row = gray[y, x-2:x+3]
+                            if len(set(row)) > 2:  # Multiple different values
+                                # Check if it's different from surrounding rows
+                                above = gray[y-1, x-2:x+3]
+                                below = gray[y+1, x-2:x+3]
+                                if not np.array_equal(row, above) and not np.array_equal(row, below):
+                                    targets.append({
+                                        'x': int(x),
+                                        'y': int(y),
+                                        'type': 'pattern_break',
+                                        'confidence': 0.7,
+                                        'reason': f'Horizontal pattern break at row {y}'
+                                    })
+                else:
+                    # Check for vertical pattern breaks
+                    for x in range(2, len(gray[0]) - 2):
+                        for y in range(2, len(gray) - 2):
+                            # Check if this column breaks a pattern
+                            col = gray[y-2:y+3, x]
+                            if len(set(col)) > 2:  # Multiple different values
+                                # Check if it's different from surrounding columns
+                                left = gray[y-2:y+3, x-1]
+                                right = gray[y-2:y+3, x+1]
+                                if not np.array_equal(col, left) and not np.array_equal(col, right):
+                                    targets.append({
+                                        'x': int(x),
+                                        'y': int(y),
+                                        'type': 'pattern_break',
+                                        'confidence': 0.7,
+                                        'reason': f'Vertical pattern break at column {x}'
+                                    })
+                    
+        except Exception as e:
+            pass
+            
+        return targets
+    
+    def _find_symmetry_points(self, frame_array: np.ndarray) -> List[Dict]:
+        """Find symmetry points that might indicate important elements."""
+        targets = []
+        
+        try:
+            if len(frame_array.shape) == 3:
+                gray = np.mean(frame_array, axis=2)
+            else:
+                gray = frame_array
+            
+            height, width = gray.shape
+            center_x, center_y = width // 2, height // 2
+            
+            # Check for horizontal symmetry
+            for y in range(height):
+                for x in range(width // 2):
+                    mirror_x = width - 1 - x
+                    if abs(gray[y, x] - gray[y, mirror_x]) < 1:  # Similar values
+                        # Check if this is part of a larger symmetric pattern
+                        symmetry_score = 0
+                        for dy in range(-2, 3):
+                            for dx in range(-2, 3):
+                                ny, nx = y + dy, x + dx
+                                nmy, nmx = y + dy, mirror_x - dx
+                                if (0 <= ny < height and 0 <= nx < width and 
+                                    0 <= nmy < height and 0 <= nmx < width):
+                                    if abs(gray[ny, nx] - gray[nmy, nmx]) < 1:
+                                        symmetry_score += 1
+                        
+                        if symmetry_score > 5:  # Significant symmetry
+                            targets.append({
+                                'x': int(x),
+                                'y': int(y),
+                                'type': 'symmetry_point',
+                                'confidence': min(0.8, symmetry_score / 25.0),
+                                'reason': f'Symmetry point with score {symmetry_score}'
+                            })
+                            
+        except Exception as e:
+            pass
+            
+        return targets
+    
     def _find_frame_changes(self, current_frame: np.ndarray, previous_frame: np.ndarray) -> List[Dict]:
         """Find areas that changed between frames - likely interactive."""
         targets = []
@@ -521,11 +665,14 @@ class FrameAnalyzer:
         """ENHANCED: Rank targets prioritizing productive coordinates and avoiding stuck ones."""
         # Sort by confidence, then by type priority
         type_priority = {
-            'dynamic_change': 5,      # Moving objects = highest priority
-            'color_object': 4,        # Enhanced color objects = high priority  
-            'geometric_shape': 3,     # Shapes = possible buttons
-            'brightness_extreme': 2,  # Brightness = might be indicators
-            'color_anomaly': 1        # Basic color anomaly = lowest priority
+            'dynamic_change': 6,      # Moving objects = highest priority (increased from 5)
+            'color_object': 5,        # Enhanced color objects = high priority (increased from 4)
+            'geometric_shape': 4,     # Shapes = possible buttons (increased from 3)
+            'brightness_extreme': 3,  # Brightness = might be indicators (increased from 2)
+            'color_anomaly': 2,       # Basic color anomaly = lowest priority (increased from 1)
+            'edge_feature': 4,        # New: Edge features often indicate interactive elements
+            'pattern_break': 5,       # New: Pattern breaks suggest interactive boundaries
+            'symmetry_point': 3       # New: Symmetry points often indicate important elements
         }
         
         for target in targets:

@@ -23,10 +23,10 @@ class EnergySystem:
     def __init__(
         self,
         max_energy: float = 100.0,
-        base_consumption: float = 0.01,
-        action_multiplier: float = 0.5,
-        computation_multiplier: float = 0.001,
-        food_energy_value: float = 10.0
+        base_consumption: float = 0.005,  # Reduced from 0.01 to 0.005
+        action_multiplier: float = 0.3,  # Reduced from 0.5 to 0.3
+        computation_multiplier: float = 0.0005,  # Reduced from 0.001 to 0.0005
+        food_energy_value: float = 15.0  # Increased from 10.0 to 15.0
     ):
         self.max_energy = max_energy
         self.base_consumption = base_consumption
@@ -89,6 +89,41 @@ class EnergySystem:
         """
         self.current_energy = min(self.max_energy, self.current_energy + amount)
         self.energy_history.append(self.current_energy)
+        return self.current_energy
+    
+    def add_learning_energy_reward(self, learning_progress: float, success: bool) -> float:
+        """
+        Add energy based on learning progress and success.
+        This creates a positive feedback loop between learning and energy.
+        
+        Args:
+            learning_progress: Current learning progress (0-1)
+            success: Whether the current action was successful
+            
+        Returns:
+            New energy level after reward
+        """
+        # Base reward for learning progress
+        learning_reward = learning_progress * 5.0  # Up to 5 energy for high learning progress
+        
+        # Bonus for success
+        if success:
+            success_bonus = 3.0  # Additional energy for successful actions
+        else:
+            success_bonus = 0.0
+        
+        # Small reward even for failed attempts if there was learning progress
+        if learning_progress > 0.1:
+            effort_reward = 1.0  # Reward for trying and learning
+        else:
+            effort_reward = 0.0
+        
+        total_reward = learning_reward + success_bonus + effort_reward
+        
+        # Apply the reward
+        self.current_energy = min(self.max_energy, self.current_energy + total_reward)
+        self.energy_history.append(self.current_energy)
+        
         return self.current_energy
         
     def is_dead(self) -> bool:

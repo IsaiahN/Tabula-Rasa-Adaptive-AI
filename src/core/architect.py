@@ -329,21 +329,87 @@ class MutationEngine:
         return self._generate_exploratory_mutation()
     
     def _generate_targeted_mutation(self, request: ArchitectRequest) -> Mutation:
-        """Generate mutation to address specific issues."""
+        """Generate mutation to address specific issues with enhanced context analysis."""
         mutation_id = f"targeted_{int(time.time())}"
         
-        # Analyze the issue and suggest appropriate mutations
+        # Enhanced analysis using frame data, memory context, and object analysis
+        frame_insights = self._analyze_frame_context(request.frame_data)
+        memory_insights = self._analyze_memory_context(request.memory_context)
+        object_insights = self._analyze_object_context(request.object_analysis)
+        energy_insights = self._analyze_energy_context(request.energy_state)
+        
+        # Generate targeted changes based on comprehensive analysis
+        changes = {}
+        rationale_parts = []
+        
         if request.issue_type == "low_efficiency":
-            changes = {'max_actions_per_game': int(self.base_genome.max_actions_per_game * 1.5)}
-            rationale = f"Increase exploration to address: {request.persistent_problem}"
+            # Use frame data to determine if visual targeting needs improvement
+            if frame_insights.get('low_interactive_targets', False):
+                changes['enable_frame_analysis'] = True
+                changes['salience_threshold'] = max(0.1, self.base_genome.salience_threshold - 0.15)
+                rationale_parts.append("Enhanced visual targeting based on frame analysis")
+            
+            # Use memory context to improve learning
+            if memory_insights.get('low_retention', False):
+                changes['memory_consolidation_strength'] = min(1.0, self.base_genome.memory_consolidation_strength + 0.2)
+                rationale_parts.append("Improved memory consolidation based on retention analysis")
+            
+            # Use object analysis for better interaction
+            if object_insights.get('complex_objects', False):
+                changes['enable_multi_modal_input'] = True
+                changes['enable_boundary_detection'] = True
+                rationale_parts.append("Enhanced object interaction capabilities")
+            
+            # Use energy state for better resource management
+            if energy_insights.get('high_depletion', False):
+                changes['energy_decay_rate'] = max(0.005, self.base_genome.energy_decay_rate * 0.7)
+                changes['sleep_trigger_energy'] = min(80.0, self.base_genome.sleep_trigger_energy + 10.0)
+                rationale_parts.append("Optimized energy management based on depletion patterns")
+            
+            # Default efficiency improvements
+            if not changes:
+                changes = {'max_actions_per_game': int(self.base_genome.max_actions_per_game * 1.5)}
+                rationale_parts.append("Increased exploration capacity")
             
         elif request.issue_type == "stagnation":
-            changes = {'enable_contrarian_strategy': True, 'contrarian_threshold': 3}
-            rationale = f"Enable contrarian strategies to break stagnation: {request.persistent_problem}"
+            # Use learning progress to break stagnation
+            if request.learning_progress is not None and request.learning_progress < 0.1:
+                changes['enable_contrarian_strategy'] = True
+                changes['contrarian_threshold'] = 2  # More aggressive
+                changes['enable_boredom_detection'] = True
+                changes['boredom_threshold'] = 50  # Lower threshold
+                rationale_parts.append("Aggressive anti-stagnation measures based on learning progress")
+            
+            # Use frame data for visual stagnation
+            if frame_insights.get('repetitive_patterns', False):
+                changes['enable_exploration_strategies'] = True
+                changes['enable_action_experimentation'] = True
+                rationale_parts.append("Enhanced exploration to break visual pattern repetition")
+            
+        elif request.issue_type == "visual_targeting_issues":
+            # Specific visual targeting improvements
+            changes['enable_frame_analysis'] = True
+            changes['enable_boundary_detection'] = True
+            changes['salience_threshold'] = max(0.1, self.base_genome.salience_threshold - 0.2)
+            rationale_parts.append("Comprehensive visual targeting enhancement")
             
         else:  # General improvement
-            changes = {'salience_threshold': max(0.1, self.base_genome.salience_threshold - 0.1)}
-            rationale = f"Lower salience threshold to preserve more memories"
+            # Use all available context for general improvements
+            if frame_insights.get('rich_environment', False):
+                changes['enable_multi_modal_input'] = True
+                changes['enable_temporal_memory'] = True
+                rationale_parts.append("Enhanced multi-modal processing for rich environments")
+            
+            if memory_insights.get('high_importance_memories', False):
+                changes['memory_consolidation_strength'] = min(1.0, self.base_genome.memory_consolidation_strength + 0.1)
+                rationale_parts.append("Strengthened memory consolidation for important experiences")
+            
+            if not changes:
+                changes = {'salience_threshold': max(0.1, self.base_genome.salience_threshold - 0.1)}
+                rationale_parts.append("General salience threshold optimization")
+        
+        # Combine rationale
+        rationale = f"Targeted improvement for {request.issue_type}: " + " | ".join(rationale_parts)
         
         return Mutation(
             id=mutation_id,
@@ -355,6 +421,74 @@ class MutationEngine:
             confidence=0.7,
             test_duration_estimate=15.0
         )
+    
+    def _analyze_frame_context(self, frame_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze frame data for architectural insights."""
+        if not frame_data:
+            return {}
+        
+        insights = {}
+        
+        # Analyze interactive targets
+        interactive_targets = frame_data.get('interactive_targets', [])
+        insights['low_interactive_targets'] = len(interactive_targets) < 2
+        insights['rich_environment'] = len(interactive_targets) > 5
+        
+        # Analyze confidence levels
+        confidence = frame_data.get('confidence', 0.0)
+        insights['low_confidence'] = confidence < 0.5
+        
+        # Analyze patterns
+        patterns = frame_data.get('patterns', [])
+        insights['repetitive_patterns'] = len(set(str(p) for p in patterns)) < len(patterns) * 0.7
+        
+        return insights
+    
+    def _analyze_memory_context(self, memory_context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze memory context for architectural insights."""
+        if not memory_context:
+            return {}
+        
+        insights = {}
+        
+        # Analyze retention rates
+        retention_rate = memory_context.get('retention_rate', 0.5)
+        insights['low_retention'] = retention_rate < 0.3
+        
+        # Analyze memory importance
+        high_importance = memory_context.get('high_importance_count', 0)
+        total_memories = memory_context.get('total_memories', 1)
+        insights['high_importance_memories'] = (high_importance / total_memories) > 0.3
+        
+        return insights
+    
+    def _analyze_object_context(self, object_analysis: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze object analysis for architectural insights."""
+        if not object_analysis:
+            return {}
+        
+        insights = {}
+        
+        # Analyze object complexity
+        object_count = object_analysis.get('object_count', 0)
+        complexity_score = object_analysis.get('complexity_score', 0.0)
+        insights['complex_objects'] = object_count > 3 and complexity_score > 0.7
+        
+        return insights
+    
+    def _analyze_energy_context(self, energy_state: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze energy state for architectural insights."""
+        if not energy_state:
+            return {}
+        
+        insights = {}
+        
+        # Analyze energy depletion
+        current_energy = energy_state.get('current_energy', 100.0)
+        depletion_rate = energy_state.get('depletion_rate', 0.01)
+        insights['high_depletion'] = depletion_rate > 0.02 or current_energy < 30.0
+        
+        return insights
     
     def _generate_exploratory_mutation(self) -> Mutation:
         """Generate exploratory mutation for general improvement."""
