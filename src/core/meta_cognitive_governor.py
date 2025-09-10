@@ -2781,7 +2781,7 @@ class MetaCognitiveGovernor:
             confidence = 0.7
             memory_priority = 'ENHANCED'
         
-        self.logger.info(f"🏆 Governor detected level completion win: {levels_completed} levels completed for {game_id}")
+        self.logger.info(f"🎯 Governor detected level completion win: {levels_completed} levels completed for {game_id}")
         
         return {
             'recommended_action': 'PRIORITIZE_MEMORIES',
@@ -2802,6 +2802,52 @@ class MetaCognitiveGovernor:
                 'levels_completed': levels_completed,
                 'game_id': game_id,
                 'requires_memory_prioritization': True
+            }
+        }
+
+    def analyze_full_game_win(self, session_result: Dict[str, Any], game_id: str) -> Dict[str, Any]:
+        """
+        Analyze full game wins and provide Governor recommendations for ultimate memory prioritization.
+        
+        Args:
+            session_result: Session results including full game completion data
+            game_id: Current game ID
+            
+        Returns:
+            Governor recommendation for full game win handling
+        """
+        if not session_result.get('full_game_win', False):
+            return None
+        
+        # Full game win is the ultimate achievement
+        win_value = 'ULTIMATE'  # Complete game = ultimate win
+        confidence = 1.0         # Maximum confidence
+        memory_priority = 'IMMORTAL'  # Never delete these memories
+        
+        self.logger.info(f"🏆 Governor detected FULL GAME WIN: Complete game victory for {game_id}")
+        
+        return {
+            'recommended_action': 'IMMORTALIZE_MEMORIES',
+            'confidence': confidence,
+            'reasoning': 'Full game win detected - complete puzzle solution achieved',
+            'priority': 'critical',
+            'governor_decision': True,
+            'win_analysis': {
+                'win_type': 'FULL_GAME_WIN',
+                'win_value': win_value,
+                'memory_priority': memory_priority,
+                'should_preserve_patterns': True,
+                'should_analyze_strategy': True,
+                'should_create_master_template': True,  # Create master strategy template
+                'should_share_knowledge': True          # Share with other agents
+            },
+            'meta_analysis': {
+                'win_detected': True,
+                'win_type': 'FULL_GAME_WIN',
+                'game_id': game_id,
+                'requires_immortal_memory_prioritization': True,
+                'requires_master_template_creation': True,
+                'requires_knowledge_sharing': True
             }
         }
 

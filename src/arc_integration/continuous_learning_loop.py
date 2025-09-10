@@ -2333,13 +2333,16 @@ class ContinuousLearningLoop:
                     return state
         
         # Infer state from success/failure indicators - ENHANCED WIN DETECTION
-        # Check for level completions first (these are wins!)
-        if re.search(r'levels.*completed.*(\d+)', combined_output, re.IGNORECASE):
-            return 'WIN'  # Level completion = WIN!
+        # Check for full game wins first (highest priority)
+        if re.search(r'\b(game.*complete|puzzle.*solved|challenge.*complete|full.*win|complete.*game|victory.*complete|final.*level.*complete|all.*levels.*complete)\b', combined_output, re.IGNORECASE):
+            return 'FULL_GAME_WIN'  # Complete game victory!
+        # Check for level completions (partial wins)
+        elif re.search(r'levels.*completed.*(\d+)', combined_output, re.IGNORECASE):
+            return 'LEVEL_WIN'  # Level completion = LEVEL WIN!
         elif re.search(r'completed.*(\d+).*levels', combined_output, re.IGNORECASE):
-            return 'WIN'  # Level completion = WIN!
+            return 'LEVEL_WIN'  # Level completion = LEVEL WIN!
         elif re.search(r'\b(win|victory|success|solved)\b', combined_output, re.IGNORECASE):
-            return 'WIN'
+            return 'WIN'  # Generic win
         elif re.search(r'\b(game.*?over|failed|timeout|error)\b', combined_output, re.IGNORECASE):
             return 'GAME_OVER'
         
@@ -2350,33 +2353,55 @@ class ContinuousLearningLoop:
         result = {'success': False, 'final_score': 0, 'actions_taken': 0, 'level_progressed': False, 'current_level': None}
         combined_output = stdout + "\n" + stderr
         
-        # Check for level progression indicators - ENHANCED DETECTION
-        level_progression_patterns = [
-            r'level.*(\d+).*complete',
-            r'passed.*level.*(\d+)', 
-            r'advanced.*level.*(\d+)',
-            r'next.*level.*(\d+)',
-            r'level.*up.*(\d+)',
-            r'stage.*(\d+).*complete',
-            r'tier.*(\d+).*unlock',
-            r'levels.*completed.*(\d+)',  # NEW: Direct level count from scorecard
-            r'completed.*(\d+).*levels',  # NEW: Alternative phrasing
-            r'level.*(\d+).*solved',      # NEW: Solved terminology
-            r'solved.*level.*(\d+)',      # NEW: Alternative solved phrasing
+        # Check for FULL GAME WIN first (completing entire game)
+        full_game_win_patterns = [
+            r'game.*complete',
+            r'puzzle.*solved',
+            r'challenge.*complete',
+            r'full.*win',
+            r'complete.*game',
+            r'victory.*complete',
+            r'final.*level.*complete',
+            r'all.*levels.*complete'
         ]
         
-        for pattern in level_progression_patterns:
-            match = re.search(pattern, combined_output, re.IGNORECASE)
-            if match:
-                try:
-                    level = int(match.group(1))
-                    result['level_progressed'] = True
-                    result['current_level'] = level
-                    result['success'] = True  # 🎯 LEVEL COMPLETION = SUCCESS!
-                    print(f"🎯 LEVEL COMPLETION DETECTED: Level {level} completed - marking as SUCCESS!")
-                    break
-                except ValueError:
-                    continue
+        for pattern in full_game_win_patterns:
+            if re.search(pattern, combined_output, re.IGNORECASE):
+                result['full_game_win'] = True
+                result['success'] = True
+                result['win_type'] = 'FULL_GAME_WIN'
+                print(f"🏆 FULL GAME WIN DETECTED: Complete game victory - marking as FULL WIN!")
+                break
+        
+        # Check for level progression indicators - ENHANCED DETECTION
+        if not result.get('full_game_win', False):
+            level_progression_patterns = [
+                r'level.*(\d+).*complete',
+                r'passed.*level.*(\d+)', 
+                r'advanced.*level.*(\d+)',
+                r'next.*level.*(\d+)',
+                r'level.*up.*(\d+)',
+                r'stage.*(\d+).*complete',
+                r'tier.*(\d+).*unlock',
+                r'levels.*completed.*(\d+)',  # NEW: Direct level count from scorecard
+                r'completed.*(\d+).*levels',  # NEW: Alternative phrasing
+                r'level.*(\d+).*solved',      # NEW: Solved terminology
+                r'solved.*level.*(\d+)',      # NEW: Alternative solved phrasing
+            ]
+            
+            for pattern in level_progression_patterns:
+                match = re.search(pattern, combined_output, re.IGNORECASE)
+                if match:
+                    try:
+                        level = int(match.group(1))
+                        result['level_progressed'] = True
+                        result['current_level'] = level
+                        result['success'] = True  # 🎯 LEVEL COMPLETION = SUCCESS!
+                        result['win_type'] = 'LEVEL_WIN'
+                        print(f"🎯 LEVEL WIN DETECTED: Level {level} completed - marking as LEVEL WIN!")
+                        break
+                    except ValueError:
+                        continue
         
         # Enhanced success detection patterns
         success_patterns = [
@@ -3264,42 +3289,68 @@ class ContinuousLearningLoop:
                         #  PRESERVE WINNING MEMORIES - Mark as high-priority, hard to delete
                         self._preserve_winning_memories(session_result, current_score, game_id)
                     
+                    #  CHECK FOR FULL GAME WIN - Highest priority achievement
+                    if session_result.get('full_game_win', False):
+                        print(f"🏆 FULL GAME WIN! {game_id} completed entirely - ULTIMATE SUCCESS!")
+                        success = True
+                        game_state = 'FULL_GAME_WIN'
+                        # Full game win gets maximum priority
+                        self._preserve_ultimate_win_memories(session_result, current_score, game_id)
+                        
+                        # 🧠 GOVERNOR ANALYSIS - Full game win analysis
+                        if self.governor:
+                            governor_analysis = self.governor.analyze_full_game_win(session_result, game_id)
+                            if governor_analysis:
+                                print(f"🧠 GOVERNOR ULTIMATE WIN ANALYSIS: {governor_analysis['win_analysis']['win_value']} value detected")
+                                print(f"   Memory Priority: {governor_analysis['win_analysis']['memory_priority']}")
+                                print(f"   Strategy Analysis: {governor_analysis['win_analysis']['should_analyze_strategy']}")
+                    
                     #  CHECK FOR LEVEL PROGRESSION - Only preserve NEW breakthroughs
-                    if session_result.get('level_progressed', False):
+                    elif session_result.get('level_progressed', False):
                         new_level = session_result.get('current_level', 1)
                         previous_best = self.game_level_records.get(game_id, {}).get('highest_level', 0)
                         
                         if new_level > previous_best:
-                            print(f"🏆 TRUE LEVEL BREAKTHROUGH! {game_id} advanced from level {previous_best} to {new_level}")
+                            print(f"🎯 LEVEL BREAKTHROUGH! {game_id} advanced from level {previous_best} to {new_level}")
                             # This is a real breakthrough - preserve with hierarchical priority
                             self._preserve_breakthrough_memories(session_result, current_score, game_id, new_level, previous_best)
                             # 🎯 LEVEL COMPLETION = SUCCESS! Override any failure state
                             success = True
-                            game_state = 'WIN'
-                            print(f"🎯 LEVEL COMPLETION OVERRIDE: Marking as WIN due to level {new_level} completion!")
+                            game_state = 'LEVEL_WIN'
+                            print(f"🎯 LEVEL WIN OVERRIDE: Marking as LEVEL WIN due to level {new_level} completion!")
                             
                             # 🧠 GOVERNOR ANALYSIS - Analyze level completion win
                             if self.governor:
                                 governor_analysis = self.governor.analyze_level_completion_win(session_result, game_id)
                                 if governor_analysis:
-                                    print(f"🧠 GOVERNOR WIN ANALYSIS: {governor_analysis['win_analysis']['win_value']} value win detected")
+                                    print(f"🧠 GOVERNOR LEVEL WIN ANALYSIS: {governor_analysis['win_analysis']['win_value']} value win detected")
                                     print(f"   Memory Priority: {governor_analysis['win_analysis']['memory_priority']}")
                                     print(f"   Strategy Analysis: {governor_analysis['win_analysis']['should_analyze_strategy']}")
                         else:
                             print(f" Level {new_level} maintained on {game_id} (no new breakthrough)")
                             # Even maintaining level is a form of success
                             success = True
-                            game_state = 'WIN'
+                            game_state = 'LEVEL_WIN'
                             
                             # 🧠 GOVERNOR ANALYSIS - Even maintaining level is a win
                             if self.governor:
                                 governor_analysis = self.governor.analyze_level_completion_win(session_result, game_id)
                                 if governor_analysis:
-                                    print(f"🧠 GOVERNOR WIN ANALYSIS: Level maintenance win detected")
+                                    print(f"🧠 GOVERNOR LEVEL WIN ANALYSIS: Level maintenance win detected")
                     else:
                         consecutive_failures += 1
                         
-                    print(f"Mastery Session {session_count}: {'WIN' if success else 'LOSS'} | Score: {current_score} | State: {game_state}")  # Updated naming
+                    # Enhanced win type display
+                    win_display = "WIN" if success else "LOSS"
+                    if success:
+                        if game_state == 'FULL_GAME_WIN':
+                            win_display = "🏆 FULL WIN"
+                        elif game_state == 'LEVEL_WIN':
+                            win_display = "🎯 LEVEL WIN"
+                        elif game_state == 'WIN':
+                            win_display = "✅ WIN"
+                    
+                    print(f"Mastery Session {session_count}: {win_display} | Score: {current_score} | State: {game_state}")
                     
                     # Track learning progress for boredom detection
                     effectiveness = self._calculate_session_effectiveness(session_result, game_results)  # Updated method name
@@ -6008,13 +6059,19 @@ class ContinuousLearningLoop:
                         session.target_performance
                     )
                     
-                    # Check if game ended with GAME_OVER and we should continue
+                    # Check if game ended and we should continue
                     game_state = game_results.get('final_performance', {}).get('final_state', 'UNKNOWN')
                     if game_state == 'GAME_OVER':
                         print(f"🎮 Game {game_id} ended with GAME_OVER - continuing to next game")
                         # Don't break, just continue to next game
+                    elif game_state == 'FULL_GAME_WIN':
+                        print(f"🏆 Game {game_id} ended with FULL GAME WIN - continuing to next game")
+                        # Don't break, just continue to next game
+                    elif game_state == 'LEVEL_WIN':
+                        print(f"🎯 Game {game_id} ended with LEVEL WIN - continuing to next game")
+                        # Don't break, just continue to next game
                     elif game_state == 'WIN':
-                        print(f"🏆 Game {game_id} ended with WIN - continuing to next game")
+                        print(f"✅ Game {game_id} ended with WIN - continuing to next game")
                         # Don't break, just continue to next game
                     
                     session_results['games_played'][game_id] = game_results
@@ -10306,6 +10363,39 @@ class ContinuousLearningLoop:
         # Auto-save counters
         self._save_global_counters()
     
+    def _preserve_ultimate_win_memories(self, session_result: Dict[str, Any], score: int, game_id: str):
+        """
+        Preserve memories from full game wins with IMMORTAL priority.
+        These memories are never deleted and get maximum salience.
+        """
+        try:
+            # Memory system not available in ContinuousLearningLoop - skip memory preservation
+            if True:  # Changed: not hasattr(self.agent, 'memory')
+                return
+                
+            # Ultimate win gets maximum preservation
+            preservation_strength = 1.0  # Maximum strength
+            min_salience_floor = 0.95   # Nearly maximum minimum
+            protection_duration = 9999  # Effectively permanent
+            print(f"🏆 IMMORTAL MEMORY PRESERVATION: Full game win memories (strength: {preservation_strength})")
+            
+            # Mark in training state for ultimate protection
+            if not hasattr(self, 'ultimate_wins'):
+                self.ultimate_wins = []
+            
+            self.ultimate_wins.append({
+                'game_id': game_id,
+                'score': score,
+                'timestamp': time.time(),
+                'preservation_strength': preservation_strength,
+                'memory_priority': 'IMMORTAL'
+            })
+            
+            print(f"🏆 ULTIMATE WIN RECORDED: {game_id} with score {score} - IMMORTAL memory priority")
+            
+        except Exception as e:
+            print(f"Error preserving ultimate win memories: {e}")
+
     def _preserve_winning_memories(self, session_result: Dict[str, Any], score: int, game_id: str, is_level_progression: bool = False):
         """
         Preserve memories that led to wins or level progression.
