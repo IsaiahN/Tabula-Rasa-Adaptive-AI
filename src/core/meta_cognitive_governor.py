@@ -344,6 +344,7 @@ class MetaCognitiveGovernor:
             from src.core.architect_evolution_engine import ArchitectEvolutionEngine
             self.architect_engine = ArchitectEvolutionEngine(
                 persistence_dir=persistence_dir or ".",
+                evolution_data_dir="architecture/evolution",  # Relative to persistence_dir
                 enable_autonomous_evolution=True
             )
             self.logger.info("Architect Evolution Engine enabled - Phase 3 autonomous evolution")
@@ -356,6 +357,7 @@ class MetaCognitiveGovernor:
             from src.core.performance_optimization_engine import PerformanceOptimizationEngine
             self.performance_engine = PerformanceOptimizationEngine(
                 persistence_dir=persistence_dir or ".",
+                performance_data_dir="experiments/performance",  # Relative to persistence_dir
                 enable_real_time_optimization=True
             )
             self.logger.info("Performance Optimization Engine enabled - Phase 4 performance maximization")
