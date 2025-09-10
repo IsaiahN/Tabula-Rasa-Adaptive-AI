@@ -540,8 +540,12 @@ class MetaCognitiveGovernor:
         if 6 in available_actions:
             return 6
         
-        # Otherwise return first available action
-        return available_actions[0]
+        # Otherwise return first available action, but ensure we have actions
+        if available_actions:
+            return available_actions[0]
+        else:
+            # This should never happen, but provide a safe fallback
+            return 1
     
     def _generate_decision_reasoning(self, recommended_action: int, available_actions: List[int], 
                                    context: Dict[str, Any], confidence: float) -> str:

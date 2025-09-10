@@ -2160,9 +2160,15 @@ class ContinuousLearningLoop:
                     should_switch = True
                     reason = f"Action {last_three[0]} repeated 3 times with no frame changes"
                     
-                    # Exclude the repeated action
+                    # Exclude the repeated action, but ensure we don't empty the list
                     repeated_action = last_three[0]
                     recommended_actions = [a for a in available_actions if a != repeated_action]
+                    
+                    # CRITICAL FIX: If excluding the repeated action leaves us with no options,
+                    # keep the original action but mark it as a forced choice
+                    if not recommended_actions:
+                        recommended_actions = available_actions.copy()
+                        reason += " (forced to continue with same action - no alternatives)"
             
             return {
                 'should_switch': should_switch,
@@ -3801,8 +3807,11 @@ class ContinuousLearningLoop:
         if stagnation_info['should_switch']:
             print(f"🔄 STAGNATION DETECTED: {stagnation_info['reason']}")
             print(f"🔄 SWITCHING FROM: {stagnation_info['stagnant_actions']} TO: {stagnation_info['recommended_actions']}")
-            # Force selection from recommended actions
-            available_actions = stagnation_info['recommended_actions']
+            # Force selection from recommended actions, but ensure we don't empty the list
+            if stagnation_info['recommended_actions']:
+                available_actions = stagnation_info['recommended_actions']
+            else:
+                print(f"⚠️ WARNING: Stagnation detection returned empty recommended actions, keeping original: {available_actions}")
         
         # 🧠 META-COGNITIVE GOVERNOR INTEGRATION (Third Brain)
         if self.governor:
