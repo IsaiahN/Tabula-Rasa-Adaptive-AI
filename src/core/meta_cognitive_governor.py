@@ -2751,6 +2751,60 @@ class MetaCognitiveGovernor:
         # For other errors, return None to let the system handle normally
         return None
 
+    def analyze_level_completion_win(self, session_result: Dict[str, Any], game_id: str) -> Dict[str, Any]:
+        """
+        Analyze level completion wins and provide Governor recommendations for memory prioritization.
+        
+        Args:
+            session_result: Session results including level progression data
+            game_id: Current game ID
+            
+        Returns:
+            Governor recommendation for level completion handling
+        """
+        if not session_result.get('level_progressed', False):
+            return None
+            
+        levels_completed = session_result.get('current_level', 0)
+        
+        # Calculate win value based on level completion
+        if levels_completed >= 2:
+            win_value = 'CRITICAL'  # Multiple levels = critical win
+            confidence = 0.95
+            memory_priority = 'PERMANENT'
+        elif levels_completed == 1:
+            win_value = 'HIGH'      # Single level = high value win
+            confidence = 0.85
+            memory_priority = 'PROTECTED'
+        else:
+            win_value = 'MODERATE'  # Partial progress
+            confidence = 0.7
+            memory_priority = 'ENHANCED'
+        
+        self.logger.info(f"🏆 Governor detected level completion win: {levels_completed} levels completed for {game_id}")
+        
+        return {
+            'recommended_action': 'PRIORITIZE_MEMORIES',
+            'confidence': confidence,
+            'reasoning': f'Level completion win detected: {levels_completed} levels completed',
+            'priority': 'high',
+            'governor_decision': True,
+            'win_analysis': {
+                'levels_completed': levels_completed,
+                'win_value': win_value,
+                'memory_priority': memory_priority,
+                'should_preserve_patterns': True,
+                'should_analyze_strategy': True
+            },
+            'meta_analysis': {
+                'win_detected': True,
+                'win_type': 'LEVEL_COMPLETION',
+                'levels_completed': levels_completed,
+                'game_id': game_id,
+                'requires_memory_prioritization': True
+            }
+        }
+
     def _generate_integrated_recommendations(self, analysis_results: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate integrated recommendations from memory, pattern, and cluster analysis"""
         recommendations = []
