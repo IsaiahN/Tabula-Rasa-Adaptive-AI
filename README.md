@@ -14,7 +14,7 @@
 - **🧹 Intelligent Data Management** - Automatic cleanup of low-value training data and archive management
 - **📁 Unified Data Structure** - Centralized data organization with automatic migration
 
-A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehensive neural architecture that combines advanced cognitive systems with meta-cognitive supervision for adaptive reasoning, learning, and autonomous evolution. Built specifically for tackling the ARC-AGI-3 challenge with unified parameter management and intelligent self-improvement.
+A revolutionary AI system featuring **Meta-Cognitive Intelligence** and **Simulation-Driven Intelligence** - a comprehensive neural architecture that combines advanced cognitive systems with meta-cognitive supervision and multi-step planning for adaptive reasoning, learning, and autonomous evolution. Built specifically for tackling the ARC-AGI-3 challenge with unified parameter management, intelligent self-improvement, and proactive imagination capabilities.
 
 ## 🧠 Meta-Cognitive Architecture
 
@@ -40,6 +40,30 @@ A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehe
 - **🔄 Autonomous Evolution** - Self-modifying architecture with Git integration
 - **🧠 Cognitive Monitoring** - Real-time system health and performance tracking
 
+## 🧠 Simulation-Driven Intelligence (NEW)
+
+**Revolutionary multi-step planning and imagination system that transforms reactive AI into proactive intelligence:**
+
+### Core Simulation Components
+- **🎭 Hypothesis Generator** - Creates "what-if" scenarios for multi-step planning
+- **🔮 Predictive Core** - Runs internal simulations without taking real actions
+- **💭 Simulation Evaluator** - Uses emotional intelligence to evaluate simulated outcomes
+- **🗂️ Strategy Memory** - Stores successful action sequences as reusable strategies
+- **🤖 Simulation Agent** - Unified interface coordinating all simulation components
+
+### Key Capabilities
+- **Multi-Step Planning** - Thinks 5-10 steps ahead instead of reactive 1-step decisions
+- **Imagination Engine** - Simulates multiple possible futures before acting
+- **Affective Decision Making** - Uses energy, learning drive, and boredom to guide choices
+- **Strategy Learning** - Develops "autopilot" behavior for familiar situations
+- **Proactive Intelligence** - Transforms S→A→S+1 to S→[A1→S+1→A2→S+2...]→Best_A
+
+### ARC-AGI-3 Integration
+- **Simulation-Driven Action Selection** - Replaces reactive selection with strategic planning
+- **Real-World Learning** - Updates simulation system with actual outcomes
+- **Strategy Persistence** - Stores successful patterns across training sessions
+- **Fallback Safety** - Graceful degradation to original system if simulation fails
+
 ## 🆕 Latest Updates
 
 ### Data Management & Cleanup
@@ -57,6 +81,14 @@ A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehe
 - **🔍 Enhanced Governor** - Added data quality management and cleanup capabilities
 - **📊 Better Monitoring** - Improved logging and error handling throughout the system
 - **🛠️ Code Cleanup** - Updated all references to use new data structure
+
+### Simulation-Driven Intelligence (NEW)
+- **🧠 Multi-Step Planning** - Revolutionary system that thinks 5-10 steps ahead instead of reactive 1-step decisions
+- **🔮 Imagination Engine** - Simulates multiple possible futures before taking actions
+- **💭 Affective Decision Making** - Uses emotional intelligence (energy, learning drive, boredom) to guide choices
+- **🗂️ Strategy Learning** - Develops "autopilot" behavior by storing successful action sequences
+- **🎭 Hypothesis Generation** - Creates "what-if" scenarios for strategic planning
+- **🤖 Proactive Intelligence** - Transforms S→A→S+1 to S→[A1→S+1→A2→S+2...]→Best_A
 
 ## 🔧 Recent Critical Fixes (December 2024)
 
@@ -594,6 +626,17 @@ This system now properly recognizes that **completing 2 levels** (like in your e
 - **Adaptive exploration** with boredom detection and strategy switching
 - **Energy management** on proper 0-100 scale with survival mechanics
 
+### 🧠 Simulation-Driven Intelligence (NEW)
+- **Multi-Step Planning** - Thinks 5-10 steps ahead instead of reactive 1-step decisions
+- **Imagination Engine** - Simulates multiple possible futures before acting
+- **Affective Decision Making** - Uses energy, learning drive, and boredom to guide choices
+- **Strategy Learning** - Develops "autopilot" behavior for familiar situations
+- **Proactive Intelligence** - Transforms S→A→S+1 to S→[A1→S+1→A2→S+2...]→Best_A
+- **Hypothesis Generation** - Creates "what-if" scenarios for strategic planning
+- **Simulation Rollouts** - Runs internal simulations without taking real actions
+- **Emotional Evaluation** - Uses affective systems to evaluate simulated outcomes
+- **Strategy Memory** - Stores successful action sequences as reusable strategies
+
 ## � Testing
 
 ### Run Tests
@@ -614,6 +657,10 @@ python tests/test_phase1_pattern_recognition.py      # Test Phase 1: Pattern Rec
 python tests/test_phase2_hierarchical_clustering.py  # Test Phase 2: Memory Clustering
 python tests/test_phase3_architect_evolution.py      # Test Phase 3: Architect Evolution
 python tests/test_phase4_performance_optimization.py # Test Phase 4: Performance Optimization (NEW)
+
+# Test Simulation-Driven Intelligence System (NEW)
+python test_simulation_system.py                     # Test complete simulation system
+python -c "from src.core.simulation_agent import SimulationAgent; print('Simulation system ready!')"  # Quick test
 
 # Test memory management
 python tests/test_memory_solutions.py
@@ -794,6 +841,33 @@ engine = PerformanceOptimizationEngine()
 status = engine.get_performance_status()
 print(f'Performance Engine Status: {status}')
 "
+```
+
+### Simulation-Driven Intelligence (NEW)
+```bash
+# Test the complete simulation system
+python test_simulation_system.py
+
+# Check simulation system status
+python -c "
+from src.core.simulation_agent import SimulationAgent
+from src.core.predictive_core import PredictiveCore
+from src.core.simulation_models import SimulationConfig
+
+# Initialize simulation system
+predictive_core = PredictiveCore(visual_size=(3, 64, 64), proprioception_size=12, hidden_size=256)
+config = SimulationConfig()
+simulation_agent = SimulationAgent(predictive_core=predictive_core, config=config)
+
+# Get imagination status
+status = simulation_agent.get_imagination_status()
+print(f'Imagination Active: {status[\"imagination_active\"]}')
+print(f'Stored Strategies: {status[\"stored_strategies\"]}')
+print(f'Recent Simulations: {status[\"recent_simulations\"]}')
+"
+
+# Run training with simulation-driven intelligence
+python master_arc_trainer.py  # Simulation system automatically enabled if available
 ``` 
 - **Meta-Learning System**: Learns from learning experiences, extracts insights, and applies knowledge across contexts
 - **Enhanced Sleep System**: Automatic object encoding and memory consolidation during offline periods
