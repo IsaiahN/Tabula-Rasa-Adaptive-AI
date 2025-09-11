@@ -150,7 +150,7 @@ class PerformanceOptimizationEngine:
     def __init__(
         self,
         persistence_dir: str = ".",
-        performance_data_dir: str = "data/experiments/performance",
+        performance_data_dir: str = "experiments/performance",
         enable_real_time_optimization: bool = True,
         optimization_interval: float = 60.0  # Optimization check interval in seconds
     ):
