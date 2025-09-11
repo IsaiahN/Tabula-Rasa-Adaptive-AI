@@ -272,7 +272,7 @@ class TrainingSession:
     target_performance: Dict[str, float]
     max_actions_per_session: int = 50000  # Default action limit per game session (will be overridden by dynamic calculation)
     enable_contrarian_strategy: bool = False  # New contrarian mode
-    salience_mode: SalienceMode = SalienceMode.LOSSLESS
+    salience_mode: SalienceMode = SalienceMode.DECAY_COMPRESSION
     enable_salience_comparison: bool = False
     swarm_enabled: bool = True
 
@@ -384,44 +384,50 @@ class ContinuousLearningLoop:
         
         # Initialize Simulation-Driven Intelligence System
         self.simulation_agent = None
-        if SIMULATION_AVAILABLE and PredictiveCore is not None:
+        if SIMULATION_AVAILABLE:
             try:
-                # Initialize Predictive Core for simulation
-                predictive_core = PredictiveCore(
-                    visual_size=(3, 64, 64),
-                    proprioception_size=12,
-                    hidden_size=512,
-                    memory_config={
-                        'memory_size': 512,
-                        'word_size': 64,
-                        'num_read_heads': 4,
-                        'num_write_heads': 1
-                    }
-                )
-                
-                # Initialize simulation configuration
-                simulation_config = SimulationConfig()
-                simulation_config.max_simulation_depth = 8
-                simulation_config.max_hypotheses = 5
-                simulation_config.simulation_timeout = 0.5
-                
-                # Initialize Simulation-Driven ARC Agent
-                self.simulation_agent = SimulationDrivenARCAgent(
-                    predictive_core=predictive_core,
-                    config=simulation_config,
-                    persistence_dir=str(self.save_directory / "simulation_agent")
-                )
-                
-                logger.info("🧠 Simulation-Driven Intelligence initialized - Multi-step planning enabled")
+                # Check if PredictiveCore is available by testing the import
+                try:
+                    from src.core.predictive_core import PredictiveCore as PC
+                    from src.core.simulation_models import SimulationConfig as SC
+                    
+                    # Initialize Predictive Core for simulation
+                    predictive_core = PC(
+                        visual_size=(3, 64, 64),
+                        proprioception_size=12,
+                        hidden_size=512,
+                        memory_config={
+                            'memory_size': 512,
+                            'word_size': 64,
+                            'num_read_heads': 4,
+                            'num_write_heads': 1
+                        }
+                    )
+                    
+                    # Initialize simulation configuration
+                    simulation_config = SC()
+                    simulation_config.max_simulation_depth = 8
+                    simulation_config.max_hypotheses = 5
+                    simulation_config.simulation_timeout = 0.5
+                    
+                    # Initialize Simulation-Driven ARC Agent
+                    self.simulation_agent = SimulationDrivenARCAgent(
+                        predictive_core=predictive_core,
+                        config=simulation_config,
+                        persistence_dir=str(self.save_directory / "simulation_agent")
+                    )
+                    
+                    logger.info("🧠 Simulation-Driven Intelligence initialized - Multi-step planning enabled")
+                    
+                except (ImportError, NameError, TypeError) as e:
+                    logger.warning(f"PredictiveCore not available: {e}")
+                    logger.warning("Using reactive action selection")
                 
             except Exception as e:
                 logger.warning(f"Failed to initialize simulation-driven intelligence: {e}")
                 self.simulation_agent = None
         else:
-            if not SIMULATION_AVAILABLE:
             logger.warning("Simulation-driven intelligence not available - using reactive action selection")
-            else:
-                logger.warning("PredictiveCore not available - using reactive action selection")
         
         #  CRITICAL FIX: Unified energy system to prevent inconsistencies
         # Initialize primary energy system for proper sleep cycle management
@@ -1283,9 +1289,9 @@ class ContinuousLearningLoop:
             
             if hasattr(self, 'enhanced_sleep_system') and self.enhanced_sleep_system:
                 # Use enhanced sleep system if available
-                sleep_result = self.enhanced_sleep_system.consolidate_experiences(
-                    experiences=experiences,
-                    context={'reason': sleep_reason, 'energy_level': self.current_energy}
+                sleep_result = self.enhanced_sleep_system.execute_sleep_cycle(
+                    replay_buffer=experiences,
+                    arc_data={'reason': sleep_reason, 'energy_level': self.current_energy}
                 )
                 result.update(sleep_result)
             else:
@@ -11250,11 +11256,11 @@ class ContinuousLearningLoop:
             if hasattr(self, '_action_cap_system') and self._action_cap_system['enabled']:
                 dynamic_action_cap = self._calculate_dynamic_action_cap(available_actions, max_actions_per_game)
                 # Always use dynamic cap as it's now properly scaled
-                    actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
-                    print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, configured: {max_actions_per_game})")
-                else:
-                    actual_max_actions = max_actions_per_game
-                    print(f" USING CONFIGURED LIMIT: {actual_max_actions} actions (configured: {max_actions_per_game})")
+                actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
+                print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, configured: {max_actions_per_game})")
+            else:
+                actual_max_actions = max_actions_per_game
+                print(f" USING CONFIGURED LIMIT: {actual_max_actions} actions (configured: {max_actions_per_game})")
             
             # Reset progress tracker for this game
             if hasattr(self, '_progress_tracker'):
