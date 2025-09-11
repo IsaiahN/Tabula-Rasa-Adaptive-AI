@@ -248,6 +248,7 @@ class MultiAgentTrainer:
         return SensoryInput(
             visual=visual_input,
             proprioception=proprioception,
+            energy_level=agent_state.energy,
             timestamp=time.time()
         )
         
