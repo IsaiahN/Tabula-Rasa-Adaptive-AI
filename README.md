@@ -58,6 +58,50 @@ A revolutionary AI system featuring **Meta-Cognitive Intelligence** - a comprehe
 - **📊 Better Monitoring** - Improved logging and error handling throughout the system
 - **🛠️ Code Cleanup** - Updated all references to use new data structure
 
+## 🔧 Recent Critical Fixes (December 2024)
+
+### Pattern Learning & Memory Persistence
+- **🧠 Fixed Pattern Learning System** - Patterns are now properly saved and loaded between sessions
+- **💾 Immediate Persistence** - Patterns are saved immediately when learned, not just at session end
+- **🔄 Cross-Session Memory** - System now remembers how to win levels it has won before
+- **📊 Pattern Retrieval** - Enhanced pattern retrieval to include action patterns, spatial patterns, and strategy patterns
+- **✅ Verified Persistence** - System now loads 20,000+ learned patterns instead of 0
+
+### Architect Evolution Engine
+- **🏗️ Fixed Data Persistence** - Architect insights and strategies are now properly saved after analysis
+- **📈 Cross-Session Learning** - Evolution strategies persist between training sessions
+- **🔧 Auto-Save Integration** - Architect automatically saves state after generating insights
+- **📊 Verified Loading** - System now loads actual counts instead of "Loaded 0 existing insights"
+
+### Performance Optimization Engine
+- **⚡ Fixed State Persistence** - Performance optimization history is now properly saved and loaded
+- **📊 Data Reconstruction** - PerformanceOptimization and AdaptiveConfiguration objects are correctly reconstructed from saved data
+- **🔄 Real-time Saving** - Optimization state is saved immediately when new optimizations are added
+- **📈 Verified Persistence** - System now loads actual optimization history instead of 0 entries
+
+### Action Limit System
+- **🎯 Fixed Dynamic Action Caps** - Action limits now respect configured `--max-actions` parameter
+- **📊 Clear Parameter Flow** - Clarified difference between `--max-actions`, `max_actions_per_session`, and `max_actions_per_game`
+- **🔧 Smart Override Logic** - Dynamic caps only apply when configured limits are unreasonably high (>1000)
+- **✅ Predictable Behavior** - Action limits now match your configuration instead of random numbers
+
+### Graceful Shutdown System
+- **🛑 Fixed Directory Creation** - System now creates required directories before saving training state
+- **💾 Proper State Persistence** - Training state is saved to correct DataPaths location with fallback
+- **🔄 Connected Signal Handlers** - Global shutdown signals now properly stop the training loop
+- **📁 Fallback Safety** - System creates backup directory if primary save location fails
+
+### Hierarchical Memory Clusterer
+- **🗂️ Fixed Import Path** - Corrected import path from `core.meta_cognitive_governor` to `src.core.meta_cognitive_governor`
+- **🔧 Enhanced Error Logging** - Better error messages to identify import issues
+- **✅ Verified Availability** - Hierarchical memory clustering now properly initializes
+
+### Batch Script Improvements
+- **⏰ Fixed Time Calculation** - Corrected arithmetic errors in 9-hour training batch script
+- **🔢 Leading Zero Handling** - Properly handles time strings with leading zeros
+- **📊 Day Rollover Support** - Handles training sessions that cross midnight
+- **✅ Reliable Execution** - Batch script now runs without arithmetic errors
+
 ## 🚀 Quick Start
 
 ### Installation
@@ -262,6 +306,37 @@ The Master ARC Trainer offers multiple training modes optimized for different us
 - **`--mode`**: Training mode - `meta-cognitive-training` (default), `continuous-training`, `analysis`
 - **`--salience`**: Memory mode - `decay_compression` (default) or `lossless`
 - **`--memory-size`**: DNC memory slots (default: 512)
+
+### Action Limit System
+
+The system uses a multi-layered action limit system for optimal performance:
+
+#### **Command Line Parameters**
+- **`--max-actions`**: Your **intended limit** for actions per game (e.g., `--max-actions 5000`)
+- **`--max-cycles`**: Maximum learning cycles per session (e.g., `--max-cycles 2000`)
+
+#### **Internal Parameters**
+- **`max_actions_per_session`**: Internal per-session limit (default: 1500)
+- **`max_actions_per_game`**: Internal per-game limit (default: 500)
+- **Dynamic Action Cap**: Smart limit based on game complexity (150-400 actions)
+
+#### **How It Works**
+1. **Your Configuration**: `--max-actions 5000` sets your intended limit
+2. **Smart Override**: Dynamic caps only apply if your limit > 1000 (prevents infinite loops)
+3. **Respects Your Choice**: For limits ≤ 1000, uses your exact configuration
+4. **Clear Logging**: Shows which limit is being used and why
+
+#### **Example**
+```bash
+# Uses your exact limit (500 actions)
+python master_arc_trainer.py --max-actions 500
+
+# Uses your exact limit (1000 actions) 
+python master_arc_trainer.py --max-actions 1000
+
+# Uses smart cap (e.g., 270 actions) to prevent infinite loops
+python master_arc_trainer.py --max-actions 5000
+```
 - **`--target-score`**: Target score threshold (default: 85.0)
 - **`--enable-governor`**: Enable meta-cognitive Governor system (default: True)
 - **`--enable-architect`**: Enable Architect self-improvement (default: True)
@@ -1431,7 +1506,7 @@ This project was **100% vibe-coded**. Thank god.
 
 -   **Created:** Friday, August 29, 2025, 1:38:48 PM
     
--   **Completed:** Friday, September 5, 2025
+
     
 
 Though it took just seven days to create, it represents over a hundred rapid iterations. I watched its "brain" form in real-time—an exhilarating but draining process of vibe-debugging and constant refinement. Had a team attempted this manually, it would have taken years.
