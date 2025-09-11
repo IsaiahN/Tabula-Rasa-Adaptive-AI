@@ -311,7 +311,20 @@ class ContinuousLearningLoop:
 
         # Use continuous_learning_data for adaptive learning evaluation results and architect evolution data
         self.save_directory = Path(save_directory)
+        
+        # Track active sessions for cleanup
+        self._active_sessions = []
         self.save_directory.mkdir(parents=True, exist_ok=True)
+    
+    async def cleanup_sessions(self):
+        """Clean up any active HTTP sessions."""
+        for session in self._active_sessions:
+            try:
+                if not session.closed:
+                    await session.close()
+            except Exception as e:
+                logger.warning(f"Error closing session: {e}")
+        self._active_sessions.clear()
 
         # Phase0 experiment directories
         self.phase0_experiment_results_dir = self.save_directory / "phase0_experiment_results"
@@ -6508,6 +6521,9 @@ class ContinuousLearningLoop:
             session_results['error'] = str(e)
             session_results['end_time'] = time.time()
             return session_results
+        finally:
+            # Clean up any active HTTP sessions
+            await self.cleanup_sessions()
 
     def _get_memory_consolidation_status(self) -> Dict[str, Any]:
         """Return the current status of memory consolidation."""
