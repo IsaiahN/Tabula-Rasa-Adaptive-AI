@@ -1,10 +1,10 @@
 @echo off
 echo ========================================
-echo TABULA RASA - 6 HOUR CONTINUOUS TRAINING
+echo TABULA RASA - 9 HOUR CONTINUOUS TRAINING
 echo ========================================
 echo.
 echo Starting enhanced meta-cognitive training session...
-echo Duration: 6 hours (360 minutes)
+echo Duration: 9 hours (540 minutes)
 echo Mode: Continuous with all advanced features enabled
 echo.
 echo Press Ctrl+C to stop gracefully
@@ -15,12 +15,12 @@ set ARC_API_KEY=%ARC_API_KEY%
 set PYTHONUNBUFFERED=1
 set PYTHONIOENCODING=utf-8
 
-REM Run the master trainer with MAXIMUM INTELLIGENCE for 6-hour continuous training
+REM Run the master trainer with MAXIMUM INTELLIGENCE for 9-hour continuous training
 python master_arc_trainer.py ^
     --mode maximum-intelligence ^
-    --session-duration 360 ^
-    --max-actions 1000 ^
-    --max-cycles 100 ^
+    --session-duration 540 ^
+    --max-actions 5000 ^
+    --max-cycles 2000 ^
     --target-score 90.0 ^
     --enable-detailed-monitoring ^
     --salience-threshold 0.4 ^

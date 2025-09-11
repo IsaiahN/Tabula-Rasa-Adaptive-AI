@@ -516,7 +516,7 @@ class MasterARCTrainer:
             if self.config.enable_meta_cognitive_governor:
                 try:
                     from src.core.meta_cognitive_governor import MetaCognitiveGovernor
-                    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    base_path = os.path.dirname(os.path.abspath(__file__))
                     data_path = os.path.join(base_path, 'data')
                     self.governor = MetaCognitiveGovernor(persistence_dir=data_path)
                     self.logger.info("Meta-cognitive governor initialized")
@@ -528,7 +528,7 @@ class MasterARCTrainer:
             if self.config.enable_architect_evolution:
                 try:
                     from src.core.architect import Architect
-                    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    base_path = os.path.dirname(os.path.abspath(__file__))
                     # Use the main tabula-rasa repository as the repo_path
                     repo_path = base_path
                     # Ensure the architect evolution data directory exists for file storage
