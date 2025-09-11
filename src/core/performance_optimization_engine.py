@@ -156,6 +156,7 @@ class PerformanceOptimizationEngine:
     ):
         self.persistence_dir = Path(persistence_dir)
         self.performance_data_dir = self.persistence_dir / performance_data_dir
+        # Ensure the directory exists with proper Windows path handling
         self.performance_data_dir.mkdir(parents=True, exist_ok=True)
         
         self.enable_real_time_optimization = enable_real_time_optimization

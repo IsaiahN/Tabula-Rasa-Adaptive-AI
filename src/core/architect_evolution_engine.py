@@ -85,7 +85,8 @@ class ArchitectEvolutionEngine:
     ):
         self.persistence_dir = Path(persistence_dir)
         self.evolution_data_dir = self.persistence_dir / evolution_data_dir
-        self.evolution_data_dir.mkdir(exist_ok=True)
+        # Ensure the directory exists with proper Windows path handling
+        self.evolution_data_dir.mkdir(parents=True, exist_ok=True)
         
         self.enable_autonomous_evolution = enable_autonomous_evolution
         
