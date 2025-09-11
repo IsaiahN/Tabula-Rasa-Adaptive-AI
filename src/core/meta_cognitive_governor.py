@@ -335,8 +335,10 @@ class MetaCognitiveGovernor:
             from src.core.hierarchical_memory_clusterer import HierarchicalMemoryClusterer
             self.memory_clusterer = HierarchicalMemoryClusterer()
             self.logger.info("Hierarchical memory clustering enabled - Phase 2 intelligent clusters")
-        except ImportError:
-            self.logger.warning("Hierarchical memory clusterer not available")
+        except ImportError as e:
+            self.logger.warning(f"Hierarchical memory clusterer not available (ImportError): {e}")
+        except Exception as e:
+            self.logger.warning(f"Hierarchical memory clusterer not available (Error): {e}")
         
         # Architect Evolution Engine (Phase 3 enhancement)
         self.architect_engine = None
