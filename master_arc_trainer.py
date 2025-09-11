@@ -661,12 +661,15 @@ class MasterARCTrainer:
             self.logger.info("🔧 Starting _run_continuous_learning...")
             print("🔧 Starting _run_continuous_learning...")
             
-            # Initialize the API client
-            if not await self.initialize_client():
-                raise ConnectionError("Failed to initialize ARC API client. Check your API key and network connection.")
-            
-            self.logger.info("✅ API client initialized successfully")
-            print("✅ API client initialized successfully")
+            # Check if client is already initialized, if not initialize it
+            if self.arc_client is None:
+                if not await self.initialize_client():
+                    raise ConnectionError("Failed to initialize ARC API client. Check your API key and network connection.")
+                self.logger.info("✅ API client initialized successfully")
+                print("✅ API client initialized successfully")
+            else:
+                self.logger.info("✅ API client already initialized")
+                print("✅ API client already initialized")
             
             try:
                 # Lazy import to prevent circular imports

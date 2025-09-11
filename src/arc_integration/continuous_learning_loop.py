@@ -461,7 +461,9 @@ class ContinuousLearningLoop:
         
         # Initialize meta-learning system
         try:
-            self.arc_meta_learning = ARCMetaLearningSystem()
+            self.arc_meta_learning = ARCMetaLearningSystem(
+                base_meta_learning=str(self.save_directory / "base_meta_learning")
+            )
         except Exception as e:
             print(f"⚠️  ARCMetaLearningSystem initialization failed: {e}")
             self.arc_meta_learning = None
@@ -1264,8 +1266,8 @@ class ContinuousLearningLoop:
             'sleep_cycles_active': getattr(self, 'sleep_state_tracker', {}).get('sleep_cycles_this_session', 0) > 0,
             
             # Memory consolidation
-            'is_consolidating_memories': getattr(self, 'is_consolidating_memories', lambda: False)(),
-            'is_prioritizing_memories': getattr(self, 'is_prioritizing_memories', lambda: False)(),
+            'is_consolidating_memories': getattr(self, 'memory_consolidation_tracker', {}).get('is_consolidating_memories', False),
+            'is_prioritizing_memories': getattr(self, 'memory_consolidation_tracker', {}).get('is_prioritizing_memories', False),
             'memory_strengthening_active': getattr(self, 'memory_consolidation_tracker', {}).get('high_salience_memories_strengthened', 0) > 0,
             'memory_decay_active': getattr(self, 'memory_consolidation_tracker', {}).get('low_salience_memories_decayed', 0) > 0,
             
@@ -1307,8 +1309,8 @@ class ContinuousLearningLoop:
             
             # Memory consolidation status
             'memory_consolidation_status': {
-                'is_consolidating_memories': getattr(self, 'is_consolidating_memories', lambda: False)(),
-                'is_prioritizing_memories': getattr(self, 'is_prioritizing_memories', lambda: False)(),
+                'is_consolidating_memories': getattr(self, 'memory_consolidation_tracker', {}).get('is_consolidating_memories', False),
+                'is_prioritizing_memories': getattr(self, 'memory_consolidation_tracker', {}).get('is_prioritizing_memories', False),
                 'consolidation_operations_completed': consolidation_tracker.get('consolidation_operations_count', 0) if isinstance(consolidation_tracker, dict) else 0,
                 'high_salience_memories_strengthened': consolidation_tracker.get('high_salience_memories_strengthened', 0) if isinstance(consolidation_tracker, dict) else 0,
                 'low_salience_memories_decayed': consolidation_tracker.get('low_salience_memories_decayed', 0) if isinstance(consolidation_tracker, dict) else 0,
