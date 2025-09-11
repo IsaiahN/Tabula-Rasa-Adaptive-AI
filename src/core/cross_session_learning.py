@@ -483,6 +483,12 @@ class CrossSessionLearningManager:
                     saved_patterns = pickle.load(f)
                     
                 for pattern_id, pattern_data in saved_patterns.items():
+                    # Convert string enums back to enum objects
+                    if isinstance(pattern_data.get('knowledge_type'), str):
+                        pattern_data['knowledge_type'] = KnowledgeType(pattern_data['knowledge_type'])
+                    if isinstance(pattern_data.get('persistence_level'), str):
+                        pattern_data['persistence_level'] = PersistenceLevel(pattern_data['persistence_level'])
+                    
                     pattern = LearnedPattern(**pattern_data)
                     self.learned_patterns[pattern_id] = pattern
                     self.patterns_by_type[pattern.knowledge_type].append(pattern_id)

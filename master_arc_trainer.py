@@ -69,6 +69,7 @@ except ImportError:
 # Global flag for graceful shutdown
 shutdown_requested = False
 training_state = {}
+continuous_loop_instance = None
 
 def setup_windows_logging():
     """Set up logging that works properly on Windows with real-time terminal and file output."""
@@ -232,19 +233,38 @@ def safe_print(text: str, use_color: bool = True, log_to_file: bool = True):
 
 def signal_handler(signum, frame):
     """Handle graceful shutdown signals."""
-    global shutdown_requested, training_state
+    global shutdown_requested, training_state, continuous_loop_instance
     shutdown_requested = True
     
     print(f"\n🛑 GRACEFUL SHUTDOWN REQUESTED (Signal: {signum})")
     print("💾 Saving training state...")
     
+    # Also stop the continuous loop if it exists
+    if 'continuous_loop_instance' in globals() and continuous_loop_instance:
+        continuous_loop_instance.running = False
+        print("🛑 Continuous training loop stopped")
+    
     try:
-        state_file = Path("data/backups/training_state_backup.json")
+        # Use proper DataPaths constant and ensure directory exists
+        from src.config.data_paths import DataPaths
+        state_file = DataPaths.TRAINING_STATE_BACKUP
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        
         with open(state_file, 'w') as f:
             json.dump(training_state, f, indent=2)
         print(f"✅ Training state saved to: {state_file}")
     except Exception as e:
         print(f"⚠️ Could not save training state: {e}")
+        # Fallback to creating backups directory if DataPaths fails
+        try:
+            backup_dir = Path("data/backups")
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            fallback_file = backup_dir / "training_state_backup.json"
+            with open(fallback_file, 'w') as f:
+                json.dump(training_state, f, indent=2)
+            print(f"✅ Training state saved to fallback location: {fallback_file}")
+        except Exception as fallback_e:
+            print(f"❌ Failed to save training state even with fallback: {fallback_e}")
 
 # Register signal handlers
 signal.signal(signal.SIGINT, signal_handler)
@@ -1859,6 +1879,10 @@ async def main():
         safe_print("📺 Real-time terminal output enabled - you'll see progress as it happens")
         
         runner = ContinuousTrainingRunner(dashboard_mode=args.dashboard, config=config)
+        
+        # Store runner globally for signal handler access
+        global continuous_loop_instance
+        continuous_loop_instance = runner
         
         try:
             await runner.start_continuous_training()
