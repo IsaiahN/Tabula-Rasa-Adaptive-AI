@@ -270,7 +270,7 @@ class TrainingSession:
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
-    max_actions_per_session: int = 1500  # Default action limit per game session
+    max_actions_per_session: int = 50000  # Default action limit per game session (will be overridden by dynamic calculation)
     enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.LOSSLESS
     enable_salience_comparison: bool = False
@@ -752,19 +752,19 @@ class ContinuousLearningLoop:
         
         #  SMART ACTION CAP SYSTEM - Prevents infinite loops and analyzes stagnation
         #  CRITICAL FIX: Improved action cap system with less aggressive termination
+        #  SCALING FIX: Dynamic caps now scale as fraction of max_actions_per_game
         self._action_cap_system = {
             'enabled': True,
-            'base_cap': 150,  # Increased base actions for more exploration
-            'multiplier_per_available_action': 20,  # More actions per available action
-            'min_cap': 75,    # Higher minimum for complex pattern discovery
-            'max_cap': 400,   # Higher maximum for difficult games
+            'base_cap_fraction': 0.15,  # 15% of max_actions_per_game as base
+            'multiplier_per_available_action': 0.02,  # 2% of max_actions_per_game per available action
+            'min_cap_fraction': 0.05,   # 5% of max_actions_per_game minimum
+            'max_cap_fraction': 0.30,   # 30% of max_actions_per_game maximum
             'stagnation_threshold': 200,  # Increased from 50 -> much more patient for long-run tests
-            'min_dynamic_cap': 400,  # Ensure dynamic cap doesn't go below this during tests
             'loop_detection_window': 15,  # Longer window for better pattern detection
             'early_termination_enabled': False,  # Disabled for long-run validation tests
             'analysis_enabled': True,
-            'exploration_bonus': 25,  # Extra actions if exploring new coordinates
-            'score_improvement_bonus': 30  # Extra actions after score improvement
+            'exploration_bonus_fraction': 0.01,  # 1% of max_actions_per_game bonus for exploration
+            'score_improvement_bonus_fraction': 0.02  # 2% of max_actions_per_game bonus for score improvement
         }
         # Runtime instrumentation: print action cap system so logs show which config is active
         try:
@@ -1088,19 +1088,102 @@ class ContinuousLearningLoop:
             }
     
         
-    def _calculate_dynamic_action_cap(self, available_actions: List[int]) -> int:
-        """Calculate smart action cap based on game complexity."""
+    def _calculate_dynamic_action_cap(self, available_actions: List[int], max_actions_per_game: int = 5000) -> int:
+        """Calculate smart action cap based on game complexity, scaled to max_actions_per_game."""
         config = self._action_cap_system
+        
+        # Calculate fractions of max_actions_per_game
+        base_cap = int(max_actions_per_game * config['base_cap_fraction'])
+        min_cap = int(max_actions_per_game * config['min_cap_fraction'])
+        max_cap = int(max_actions_per_game * config['max_cap_fraction'])
         
         # Base calculation: more actions = more complex game = higher cap
         base_actions = len(available_actions) if available_actions else 5
-        calculated_cap = config['base_cap'] + (base_actions * config['multiplier_per_available_action'])
+        multiplier = int(max_actions_per_game * config['multiplier_per_available_action'])
+        calculated_cap = base_cap + (base_actions * multiplier)
         
         # Apply bounds
-        capped_value = max(config['min_cap'], min(calculated_cap, config['max_cap']))
+        capped_value = max(min_cap, min(calculated_cap, max_cap))
         
-        print(f" SMART CAP: {base_actions} actions available → {capped_value} action limit")
+        print(f" SMART CAP: {base_actions} actions available → {capped_value} action limit (scaled from {max_actions_per_game})")
         return capped_value
+    
+    def _calculate_dynamic_session_limit(self, max_actions_per_game: int, available_games: List[str]) -> int:
+        """Calculate session limit based on available games and per-game limit."""
+        base_games = len(available_games) if available_games else 1
+        buffer_factor = 1.5  # Allow 50% more for retries/learning/cycling
+        
+        calculated_limit = int(max_actions_per_game * base_games * buffer_factor)
+        
+        # Ensure minimum reasonable session size
+        min_session_limit = max_actions_per_game * 2  # At least 2 games worth
+        max_session_limit = max_actions_per_game * 50  # Cap at 50 games worth
+        
+        final_limit = max(min_session_limit, min(calculated_limit, max_session_limit))
+        
+        print(f" DYNAMIC SESSION LIMIT: {base_games} games × {max_actions_per_game} actions × {buffer_factor} buffer = {final_limit}")
+        return final_limit
+    
+    def _check_progress_and_extend_cap(self, current_score: int, actions_taken: int, current_cap: int, max_actions_per_game: int) -> int:
+        """Check if progress is being made and extend the action cap if so."""
+        if not hasattr(self, '_progress_tracker'):
+            return current_cap
+            
+        tracker = self._progress_tracker
+        config = self._action_cap_system
+        
+        # Check if we're near the current cap (within 10% of it)
+        near_cap_threshold = int(current_cap * 0.9)
+        if actions_taken < near_cap_threshold:
+            return current_cap  # Not near cap yet, no need to extend
+        
+        # Check for recent progress indicators
+        recent_progress = False
+        
+        # 1. Score improvement in last 50 actions
+        if len(tracker.get('score_history', [])) >= 2:
+            recent_scores = tracker['score_history'][-min(10, len(tracker['score_history'])):]
+            if len(recent_scores) >= 2 and recent_scores[-1] > recent_scores[0]:
+                recent_progress = True
+                print(f" PROGRESS DETECTED: Score improved from {recent_scores[0]} to {recent_scores[-1]} in recent actions")
+        
+        # 2. Recent meaningful changes (not just score, but any state change)
+        if tracker.get('last_meaningful_change', 0) > 0:
+            actions_since_change = actions_taken - tracker['last_meaningful_change']
+            if actions_since_change < 100:  # Recent change within last 100 actions
+                recent_progress = True
+                print(f" PROGRESS DETECTED: Meaningful change {actions_since_change} actions ago")
+        
+        # 3. Low stagnation counter (not stuck)
+        stagnation_actions = tracker.get('actions_without_progress', 0)
+        if stagnation_actions < 50:  # Less than 50 actions without progress
+            recent_progress = True
+            print(f" PROGRESS DETECTED: Only {stagnation_actions} actions without progress")
+        
+        # If progress detected and we're near the cap, extend it
+        if recent_progress and current_cap < max_actions_per_game:
+            # Calculate extension based on how much progress we're making
+            extension = int(max_actions_per_game * 0.2)  # Base 20% extension
+            
+            # If we're making very good progress (score improving rapidly), be more generous
+            if len(tracker.get('score_history', [])) >= 3:
+                recent_scores = tracker['score_history'][-3:]
+                if recent_scores[-1] > recent_scores[0] and (recent_scores[-1] - recent_scores[0]) > 5:
+                    extension = int(max_actions_per_game * 0.4)  # 40% extension for strong progress
+                    print(f" STRONG PROGRESS: Score improved by {recent_scores[-1] - recent_scores[0]} points")
+            
+            # If we're very close to max and still making progress, allow full extension
+            if current_cap >= int(max_actions_per_game * 0.8):  # Already at 80% of max
+                extension = max_actions_per_game - current_cap  # Extend to full max
+                print(f" NEAR MAX: Extending to full {max_actions_per_game} actions")
+            
+            new_cap = min(current_cap + extension, max_actions_per_game)
+            
+            if new_cap > current_cap:
+                print(f" CAP EXTENDED: {current_cap} → {new_cap} actions (progress detected)")
+                return new_cap
+        
+        return current_cap
     
     def _should_terminate_early(self, current_score: int, actions_taken: int) -> tuple[bool, str]:
         """Analyze if game should terminate early due to lack of progress."""
@@ -5438,9 +5521,11 @@ class ContinuousLearningLoop:
             episode_start_time = time.time()
             logger.debug(f"Episode started at {time.ctime(episode_start_time)}")
             
-            # 7. Use the max_actions_per_session from current session if available, otherwise use default
-            max_actions_per_session = getattr(self.current_session, 'max_actions_per_session', 500)
-            logger.debug(f"Max actions per session: {max_actions_per_session}")
+            # 7. Calculate dynamic session limit based on available games and per-game limit
+            available_games = self.games if hasattr(self, 'games') else [game_id]
+            max_actions_per_game = getattr(self.current_session, 'max_actions_per_game', 5000)
+            max_actions_per_session = self._calculate_dynamic_session_limit(max_actions_per_game, available_games)
+            logger.debug(f"Dynamic max actions per session: {max_actions_per_session} (based on {len(available_games)} games)")
             
             # 8. Initialize variables to avoid undefined errors
             stdout_text = ""
@@ -8683,7 +8768,7 @@ class ContinuousLearningLoop:
         self,
         games: List[str],
         max_mastery_sessions_per_game: int = 50,  # Updated parameter name
-        max_actions_per_session: int = 500,  # Default action limit per game session
+        max_actions_per_session: int = 5000,  # Default action limit per game session
         enable_contrarian_mode: bool = False,  # New parameter
         target_win_rate: float = 0.3,
         target_avg_score: float = 50.0,
@@ -11073,7 +11158,7 @@ class ContinuousLearningLoop:
     async def start_training_with_direct_control(
         self, 
         game_id: str,
-        max_actions_per_game: int = 500,
+        max_actions_per_game: int = 5000,
         session_count: int = 0
     ) -> Dict[str, Any]:
         """Run training session with direct API action control instead of external main.py."""
@@ -11155,16 +11240,13 @@ class ContinuousLearningLoop:
             
             #  SMART ACTION CAP - Calculate dynamic limit based on game complexity
             if hasattr(self, '_action_cap_system') and self._action_cap_system['enabled']:
-                dynamic_action_cap = self._calculate_dynamic_action_cap(available_actions)
-                # Only use dynamic cap if configured limit is unreasonably high (>1000)
-                if max_actions_per_game > 1000:
-                    actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
-                    print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, configured: {max_actions_per_game})")
-                else:
-                    actual_max_actions = max_actions_per_game
-                    print(f" USING CONFIGURED LIMIT: {actual_max_actions} actions (configured: {max_actions_per_game})")
+                dynamic_action_cap = self._calculate_dynamic_action_cap(available_actions, max_actions_per_game)
+                # Always use dynamic cap as it's now properly scaled
+                actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
+                print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, configured: {max_actions_per_game})")
             else:
                 actual_max_actions = max_actions_per_game
+                print(f" USING CONFIGURED LIMIT: {actual_max_actions} actions (configured: {max_actions_per_game})")
             
             # Reset progress tracker for this game
             if hasattr(self, '_progress_tracker'):
@@ -11185,6 +11267,13 @@ class ContinuousLearningLoop:
                 # CRITICAL: Always check current available actions from the latest response
                 # Increment action counter (use local session counter, not global)
                 actions_taken += 1
+                
+                # PROGRESS-BASED CAP EXTENSION: Check if we should extend the cap due to progress
+                if hasattr(self, '_action_cap_system') and self._action_cap_system['enabled']:
+                    extended_cap = self._check_progress_and_extend_cap(current_score, actions_taken, actual_max_actions, max_actions_per_game)
+                    if extended_cap > actual_max_actions:
+                        actual_max_actions = extended_cap
+                        print(f" ACTION CAP UPDATED: Now {actual_max_actions} actions (progress-based extension)")
                 
                 print("=" * 80)
                 print(f" ACTION {actions_taken}/{actual_max_actions} | Game: {game_id} | Score: {current_score}")
