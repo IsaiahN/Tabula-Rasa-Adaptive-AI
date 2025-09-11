@@ -298,8 +298,398 @@ class ContinuousLearningLoop:
         api_key: Optional[str] = None,
         save_directory: str = "data"
     ):
+        """Lightweight constructor - only sets up basic attributes."""
+        print("🚀 Starting ContinuousLearningLoop initialization...")
+        
+        # Store basic configuration
         self.arc_agents_path = Path(arc_agents_path)
         self.tabula_rasa_path = Path(tabula_rasa_path)
+        self.api_key = api_key or os.getenv('ARC_API_KEY')
+        self.save_directory = Path(save_directory)
+        
+        # Initialize only the most basic attributes needed immediately
+        self._initialized = False
+        self._active_sessions = []
+        
+        # Create save directory
+        self.save_directory.mkdir(parents=True, exist_ok=True)
+        
+        print("✅ Basic initialization complete - complex setup will be done on first use")
+
+    def _ensure_initialized(self):
+        """Ensure the object is fully initialized before use."""
+        if self._initialized:
+            return
+            
+        print("🔧 Performing complex initialization...")
+        
+        # Initialize all the complex attributes that were previously in __init__
+        self._initialize_complex_attributes()
+        
+        # Mark as initialized
+        self._initialized = True
+        print("✅ Complex initialization complete")
+
+    def _initialize_complex_attributes(self):
+        """Initialize all the complex attributes that were previously in __init__."""
+        # Initialize rate limiter
+        self.rate_limiter = RateLimiter()
+        
+        # Initialize energy system
+        self.current_energy = 100.0
+        self.low_energy_mode = False
+        self.ENERGY_CRITICAL = 20.0
+        self.ENERGY_RECOVERY = 60.0
+        
+        # Initialize energy costs and stats
+        self.ENERGY_COSTS = {
+            'action_base': 0.5,
+            'action_effective': 0.3,
+            'action_ineffective': 0.8,
+            'computation_base': 0.1,
+            'exploration_bonus': -0.1,
+            'repetitive_penalty': 1.5
+        }
+        
+        self.energy_stats = {
+            'total_consumed': 0.0,
+            'last_consumed': 0.0,
+            'average_consumption': 0.0,
+            'peak_consumption': 0.0
+        }
+        
+        # Initialize progress tracker
+        self._progress_tracker = {
+            'actions_taken': 0,
+            'score_progress': 0,
+            'level_progress': 0,
+            'recent_effectiveness': 0.0,
+            'action_pattern_history': [],
+            'explored_coordinates': set(),
+            'termination_reason': None
+        }
+        
+        # Initialize action cap system
+        self._action_cap_system = {
+            'enabled': True,
+            'base_cap_fraction': 0.3,  # 30% of max_actions_per_game
+            'min_cap_fraction': 0.1,   # 10% minimum
+            'max_cap_fraction': 0.8,   # 80% maximum
+            'progress_extension_enabled': True,
+            'extension_threshold': 0.1  # 10% progress threshold
+        }
+        
+        # Initialize global counters
+        self.global_counters = {
+            'total_memory_operations': 0,
+            'total_sleep_cycles': 0,
+            'total_memories_deleted': 0,
+            'total_memories_combined': 0,
+            'total_memories_strengthened': 0,
+            'persistent_energy_level': 100.0,
+            'total_actions': 0,
+            'recent_consecutive_failures': 0
+        }
+        
+        # Initialize available actions memory
+        self.available_actions_memory = {
+            'current_game_id': None,
+            'current_actions': [],
+            'action_history': [],
+            'action_effectiveness': {},
+            'action_relevance_scores': {},
+            'action_sequences': [],
+            'winning_action_sequences': [],
+            'coordinate_patterns': {},
+            'action_transitions': {},
+            'action_learning_stats': {},
+            'action_semantic_mapping': {},
+            'sequence_in_progress': [],
+            'initial_actions': [],
+            'action_stagnation': {},
+            'universal_boundary_detection': {},
+            'action6_boundary_detection': {},
+            'action6_strategy': {
+                'last_progress_action': 0,
+                'last_action6_used': 0,
+                'consecutive_failures': 0
+            },
+            'experiment_mode': False
+        }
+        
+        # Initialize frame analysis and available actions tracking
+        self._last_frame_analysis = {}
+        self._last_available_actions = {}
+        
+        # Initialize game session tracking
+        self.current_game_sessions = {}
+        self.current_scorecard_id = None
+        self._created_new_scorecard = False
+        
+        # Initialize performance tracking
+        self.performance_history = []
+        self.session_history = []
+        
+        # Initialize memory protection stats
+        self.memory_protection_stats = {
+            'total_protected': 0,
+            'total_unprotected': 0,
+            'protection_rate': 0.0
+        }
+        
+        # Initialize strategy flags
+        self.contrarian_strategy_active = False
+        
+        # Initialize other complex attributes
+        self._initialize_remaining_attributes()
+
+    def _initialize_remaining_attributes(self):
+        """Initialize the remaining complex attributes."""
+        # Initialize basic paths and directories
+        self.phase0_experiment_results_dir = self.save_directory / "phase0_experiment_results"
+        self.phase0_experiment_results_dir.mkdir(parents=True, exist_ok=True)
+        self.lp_validation_results_path = self.phase0_experiment_results_dir / "lp_validation_results.yaml"
+        self.survival_test_results_path = self.phase0_experiment_results_dir / "survival_test_results.yaml"
+        self.phase0_logs_dir = self.phase0_experiment_results_dir / "logs"
+        self.phase0_logs_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize adaptive learning evaluation directory
+        self.adaptive_learning_eval_dir = self.save_directory / "adaptive_learning_agi_evaluation_1756519407"
+        self.adaptive_learning_eval_dir.mkdir(parents=True, exist_ok=True)
+        self.architect_evolution_data_dir = self.save_directory / "architect_evolution_data"
+        self.architect_evolution_data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize meta-learning system
+        try:
+            self.arc_meta_learning = ARCMetaLearningSystem()
+        except Exception as e:
+            print(f"⚠️  ARCMetaLearningSystem initialization failed: {e}")
+            self.arc_meta_learning = None
+        
+        # Initialize frame analyzer
+        self.frame_analyzer = FrameAnalyzer()
+        
+        # Initialize Governor and Architect (optional components)
+        self.governor = None
+        self.architect = None
+        self.learning_session_id = None  # Track current learning session
+        
+        # Try to initialize Governor and Architect
+        try:
+            if MetaCognitiveGovernor is not None:
+                self.governor = MetaCognitiveGovernor(
+                    persistence_dir=str(self.save_directory)  # Enable pattern learning
+                )
+            if Architect is not None:
+                self.architect = Architect(
+                    persistence_dir=str(self.save_directory)
+                )
+            print("✅ Governor and Architect initialized successfully")
+        except Exception as e:
+            print(f"⚠️  Governor/Architect initialization failed: {e}")
+            self.governor = None
+            self.architect = None
+        
+        # Initialize simulation agent (optional)
+        self.simulation_agent = None
+        try:
+            if SIMULATION_AVAILABLE and SimulationDrivenARCAgent is not None:
+                self.simulation_agent = SimulationDrivenARCAgent(
+                    persistence_dir=str(self.save_directory / "simulation_agent")
+                )
+                print("✅ Simulation agent initialized successfully")
+        except Exception as e:
+            print(f"⚠️  Simulation agent initialization failed: {e}")
+            self.simulation_agent = None
+        
+        # Initialize energy system
+        self.energy_system = EnergySystem()
+        
+        # Initialize sleep system
+        try:
+            self.sleep_system = SleepCycle(
+                persistence_dir=str(self.save_directory / "sleep_cycles")
+            )
+            # Ensure is_sleeping attribute exists
+            if not hasattr(self.sleep_system, 'is_sleeping'):
+                self.sleep_system.is_sleeping = False
+            self.enhanced_sleep_system = self.sleep_system
+            print("✅ Sleep system initialized successfully")
+        except Exception as e:
+            print(f"⚠️  Sleep system initialization failed: {e}")
+            self.sleep_system = None
+            self.enhanced_sleep_system = None
+        
+        # Initialize adaptive energy system (optional)
+        self.adaptive_energy = None
+        self.energy_integration = None
+        
+        # Initialize session tracking
+        self.current_session: Optional[TrainingSession] = None
+        
+        # Initialize training state
+        self.training_state = {
+            'lp_history': [],  # Stores learning progress history for boredom detection
+            'episode_count': 0,
+            'last_boredom_check': 0,
+            'mid_game_consolidations': 0,
+            'discovered_goals': [],
+            'strategy_switches': 0,
+            'total_actions': 0
+        }
+        
+        # Initialize game level records
+        self.game_level_records = {}  # Tracks highest level achieved per game
+        self.memory_hierarchy = {
+            'episodic': [],
+            'semantic': [],
+            'procedural': []
+        }
+        
+        # Initialize training configuration
+        self.training_config = {
+            'max_episodes_per_game': 10,
+            'max_actions_per_episode': 1000,
+            'learning_rate': 0.01,
+            'exploration_rate': 0.1
+        }
+        
+        # Initialize goal system
+        self.goal_system = GoalInventionSystem()
+        
+        # Initialize salience system
+        self.salience_calculator: Optional[SalienceCalculator] = None
+        self.salience_comparator: Optional[SalienceModeComparator] = None
+        try:
+            self.salience_performance_history: Dict[SalienceMode, List[Dict]] = {
+                SalienceMode.DECAY_COMPRESSION: [],
+                SalienceMode.RELEVANCE_FILTERING: [],
+                SalienceMode.ADAPTIVE_THRESHOLD: []
+            }
+        except AttributeError:
+            # Fallback if SalienceMode doesn't have all expected attributes
+            self.salience_performance_history = {}
+        
+        # Initialize game session tracking
+        self._swarm_mode_active: bool = False
+        self.standalone_mode: bool = False
+        
+        # Initialize sleep state tracker
+        self.sleep_state_tracker = {
+            'is_sleeping': False,
+            'sleep_cycles_completed': 0,
+            'last_sleep_time': None,
+            'sleep_effectiveness': 0.0,
+            'consolidation_quality': 0.0
+        }
+        
+        # Initialize memory consolidation tracker
+        self.memory_consolidation_tracker = {
+            'last_consolidation': None,
+            'consolidation_count': 0,
+            'pending_consolidations': [],
+            'consolidation_effectiveness': 0.0,
+            'memory_quality_score': 0.0
+        }
+        
+        # Initialize game reset tracker
+        self.game_reset_tracker = {
+            'reset_decisions_made': 0,
+            'reset_reasons': [],
+            'reset_effectiveness_scores': [],
+            'last_reset_timestamp': 0,
+            'consecutive_resets': 0,
+            'reset_success_rate': 0.0,
+            'last_reset_decision': None,
+            'reset_decision_criteria': {
+                'consecutive_failures': 5,
+                'performance_degradation': 0.3,
+                'memory_overflow': 0.95,
+                'energy_depletion': 0.1,
+                'stagnation_threshold': 10
+            }
+        }
+        
+        # Initialize global performance metrics
+        self.global_performance_metrics = {
+            'total_games_played': 0,
+            'total_episodes': 0,
+            'average_score': 0.0,
+            'win_rate': 0.0,
+            'learning_rate': 0.0,
+            'adaptation_speed': 0.0
+        }
+        
+        # Initialize demo agent
+        self._init_demo_agent()
+        
+        # Load state from previous sessions
+        self._load_state()
+        
+        # Load global counters from file
+        try:
+            counter_file = self.save_directory / "global_counters.json"
+            if counter_file.exists():
+                with open(counter_file, 'r') as f:
+                    self.global_counters = json.load(f)
+        except Exception as e:
+            print(f"⚠️  Failed to load global counters: {e}")
+            self.global_counters = {
+                'total_memory_operations': 0,
+                'total_sleep_cycles': 0,
+                'total_memories_deleted': 0,
+                'total_memories_combined': 0,
+                'total_memories_strengthened': 0,
+                'persistent_energy_level': 100.0,
+                'total_actions': 0,
+                'recent_consecutive_failures': 0
+            }
+        
+        print("✅ All complex attributes initialized")
+
+    def _init_demo_agent(self):
+        """Initialize demo agent."""
+        # This method would contain the demo agent initialization logic
+        pass
+
+    def _load_state(self):
+        """Load state from previous sessions."""
+        # This method would contain the state loading logic
+        pass
+
+    def _load_global_counters(self):
+        """Load global counters from file."""
+        try:
+            counter_file = self.save_directory / "global_counters.json"
+            if counter_file.exists():
+                with open(counter_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"⚠️  Failed to load global counters: {e}")
+        
+        return {
+            'total_memory_operations': 0,
+            'total_sleep_cycles': 0,
+            'total_memories_deleted': 0,
+            'total_memories_combined': 0,
+            'total_memories_strengthened': 0,
+            'persistent_energy_level': 100.0,
+            'total_actions': 0,
+            'recent_consecutive_failures': 0
+        }
+        self.global_performance_metrics = {
+            'total_games_played': 0,
+            'total_episodes': 0,
+            'average_score': 0.0,
+            'win_rate': 0.0,
+            'learning_efficiency': 0.0,
+            'knowledge_transfer_success': 0.0
+        }
+        print("✅ Global performance metrics initialized early to prevent AttributeError")
+        
+        self.arc_agents_path = Path(arc_agents_path)
+        self.tabula_rasa_path = Path(tabula_rasa_path)
+        print("📁 Paths set")
 
         # Get API key from environment or parameter
         self.api_key = api_key or os.getenv('ARC_API_KEY')
@@ -308,13 +698,16 @@ class ContinuousLearningLoop:
                 "ARC_API_KEY not found. Please set ARC_API_KEY environment variable "
                 "in your .env file."
             )
+        print("🔑 API key validated")
 
         # Use continuous_learning_data for adaptive learning evaluation results and architect evolution data
         self.save_directory = Path(save_directory)
+        print("💾 Save directory set")
         
         # Track active sessions for cleanup
         self._active_sessions = []
         self.save_directory.mkdir(parents=True, exist_ok=True)
+        print("📂 Directories created")
     
     async def cleanup_sessions(self):
         """Clean up any active HTTP sessions."""
@@ -341,12 +734,14 @@ class ContinuousLearningLoop:
         self.architect_evolution_data_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize meta-learning systems
+        print("🧠 Initializing meta-learning systems...")
         base_meta_learning = MetaLearningSystem(
             memory_capacity=2000,
             insight_threshold=0.15,
             consolidation_interval=50,
             save_directory=str(self.save_directory / "base_meta_learning")
         )
+        print("✅ Base meta-learning system initialized")
 
         # Update any logic that creates adaptive learning evaluation results to use the new continuous_learning_data directory
         self.adaptive_learning_eval_path = self.adaptive_learning_eval_dir / "research_results.json"
@@ -355,40 +750,48 @@ class ContinuousLearningLoop:
         self.evolution_history_path = self.architect_evolution_data_dir / "evolution_history.json"
         self.evolution_strategies_path = self.architect_evolution_data_dir / "evolution_strategies.json"
 
+        print("🎯 Initializing ARC meta-learning system...")
         self.arc_meta_learning = ARCMetaLearningSystem(
             base_meta_learning=base_meta_learning,
             pattern_memory_size=1500,
             insight_threshold=0.25,  # FURTHER REDUCED - Much less aggressive avoidance
             cross_validation_threshold=3
         )
+        print("✅ ARC meta-learning system initialized")
         
         # Initialize frame analyzer for visual intelligence
         self.frame_analyzer = FrameAnalyzer()
         
         # Initialize Governor and Architect (Meta-Cognitive Systems)
+        print("🧠 Initializing meta-cognitive systems...")
         self.governor = None
         self.architect = None
         self.learning_session_id = None  # Track current learning session
         if META_COGNITIVE_AVAILABLE:
             try:
                 # Initialize Governor (Third Brain) with persistence directory for pattern learning
+                print("🎯 Initializing Governor...")
                 self.governor = MetaCognitiveGovernor(
                     memory_capacity=1000,
                     decision_threshold=0.5,  # REDUCED - Less strict decision threshold
                     adaptation_rate=0.1,
                     persistence_dir=str(self.save_directory)  # Enable pattern learning
                 )
+                print("✅ Governor initialized")
                 logger.info("🧠 Meta-Cognitive Governor initialized (Third Brain) with pattern learning")
                 
                 # Initialize Architect (Zeroth Brain)
+                print("🏗️ Initializing Architect...")
                 self.architect = Architect(
                     evolution_rate=0.05,
                     innovation_threshold=0.8,
                     memory_capacity=500
                 )
+                print("✅ Architect initialized")
                 logger.info("🏗️ Architect initialized (Zeroth Brain)")
                 
             except Exception as e:
+                print(f"❌ Failed to initialize meta-cognitive systems: {e}")
                 logger.warning(f"Failed to initialize meta-cognitive systems: {e}")
                 self.governor = None
                 self.architect = None
@@ -712,9 +1115,15 @@ class ContinuousLearningLoop:
         self._swarm_mode_active: bool = False
         # Ensure standalone mode flag exists to avoid AttributeError in session flows
         self.standalone_mode: bool = False
+        
+        print("🔧 Initializing rate limiter...")
         # Rate limiting for ARC-AGI-3 API compliance
-        self.rate_limiter = RateLimiter()
-        print(f" Rate limiter initialized: {ARC3_RATE_LIMIT['safe_requests_per_second']} RPS max, 600 RPM limit")
+        try:
+            self.rate_limiter = RateLimiter()
+            print(f"✅ Rate limiter initialized: {ARC3_RATE_LIMIT['safe_requests_per_second']} RPS max, 600 RPM limit")
+        except Exception as e:
+            print(f"❌ ERROR: Failed to initialize rate limiter: {e}")
+            raise
         
         # Enhanced tracking for sleep states and memory operations
         self.sleep_state_tracker = {
@@ -1430,10 +1839,16 @@ class ContinuousLearningLoop:
         Returns:
             List of game metadata with game_id and title
         """
+        self._ensure_initialized()
+        
         url = "https://three.arcprize.org/api/games"
         headers = {"X-API-Key": self.api_key}
         
         try:
+            # Check if rate limiter exists
+            if not hasattr(self, 'rate_limiter'):
+                raise AttributeError("Rate limiter not initialized. ContinuousLearningLoop initialization may have failed.")
+            
             # Apply rate limiting
             await self.rate_limiter.acquire()
             
@@ -8820,6 +9235,8 @@ class ContinuousLearningLoop:
         Returns:
             session_id: Unique identifier for this session
         """
+        self._ensure_initialized()
+        
         session_id = f"session_{int(time.time())}"
         
         self.current_session = TrainingSession(

@@ -126,6 +126,12 @@ class ARCClient:
             await self.session.close()
             self.session = None
     
+    async def close(self):
+        """Manually close the session."""
+        if self.session:
+            await self.session.close()
+            self.session = None
+    
     async def _make_request(self, method: str, url: str, **kwargs) -> Dict[str, Any]:
         """Make a request to the ARC API with retry logic.
         
