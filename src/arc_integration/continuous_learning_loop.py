@@ -3901,10 +3901,15 @@ class ContinuousLearningLoop:
             print(f"🔄 STAGNATION DETECTED: {stagnation_info['reason']}")
             print(f"🔄 SWITCHING FROM: {stagnation_info['stagnant_actions']} TO: {stagnation_info['recommended_actions']}")
             # Force selection from recommended actions, but ensure we don't empty the list
-            if stagnation_info['recommended_actions']:
+            if stagnation_info['recommended_actions'] and len(stagnation_info['recommended_actions']) > 0:
                 available_actions = stagnation_info['recommended_actions']
+                print(f"✅ Stagnation switch: Using {len(available_actions)} recommended actions")
             else:
                 print(f"⚠️ WARNING: Stagnation detection returned empty recommended actions, keeping original: {available_actions}")
+                # Additional safety: if original is also empty, this is a critical error
+                if not available_actions:
+                    print(f"🚨 CRITICAL: Both stagnation recommendations and original actions are empty!")
+                    return 1  # Emergency fallback
         
         # 🧠 PATTERN RETRIEVAL: Get learned patterns for this context
         pattern_recommendations = self._get_pattern_recommendations(game_id, context, available_actions)
@@ -11113,8 +11118,24 @@ class ContinuousLearningLoop:
                     break
                 
                 if not available_actions:
-                    print("  No available actions - stopping game loop")
-                    break
+                    print("  No available actions - attempting recovery before stopping")
+                    # Try to get fresh actions from API investigation
+                    try:
+                        investigation = await self._investigate_game_state(game_id, session_data.get('guid'))
+                        if investigation and 'available_actions' in investigation:
+                            fresh_actions = investigation['available_actions']
+                            if fresh_actions:
+                                print(f"  Recovery successful: Got fresh actions {fresh_actions}")
+                                available_actions = fresh_actions
+                            else:
+                                print("  Recovery failed: Still no actions available - stopping game loop")
+                                break
+                        else:
+                            print("  Recovery failed: Could not investigate game state - stopping game loop")
+                            break
+                    except Exception as e:
+                        print(f"  Recovery failed: {e} - stopping game loop")
+                        break
                     
                 print(f" Available: {available_actions}")
                 
@@ -11364,6 +11385,7 @@ class ContinuousLearningLoop:
                     # Update available actions for next iteration
                     if new_available != available_actions:
                         print(f" Actions: {available_actions} → {new_available}")
+                        available_actions = new_available  # CRITICAL FIX: Update available_actions with fresh API data
                     
                 # CRITICAL: Validate that action_result is a dictionary before processing
                 if not isinstance(action_result, dict):
