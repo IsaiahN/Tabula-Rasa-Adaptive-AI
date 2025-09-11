@@ -2043,7 +2043,25 @@ class MetaCognitiveGovernor:
             max_results=3
         )
         
+        # Get applicable action patterns
+        action_patterns = self.learning_manager.retrieve_applicable_patterns(
+            KnowledgeType.ACTION_PATTERN,
+            context,
+            min_confidence=0.3,
+            max_results=5
+        )
+        
+        # Get applicable spatial patterns
+        spatial_patterns = self.learning_manager.retrieve_applicable_patterns(
+            KnowledgeType.SPATIAL_PATTERN,
+            context,
+            min_confidence=0.3,
+            max_results=3
+        )
+        
         recommendations = []
+        
+        # Process strategy patterns
         for pattern in strategy_patterns:
             pattern_data = pattern.pattern_data
             
@@ -2056,6 +2074,41 @@ class MetaCognitiveGovernor:
                 'rationale': f"Learned strategy (success rate: {pattern.success_rate:.1%})"
             }
             
+            recommendations.append(rec_data)
+        
+        # Process action patterns
+        for pattern in action_patterns:
+            pattern_data = pattern.pattern_data
+            
+            rec_data = {
+                'type': 'action_recommendation',
+                'action_type': pattern_data.get('action_type', 'unknown'),
+                'coordinates': pattern_data.get('coordinates'),
+                'success': pattern_data.get('success', False),
+                'score_change': pattern_data.get('score_change', 0),
+                'confidence': pattern.confidence,
+                'success_rate': pattern.success_rate,
+                'applications': pattern.total_applications,
+                'rationale': f"Learned action pattern (success rate: {pattern.success_rate:.1%})"
+            }
+            recommendations.append(rec_data)
+        
+        # Process spatial patterns
+        for pattern in spatial_patterns:
+            pattern_data = pattern.pattern_data
+            
+            rec_data = {
+                'type': 'spatial_recommendation',
+                'action_type': pattern_data.get('action_type', 'ACTION6'),
+                'coordinates': (pattern_data.get('x'), pattern_data.get('y')),
+                'success': pattern_data.get('success', False),
+                'score_change': pattern_data.get('score_change', 0),
+                'grid_size': pattern_data.get('grid_size'),
+                'confidence': pattern.confidence,
+                'success_rate': pattern.success_rate,
+                'applications': pattern.total_applications,
+                'rationale': f"Learned spatial pattern (success rate: {pattern.success_rate:.1%})"
+            }
             recommendations.append(rec_data)
         
         return recommendations

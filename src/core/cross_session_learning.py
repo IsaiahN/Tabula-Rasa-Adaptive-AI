@@ -277,6 +277,13 @@ class CrossSessionLearningManager:
         if self.current_session:
             self.current_session.session_patterns.append(pattern)
         
+        # CRITICAL FIX: Save patterns immediately for real-time learning
+        try:
+            self._save_persistent_state()
+            self.logger.debug(f"Pattern {pattern_id} saved immediately to disk")
+        except Exception as e:
+            self.logger.warning(f"Failed to save pattern {pattern_id} immediately: {e}")
+        
         self.logger.debug(f"Learned new pattern: {pattern_id} ({knowledge_type.value})")
         return pattern_id
     
