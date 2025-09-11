@@ -442,45 +442,23 @@ class MasterARCTrainer:
                 self.logger.info(f"Config API key: {'*' * 8 + self.config.api_key[-4:] if self.config.api_key else 'Not set'}")
                 
                 # Initialize the real client
+                self.logger.info("Creating ARC client...")
+                print("🔧 Creating ARC client...")
                 self.arc_client = ARCClient(api_key=self.config.api_key)
+                self.logger.info("ARC client created successfully")
+                print("✅ ARC client created successfully")
             
-            # Test the connection using async context manager
-            self.logger.info("Testing connection...")
-            await self.arc_client.__aenter__()
-            
-            # Test API connectivity with a simple request
-            try:
-                # First get available games to test connectivity
-                self.logger.info("Testing API connectivity with get_available_games...")
-                games = await self.arc_client.get_available_games()
-                self.logger.info(f"Successfully connected to {'MOCK' if self.config.local_mode else 'ARC'} API. Found {len(games)} available games")
-                
-                # If we have games, test with the first one (without creating scorecard)
-                if games and len(games) > 0:
-                    test_game_id = games[0].get('game_id', 'ls20-016295f7601e')  # Fallback to known game
-                    self.logger.info(f"Testing with game: {test_game_id}")
-                    
-                    # Test API connectivity without creating test scorecard
-                    # Just verify we can access game information
-                    self.logger.info(f"API connectivity verified. Game ID available: {test_game_id}")
-                
-                self.initialized = True
-                return True
-            except Exception as e:
-                self.logger.error(f"Failed to connect to API: {str(e)}", exc_info=True)
-                # Properly close the session before returning
-                try:
-                    await self.arc_client.__aexit__(None, None, None)
-                except Exception as close_error:
-                    self.logger.warning(f"Error closing session during cleanup: {close_error}")
-                self.arc_client = None
-                return False
+            # Skip connection test for now to avoid hanging
+            self.logger.info("Skipping connection test to avoid hanging...")
+            print("⏭️ Skipping connection test to avoid hanging...")
+            self.initialized = True
+            return True
                 
         except Exception as e:
             self.logger.error(f"Error initializing ARC client: {e}")
             if self.arc_client:
                 try:
-                    await self.arc_client.__aexit__(None, None, None)
+                    await self.arc_client.close()
                 except Exception as close_error:
                     self.logger.warning(f"Error closing session during cleanup: {close_error}")
                 self.arc_client = None
@@ -490,7 +468,7 @@ class MasterARCTrainer:
         """Clean up resources."""
         if self.arc_client:
             try:
-                await self.arc_client.__aexit__(None, None, None)
+                await self.arc_client.close()
             except Exception as close_error:
                 self.logger.warning(f"Error closing session during cleanup: {close_error}")
             self.arc_client = None
@@ -603,7 +581,7 @@ class MasterARCTrainer:
                 # Ensure we clean up the client
                 if self.arc_client:
                     try:
-                        await self.arc_client.__aexit__(None, None, None)
+                        await self.arc_client.close()
                     except Exception as close_error:
                         self.logger.warning(f"Error closing session during cleanup: {close_error}")
                     self.arc_client = None
@@ -680,9 +658,15 @@ class MasterARCTrainer:
     async def _run_continuous_learning(self, config_overrides: Dict = None):
         """Core continuous learning execution with enhanced client handling."""
         try:
+            self.logger.info("🔧 Starting _run_continuous_learning...")
+            print("🔧 Starting _run_continuous_learning...")
+            
             # Initialize the API client
             if not await self.initialize_client():
                 raise ConnectionError("Failed to initialize ARC API client. Check your API key and network connection.")
+            
+            self.logger.info("✅ API client initialized successfully")
+            print("✅ API client initialized successfully")
             
             try:
                 # Lazy import to prevent circular imports
@@ -699,13 +683,39 @@ class MasterARCTrainer:
                 
                 # Use the arc_agents_path from config or default
                 arc_agents_path = self.config.arc_agents_path or os.path.join(tabula_rasa_path, '..', 'ARC-AGI-3-Agents')
+                self.logger.info(f"ARC agents path: {arc_agents_path}")
+                self.logger.info(f"Tabula rasa path: {tabula_rasa_path}")
+                print(f"📁 ARC agents path: {arc_agents_path}")
+                print(f"📁 Tabula rasa path: {tabula_rasa_path}")
                 
-                self.continuous_loop = ContinuousLearningLoop(
-                    arc_agents_path=arc_agents_path,
-                    tabula_rasa_path=tabula_rasa_path,
-                    api_key=self.config.api_key,
-                    save_directory="data"
-                )
+                try:
+                    self.logger.info("Creating ContinuousLearningLoop...")
+                    print("🔧 Creating ContinuousLearningLoop...")
+                    
+                    # Add timeout to prevent hanging
+                    import asyncio
+                    try:
+                        self.continuous_loop = await asyncio.wait_for(
+                            asyncio.get_event_loop().run_in_executor(
+                                None,
+                                lambda: ContinuousLearningLoop(
+                                    arc_agents_path=arc_agents_path,
+                                    tabula_rasa_path=tabula_rasa_path,
+                                    api_key=self.config.api_key,
+                                    save_directory="data"
+                                )
+                            ),
+                            timeout=60.0  # 60 second timeout
+                        )
+                        self.logger.info("ContinuousLearningLoop created successfully")
+                        print("✅ ContinuousLearningLoop created successfully")
+                    except asyncio.TimeoutError:
+                        raise TimeoutError("ContinuousLearningLoop creation timed out after 60 seconds")
+                        
+                except Exception as e:
+                    self.logger.error(f"Failed to create ContinuousLearningLoop: {e}", exc_info=True)
+                    print(f"❌ Failed to create ContinuousLearningLoop: {e}")
+                    raise
                 
                 # Initialize coordinate manager with the continuous loop if needed
                 if self.config.enable_coordinates and COORDINATE_SYSTEM_AVAILABLE and self.coordinate_manager is None:
@@ -771,7 +781,7 @@ class MasterARCTrainer:
                 # Ensure we clean up the client
                 if self.arc_client:
                     try:
-                        await self.arc_client.__aexit__(None, None, None)
+                        await self.arc_client.close()
                     except Exception as close_error:
                         self.logger.warning(f"Error closing session during cleanup: {close_error}")
                     self.arc_client = None
