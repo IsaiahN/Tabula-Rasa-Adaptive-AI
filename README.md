@@ -1509,7 +1509,7 @@ This project was **100% vibe-coded**. Thank god.
 
     
 
-Though it took just seven days to create, it represents over a hundred rapid iterations. I watched its "brain" form in real-time—an exhilarating but draining process of vibe-debugging and constant refinement. Had a team attempted this manually, it would have taken years.
+Though it took just seven days to create, it represents over a hundred rapid iterations. I watched its "brain" form in real-time—an exhilarating but draining process of vibe-debugging and constant refinement. Had a team attempted this manually, it would have taken years to get here.
 
 **My entire setup:**
 
@@ -1517,7 +1517,7 @@ Though it took just seven days to create, it represents over a hundred rapid ite
     
 -   **IDE:** A free trial of Visual Studio Code (the time limit was a great motivator)
     
--   **Co-Pilots:** Claude Code Sonnet 4.0 & DeepSeek
+-   **Co-Pilots:** Claude Code Sonnet 4
     
 -   **Inspiration:** Countless brainstorming chats with multiple llms about biology, anatomy, and the inadequacies of current AI, plus my own musings on consciousness.
     
