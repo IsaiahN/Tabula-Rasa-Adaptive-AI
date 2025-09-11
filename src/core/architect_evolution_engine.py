@@ -156,6 +156,13 @@ class ArchitectEvolutionEngine:
             
             logger.info(f"🏗️ Generated {len(new_strategies)} new evolution strategies")
         
+        # CRITICAL FIX: Save evolution state after analysis
+        try:
+            self.save_evolution_state()
+            logger.debug(f"💾 Architect evolution state saved: {len(self.insights)} insights, {len(self.evolution_strategies)} strategies")
+        except Exception as e:
+            logger.warning(f"Failed to save architect evolution state: {e}")
+        
         logger.info(f"🧠 Governor analysis complete: {len(new_insights)} new insights identified")
         
         return new_insights
