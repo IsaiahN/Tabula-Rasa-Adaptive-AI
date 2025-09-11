@@ -11080,9 +11080,13 @@ class ContinuousLearningLoop:
             #  SMART ACTION CAP - Calculate dynamic limit based on game complexity
             if hasattr(self, '_action_cap_system') and self._action_cap_system['enabled']:
                 dynamic_action_cap = self._calculate_dynamic_action_cap(available_actions)
-                # Use the lower of the dynamic cap or the provided max
-                actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
-                print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, original: {max_actions_per_game})")
+                # Only use dynamic cap if configured limit is unreasonably high (>1000)
+                if max_actions_per_game > 1000:
+                    actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
+                    print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, configured: {max_actions_per_game})")
+                else:
+                    actual_max_actions = max_actions_per_game
+                    print(f" USING CONFIGURED LIMIT: {actual_max_actions} actions (configured: {max_actions_per_game})")
             else:
                 actual_max_actions = max_actions_per_game
             
