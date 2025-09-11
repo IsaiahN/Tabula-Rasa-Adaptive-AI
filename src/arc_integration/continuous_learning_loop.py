@@ -65,8 +65,8 @@ from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeigh
 
 # Import Governor and Architect
 try:
-    from core.meta_cognitive_governor import MetaCognitiveGovernor
-    from core.architect import Architect
+    from src.core.meta_cognitive_governor import MetaCognitiveGovernor
+    from src.core.architect import Architect
     META_COGNITIVE_AVAILABLE = True
 except ImportError as e:
     META_COGNITIVE_AVAILABLE = False
