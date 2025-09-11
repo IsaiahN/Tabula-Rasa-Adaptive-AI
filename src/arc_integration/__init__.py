@@ -5,11 +5,10 @@ This package provides integration between the Adaptive Learning Agent and ARC-AG
 """
 
 from .arc_agent_adapter import AdaptiveLearningARCAgent, ARCVisualProcessor, ARCActionMapper
-from .continuous_learning_loop import ContinuousLearningLoop
+# Note: ContinuousLearningLoop is imported lazily in master_arc_trainer.py to avoid circular imports
 
 __all__ = [
     'AdaptiveLearningARCAgent',
     'ARCVisualProcessor',
-    'ARCActionMapper',
-    'ContinuousLearningLoop'
+    'ARCActionMapper'
 ]
