@@ -257,7 +257,7 @@ class TrainingSession:
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
-    max_actions_per_session: int = 500  # Default action limit per game session
+    max_actions_per_session: int = 1500  # Default action limit per game session
     enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.LOSSLESS
     enable_salience_comparison: bool = False
