@@ -181,6 +181,21 @@ class PredictiveCore(nn.Module):
             energy_norm
         ], dim=-1)
         
+        # Check if input dimensions match the expected input size
+        actual_input_size = combined_input.size(-1)
+        expected_input_size = self.input_encoder[0].in_features
+        
+        if actual_input_size != expected_input_size:
+            # Pad or truncate to match expected size
+            if actual_input_size < expected_input_size:
+                # Pad with zeros
+                padding_size = expected_input_size - actual_input_size
+                padding = torch.zeros(batch_size, padding_size, device=combined_input.device)
+                combined_input = torch.cat([combined_input, padding], dim=-1)
+            else:
+                # Truncate
+                combined_input = combined_input[:, :expected_input_size]
+        
         # Encode
         encoded = self.input_encoder(combined_input)
         
@@ -542,6 +557,7 @@ class PredictiveCore(nn.Module):
         return SensoryInput(
             visual=visual_data,
             proprioception=proprioception_data,
+            energy_level=energy,
             timestamp=time.time()
         )
     
