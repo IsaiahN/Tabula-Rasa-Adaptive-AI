@@ -37,6 +37,8 @@ class KnowledgeType(Enum):
     PERFORMANCE_BASELINE = "performance_baseline"
     FAILURE_PATTERN = "failure_pattern"
     CONTEXTUAL_INSIGHT = "contextual_insight"
+    ACTION_PATTERN = "action_pattern"
+    SPATIAL_PATTERN = "spatial_pattern"
 
 @dataclass
 class LearnedPattern:
