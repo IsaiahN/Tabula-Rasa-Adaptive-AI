@@ -73,6 +73,19 @@ except ImportError as e:
     print(f"WARNING: Meta-cognitive systems not available: {e}")
     MetaCognitiveGovernor = None
     Architect = None
+
+# Import Simulation-Driven Agent
+try:
+    from src.arc_integration.simulation_driven_agent import SimulationDrivenARCAgent
+    from src.core.predictive_core import PredictiveCore
+    from src.core.simulation_models import SimulationConfig
+    SIMULATION_AVAILABLE = True
+except ImportError as e:
+    SIMULATION_AVAILABLE = False
+    print(f"WARNING: Simulation-driven intelligence not available: {e}")
+    SimulationDrivenARCAgent = None
+    PredictiveCore = None
+    SimulationConfig = None
 # Import FrameAnalyzer
 try:
     from vision.frame_analyzer import FrameAnalyzer
@@ -368,6 +381,44 @@ class ContinuousLearningLoop:
                 self.architect = None
         else:
             logger.warning("Meta-cognitive systems not available - running without Governor and Architect")
+        
+        # Initialize Simulation-Driven Intelligence System
+        self.simulation_agent = None
+        if SIMULATION_AVAILABLE:
+            try:
+                # Initialize Predictive Core for simulation
+                predictive_core = PredictiveCore(
+                    visual_size=(3, 64, 64),
+                    proprioception_size=12,
+                    hidden_size=512,
+                    memory_config={
+                        'memory_size': 512,
+                        'word_size': 64,
+                        'num_read_heads': 4,
+                        'num_write_heads': 1
+                    }
+                )
+                
+                # Initialize simulation configuration
+                simulation_config = SimulationConfig()
+                simulation_config.max_simulation_depth = 8
+                simulation_config.max_hypotheses = 5
+                simulation_config.simulation_timeout = 0.5
+                
+                # Initialize Simulation-Driven ARC Agent
+                self.simulation_agent = SimulationDrivenARCAgent(
+                    predictive_core=predictive_core,
+                    config=simulation_config,
+                    persistence_dir=str(self.save_directory / "simulation_agent")
+                )
+                
+                logger.info("🧠 Simulation-Driven Intelligence initialized - Multi-step planning enabled")
+                
+            except Exception as e:
+                logger.warning(f"Failed to initialize simulation-driven intelligence: {e}")
+                self.simulation_agent = None
+        else:
+            logger.warning("Simulation-driven intelligence not available - using reactive action selection")
         
         #  CRITICAL FIX: Unified energy system to prevent inconsistencies
         # Initialize primary energy system for proper sleep cycle management
@@ -2612,14 +2663,39 @@ class ContinuousLearningLoop:
             print(f" Available Actions for {game_id}: {current_available}")
             self._last_available_actions[game_id] = current_available
         
-        # Use intelligent action selection with frame analysis context
-        context = {
-            'game_id': game_id, 
-            'frame_analysis': frame_analysis,
-            'response_data': response_data,
-            'frame': response_data.get('frame') if response_data else None  # Add actual frame data
-        }
-        selected_action = self._select_intelligent_action_with_relevance(available, context)
+        # Use simulation-driven action selection if available, otherwise fallback to intelligent selection
+        if self.simulation_agent:
+            try:
+                # Use simulation-driven intelligence for action selection
+                selected_action, coordinates, reasoning = self.simulation_agent.select_action_with_simulation(
+                    response_data, game_id, self.frame_analyzer
+                )
+                
+                # Store coordinates for later use
+                if coordinates:
+                    self._last_coordinates = coordinates
+                
+                logger.info(f"🧠 Simulation-driven action selection: {selected_action} {coordinates} - {reasoning}")
+                
+            except Exception as e:
+                logger.warning(f"Simulation-driven action selection failed: {e}, falling back to intelligent selection")
+                # Fallback to original intelligent action selection
+                context = {
+                    'game_id': game_id, 
+                    'frame_analysis': frame_analysis,
+                    'response_data': response_data,
+                    'frame': response_data.get('frame') if response_data else None
+                }
+                selected_action = self._select_intelligent_action_with_relevance(available, context)
+        else:
+            # Use intelligent action selection with frame analysis context
+            context = {
+                'game_id': game_id, 
+                'frame_analysis': frame_analysis,
+                'response_data': response_data,
+                'frame': response_data.get('frame') if response_data else None  # Add actual frame data
+            }
+            selected_action = self._select_intelligent_action_with_relevance(available, context)
         
         # Add to action history
         self.available_actions_memory['action_history'].append(selected_action)
@@ -11377,6 +11453,19 @@ class ContinuousLearningLoop:
                     # Track effectiveness
                     score_improvement = new_score - current_score
                     was_effective = (score_improvement > 0 or new_state in ['WIN'])
+                    
+                    # Update simulation agent with action outcome
+                    if self.simulation_agent:
+                        try:
+                            coordinates = (x, y) if x is not None and y is not None else None
+                            self.simulation_agent.update_with_action_outcome(
+                                action=selected_action,
+                                coordinates=coordinates,
+                                response_data=action_result,
+                                game_id=game_id
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to update simulation agent: {e}")
                     
                     # Clean result display
                     if score_improvement > 0:
