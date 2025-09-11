@@ -632,6 +632,13 @@ class PerformanceOptimizationEngine:
             # Record in optimization history
             self.optimization_history.append(strategy)
             
+            # CRITICAL FIX: Save performance state after adding optimization
+            try:
+                self.save_performance_state()
+                logger.debug(f"💾 Performance optimization state saved: {len(self.optimization_history)} optimizations")
+            except Exception as e:
+                logger.warning(f"Failed to save performance optimization state: {e}")
+            
             total_duration = time.time() - execution_start
             
             result = {
@@ -907,16 +914,30 @@ class PerformanceOptimizationEngine:
             if history_file.exists():
                 with open(history_file, 'r') as f:
                     history_data = json.load(f)
-                    # Note: This is simplified - in reality we'd need to reconstruct PerformanceOptimization objects
-                    logger.info(f"Loaded {len(history_data)} optimization history entries")
+                    # Reconstruct PerformanceOptimization objects from saved data
+                    self.optimization_history = []
+                    for opt_data in history_data:
+                        try:
+                            optimization = PerformanceOptimization(**opt_data)
+                            self.optimization_history.append(optimization)
+                        except Exception as e:
+                            logger.warning(f"Failed to reconstruct optimization entry: {e}")
+                    logger.info(f"Loaded {len(self.optimization_history)} optimization history entries")
             
             # Load adaptive configurations
             config_file = self.performance_data_dir / "adaptive_configurations.json"
             if config_file.exists():
                 with open(config_file, 'r') as f:
                     config_data = json.load(f)
-                    # Note: This is simplified - in reality we'd need to reconstruct AdaptiveConfiguration objects
-                    logger.info(f"Loaded {len(config_data)} adaptive configurations")
+                    # Reconstruct AdaptiveConfiguration objects from saved data
+                    self.adaptive_configs = {}
+                    for config_id, config_data in config_data.items():
+                        try:
+                            config = AdaptiveConfiguration(**config_data)
+                            self.adaptive_configs[config_id] = config
+                        except Exception as e:
+                            logger.warning(f"Failed to reconstruct adaptive configuration {config_id}: {e}")
+                    logger.info(f"Loaded {len(self.adaptive_configs)} adaptive configurations")
                     
         except Exception as e:
             logger.warning(f"Failed to load performance state: {e}")
