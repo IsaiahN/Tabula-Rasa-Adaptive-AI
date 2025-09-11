@@ -30,11 +30,25 @@ REM Get current time
 for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
 set "current_time=%dt%"
 
-REM Calculate elapsed seconds (simplified - this is approximate)
-set /a elapsed_hours=%current_time:~8,2%-%start_time:~8,2%
-set /a elapsed_minutes=%current_time:~10,2%-%start_time:~10,2%
-set /a elapsed_seconds=%current_time:~12,2%-%start_time:~12,2%
+REM Calculate elapsed seconds (improved calculation)
+REM Remove leading zeros and handle time overflow
+set /a start_hour=1%start_time:~8,2%-100
+set /a start_min=1%start_time:~10,2%-100
+set /a start_sec=1%start_time:~12,2%-100
+set /a current_hour=1%current_time:~8,2%-100
+set /a current_min=1%current_time:~10,2%-100
+set /a current_sec=1%current_time:~12,2%-100
+
+REM Calculate elapsed time in seconds
+set /a elapsed_hours=%current_hour%-%start_hour%
+set /a elapsed_minutes=%current_min%-%start_min%
+set /a elapsed_seconds=%current_sec%-%start_sec%
+
+REM Convert to total seconds
 set /a elapsed_total=%elapsed_hours%*3600+%elapsed_minutes%*60+%elapsed_seconds%
+
+REM Handle negative values (day rollover)
+if %elapsed_total% lss 0 set /a elapsed_total=%elapsed_total%+86400
 
 REM Check if 9 hours have elapsed
 if %elapsed_total% geq %total_duration% (
@@ -85,10 +99,22 @@ echo ✅ Training session #%session_count% completed!
 REM Check if we still have time remaining
 for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
 set "current_time=%dt%"
-set /a elapsed_hours=%current_time:~8,2%-%start_time:~8,2%
-set /a elapsed_minutes=%current_time:~10,2%-%start_time:~10,2%
-set /a elapsed_seconds=%current_time:~12,2%-%start_time:~12,2%
+
+REM Calculate elapsed time (reuse the same logic)
+set /a start_hour=1%start_time:~8,2%-100
+set /a start_min=1%start_time:~10,2%-100
+set /a start_sec=1%start_time:~12,2%-100
+set /a current_hour=1%current_time:~8,2%-100
+set /a current_min=1%current_time:~10,2%-100
+set /a current_sec=1%current_time:~12,2%-100
+
+set /a elapsed_hours=%current_hour%-%start_hour%
+set /a elapsed_minutes=%current_min%-%start_min%
+set /a elapsed_seconds=%current_sec%-%start_sec%
 set /a elapsed_total=%elapsed_hours%*3600+%elapsed_minutes%*60+%elapsed_seconds%
+
+REM Handle negative values (day rollover)
+if %elapsed_total% lss 0 set /a elapsed_total=%elapsed_total%+86400
 
 if %elapsed_total% lss %total_duration% (
     set /a remaining_seconds=%total_duration%-%elapsed_total%
