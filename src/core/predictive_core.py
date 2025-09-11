@@ -405,11 +405,19 @@ class PredictiveCore(nn.Module):
             current_orientation = simulation_state.get('orientation', [0.0, 0.0, 0.0, 1.0])
             
             # Run simulation steps
-            for step, (action, coords) in enumerate(hypothesis.action_sequence[:max_steps]):
+            for step, action_item in enumerate(hypothesis.action_sequence[:max_steps]):
                 # Check timeout
                 if time.time() - start_time > timeout:
                     logger.debug(f"Simulation timeout after {step} steps")
                     break
+                
+                # Handle both (action, coords) and (action, None) formats
+                if isinstance(action_item, tuple) and len(action_item) == 2:
+                    action, coords = action_item
+                else:
+                    # Handle case where action_item is just an action number
+                    action = action_item
+                    coords = None
                 
                 # Predict next state without taking real action
                 predicted_state, confidence = self._predict_simulation_step(

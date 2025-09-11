@@ -111,7 +111,15 @@ class SimulationAgent:
         if relevant_strategies and self._should_use_strategy(relevant_strategies[0], context):
             # Use existing strategy (autopilot)
             strategy = relevant_strategies[0]
-            action, coords = strategy.action_sequence[0]
+            action_item = strategy.action_sequence[0]
+            
+            # Handle both (action, coords) and (action, None) formats
+            if isinstance(action_item, tuple) and len(action_item) == 2:
+                action, coords = action_item
+            else:
+                action = action_item
+                coords = None
+                
             reasoning = f"Using strategy '{strategy.name}' (success rate: {strategy.success_rate:.2f})"
             
             logger.debug(f"Using strategy: {strategy.name}")
@@ -182,7 +190,15 @@ class SimulationAgent:
         if best_evaluation and best_evaluation.valence > self.config.min_valence_threshold:
             # Use the first action from the best hypothesis
             hypothesis = best_evaluation.simulation_result.hypothesis
-            action, coords = hypothesis.action_sequence[0]
+            action_item = hypothesis.action_sequence[0]
+            
+            # Handle both (action, coords) and (action, None) formats
+            if isinstance(action_item, tuple) and len(action_item) == 2:
+                action, coords = action_item
+            else:
+                action = action_item
+                coords = None
+                
             reasoning = (f"Best simulation: '{hypothesis.name}' "
                         f"(valence: {best_evaluation.valence:.3f}, "
                         f"recommendation: {best_evaluation.recommendation})")
