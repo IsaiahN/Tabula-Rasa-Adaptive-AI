@@ -384,7 +384,7 @@ class ContinuousLearningLoop:
         
         # Initialize Simulation-Driven Intelligence System
         self.simulation_agent = None
-        if SIMULATION_AVAILABLE:
+        if SIMULATION_AVAILABLE and PredictiveCore is not None:
             try:
                 # Initialize Predictive Core for simulation
                 predictive_core = PredictiveCore(
@@ -418,7 +418,10 @@ class ContinuousLearningLoop:
                 logger.warning(f"Failed to initialize simulation-driven intelligence: {e}")
                 self.simulation_agent = None
         else:
+            if not SIMULATION_AVAILABLE:
             logger.warning("Simulation-driven intelligence not available - using reactive action selection")
+            else:
+                logger.warning("PredictiveCore not available - using reactive action selection")
         
         #  CRITICAL FIX: Unified energy system to prevent inconsistencies
         # Initialize primary energy system for proper sleep cycle management
@@ -453,17 +456,22 @@ class ContinuousLearningLoop:
             if not hasattr(self.sleep_system, 'is_sleeping'):
                 self.sleep_system.is_sleeping = False
             
+            # Set enhanced_sleep_system for compatibility with consolidation code
+            self.enhanced_sleep_system = self.sleep_system
+            
             logger.info(" Enhanced sleep system initialized for memory consolidation")
             
         except ImportError as e:
             logger.warning(f" Sleep system dependencies not available: {e}")
             logger.info(" Will use enhanced fallback sleep system with memory consolidation")
             self.sleep_system = None
+            self.enhanced_sleep_system = None
             
         except Exception as e:
             logger.warning(f" Could not initialize enhanced sleep system: {e}")
             logger.info(" Will use enhanced fallback sleep system with memory consolidation")
             self.sleep_system = None
+            self.enhanced_sleep_system = None
         
         #  CONSOLIDATED: Adaptive energy system disabled - using unified energy system instead
         # The main energy system now handles all adaptive behaviors directly
@@ -11242,11 +11250,11 @@ class ContinuousLearningLoop:
             if hasattr(self, '_action_cap_system') and self._action_cap_system['enabled']:
                 dynamic_action_cap = self._calculate_dynamic_action_cap(available_actions, max_actions_per_game)
                 # Always use dynamic cap as it's now properly scaled
-                actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
-                print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, configured: {max_actions_per_game})")
-            else:
-                actual_max_actions = max_actions_per_game
-                print(f" USING CONFIGURED LIMIT: {actual_max_actions} actions (configured: {max_actions_per_game})")
+                    actual_max_actions = min(max_actions_per_game, dynamic_action_cap)
+                    print(f" SMART LIMIT: {actual_max_actions} actions (dynamic cap: {dynamic_action_cap}, configured: {max_actions_per_game})")
+                else:
+                    actual_max_actions = max_actions_per_game
+                    print(f" USING CONFIGURED LIMIT: {actual_max_actions} actions (configured: {max_actions_per_game})")
             
             # Reset progress tracker for this game
             if hasattr(self, '_progress_tracker'):
