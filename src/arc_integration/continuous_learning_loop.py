@@ -342,15 +342,17 @@ class ContinuousLearningLoop:
         # Initialize Governor and Architect (Meta-Cognitive Systems)
         self.governor = None
         self.architect = None
+        self.learning_session_id = None  # Track current learning session
         if META_COGNITIVE_AVAILABLE:
             try:
-                # Initialize Governor (Third Brain)
+                # Initialize Governor (Third Brain) with persistence directory for pattern learning
                 self.governor = MetaCognitiveGovernor(
                     memory_capacity=1000,
                     decision_threshold=0.5,  # REDUCED - Less strict decision threshold
-                    adaptation_rate=0.1
+                    adaptation_rate=0.1,
+                    persistence_dir=str(self.save_directory)  # Enable pattern learning
                 )
-                logger.info("🧠 Meta-Cognitive Governor initialized (Third Brain)")
+                logger.info("🧠 Meta-Cognitive Governor initialized (Third Brain) with pattern learning")
                 
                 # Initialize Architect (Zeroth Brain)
                 self.architect = Architect(
@@ -2906,6 +2908,14 @@ class ContinuousLearningLoop:
                                         'score': 0,
                                         'available_actions': []
                                     }
+                                
+                                # 🧠 PATTERN LEARNING: Learn from action outcomes
+                                self._learn_from_action_outcome(
+                                    game_id, action_number, x, y, data, 
+                                    before_state={'score': getattr(self, '_last_score', 0)},
+                                    after_state={'score': data.get('score', 0)}
+                                )
+                                
                                 return data
                                 
                             except json.JSONDecodeError as e:
@@ -3896,6 +3906,18 @@ class ContinuousLearningLoop:
             else:
                 print(f"⚠️ WARNING: Stagnation detection returned empty recommended actions, keeping original: {available_actions}")
         
+        # 🧠 PATTERN RETRIEVAL: Get learned patterns for this context
+        pattern_recommendations = self._get_pattern_recommendations(game_id, context, available_actions)
+        if pattern_recommendations:
+            print(f"🧠 PATTERN RECOMMENDATIONS: {len(pattern_recommendations)} patterns found")
+            # Boost scores for pattern-recommended actions
+            for action, boost in pattern_recommendations.items():
+                if action in available_actions:
+                    print(f"   Action {action}: +{boost:.2f} pattern boost")
+        
+        # Store pattern recommendations for use in scoring
+        self._current_pattern_recommendations = pattern_recommendations
+        
         # 🧠 META-COGNITIVE GOVERNOR INTEGRATION (Third Brain)
         if self.governor:
             try:
@@ -4228,8 +4250,13 @@ class ContinuousLearningLoop:
                     if frame_analysis.get('interaction_opportunity', False):
                         frame_bonus = 0.3  # Interaction actions get bonus for opportunities
             
+            # 🧠 PATTERN BOOST: Add pattern-based recommendations
+            pattern_boost = 0.0
+            if hasattr(self, '_current_pattern_recommendations'):
+                pattern_boost = self._current_pattern_recommendations.get(action, 0.0)
+            
             # Combine all factors
-            final_score = base_score * modifier * success_rate * semantic_score * (1.0 + frame_bonus)
+            final_score = base_score * modifier * success_rate * semantic_score * (1.0 + frame_bonus + pattern_boost)
             
             return max(0.0, min(1.0, final_score))  # Clamp to [0,1]
             
@@ -5835,6 +5862,144 @@ class ContinuousLearningLoop:
         
         return swarm_results
     
+    def _learn_from_action_outcome(self, game_id: str, action_number: int, x: Optional[int], y: Optional[int], 
+                                 response_data: Dict[str, Any], before_state: Dict[str, Any], 
+                                 after_state: Dict[str, Any]):
+        """Learn patterns from action outcomes and store them for future use."""
+        if not self.governor or not hasattr(self.governor, 'learning_manager') or not self.governor.learning_manager:
+            return
+        
+        try:
+            # Calculate success metrics
+            score_change = after_state.get('score', 0) - before_state.get('score', 0)
+            game_state = response_data.get('state', 'UNKNOWN')
+            success = game_state in ['WIN', 'LEVEL_WIN', 'FULL_GAME_WIN'] or score_change > 0
+            
+            # Create context for pattern learning
+            context = {
+                'game_id': game_id,
+                'action_number': action_number,
+                'coordinates': (x, y) if x is not None and y is not None else None,
+                'grid_size': (response_data.get('grid_width', 64), response_data.get('grid_height', 64)),
+                'game_state': game_state,
+                'score_change': score_change,
+                'available_actions': response_data.get('available_actions', [])
+            }
+            
+            # Create pattern data
+            pattern_data = {
+                'action_type': f'ACTION{action_number}',
+                'coordinates': (x, y) if x is not None and y is not None else None,
+                'success': success,
+                'score_change': score_change,
+                'game_state': game_state,
+                'context_hash': hash(str(sorted(context.items())))
+            }
+            
+            # Learn the pattern
+            from src.core.cross_session_learning import KnowledgeType, PersistenceLevel
+            
+            # Determine persistence level based on success
+            persistence_level = PersistenceLevel.PERMANENT if success and score_change > 5 else PersistenceLevel.SESSION
+            
+            pattern_id = self.governor.learning_manager.learn_pattern(
+                KnowledgeType.ACTION_PATTERN,
+                pattern_data,
+                context,
+                success_rate=1.0 if success else 0.0,
+                persistence_level=persistence_level
+            )
+            
+            if pattern_id:
+                logger.debug(f"🧠 Learned action pattern {pattern_id}: ACTION{action_number} {'successful' if success else 'unsuccessful'}")
+                
+                # Also learn coordinate patterns for ACTION6
+                if action_number == 6 and x is not None and y is not None:
+                    coord_pattern_data = {
+                        'action_type': 'ACTION6_COORDINATE',
+                        'x': x,
+                        'y': y,
+                        'success': success,
+                        'score_change': score_change,
+                        'grid_size': context['grid_size']
+                    }
+                    
+                    coord_pattern_id = self.governor.learning_manager.learn_pattern(
+                        KnowledgeType.SPATIAL_PATTERN,
+                        coord_pattern_data,
+                        context,
+                        success_rate=1.0 if success else 0.0,
+                        persistence_level=persistence_level
+                    )
+                    
+                    if coord_pattern_id:
+                        logger.debug(f"🧠 Learned coordinate pattern {coord_pattern_id}: ({x},{y}) {'successful' if success else 'unsuccessful'}")
+            
+        except Exception as e:
+            logger.error(f"Error learning from action outcome: {e}")
+
+    def _get_pattern_recommendations(self, game_id: str, context: Dict[str, Any], available_actions: List[int]) -> Dict[int, float]:
+        """Get pattern-based recommendations for action selection."""
+        if not self.governor or not hasattr(self.governor, 'learning_manager') or not self.governor.learning_manager:
+            return {}
+        
+        try:
+            from src.core.cross_session_learning import KnowledgeType
+            
+            # Create context for pattern retrieval
+            pattern_context = {
+                'game_id': game_id,
+                'grid_size': context.get('response_data', {}).get('grid_width', 64),
+                'available_actions': available_actions,
+                'frame_analysis': context.get('frame_analysis', {})
+            }
+            
+            # Get action patterns
+            action_patterns = self.governor.learning_manager.retrieve_applicable_patterns(
+                KnowledgeType.ACTION_PATTERN,
+                pattern_context,
+                min_confidence=0.3,
+                max_results=10
+            )
+            
+            # Get spatial patterns for ACTION6
+            spatial_patterns = self.governor.learning_manager.retrieve_applicable_patterns(
+                KnowledgeType.SPATIAL_PATTERN,
+                pattern_context,
+                min_confidence=0.3,
+                max_results=5
+            )
+            
+            recommendations = {}
+            
+            # Process action patterns
+            for pattern in action_patterns:
+                if pattern.pattern_data.get('success', False):
+                    action_type = pattern.pattern_data.get('action_type', '')
+                    if action_type.startswith('ACTION'):
+                        try:
+                            action_num = int(action_type.replace('ACTION', ''))
+                            if action_num in available_actions:
+                                # Boost based on pattern confidence and success rate
+                                boost = pattern.confidence * pattern.success_rate * 0.5
+                                recommendations[action_num] = recommendations.get(action_num, 0) + boost
+                        except ValueError:
+                            continue
+            
+            # Process spatial patterns for ACTION6
+            if 6 in available_actions:
+                for pattern in spatial_patterns:
+                    if pattern.pattern_data.get('success', False):
+                        # Boost ACTION6 based on spatial pattern success
+                        boost = pattern.confidence * pattern.success_rate * 0.3
+                        recommendations[6] = recommendations.get(6, 0) + boost
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Error getting pattern recommendations: {e}")
+            return {}
+
     def _update_action_probabilities(self):
         """Dynamically update action probabilities based on success rates and recent usage."""
         if not hasattr(self, 'available_actions_memory') or 'action_effectiveness' not in self.available_actions_memory:
@@ -6006,6 +6171,19 @@ class ContinuousLearningLoop:
         
         logger.info(f"Running continuous learning for session {session_id}")
         
+        # Start cross-session learning session
+        if self.governor and hasattr(self.governor, 'learning_manager') and self.governor.learning_manager:
+            session_context = {
+                'session_id': session_id,
+                'games_to_play': session.games_to_play,
+                'max_mastery_sessions_per_game': session.max_mastery_sessions_per_game,
+                'target_performance': session.target_performance,
+                'salience_mode': session.salience_mode.value,
+                'swarm_enabled': session.swarm_enabled
+            }
+            self.learning_session_id = self.governor.start_learning_session(session_context)
+            logger.info(f"🧠 Started cross-session learning: {self.learning_session_id}")
+        
         try:
             # Check if SWARM mode should be used based on configuration
             if session.swarm_enabled and len(session.games_to_play) > 2:
@@ -6128,6 +6306,19 @@ class ContinuousLearningLoop:
             # Update global metrics and save (background)
             self._update_global_metrics(session_results)
             self._save_session_results(session_results)
+            
+            # End cross-session learning session
+            if self.governor and hasattr(self.governor, 'learning_manager') and self.governor.learning_manager and self.learning_session_id:
+                performance_summary = {
+                    'total_games': len(session_results['games_played']),
+                    'overall_win_rate': overall_win_rate,
+                    'total_actions': sum(game.get('total_actions', 0) for game in session_results['games_played'].values()),
+                    'learning_insights': len(session_results.get('learning_insights', [])),
+                    'session_duration': time.time() - session_results['start_time']
+                }
+                self.governor.end_learning_session(performance_summary)
+                logger.info(f"🧠 Ended cross-session learning: {self.learning_session_id}")
+                self.learning_session_id = None
             
             logger.info(f"Completed training session {session_id} - Win rate: {overall_win_rate:.1%}")
             return session_results
