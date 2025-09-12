@@ -375,6 +375,8 @@ class ContinuousLearningLoop:
             'base_cap_fraction': 0.3,  # 30% of max_actions_per_game
             'min_cap_fraction': 0.1,   # 10% minimum
             'max_cap_fraction': 0.8,   # 80% maximum
+            'multiplier_per_available_action': 0.02,  # 2% of max_actions_per_game per available action
+            'early_termination_enabled': False,  # Disable early termination by default
             'progress_extension_enabled': True,
             'extension_threshold': 0.1  # 10% progress threshold
         }
@@ -484,7 +486,8 @@ class ContinuousLearningLoop:
                 )
             if Architect is not None:
                 self.architect = Architect(
-                    persistence_dir=str(self.save_directory)
+                    base_path=str(self.save_directory),
+                    repo_path="."  # Use main project directory for Git operations
                 )
             print("✅ Governor and Architect initialized successfully")
         except Exception as e:
@@ -495,8 +498,11 @@ class ContinuousLearningLoop:
         # Initialize simulation agent (optional)
         self.simulation_agent = None
         try:
-            if SIMULATION_AVAILABLE and SimulationDrivenARCAgent is not None:
+            if SIMULATION_AVAILABLE and SimulationDrivenARCAgent is not None and PredictiveCore is not None:
+                # Create a basic predictive core first
+                predictive_core = PredictiveCore()
                 self.simulation_agent = SimulationDrivenARCAgent(
+                    predictive_core=predictive_core,
                     persistence_dir=str(self.save_directory / "simulation_agent")
                 )
                 print("✅ Simulation agent initialized successfully")
@@ -509,8 +515,13 @@ class ContinuousLearningLoop:
         
         # Initialize sleep system
         try:
+            from core.sleep_system import SleepCycle
+            from core.predictive_core import PredictiveCore
+            
+            # Create a basic predictive core for sleep system
+            predictive_core = PredictiveCore()
             self.sleep_system = SleepCycle(
-                persistence_dir=str(self.save_directory / "sleep_cycles")
+                predictive_core=predictive_core
             )
             # Ensure is_sleeping attribute exists
             if not hasattr(self.sleep_system, 'is_sleeping'):
@@ -787,7 +798,9 @@ class ContinuousLearningLoop:
                 self.architect = Architect(
                     evolution_rate=0.05,
                     innovation_threshold=0.8,
-                    memory_capacity=500
+                    memory_capacity=500,
+                    base_path=str(self.save_directory),
+                    repo_path="."  # Use main project directory for Git operations
                 )
                 print("✅ Architect initialized")
                 logger.info("🏗️ Architect initialized (Zeroth Brain)")
@@ -806,11 +819,11 @@ class ContinuousLearningLoop:
             try:
                 # Check if PredictiveCore is available by testing the import
                 try:
-                    from src.core.predictive_core import PredictiveCore as PC
-                    from src.core.simulation_models import SimulationConfig as SC
+                    from src.core.predictive_core import PredictiveCore
+                    from src.core.simulation_models import SimulationConfig
                     
                     # Initialize Predictive Core for simulation
-                    predictive_core = PC(
+                    predictive_core = PredictiveCore(
                         visual_size=(3, 64, 64),
                         proprioception_size=12,
                         hidden_size=512,
@@ -823,7 +836,7 @@ class ContinuousLearningLoop:
                     )
                     
                     # Initialize simulation configuration
-                    simulation_config = SC()
+                    simulation_config = SimulationConfig()
                     simulation_config.max_simulation_depth = 8
                     simulation_config.max_hypotheses = 5
                     simulation_config.simulation_timeout = 0.5
@@ -1528,6 +1541,23 @@ class ContinuousLearningLoop:
         
     def _calculate_dynamic_action_cap(self, available_actions: List[int], max_actions_per_game: int = 5000) -> int:
         """Calculate smart action cap based on game complexity, scaled to max_actions_per_game."""
+        # Ensure action cap system is initialized
+        if not hasattr(self, '_action_cap_system') or not self._action_cap_system:
+            # Fallback configuration if not initialized
+            self._action_cap_system = {
+                'enabled': True,
+                'base_cap_fraction': 0.15,
+                'multiplier_per_available_action': 0.02,
+                'min_cap_fraction': 0.05,
+                'max_cap_fraction': 0.30,
+                'stagnation_threshold': 200,
+                'loop_detection_window': 15,
+                'early_termination_enabled': False,
+                'analysis_enabled': True,
+                'exploration_bonus_fraction': 0.01,
+                'score_improvement_bonus_fraction': 0.02
+            }
+        
         config = self._action_cap_system
         
         # Calculate fractions of max_actions_per_game
@@ -1625,6 +1655,18 @@ class ContinuousLearningLoop:
     
     def _should_terminate_early(self, current_score: int, actions_taken: int) -> tuple[bool, str]:
         """Analyze if game should terminate early due to lack of progress."""
+        # Ensure progress tracker is initialized
+        if not hasattr(self, '_progress_tracker'):
+            self._progress_tracker = {
+                'actions_taken': 0,
+                'last_score': 0,
+                'actions_without_progress': 0,
+                'last_meaningful_change': 0,
+                'action_pattern_history': [],
+                'explored_coordinates': set(),
+                'termination_reason': None
+            }
+        
         tracker = self._progress_tracker
         config = self._action_cap_system
         
@@ -3225,6 +3267,8 @@ class ContinuousLearningLoop:
             selected_action = self._select_intelligent_action_with_relevance(available, context)
         
         # Add to action history
+        if 'action_history' not in self.available_actions_memory:
+            self.available_actions_memory['action_history'] = []
         self.available_actions_memory['action_history'].append(selected_action)
         
         logger.debug(f" Selected action {selected_action} from available {available} for {game_id} (with frame analysis)")
@@ -4492,8 +4536,30 @@ class ContinuousLearningLoop:
         
         This transforms the agent from a "blind mover" to a "visual-interactive agent"
         """
+        # Ensure available_actions_memory is initialized
+        if not hasattr(self, 'available_actions_memory'):
+            self.available_actions_memory = {
+                'current_game_id': None,
+                'action_history': [],
+                'effectiveness_tracking': {},
+                'coordinate_patterns': {},
+                'winning_action_sequences': [],
+                'failed_action_patterns': [],
+                'game_intelligence_cache': {},
+                'last_action_result': None,
+                'sequence_in_progress': [],
+                'action_effectiveness': {},
+                'action_relevance_scores': {},
+                'action6_strategy': {
+                    'last_action6_used': 0,
+                    'last_progress_action': 0,
+                    'consecutive_action6_count': 0
+                },
+                'action_stagnation': {}
+            }
+        
         game_id = context.get('game_id', 'unknown')
-        action_count = len(self.available_actions_memory['action_history'])
+        action_count = len(self.available_actions_memory.get('action_history', []))
         frame_analysis = context.get('frame_analysis', {})
         
         print(f" ACTION DECISION PROTOCOL - Available: {available_actions}")
@@ -4527,13 +4593,13 @@ class ContinuousLearningLoop:
         self._current_pattern_recommendations = pattern_recommendations
         
         # 🧠 META-COGNITIVE GOVERNOR INTEGRATION (Third Brain)
-        if self.governor:
+        if hasattr(self, 'governor') and self.governor:
             try:
                 governor_decision = self.governor.make_decision(
                     available_actions=available_actions,
                     context=context,
-                    performance_history=self.performance_history,
-                    current_energy=self.current_energy
+                    performance_history=getattr(self, 'performance_history', []),
+                    current_energy=getattr(self, 'current_energy', 1.0)
                 )
                 if governor_decision and 'recommended_action' in governor_decision:
                     print(f"🧠 GOVERNOR DECISION: {governor_decision['reasoning']}")
@@ -4963,7 +5029,8 @@ class ContinuousLearningLoop:
         
         # Log strategic decisions for ACTION 6
         if selected_action == 6:
-            print(f" ACTION 6 STRATEGIC USE: Progress stagnant={progress_stagnant}, Actions since progress={action_count - self.available_actions_memory['action6_strategy']['last_progress_action']}")
+            last_progress = self.available_actions_memory.get('action6_strategy', {}).get('last_progress_action', 0)
+            print(f" ACTION 6 STRATEGIC USE: Progress stagnant={progress_stagnant}, Actions since progress={action_count - last_progress}")
         
         # Update usage tracking
         self._update_action_usage_tracking(selected_action, action_count)
@@ -5152,11 +5219,20 @@ class ContinuousLearningLoop:
 
     def _update_action_usage_tracking(self, selected_action: int, current_action_count: int):
         """Update usage tracking for selected action."""
-        if selected_action in self.available_actions_memory['action_relevance_scores']:
+        # Ensure available_actions_memory is initialized
+        if not hasattr(self, 'available_actions_memory'):
+            self.available_actions_memory = {
+                'action_relevance_scores': {},
+                'action6_strategy': {'last_action6_used': 0}
+            }
+        
+        if selected_action in self.available_actions_memory.get('action_relevance_scores', {}):
             self.available_actions_memory['action_relevance_scores'][selected_action]['last_used'] = current_action_count
             
             # Special tracking for ACTION 6
             if selected_action == 6:
+                if 'action6_strategy' not in self.available_actions_memory:
+                    self.available_actions_memory['action6_strategy'] = {'last_action6_used': 0}
                 self.available_actions_memory['action6_strategy']['last_action6_used'] = current_action_count
 
     def _get_current_agent_state(self) -> Dict[str, Any]:
@@ -7005,6 +7081,19 @@ class ContinuousLearningLoop:
             
         # Count sleep cycles (simulated)
         episodes_count = len(game_results.get('episodes', []))
+        # Ensure sleep_state_tracker is initialized
+        if not hasattr(self, 'sleep_state_tracker'):
+            self.sleep_state_tracker = {
+                'is_currently_sleeping': False,
+                'sleep_cycles_this_session': 0,
+                'total_sleep_time': 0.0,
+                'memory_operations_per_cycle': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'current_energy_level': 100.0,
+                'last_sleep_cycle': 0,
+                'total_sleep_cycles': 0
+            }
         detailed_metrics['sleep_cycles'] = self.sleep_state_tracker.get('sleep_cycles_this_session', 0)
         
         # Count high salience experiences
@@ -7067,13 +7156,13 @@ class ContinuousLearningLoop:
         # Show current system status flags
         status_flags = self.get_system_status_flags()
         active_systems = []
-        if status_flags['is_consolidating_memories']:
+        if status_flags.get('is_consolidating_memories', False):
             active_systems.append("CONSOLIDATING")
-        if status_flags['is_prioritizing_memories']:
+        if status_flags.get('is_prioritizing_memories', False):
             active_systems.append("PRIORITIZING")
-        if status_flags['memory_compression_active']:
+        if status_flags.get('memory_compression_active', False):
             active_systems.append("COMPRESSING")
-        if status_flags['is_sleeping']:
+        if status_flags.get('is_sleeping', False):
             active_systems.append("SLEEPING")
             
         if active_systems:
@@ -7146,14 +7235,36 @@ class ContinuousLearningLoop:
         memory_status = self.get_sleep_and_memory_status()
         
         print(f"\n SYSTEM STATUS:")
-        print(f"Sleep Cycles: {memory_status['sleep_status']['sleep_cycles_this_session']} | Memory Consolidations: {system_status['is_consolidating_memories']}")
-        print(f"Memory Prioritization: {system_status['is_prioritizing_memories']} | Compression: {system_status['memory_compression_active']}")
+        # Ensure sleep_state_tracker is initialized
+        if not hasattr(self, 'sleep_state_tracker'):
+            self.sleep_state_tracker = {
+                'is_currently_sleeping': False,
+                'sleep_cycles_this_session': 0,
+                'total_sleep_time': 0.0,
+                'memory_operations_per_cycle': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'current_energy_level': 100.0,
+                'last_sleep_cycle': 0,
+                'total_sleep_cycles': 0
+            }
+        sleep_cycles = memory_status.get('sleep_status', {}).get('sleep_cycles_this_session', 0)
+        consolidating = system_status.get('is_consolidating_memories', False)
+        prioritizing = system_status.get('is_prioritizing_memories', False)
+        compression = system_status.get('memory_compression_active', False)
         
-        if system_status['has_made_reset_decisions']:
-            reset_stats = memory_status['game_reset_status']
-            print(f" Game Resets: {reset_stats['total_reset_decisions']} decisions | Success Rate: {reset_stats['reset_success_rate']:.1%}")
-            if reset_stats['last_reset_reason']:
-                print(f"   Last Reset: {reset_stats['last_reset_reason']}")
+        print(f"Sleep Cycles: {sleep_cycles} | Memory Consolidations: {consolidating}")
+        print(f"Memory Prioritization: {prioritizing} | Compression: {compression}")
+        
+        if system_status.get('has_made_reset_decisions', False):
+            reset_stats = memory_status.get('game_reset_status', {})
+            total_resets = reset_stats.get('total_reset_decisions', 0)
+            success_rate = reset_stats.get('reset_success_rate', 0.0)
+            last_reason = reset_stats.get('last_reset_reason')
+            
+            print(f" Game Resets: {total_resets} decisions | Success Rate: {success_rate:.1%}")
+            if last_reason:
+                print(f"   Last Reset: {last_reason}")
         
         # Highlight if this was a winning session
         if overall_win_rate > 0.3:
@@ -7506,12 +7617,36 @@ class ContinuousLearningLoop:
     
     def _initialize_game_actions(self, game_id: str, initial_actions: List[int]):
         """Initialize action memory for a new game."""
+        # Ensure available_actions_memory is properly initialized
+        if not hasattr(self, 'available_actions_memory'):
+            self.available_actions_memory = {
+                'current_game_id': None,
+                'action_history': [],
+                'effectiveness_tracking': {},
+                'coordinate_patterns': {},
+                'winning_action_sequences': [],
+                'failed_action_patterns': [],
+                'game_intelligence_cache': {},
+                'last_action_result': None,
+                'sequence_in_progress': [],
+                'session_start_time': time.time(),
+                'total_actions_taken': 0
+            }
+        
         # Load cached intelligence if available
+        # Ensure game_intelligence_cache key exists
+        if 'game_intelligence_cache' not in self.available_actions_memory:
+            self.available_actions_memory['game_intelligence_cache'] = {}
+        
         if game_id not in self.available_actions_memory['game_intelligence_cache']:
-            self.available_actions_memory['game_intelligence_cache'][game_id] = self._load_game_action_intelligence(game_id)
+            try:
+                self.available_actions_memory['game_intelligence_cache'][game_id] = self._load_game_action_intelligence(game_id)
+            except Exception as e:
+                # If loading fails, use empty intelligence
+                self.available_actions_memory['game_intelligence_cache'][game_id] = {}
         
         # Reset current session data but preserve learned intelligence
-        cached_intel = self.available_actions_memory['game_intelligence_cache'][game_id]
+        cached_intel = self.available_actions_memory.get('game_intelligence_cache', {}).get(game_id, {})
         
         self.available_actions_memory.update({
             'current_game_id': game_id,
@@ -9901,6 +10036,20 @@ class ContinuousLearningLoop:
         )
         
         # 3. Sleep Cycle Quality
+        # Ensure sleep_state_tracker is initialized
+        if not hasattr(self, 'sleep_state_tracker'):
+            self.sleep_state_tracker = {
+                'is_currently_sleeping': False,
+                'sleep_cycles_this_session': 0,
+                'total_sleep_time': 0.0,
+                'memory_operations_per_cycle': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'current_energy_level': 100.0,
+                'last_sleep_cycle': 0,
+                'total_sleep_cycles': 0
+            }
+        
         sleep_tracker = self.sleep_state_tracker
         sleep_scores = sleep_tracker.get('sleep_quality_scores', [])
         if sleep_scores:
@@ -10029,8 +10178,22 @@ class ContinuousLearningLoop:
     
     async def _execute_sleep_cycle(self, game_id: str, episode_count: int) -> Dict[str, Any]:
         """Execute a sleep cycle with memory consolidation."""
+        # Ensure sleep_state_tracker is initialized
+        if not hasattr(self, 'sleep_state_tracker'):
+            self.sleep_state_tracker = {
+                'is_currently_sleeping': False,
+                'sleep_cycles_this_session': 0,
+                'total_sleep_time': 0.0,
+                'memory_operations_per_cycle': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'current_energy_level': 100.0,
+                'last_sleep_cycle': 0,
+                'total_sleep_cycles': 0
+            }
+        
         self.sleep_state_tracker['is_currently_sleeping'] = True
-        self.sleep_state_tracker['sleep_cycles_this_session'] += 1
+        self.sleep_state_tracker['sleep_cycles_this_session'] = self.sleep_state_tracker.get('sleep_cycles_this_session', 0) + 1
         
         sleep_start_time = time.time()
         
@@ -10062,7 +10225,9 @@ class ContinuousLearningLoop:
             sleep_results['sleep_duration'] = sleep_end_time - sleep_start_time
             
             # Update sleep state tracker
-            self.sleep_state_tracker['total_sleep_time'] += sleep_results['sleep_duration']
+            self.sleep_state_tracker['total_sleep_time'] = self.sleep_state_tracker.get('total_sleep_time', 0.0) + sleep_results['sleep_duration']
+            if 'sleep_quality_scores' not in self.sleep_state_tracker:
+                self.sleep_state_tracker['sleep_quality_scores'] = []
             self.sleep_state_tracker['sleep_quality_scores'].append(sleep_results['consolidation_score'])
             
             logger.info(f"Sleep cycle completed for {game_id} episode {episode_count}: {sleep_results['sleep_duration']:.2f}s")
@@ -10074,6 +10239,20 @@ class ContinuousLearningLoop:
     
     def _prioritize_memories_by_salience(self) -> Dict[str, Any]:
         """Prioritize memories based on salience values."""
+        # Ensure memory consolidation tracker is initialized
+        if not hasattr(self, 'memory_consolidation_tracker'):
+            self.memory_consolidation_tracker = {
+                'memory_operations_per_cycle': 0,
+                'consolidation_operations_count': 0,
+                'is_consolidating_memories': False,
+                'is_prioritizing_memories': False,
+                'memory_compression_active': False,
+                'high_salience_memories_strengthened': 0,
+                'low_salience_memories_decayed': 0,
+                'last_consolidation_score': 0.0,
+                'total_memory_operations': 0
+            }
+        
         self.memory_consolidation_tracker['is_prioritizing_memories'] = True
         
         try:
@@ -10097,6 +10276,20 @@ class ContinuousLearningLoop:
     
     def _consolidate_prioritized_memories(self) -> Dict[str, Any]:
         """Consolidate prioritized memories with strengthening and decay."""
+        # Ensure memory consolidation tracker is initialized
+        if not hasattr(self, 'memory_consolidation_tracker'):
+            self.memory_consolidation_tracker = {
+                'memory_operations_per_cycle': 0,
+                'consolidation_operations_count': 0,
+                'is_consolidating_memories': False,
+                'is_prioritizing_memories': False,
+                'memory_compression_active': False,
+                'high_salience_memories_strengthened': 0,
+                'low_salience_memories_decayed': 0,
+                'last_consolidation_score': 0.0,
+                'total_memory_operations': 0
+            }
+        
         self.memory_consolidation_tracker['is_consolidating_memories'] = True
         
         try:
@@ -10138,9 +10331,9 @@ class ContinuousLearningLoop:
                 consolidation_score = 0.0
             
             # Update tracking
-            self.memory_consolidation_tracker['consolidation_operations_count'] += consolidation_ops
-            self.memory_consolidation_tracker['high_salience_memories_strengthened'] += high_salience_strengthened
-            self.memory_consolidation_tracker['low_salience_memories_decayed'] += low_salience_decayed
+            self.memory_consolidation_tracker['consolidation_operations_count'] = self.memory_consolidation_tracker.get('consolidation_operations_count', 0) + consolidation_ops
+            self.memory_consolidation_tracker['high_salience_memories_strengthened'] = self.memory_consolidation_tracker.get('high_salience_memories_strengthened', 0) + high_salience_strengthened
+            self.memory_consolidation_tracker['low_salience_memories_decayed'] = self.memory_consolidation_tracker.get('low_salience_memories_decayed', 0) + low_salience_decayed
             self.memory_consolidation_tracker['last_consolidation_score'] = consolidation_score
             self.memory_consolidation_tracker['memory_operations_per_cycle'] = consolidation_ops
             
@@ -10159,6 +10352,20 @@ class ContinuousLearningLoop:
         """Apply memory compression if using decay mode."""
         if not self.salience_calculator or self.salience_calculator.mode == SalienceMode.LOSSLESS:
             return {'compression_applied': False}
+        
+        # Ensure memory consolidation tracker is initialized
+        if not hasattr(self, 'memory_consolidation_tracker'):
+            self.memory_consolidation_tracker = {
+                'memory_operations_per_cycle': 0,
+                'consolidation_operations_count': 0,
+                'is_consolidating_memories': False,
+                'is_prioritizing_memories': False,
+                'memory_compression_active': False,
+                'high_salience_memories_strengthened': 0,
+                'low_salience_memories_decayed': 0,
+                'last_consolidation_score': 0.0,
+                'total_memory_operations': 0
+            }
         
         self.memory_consolidation_tracker['memory_compression_active'] = True
         
@@ -10402,51 +10609,141 @@ class ContinuousLearningLoop:
     
     def _get_memory_consolidation_status(self) -> Dict[str, Any]:
         """Get current memory consolidation status."""
+        # Ensure memory consolidation tracker is initialized
+        if not hasattr(self, 'memory_consolidation_tracker'):
+            self.memory_consolidation_tracker = {
+                'memory_operations_per_cycle': 0,
+                'consolidation_operations_count': 0,
+                'is_consolidating_memories': False,
+                'is_prioritizing_memories': False,
+                'memory_compression_active': False,
+                'high_salience_memories_strengthened': 0,
+                'low_salience_memories_decayed': 0,
+                'last_consolidation_score': 0.0,
+                'total_memory_operations': 0
+            }
+        
         return {
-            'is_consolidating': self.memory_consolidation_tracker['is_consolidating_memories'],
-            'is_prioritizing': self.memory_consolidation_tracker['is_prioritizing_memories'],
-            'compression_active': self.memory_consolidation_tracker['memory_compression_active'],
-            'total_consolidation_ops': self.memory_consolidation_tracker['consolidation_operations_count'],
-            'last_consolidation_score': self.memory_consolidation_tracker['last_consolidation_score'],
-            'high_salience_strengthened': self.memory_consolidation_tracker['high_salience_memories_strengthened'],
-            'low_salience_decayed': self.memory_consolidation_tracker['low_salience_memories_decayed']
+            'is_consolidating': self.memory_consolidation_tracker.get('is_consolidating_memories', False),
+            'is_prioritizing': self.memory_consolidation_tracker.get('is_prioritizing_memories', False),
+            'compression_active': self.memory_consolidation_tracker.get('memory_compression_active', False),
+            'total_consolidation_ops': self.memory_consolidation_tracker.get('consolidation_operations_count', 0),
+            'last_consolidation_score': self.memory_consolidation_tracker.get('last_consolidation_score', 0.0),
+            'high_salience_strengthened': self.memory_consolidation_tracker.get('high_salience_memories_strengthened', 0),
+            'low_salience_decayed': self.memory_consolidation_tracker.get('low_salience_memories_decayed', 0)
         }
     
     def _get_current_sleep_state_info(self) -> Dict[str, Any]:
         """Get current sleep state information."""
+        # Ensure sleep_state_tracker is initialized
+        if not hasattr(self, 'sleep_state_tracker'):
+            self.sleep_state_tracker = {
+                'is_currently_sleeping': False,
+                'sleep_cycles_this_session': 0,
+                'total_sleep_time': 0.0,
+                'memory_operations_per_cycle': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'current_energy_level': 100.0,
+                'last_sleep_cycle': 0,
+                'total_sleep_cycles': 0
+            }
+        
         return {
-            'is_sleeping': self.sleep_state_tracker['is_currently_sleeping'],
-            'sleep_cycles_completed': self.sleep_state_tracker['sleep_cycles_this_session'],
-            'total_sleep_time': self.sleep_state_tracker['total_sleep_time'],
-            'last_sleep_trigger': self.sleep_state_tracker['last_sleep_trigger'],
+            'is_sleeping': self.sleep_state_tracker.get('is_currently_sleeping', False),
+            'sleep_cycles_completed': self.sleep_state_tracker.get('sleep_cycles_this_session', 0),
+            'total_sleep_time': self.sleep_state_tracker.get('total_sleep_time', 0.0),
+            'last_sleep_trigger': self.sleep_state_tracker.get('last_sleep_trigger', []),
             'current_energy_level': getattr(self, 'current_energy', 1.0),  # Include actual energy level
             'average_sleep_quality': (
-                sum(self.sleep_state_tracker['sleep_quality_scores']) / 
-                max(1, len(self.sleep_state_tracker['sleep_quality_scores']))
-            ) if self.sleep_state_tracker['sleep_quality_scores'] else 0.0
+                sum(self.sleep_state_tracker.get('sleep_quality_scores', [])) / 
+                max(1, len(self.sleep_state_tracker.get('sleep_quality_scores', [])))
+            ) if self.sleep_state_tracker.get('sleep_quality_scores', []) else 0.0
         }
     
     # ====== PUBLIC STATUS METHODS FOR USER QUERIES ======
     
     def is_consolidating_memories(self) -> bool:
         """Return True if currently consolidating memories."""
-        return self.memory_consolidation_tracker['is_consolidating_memories']
+        # Ensure memory consolidation tracker is initialized
+        if not hasattr(self, 'memory_consolidation_tracker'):
+            self.memory_consolidation_tracker = {
+                'memory_operations_per_cycle': 0,
+                'consolidation_operations_count': 0,
+                'is_consolidating_memories': False,
+                'is_prioritizing_memories': False,
+                'memory_compression_active': False,
+                'high_salience_memories_strengthened': 0,
+                'low_salience_memories_decayed': 0,
+                'last_consolidation_score': 0.0,
+                'total_memory_operations': 0
+            }
+        return self.memory_consolidation_tracker.get('is_consolidating_memories', False)
     
     def is_prioritizing_memories(self) -> bool:
         """Return True if currently prioritizing memories."""
-        return self.memory_consolidation_tracker['is_prioritizing_memories']
+        # Ensure memory consolidation tracker is initialized
+        if not hasattr(self, 'memory_consolidation_tracker'):
+            self.memory_consolidation_tracker = {
+                'memory_operations_per_cycle': 0,
+                'consolidation_operations_count': 0,
+                'is_consolidating_memories': False,
+                'is_prioritizing_memories': False,
+                'memory_compression_active': False,
+                'high_salience_memories_strengthened': 0,
+                'low_salience_memories_decayed': 0,
+                'last_consolidation_score': 0.0,
+                'total_memory_operations': 0
+            }
+        return self.memory_consolidation_tracker.get('is_prioritizing_memories', False)
     
     def is_sleeping(self) -> bool:
         """Return True if agent is currently in sleep state."""
-        return self.sleep_state_tracker['is_currently_sleeping']
+        # Ensure sleep_state_tracker is initialized
+        if not hasattr(self, 'sleep_state_tracker'):
+            self.sleep_state_tracker = {
+                'is_currently_sleeping': False,
+                'sleep_cycles_this_session': 0,
+                'total_sleep_time': 0.0,
+                'memory_operations_per_cycle': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'current_energy_level': 100.0,
+                'last_sleep_cycle': 0,
+                'total_sleep_cycles': 0
+            }
+        return self.sleep_state_tracker.get('is_currently_sleeping', False)
     
     def is_memory_compression_active(self) -> bool:
         """Return True if memory compression is currently active."""
-        return self.memory_consolidation_tracker['memory_compression_active']
+        # Ensure memory consolidation tracker is initialized
+        if not hasattr(self, 'memory_consolidation_tracker'):
+            self.memory_consolidation_tracker = {
+                'memory_operations_per_cycle': 0,
+                'consolidation_operations_count': 0,
+                'is_consolidating_memories': False,
+                'is_prioritizing_memories': False,
+                'memory_compression_active': False,
+                'high_salience_memories_strengthened': 0,
+                'low_salience_memories_decayed': 0,
+                'last_consolidation_score': 0.0,
+                'total_memory_operations': 0
+            }
+        return self.memory_consolidation_tracker.get('memory_compression_active', False)
     
     def has_made_reset_decisions(self) -> bool:
         """Return True if model has made any game reset decisions."""
-        return self.game_reset_tracker['reset_decisions_made'] > 0
+        # Ensure game_reset_tracker is initialized
+        if not hasattr(self, 'game_reset_tracker'):
+            self.game_reset_tracker = {
+                'reset_decisions_made': 0,
+                'successful_resets': 0,
+                'failed_resets': 0,
+                'reset_success_rate': 0.0,
+                'last_reset_decision': None,
+                'reset_decision_criteria': {}
+            }
+        return self.game_reset_tracker.get('reset_decisions_made', 0) > 0
     
     def get_sleep_and_memory_status(self) -> Dict[str, Any]:
         """
@@ -10455,12 +10752,26 @@ class ContinuousLearningLoop:
         Returns:
             Complete status including True/False flags for all operations
         """
+        # Ensure sleep_state_tracker is initialized
+        if not hasattr(self, 'sleep_state_tracker'):
+            self.sleep_state_tracker = {
+                'is_currently_sleeping': False,
+                'sleep_cycles_this_session': 0,
+                'total_sleep_time': 0.0,
+                'memory_operations_per_cycle': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'current_energy_level': 100.0,
+                'last_sleep_cycle': 0,
+                'total_sleep_cycles': 0
+            }
+        
         return {
             # Sleep state status
             'sleep_status': {
                 'is_currently_sleeping': self.is_sleeping(),
-                'sleep_cycles_this_session': self.sleep_state_tracker['sleep_cycles_this_session'],
-                'total_sleep_time_minutes': self.sleep_state_tracker['total_sleep_time'] / 60.0,
+                'sleep_cycles_this_session': self.sleep_state_tracker.get('sleep_cycles_this_session', 0),
+                'total_sleep_time_minutes': self.sleep_state_tracker.get('total_sleep_time', 0.0) / 60.0,
                 'sleep_efficiency': self._calculate_sleep_efficiency()
             },
             
@@ -10468,36 +10779,50 @@ class ContinuousLearningLoop:
             'memory_consolidation_status': {
                 'is_consolidating_memories': self.is_consolidating_memories(),
                 'is_prioritizing_memories': self.is_prioritizing_memories(),
-                'consolidation_operations_completed': self.memory_consolidation_tracker['consolidation_operations_count'],
-                'high_salience_memories_strengthened': self.memory_consolidation_tracker['high_salience_memories_strengthened'],
-                'low_salience_memories_decayed': self.memory_consolidation_tracker['low_salience_memories_decayed'],
-                'last_consolidation_effectiveness': self.memory_consolidation_tracker['last_consolidation_score']
+                'consolidation_operations_completed': self.memory_consolidation_tracker.get('consolidation_operations_count', 0),
+                'high_salience_memories_strengthened': self.memory_consolidation_tracker.get('high_salience_memories_strengthened', 0),
+                'low_salience_memories_decayed': self.memory_consolidation_tracker.get('low_salience_memories_decayed', 0),
+                'last_consolidation_effectiveness': self.memory_consolidation_tracker.get('last_consolidation_score', 0.0)
             },
             
             # Memory compression status
             'memory_compression_status': {
                 'compression_active': self.is_memory_compression_active(),
-                'compression_mode': self.salience_calculator.mode.value if self.salience_calculator else 'none',
-                'total_compressed_memories': len(getattr(self.salience_calculator, 'compressed_memories', []))
+                'compression_mode': getattr(self.salience_calculator, 'mode', None).value if hasattr(self, 'salience_calculator') and self.salience_calculator and hasattr(self.salience_calculator, 'mode') else 'none',
+                'total_compressed_memories': len(getattr(self.salience_calculator, 'compressed_memories', [])) if hasattr(self, 'salience_calculator') and self.salience_calculator else 0
             },
             
             # Game reset decision status
             'game_reset_status': {
                 'has_made_reset_decisions': self.has_made_reset_decisions(),
-                'total_reset_decisions': self.game_reset_tracker['reset_decisions_made'],
-                'reset_success_rate': self.game_reset_tracker['reset_success_rate'],
-                'last_reset_reason': self.game_reset_tracker['last_reset_decision']['reason'] if self.game_reset_tracker['last_reset_decision'] else None,
-                'reset_decision_criteria': self.game_reset_tracker['reset_decision_criteria']
+                'total_reset_decisions': self.game_reset_tracker.get('reset_decisions_made', 0),
+                'reset_success_rate': self.game_reset_tracker.get('reset_success_rate', 0.0),
+                'last_reset_reason': self.game_reset_tracker.get('last_reset_decision', {}).get('reason') if self.game_reset_tracker.get('last_reset_decision') else None,
+                'reset_decision_criteria': self.game_reset_tracker.get('reset_decision_criteria', {})
             }
         }
     
     def _calculate_sleep_efficiency(self) -> float:
         """Calculate how efficiently sleep cycles are being used."""
-        if not self.sleep_state_tracker['sleep_quality_scores']:
+        # Ensure sleep_state_tracker is initialized
+        if not hasattr(self, 'sleep_state_tracker'):
+            self.sleep_state_tracker = {
+                'is_currently_sleeping': False,
+                'sleep_cycles_this_session': 0,
+                'total_sleep_time': 0.0,
+                'memory_operations_per_cycle': 0,
+                'last_sleep_trigger': [],
+                'sleep_quality_scores': [],
+                'current_energy_level': 100.0,
+                'last_sleep_cycle': 0,
+                'total_sleep_cycles': 0
+            }
+        
+        quality_scores = self.sleep_state_tracker.get('sleep_quality_scores', [])
+        if not quality_scores:
             return 0.0
         
-        quality_scores = self.sleep_state_tracker['sleep_quality_scores']
-        sleep_cycles = self.sleep_state_tracker['sleep_cycles_this_session']
+        sleep_cycles = self.sleep_state_tracker.get('sleep_cycles_this_session', 0)
         
         # Efficiency = average quality * frequency factor
         avg_quality = sum(quality_scores) / len(quality_scores)
@@ -10517,8 +10842,22 @@ class ContinuousLearningLoop:
     
     def _is_memory_system_healthy(self) -> bool:
         """Check if memory system is operating within healthy parameters."""
-        consolidation_count = self.memory_consolidation_tracker['consolidation_operations_count']
-        last_score = self.memory_consolidation_tracker['last_consolidation_score']
+        # Ensure memory consolidation tracker is initialized
+        if not hasattr(self, 'memory_consolidation_tracker'):
+            self.memory_consolidation_tracker = {
+                'memory_operations_per_cycle': 0,
+                'consolidation_operations_count': 0,
+                'is_consolidating_memories': False,
+                'is_prioritizing_memories': False,
+                'memory_compression_active': False,
+                'high_salience_memories_strengthened': 0,
+                'low_salience_memories_decayed': 0,
+                'last_consolidation_score': 0.0,
+                'total_memory_operations': 0
+            }
+        
+        consolidation_count = self.memory_consolidation_tracker.get('consolidation_operations_count', 0)
+        last_score = self.memory_consolidation_tracker.get('last_consolidation_score', 0.0)
         
         # Healthy if we've had successful consolidations with positive scores
         return consolidation_count > 0 and last_score > 0.1
@@ -11562,6 +11901,10 @@ class ContinuousLearningLoop:
             logger.warning(f"Error getting protection floor: {e}")
             return 0.1
 
+    async def _investigate_game_state(self, game_id: str, guid: Optional[str] = None) -> Dict[str, Any]:
+        """Investigate game state to recover available actions."""
+        return await self.investigate_api_available_actions(game_id)
+    
     async def investigate_api_available_actions(self, game_id: str) -> Dict[str, Any]:
         """Investigate what available actions the API actually provides."""
         try:
