@@ -1010,10 +1010,46 @@ class FrameAnalyzer:
         # Reset interaction logging for new game
         self.interaction_log.clear()
         self.object_interaction_history.clear()
-        self.color_behavior_patterns.clear() 
-        self.shape_behavior_patterns.clear()
-        self.spatial_interaction_map.clear()
-        # Keep hypothesis database across games for pattern learning
+    
+    def reset_avoidance_scores(self, reason: str = "game_state_change"):
+        """Reset avoidance scores for all coordinates to allow re-exploration."""
+        reset_count = 0
+        for coord_key, result in self.coordinate_results.items():
+            # Reset stuck status and zero progress streak
+            if result.get('is_stuck_coordinate', False):
+                result['is_stuck_coordinate'] = False
+                reset_count += 1
+            
+            # Reduce zero progress streak by half (partial forgiveness)
+            if 'zero_progress_streak' in result:
+                result['zero_progress_streak'] = max(0, result['zero_progress_streak'] // 2)
+        
+        if reset_count > 0:
+            print(f"🔄 Reset avoidance scores for {reset_count} coordinates due to {reason}")
+    
+    def decay_avoidance_scores(self):
+        """Apply time-based decay to all avoidance scores."""
+        current_frame = len(self.frame_history)
+        decayed_count = 0
+        
+        for coord_key, result in self.coordinate_results.items():
+            frames_since_last_try = current_frame - result.get('last_tried_frame', 0)
+            
+            # Only decay if it's been a while since last try
+            if frames_since_last_try > 10:
+                # Apply decay to zero progress streak
+                if 'zero_progress_streak' in result and result['zero_progress_streak'] > 0:
+                    decay_factor = 0.99  # 1% decay per frame
+                    result['zero_progress_streak'] = max(0, int(result['zero_progress_streak'] * (decay_factor ** frames_since_last_try)))
+                    decayed_count += 1
+                
+                # Remove stuck status if it's been a long time
+                if result.get('is_stuck_coordinate', False) and frames_since_last_try > 50:
+                    result['is_stuck_coordinate'] = False
+                    decayed_count += 1
+        
+        if decayed_count > 0:
+            print(f"⏰ Applied decay to {decayed_count} coordinate avoidance scores")
 
     def log_action6_interaction(self, x: int, y: int, target_info: Dict[str, Any], 
                                before_state: Dict[str, Any], after_state: Dict[str, Any],
@@ -2008,18 +2044,21 @@ class FrameAnalyzer:
         self.tried_coordinates.add(coord_key)
 
     def get_coordinate_avoidance_score(self, x: int, y: int) -> float:
-        """Get avoidance score for a coordinate (higher = more to avoid)."""
+        """Enhanced avoidance score with decay and forgetting mechanisms."""
         coord_key = (x, y)
         
         if coord_key not in self.coordinate_results:
             return 0.0  # No penalty for untried coordinates
         
         result = self.coordinate_results[coord_key]
+        current_frame = len(self.frame_history)
+        frames_since_last_try = current_frame - result.get('last_tried_frame', 0)
         
-        # PRODUCTIVE COORDINATES GET PRIORITY - User insight implementation
-        # If coordinate has produced positive score changes recently, prioritize it
+        # 1. PRODUCTIVE COORDINATES GET PRIORITY (unchanged)
+        # Check if coordinate has recent attempts data
+        recent_attempts = result.get('recent_attempts', [])
         recent_score_gains = sum(attempt.get('score_change', 0) 
-                               for attempt in result['recent_attempts'] 
+                               for attempt in recent_attempts 
                                if attempt.get('score_change', 0) > 0)
         
         if recent_score_gains > 0:
@@ -2027,18 +2066,47 @@ class FrameAnalyzer:
             productivity_bonus = min(recent_score_gains * 0.1, 0.5)
             return -productivity_bonus  # Negative = attractive, not avoided
         
-        # High avoidance score for stuck coordinates (only if no recent gains)
-        if result['is_stuck_coordinate']:
-            return 0.9  # Very high avoidance
+        # 2. TIME-BASED DECAY: Avoidance scores decay over time
+        base_avoidance = 0.0
         
-        # Progressive avoidance based on zero progress streak
-        streak_penalty = min(result['zero_progress_streak'] * 0.1, 0.6)  # Reduced max penalty
+        if result.get('is_stuck_coordinate', False):
+            # Stuck coordinates start high but decay over time
+            base_avoidance = 0.9
+        else:
+            # Progressive avoidance based on zero progress streak
+            streak_penalty = min(result['zero_progress_streak'] * 0.1, 0.6)
+            base_avoidance = streak_penalty
+            
+            # High try count with no progress gets additional penalty
+            if result['try_count'] > 8 and result['total_score_change'] <= 0:
+                base_avoidance += 0.2
         
-        # High try count with no progress gets penalized (but less aggressively)
-        if result['try_count'] > 8 and result['total_score_change'] <= 0:
-            streak_penalty += 0.2  # Reduced penalty
+        # 3. DECAY CALCULATION
+        if frames_since_last_try > 0:
+            # Exponential decay: avoidance decreases over time
+            decay_rate = 0.95  # 5% decay per frame
+            decay_factor = decay_rate ** frames_since_last_try
+            decayed_avoidance = base_avoidance * decay_factor
+            
+            # 4. ADAPTIVE DECAY: Faster decay for coordinates with mixed history
+            if result.get('success_count', 0) > 0:
+                # Coordinates that have succeeded before decay faster
+                adaptive_decay = 0.98  # 2% decay per frame
+                decay_factor = adaptive_decay ** frames_since_last_try
+                decayed_avoidance = base_avoidance * decay_factor
+            
+            # 5. EXPLORATION INCENTIVE: Very old coordinates get exploration bonus
+            if frames_since_last_try > 100:
+                exploration_bonus = -0.1  # Slight attraction for very old coordinates
+                decayed_avoidance = max(0.0, decayed_avoidance + exploration_bonus)
+            
+            # 6. MINIMUM THRESHOLD: Never completely forget, but make very old memories weak
+            min_avoidance = 0.1 if base_avoidance > 0.5 else 0.0
+            final_avoidance = max(decayed_avoidance, min_avoidance)
+            
+            return final_avoidance
         
-        return streak_penalty
+        return base_avoidance
 
     def _check_exploration_phase(self, frame_array: np.ndarray, ranked_targets: List[Dict]) -> Optional[Dict]:
         """
@@ -2215,7 +2283,23 @@ class FrameAnalyzer:
 
     def should_avoid_coordinate(self, x: int, y: int) -> bool:
         """Check if a coordinate should be avoided due to ineffectiveness."""
-        return self.get_coordinate_avoidance_score(x, y) > 0.5
+        avoidance_score = self.get_coordinate_avoidance_score(x, y)
+        
+        # Dynamic threshold based on exploration progress
+        # Lower threshold when we have many avoided coordinates (encourage re-exploration)
+        total_avoided = sum(1 for coord in self.coordinate_results.values() 
+                           if self.get_coordinate_avoidance_score(coord.get('x', 0), coord.get('y', 0)) > 0.5)
+        
+        # Adaptive threshold: higher when few coordinates avoided, lower when many avoided
+        base_threshold = 0.5
+        if total_avoided > 20:  # Many coordinates avoided
+            threshold = 0.3  # Lower threshold to encourage re-exploration
+        elif total_avoided > 10:
+            threshold = 0.4
+        else:
+            threshold = base_threshold
+            
+        return avoidance_score > threshold
 
     def get_emergency_diversification_target(self, current_frame: List[List[int]], 
                                            grid_bounds: Tuple[int, int]) -> Tuple[int, int]:
