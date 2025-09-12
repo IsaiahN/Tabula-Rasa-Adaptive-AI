@@ -398,7 +398,7 @@ class BayesianSuccessScorer:
         
         return similar_patterns
     
-    def _find_sequence_patterns(self, path: 'SearchPath']) -> List[SuccessPattern]:
+    def _find_sequence_patterns(self, path: 'SearchPath') -> List[SuccessPattern]:
         """Find patterns that match the action sequence."""
         
         sequence_patterns = []
