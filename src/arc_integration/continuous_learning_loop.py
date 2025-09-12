@@ -74,18 +74,19 @@ except ImportError as e:
     MetaCognitiveGovernor = None
     Architect = None
 
-# Import Simulation-Driven Agent
+# Import Enhanced Simulation Agent
 try:
-    from src.arc_integration.simulation_driven_agent import SimulationDrivenARCAgent
+    from src.core.enhanced_simulation_agent import EnhancedSimulationAgent
+    from src.core.enhanced_simulation_config import EnhancedSimulationConfig, LearningMode
     from src.core.predictive_core import PredictiveCore
-    from src.core.simulation_models import SimulationConfig
+    from src.core.simulation_models import SimulationContext
     SIMULATION_AVAILABLE = True
 except ImportError as e:
     SIMULATION_AVAILABLE = False
-    print(f"WARNING: Simulation-driven intelligence not available: {e}")
-    SimulationDrivenARCAgent = None
+    print(f"WARNING: Enhanced simulation intelligence not available: {e}")
+    EnhancedSimulationAgent = None
     PredictiveCore = None
-    SimulationConfig = None
+    EnhancedSimulationConfig = None
 # Import FrameAnalyzer
 try:
     from vision.frame_analyzer import FrameAnalyzer
@@ -542,23 +543,26 @@ class ContinuousLearningLoop:
             self.governor = None
             self.architect = None
         
-        # Initialize simulation agent (optional)
+        # Initialize enhanced simulation agent (optional)
         self.simulation_agent = None
         try:
-            if SIMULATION_AVAILABLE and SimulationDrivenARCAgent is not None:
+            if SIMULATION_AVAILABLE and EnhancedSimulationAgent is not None:
                 # Import PredictiveCore locally to ensure it's available
                 from core.predictive_core import PredictiveCore
                 # Create a basic predictive core first
                 predictive_core = PredictiveCore()
-                self.simulation_agent = SimulationDrivenARCAgent(
+                # Create enhanced simulation config
+                simulation_config = EnhancedSimulationConfig(learning_mode=LearningMode.BALANCED)
+                self.simulation_agent = EnhancedSimulationAgent(
                     predictive_core=predictive_core,
-                    persistence_dir=str(self.save_directory / "simulation_agent")
+                    config=simulation_config,
+                    persistence_dir=str(self.save_directory / "enhanced_simulation_agent")
                 )
-                print("✅ Simulation agent initialized successfully")
+                print("✅ Enhanced simulation agent initialized successfully")
             else:
-                print("⚠️  Simulation agent initialization skipped - dependencies not available")
+                print("⚠️  Enhanced simulation agent initialization skipped - dependencies not available")
         except Exception as e:
-            print(f"⚠️  Simulation agent initialization failed: {e}")
+            print(f"⚠️  Enhanced simulation agent initialization failed: {e}")
             self.simulation_agent = None
         
         # Initialize energy system
@@ -888,13 +892,10 @@ class ContinuousLearningLoop:
                     )
                     
                     # Initialize simulation configuration
-                    simulation_config = SimulationConfig()
-                    simulation_config.max_simulation_depth = 8
-                    simulation_config.max_hypotheses = 5
-                    simulation_config.simulation_timeout = 0.5
+                    simulation_config = EnhancedSimulationConfig(learning_mode=LearningMode.BALANCED)
                     
-                    # Initialize Simulation-Driven ARC Agent
-                    self.simulation_agent = SimulationDrivenARCAgent(
+                    # Initialize Enhanced Simulation Agent
+                    self.simulation_agent = EnhancedSimulationAgent(
                         predictive_core=predictive_core,
                         config=simulation_config,
                         persistence_dir=str(self.save_directory / "simulation_agent")
@@ -3318,9 +3319,12 @@ class ContinuousLearningLoop:
         # Use simulation-driven action selection if available, otherwise fallback to intelligent selection
         if self.simulation_agent:
             try:
-                # Use simulation-driven intelligence for action selection
-                selected_action, coordinates, reasoning = self.simulation_agent.select_action_with_simulation(
-                    response_data, game_id, self.frame_analyzer
+                # Use enhanced simulation intelligence for action selection
+                selected_action, coordinates, reasoning = self.simulation_agent.generate_action_plan(
+                    current_state=context,
+                    available_actions=available,
+                    frame_analysis=frame_analysis,
+                    memory_patterns=None  # Would need to be passed from caller
                 )
                 
                 # Store coordinates for later use
@@ -6647,6 +6651,75 @@ class ContinuousLearningLoop:
     def _reset_game_completion(self) -> None:
         """Reset game completion flag when starting a new game."""
         self._game_completed = False
+    
+    def _determine_action_success(self, response_data: Dict[str, Any]) -> bool:
+        """Determine if an action was successful based on response data."""
+        try:
+            # Check for explicit success indicators
+            if 'reward' in response_data:
+                return response_data['reward'] > 0
+            elif 'score' in response_data:
+                return response_data['score'] > 0
+            elif 'done' in response_data:
+                return response_data['done']
+            elif 'success' in response_data:
+                return response_data['success']
+            
+            # Check for state improvements
+            if 'new_state' in response_data:
+                new_state = response_data['new_state']
+                if isinstance(new_state, str):
+                    return new_state.upper() in ['WIN', 'SUCCESS', 'COMPLETE']
+            
+            # Default to False if no clear success indicator
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error determining action success: {e}")
+            return False
+    
+    def get_enhanced_simulation_status(self) -> Dict[str, Any]:
+        """Get status of the enhanced simulation system."""
+        if not self.simulation_agent:
+            return {'enabled': False, 'message': 'Enhanced simulation agent not available'}
+        
+        try:
+            return {
+                'enabled': True,
+                'imagination_status': self.simulation_agent.get_imagination_status(),
+                'simulation_statistics': self.simulation_agent.get_simulation_statistics(),
+                'method_recommendations': self.simulation_agent.get_method_recommendations()
+            }
+        except Exception as e:
+            return {'enabled': True, 'error': str(e)}
+    
+    def set_learning_mode(self, mode: str) -> bool:
+        """Set the learning mode for the enhanced simulation system."""
+        if not self.simulation_agent:
+            return False
+        
+        try:
+            from src.core.enhanced_simulation_config import LearningMode
+            learning_mode = LearningMode(mode.lower())
+            self.simulation_agent.enable_learning_mode(learning_mode)
+            return True
+        except (ValueError, AttributeError) as e:
+            logger.warning(f"Failed to set learning mode {mode}: {e}")
+            return False
+    
+    def start_ab_test(self, test_name: str, method_a: str, method_b: str) -> Optional[str]:
+        """Start an A/B test between two simulation methods."""
+        if not self.simulation_agent:
+            return None
+        
+        try:
+            from src.core.path_generator import SearchMethod
+            method_a_enum = SearchMethod(method_a.lower())
+            method_b_enum = SearchMethod(method_b.lower())
+            return self.simulation_agent.start_ab_test(test_name, method_a_enum, method_b_enum)
+        except (ValueError, AttributeError) as e:
+            logger.warning(f"Failed to start A/B test: {e}")
+            return None
     
     def _learn_from_action_outcome(self, game_id: str, action_number: int, x: Optional[int], y: Optional[int], 
                                  response_data: Dict[str, Any], before_state: Dict[str, Any], 
@@ -12458,11 +12531,13 @@ class ContinuousLearningLoop:
                     if self.simulation_agent:
                         try:
                             coordinates = (x, y) if x is not None and y is not None else None
-                            self.simulation_agent.update_with_action_outcome(
+                            # Determine success based on response data
+                            success = self._determine_action_success(action_result)
+                            self.simulation_agent.update_with_outcome(
                                 action=selected_action,
                                 coordinates=coordinates,
-                                response_data=action_result,
-                                game_id=game_id
+                                actual_outcome=success,
+                                context=current_state
                             )
                         except Exception as e:
                             logger.warning(f"Failed to update simulation agent: {e}")
