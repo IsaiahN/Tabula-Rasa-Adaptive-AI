@@ -41,6 +41,28 @@ except Exception:
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
+
+# Import ActionLimits from configuration file
+try:
+    from action_limits_config import ActionLimits
+except ImportError:
+    # Fallback if import fails
+    class ActionLimits:
+        MAX_ACTIONS_PER_GAME = 1000
+        MAX_ACTIONS_PER_SESSION = 1000
+        MAX_ACTIONS_PER_SCORECARD = 1000
+        
+        @classmethod
+        def get_max_actions_per_game(cls) -> int:
+            return cls.MAX_ACTIONS_PER_GAME
+        
+        @classmethod
+        def get_max_actions_per_session(cls) -> int:
+            return cls.MAX_ACTIONS_PER_SESSION
+        
+        @classmethod
+        def get_max_actions_per_scorecard(cls) -> int:
+            return cls.MAX_ACTIONS_PER_SCORECARD
 try:
     # Runtime instrumentation: print the file path when this module is imported so we can
     # confirm which copy of the module the Python process actually loaded at runtime.
@@ -270,7 +292,7 @@ class TrainingSession:
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
-    max_actions_per_session: int = 50000  # Default action limit per game session (will be overridden by dynamic calculation)
+    max_actions_per_session: int = ActionLimits.get_max_actions_per_session()  # Default action limit per game session (will be overridden by dynamic calculation)
     enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.DECAY_COMPRESSION
     enable_salience_comparison: bool = False
@@ -1162,8 +1184,10 @@ class ContinuousLearningLoop:
             }
     
         
-    def _calculate_dynamic_action_cap(self, available_actions: List[int], max_actions_per_game: int = 5000) -> int:
+    def _calculate_dynamic_action_cap(self, available_actions: List[int], max_actions_per_game: int = None) -> int:
         """Calculate smart action cap based on game complexity, scaled to max_actions_per_game."""
+        if max_actions_per_game is None:
+            max_actions_per_game = ActionLimits.get_max_actions_per_game()
         config = self._action_cap_system
         
         # Calculate fractions of max_actions_per_game
@@ -5601,7 +5625,7 @@ class ContinuousLearningLoop:
             
             # 7. Calculate dynamic session limit based on available games and per-game limit
             available_games = self.games if hasattr(self, 'games') else [game_id]
-            max_actions_per_game = getattr(self.current_session, 'max_actions_per_game', 5000)
+            max_actions_per_game = getattr(self.current_session, 'max_actions_per_game', ActionLimits.get_max_actions_per_game())
             max_actions_per_session = self._calculate_dynamic_session_limit(max_actions_per_game, available_games)
             logger.debug(f"Dynamic max actions per session: {max_actions_per_session} (based on {len(available_games)} games)")
             
@@ -8849,7 +8873,7 @@ class ContinuousLearningLoop:
         self,
         games: List[str],
         max_mastery_sessions_per_game: int = 50,  # Updated parameter name
-        max_actions_per_session: int = 5000,  # Default action limit per game session
+        max_actions_per_session: int = ActionLimits.get_max_actions_per_session(),  # Default action limit per game session
         enable_contrarian_mode: bool = False,  # New parameter
         target_win_rate: float = 0.3,
         target_avg_score: float = 50.0,
@@ -11239,7 +11263,7 @@ class ContinuousLearningLoop:
     async def start_training_with_direct_control(
         self, 
         game_id: str,
-        max_actions_per_game: int = 5000,
+        max_actions_per_game: int = ActionLimits.get_max_actions_per_game(),
         session_count: int = 0
     ) -> Dict[str, Any]:
         """Run training session with direct API action control instead of external main.py."""

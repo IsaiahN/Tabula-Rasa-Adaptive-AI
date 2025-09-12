@@ -37,6 +37,16 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+
+# Import ActionLimits from configuration file
+try:
+    from action_limits_config import ActionLimits
+except ImportError:
+    # Fallback if import fails
+    class ActionLimits:
+        MAX_ACTIONS_PER_GAME = 1000
+        MAX_ACTIONS_PER_SESSION = 1000
+        MAX_ACTIONS_PER_SCORECARD = 1000
 from datetime import datetime
 
 # Core imports
@@ -335,7 +345,7 @@ class MasterTrainingConfig:
     api_key: Optional[str] = None  # ARC API key
     arc_agents_path: Optional[str] = None  # Path to arc-agents directory
     local_mode: bool = False  # Use local mock client for testing
-    max_actions: int = 1500
+    max_actions: int = ActionLimits.MAX_ACTIONS_PER_SESSION
     max_cycles: int = 150
     target_score: float = 85.0
     session_duration: int = 60  # minutes
@@ -1998,7 +2008,7 @@ class UnifiedTrainer:
         self.target_win_rate = getattr(args, 'target_win_rate', 0.70)
         self.target_score = getattr(args, 'target_score', 75)
         self.max_learning_cycles = getattr(args, 'max_learning_cycles', 5)
-        self.max_actions_per_session = getattr(args, 'max_actions_per_session', 1500)
+        self.max_actions_per_session = getattr(args, 'max_actions_per_session', ActionLimits.MAX_ACTIONS_PER_SESSION)
         self.enable_contrarian_mode = getattr(args, 'enable_contrarian_mode', True)
         
         # Legacy compatibility attributes
