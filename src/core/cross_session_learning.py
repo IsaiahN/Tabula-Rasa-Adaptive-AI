@@ -474,6 +474,8 @@ class CrossSessionLearningManager:
     def _load_persistent_state(self):
         """Load persistent state from disk."""
         patterns_file = self.persistence_dir / "learned_patterns.pkl"
+        # Ensure the directory exists
+        patterns_file.parent.mkdir(parents=True, exist_ok=True)
         sessions_file = self.persistence_dir / "session_history.jsonl"
         
         # Load learned patterns
@@ -514,11 +516,15 @@ class CrossSessionLearningManager:
         """Save persistent state to disk."""
         # Save learned patterns
         patterns_file = self.persistence_dir / "learned_patterns.pkl"
+        # Ensure the directory exists
+        patterns_file.parent.mkdir(parents=True, exist_ok=True)
         try:
             # Save ALL patterns, not just permanent ones (for testing and gradual learning)
+            # Create a copy to avoid "dictionary changed size during iteration" error
+            patterns_copy = dict(self.learned_patterns)
             persistent_patterns = {
                 pattern_id: asdict(pattern)
-                for pattern_id, pattern in self.learned_patterns.items()
+                for pattern_id, pattern in patterns_copy.items()
             }
             
             with open(patterns_file, 'wb') as f:

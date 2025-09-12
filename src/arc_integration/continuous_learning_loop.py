@@ -3312,9 +3312,22 @@ class ContinuousLearningLoop:
             self._last_available_actions = {}
         
         last_available = self._last_available_actions.get(game_id, [])
-        if current_available != last_available:
-            print(f" Available Actions for {game_id}: {current_available}")
-            self._last_available_actions[game_id] = current_available
+        # Safe comparison that handles arrays
+        try:
+            if current_available != last_available:
+                print(f" Available Actions for {game_id}: {current_available}")
+                self._last_available_actions[game_id] = current_available
+        except ValueError as e:
+            # Handle array comparison issues
+            if "ambiguous" in str(e):
+                # Convert to lists for comparison
+                current_list = list(current_available) if hasattr(current_available, '__iter__') else current_available
+                last_list = list(last_available) if hasattr(last_available, '__iter__') else last_available
+                if current_list != last_list:
+                    print(f" Available Actions for {game_id}: {current_available}")
+                    self._last_available_actions[game_id] = current_available
+            else:
+                raise
         
         # Create context for simulation agent
         context = {
@@ -3325,7 +3338,7 @@ class ContinuousLearningLoop:
         }
         
         # Use simulation-driven action selection if available, otherwise fallback to intelligent selection
-        if self.simulation_agent:
+        if self.simulation_agent and hasattr(self, 'simulation_agent') and self.simulation_agent is not None:
             try:
                 # Use enhanced simulation intelligence for action selection
                 selected_action, coordinates, reasoning = self.simulation_agent.generate_action_plan(
@@ -3530,12 +3543,27 @@ class ContinuousLearningLoop:
                                 last_available = getattr(self, '_last_available_actions', {}).get(game_id, [])
                                 
                                 # Only show available_actions if they changed
-                                if current_available != last_available:
-                                    print(f" Available Actions Changed for {game_id}: {current_available}")
-                                    # Store the new available actions
-                                    if not hasattr(self, '_last_available_actions'):
-                                        self._last_available_actions = {}
-                                    self._last_available_actions[game_id] = current_available
+                                try:
+                                    if current_available != last_available:
+                                        print(f" Available Actions Changed for {game_id}: {current_available}")
+                                        # Store the new available actions
+                                        if not hasattr(self, '_last_available_actions'):
+                                            self._last_available_actions = {}
+                                        self._last_available_actions[game_id] = current_available
+                                except ValueError as e:
+                                    # Handle array comparison issues
+                                    if "ambiguous" in str(e):
+                                        # Convert to lists for comparison
+                                        current_list = list(current_available) if hasattr(current_available, '__iter__') else current_available
+                                        last_list = list(last_available) if hasattr(last_available, '__iter__') else last_available
+                                        if current_list != last_list:
+                                            print(f" Available Actions Changed for {game_id}: {current_available}")
+                                            # Store the new available actions
+                                            if not hasattr(self, '_last_available_actions'):
+                                                self._last_available_actions = {}
+                                            self._last_available_actions[game_id] = current_available
+                                    else:
+                                        raise
                                 
                                 # Log frame data if available
                                 if 'frame' in data and data['frame'] is not None:
@@ -3677,8 +3705,25 @@ class ContinuousLearningLoop:
                             error_msg = f"Client error ({response.status}): {response_text[:500]}"
                             logger.error(error_msg)
                             
+                            # Special handling for GAME_NOT_STARTED_ERROR
+                            if "GAME_NOT_STARTED_ERROR" in response_text:
+                                logger.warning(f"Game {game_id} not started, attempting to reset...")
+                                try:
+                                    # Try to reset the game
+                                    reset_result = await self._start_game_session(game_id)
+                                    if reset_result and 'guid' in reset_result:
+                                        logger.info(f"Successfully reset game {game_id}, retrying action...")
+                                        # Update the session GUID
+                                        self.current_game_sessions[game_id] = reset_result['guid']
+                                        # Retry the action
+                                        return await self._send_enhanced_action(game_id, action_number, x, y, grid_width, grid_height, frame_analysis)
+                                    else:
+                                        logger.error(f"Failed to reset game {game_id}")
+                                except Exception as reset_error:
+                                    logger.error(f"Error resetting game {game_id}: {reset_error}")
+                            
                             # Special handling for 401 Unauthorized
-                            if response.status == 401:
+                            elif response.status == 401:
                                 logger.critical("Authentication failed - please check your API key")
                                 
                             return {
@@ -3720,13 +3765,23 @@ class ContinuousLearningLoop:
                             }
                             
             except Exception as e:
-                logger.error(f"Error building request payload: {e}")
-                return {
-                    'error': f'Request payload error: {e}',
-                    'state': 'ERROR',
-                    'score': 0,
-                    'available_actions': []
-                }
+                error_msg = str(e)
+                if "timeout" in error_msg.lower() or "ssl" in error_msg.lower():
+                    logger.warning(f"Network timeout/SSL error: {e}, will retry on next action")
+                    return {
+                        'error': f'Network timeout: {e}',
+                        'state': 'RETRY',
+                        'score': 0,
+                        'available_actions': []
+                    }
+                else:
+                    logger.error(f"Error building request payload: {e}")
+                    return {
+                        'error': f'Request payload error: {e}',
+                        'state': 'ERROR',
+                        'score': 0,
+                        'available_actions': []
+                    }
                 
         except Exception as e:
             logger.error(f"Unexpected error in _send_enhanced_action: {e}")
@@ -3884,12 +3939,27 @@ class ContinuousLearningLoop:
                                 last_available = getattr(self, '_last_available_actions', {}).get(game_id, [])
                                 
                                 # Only show available_actions if they changed
-                                if current_available != last_available:
-                                    print(f" Available Actions Changed for {game_id}: {current_available}")
-                                    # Store the new available actions
-                                    if not hasattr(self, '_last_available_actions'):
-                                        self._last_available_actions = {}
-                                    self._last_available_actions[game_id] = current_available
+                                try:
+                                    if current_available != last_available:
+                                        print(f" Available Actions Changed for {game_id}: {current_available}")
+                                        # Store the new available actions
+                                        if not hasattr(self, '_last_available_actions'):
+                                            self._last_available_actions = {}
+                                        self._last_available_actions[game_id] = current_available
+                                except ValueError as e:
+                                    # Handle array comparison issues
+                                    if "ambiguous" in str(e):
+                                        # Convert to lists for comparison
+                                        current_list = list(current_available) if hasattr(current_available, '__iter__') else current_available
+                                        last_list = list(last_available) if hasattr(last_available, '__iter__') else last_available
+                                        if current_list != last_list:
+                                            print(f" Available Actions Changed for {game_id}: {current_available}")
+                                            # Store the new available actions
+                                            if not hasattr(self, '_last_available_actions'):
+                                                self._last_available_actions = {}
+                                            self._last_available_actions[game_id] = current_available
+                                    else:
+                                        raise
                                 
                                 # Log frame data if available
                                 if 'frame' in data and data['frame'] is not None:
