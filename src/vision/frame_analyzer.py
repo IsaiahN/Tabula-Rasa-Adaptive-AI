@@ -812,6 +812,12 @@ class FrameAnalyzer:
             'symmetry_point': 3       # New: Symmetry points often indicate important elements
         }
         
+        # Collect productivity data for consolidated logging
+        productivity_bonuses = []
+        productivity_penalties = []
+        recent_gains_bonuses = []
+        recent_losses_penalties = []
+        
         for target in targets:
             base_score = target['confidence'] * 100
             type_score = type_priority.get(target['type'], 0) * 10
@@ -824,25 +830,44 @@ class FrameAnalyzer:
             if coord_key in self.coordinate_results:
                 result = self.coordinate_results[coord_key]
                 
-                # MAJOR BONUS for coordinates that have produced score increases
-                total_score_gain = max(0, result.get('total_score_change', 0))
-                if total_score_gain > 0:
-                    productivity_bonus = min(total_score_gain * 50, 200)  # Up to 200 point bonus!
-                    print(f"🎯 PRODUCTIVITY BONUS: ({target['x']},{target['y']}) gets +{productivity_bonus} for {total_score_gain} total score gain")
+                # IMPROVED PRODUCTIVITY SYSTEM - Handles both positive and negative scores
+                total_score_change = result.get('total_score_change', 0)
                 
-                # Check recent attempts for ongoing productivity
-                recent_gains = sum(attempt.get('score_change', 0) 
-                                 for attempt in result.get('recent_attempts', []) 
-                                 if attempt.get('score_change', 0) > 0)
+                # Calculate net productivity (positive = good, negative = bad)
+                if total_score_change > 0:
+                    # Net positive - give bonus (REDUCED MULTIPLIERS)
+                    productivity_bonus = min(total_score_change * 25, 100)  # Reduced: 25x multiplier, 100 max
+                    productivity_bonuses.append((target['x'], target['y'], productivity_bonus, total_score_change))
+                elif total_score_change < 0:
+                    # Net negative - give penalty (REDUCED MULTIPLIERS)
+                    productivity_penalty = min(abs(total_score_change) * 20, 80)  # Reduced: 20x multiplier, 80 max
+                    productivity_bonus = -productivity_penalty
+                    productivity_penalties.append((target['x'], target['y'], productivity_penalty, total_score_change))
                 
-                if recent_gains > 0:
-                    recent_bonus = min(recent_gains * 30, 150)  # Bonus for recent gains
-                    productivity_bonus += recent_bonus
-                    print(f"🔥 RECENT GAINS BONUS: ({target['x']},{target['y']}) gets +{recent_bonus} for {recent_gains} recent gains")
+                # Check recent attempts for ongoing productivity (both positive and negative)
+                recent_attempts = result.get('recent_attempts', [])
+                recent_positive = sum(attempt.get('score_change', 0) 
+                                    for attempt in recent_attempts 
+                                    if attempt.get('score_change', 0) > 0)
+                recent_negative = sum(attempt.get('score_change', 0) 
+                                    for attempt in recent_attempts 
+                                    if attempt.get('score_change', 0) < 0)
+                
+                # Recent gains bonus (only if net positive) (REDUCED MULTIPLIERS)
+                if recent_positive > 0:
+                    recent_net = recent_positive + recent_negative  # recent_negative is already negative
+                    if recent_net > 0:
+                        recent_bonus = min(recent_net * 15, 75)  # Reduced: 15x multiplier, 75 max
+                        productivity_bonus += recent_bonus
+                        recent_gains_bonuses.append((target['x'], target['y'], recent_bonus, recent_net))
+                    elif recent_net < 0:
+                        recent_penalty = min(abs(recent_net) * 10, 50)  # Reduced: 10x multiplier, 50 max
+                        productivity_bonus -= recent_penalty
+                        recent_losses_penalties.append((target['x'], target['y'], recent_penalty, recent_net))
                 
                 # PENALTY for stuck coordinates (but reduced if they had past gains)
                 if result.get('is_stuck_coordinate', False):
-                    if total_score_gain > 0:
+                    if total_score_change > 0:
                         avoidance_penalty = 30  # Reduced penalty for previously productive stuck coords
                     else:
                         avoidance_penalty = 80  # Heavy penalty for unproductive stuck coords
@@ -852,7 +877,7 @@ class FrameAnalyzer:
                     
                     if success_count == 0 and try_count > 3:
                         avoidance_penalty = 40  # Penalty for repeatedly unsuccessful
-                    elif success_count > 0 and total_score_gain == 0:
+                    elif success_count > 0 and total_score_change == 0:
                         avoidance_penalty = 20  # Light penalty for "successful" but no score gain
             
             # MOVEMENT BONUS for objects that have moved
@@ -880,6 +905,31 @@ class FrameAnalyzer:
             target['avoidance_penalty'] = avoidance_penalty
             target['movement_bonus'] = movement_bonus
             target['exploration_bonus'] = exploration_bonus
+        
+        # Consolidated logging - only show if there are bonuses/penalties
+        if productivity_bonuses:
+            coords_str = ",".join([f"({x},{y})" for x, y, bonus, score in productivity_bonuses])
+            avg_bonus = sum(bonus for _, _, bonus, _ in productivity_bonuses) // len(productivity_bonuses)
+            avg_score = sum(score for _, _, _, score in productivity_bonuses) / len(productivity_bonuses)
+            print(f"🎯 PRODUCTIVITY BONUS: +{avg_bonus} {avg_score:.1f} score net gain {coords_str}")
+        
+        if productivity_penalties:
+            coords_str = ",".join([f"({x},{y})" for x, y, penalty, score in productivity_penalties])
+            avg_penalty = sum(penalty for _, _, penalty, _ in productivity_penalties) // len(productivity_penalties)
+            avg_score = sum(score for _, _, _, score in productivity_penalties) / len(productivity_penalties)
+            print(f"⚠️ PRODUCTIVITY PENALTY: -{avg_penalty} {avg_score:.1f} score loss {coords_str}")
+        
+        if recent_gains_bonuses:
+            coords_str = ",".join([f"({x},{y})" for x, y, bonus, score in recent_gains_bonuses])
+            avg_bonus = sum(bonus for _, _, bonus, _ in recent_gains_bonuses) // len(recent_gains_bonuses)
+            avg_score = sum(score for _, _, _, score in recent_gains_bonuses) / len(recent_gains_bonuses)
+            print(f"🔥 RECENT GAINS BONUS: +{avg_bonus} {avg_score:.1f} recent net gain {coords_str}")
+        
+        if recent_losses_penalties:
+            coords_str = ",".join([f"({x},{y})" for x, y, penalty, score in recent_losses_penalties])
+            avg_penalty = sum(penalty for _, _, penalty, _ in recent_losses_penalties) // len(recent_losses_penalties)
+            avg_score = sum(score for _, _, _, score in recent_losses_penalties) / len(recent_losses_penalties)
+            print(f"❄️ RECENT LOSSES PENALTY: -{avg_penalty} {avg_score:.1f} recent net loss {coords_str}")
         
         return sorted(targets, key=lambda t: t['priority_score'], reverse=True)
     
@@ -2054,17 +2104,35 @@ class FrameAnalyzer:
         current_frame = len(self.frame_history)
         frames_since_last_try = current_frame - result.get('last_tried_frame', 0)
         
-        # 1. PRODUCTIVE COORDINATES GET PRIORITY (unchanged)
-        # Check if coordinate has recent attempts data
+        # 1. IMPROVED PRODUCTIVITY ASSESSMENT - Handles both positive and negative scores
         recent_attempts = result.get('recent_attempts', [])
-        recent_score_gains = sum(attempt.get('score_change', 0) 
-                               for attempt in recent_attempts 
-                               if attempt.get('score_change', 0) > 0)
+        recent_positive = sum(attempt.get('score_change', 0) 
+                            for attempt in recent_attempts 
+                            if attempt.get('score_change', 0) > 0)
+        recent_negative = sum(attempt.get('score_change', 0) 
+                            for attempt in recent_attempts 
+                            if attempt.get('score_change', 0) < 0)
+        recent_net = recent_positive + recent_negative  # recent_negative is already negative
         
-        if recent_score_gains > 0:
-            # NEGATIVE avoidance score = actively seek this coordinate
-            productivity_bonus = min(recent_score_gains * 0.1, 0.5)
+        # Check total score change for overall productivity
+        total_score_change = result.get('total_score_change', 0)
+        
+        if total_score_change > 0:
+            # Net positive coordinate - actively seek it
+            productivity_bonus = min(total_score_change * 0.1, 0.5)
             return -productivity_bonus  # Negative = attractive, not avoided
+        elif total_score_change < 0:
+            # Net negative coordinate - avoid it more strongly
+            productivity_penalty = min(abs(total_score_change) * 0.15, 0.8)
+            return productivity_penalty  # Positive = avoid more strongly
+        
+        # For zero net change, check recent trends
+        if recent_net > 0:
+            # Recent positive trend - slight attraction
+            return -min(recent_net * 0.05, 0.2)
+        elif recent_net < 0:
+            # Recent negative trend - slight avoidance
+            return min(abs(recent_net) * 0.1, 0.4)
         
         # 2. TIME-BASED DECAY: Avoidance scores decay over time
         base_avoidance = 0.0
