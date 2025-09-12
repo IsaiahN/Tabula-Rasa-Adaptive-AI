@@ -259,6 +259,7 @@ class MetaCognitiveGovernor:
                  persistence_dir: Optional[str] = None):
         self.logger = logging.getLogger(f"{__name__}.Governor")
         self.log_file = log_file
+        self.persistence_dir = Path(persistence_dir) if persistence_dir else Path("data")
         
         # Outcome tracking integration
         self.outcome_tracker = None
@@ -289,6 +290,15 @@ class MetaCognitiveGovernor:
             self.logger.info("Meta-cognitive memory management enabled")
         except ImportError:
             self.logger.warning("Meta-cognitive memory manager not available")
+        
+        # Dynamic action limits management
+        self.action_limits_manager = None
+        try:
+            from src.core.dynamic_action_limits import DynamicActionLimits, ActionLimitType
+            self.action_limits_manager = DynamicActionLimits(self.persistence_dir, self.logger)
+            self.logger.info("Dynamic action limits management enabled")
+        except ImportError:
+            self.logger.warning("Dynamic action limits manager not available")
         
         # Memory pattern optimization (Phase 1 enhancement)
         self.pattern_optimizer = None
@@ -388,6 +398,92 @@ class MetaCognitiveGovernor:
         self.architect_response_history = []
         
         self.logger.info("🧠 MetaCognitiveGovernor initialized - Third Brain online")
+    
+    def set_action_limit_maximums(self, **kwargs):
+        """Set user-defined maximum boundaries for action limits.
+        
+        Args:
+            **kwargs: Maximum values for each limit type
+                per_game: Maximum actions per game
+                per_session: Maximum actions per session
+                per_scorecard: Maximum actions per scorecard
+                per_episode: Maximum actions per episode
+        """
+        if self.action_limits_manager:
+            self.action_limits_manager.set_user_maximums(**kwargs)
+            self.logger.info(f"Set action limit maximums: {kwargs}")
+        else:
+            self.logger.warning("Action limits manager not available")
+    
+    def get_dynamic_action_limit(self, limit_type: str, 
+                                game_complexity: float = 0.5,
+                                available_actions: int = 6) -> int:
+        """Get a dynamically adjusted action limit.
+        
+        Args:
+            limit_type: Type of limit ('per_game', 'per_session', 'per_scorecard', 'per_episode')
+            game_complexity: Complexity of current game (0.0 to 1.0)
+            available_actions: Number of available actions in current game
+            
+        Returns:
+            Dynamically adjusted action limit
+        """
+        if not self.action_limits_manager:
+            return 1000  # fallback
+        
+        try:
+            from src.core.dynamic_action_limits import ActionLimitType
+            limit_enum = ActionLimitType(limit_type)
+            return self.action_limits_manager.get_adaptive_limit(
+                limit_enum, game_complexity, available_actions
+            )
+        except (ValueError, ImportError) as e:
+            self.logger.warning(f"Failed to get dynamic action limit: {e}")
+            return 1000
+    
+    def update_action_limit_metrics(self, 
+                                   efficiency: float,
+                                   learning_progress: float,
+                                   system_stress: float,
+                                   game_complexity: float = 0.5):
+        """Update metrics that influence action limit decisions.
+        
+        Args:
+            efficiency: Overall system efficiency (0.0 to 1.0)
+            learning_progress: How much the system is learning (0.0 to 1.0)
+            system_stress: Current system stress level (0.0 to 1.0)
+            game_complexity: Complexity of current game (0.0 to 1.0)
+        """
+        if self.action_limits_manager:
+            self.action_limits_manager.update_performance_metrics(
+                efficiency, learning_progress, system_stress, game_complexity
+            )
+    
+    def force_action_limit_adjustment(self, limit_type: str, new_value: int, reason: str = "manual_override"):
+        """Force an immediate adjustment to a specific action limit.
+        
+        Args:
+            limit_type: Type of limit to adjust
+            new_value: New value to set
+            reason: Reason for the adjustment
+        """
+        if not self.action_limits_manager:
+            self.logger.warning("Action limits manager not available")
+            return
+        
+        try:
+            from src.core.dynamic_action_limits import ActionLimitType
+            limit_enum = ActionLimitType(limit_type)
+            self.action_limits_manager.force_adjustment(limit_enum, new_value, reason)
+        except (ValueError, ImportError) as e:
+            self.logger.warning(f"Failed to force action limit adjustment: {e}")
+    
+    def get_action_limits_status(self) -> Dict[str, Any]:
+        """Get comprehensive status of the action limits system."""
+        if not self.action_limits_manager:
+            return {"error": "Action limits manager not available"}
+        
+        return self.action_limits_manager.get_status_report()
     
     def make_decision(self, available_actions: List[int], context: Dict[str, Any], 
                      performance_history: List[Dict[str, Any]], current_energy: float) -> Dict[str, Any]:
@@ -1121,7 +1217,11 @@ class MetaCognitiveGovernor:
                     self.logger.error(error_msg)
             
             # 4. Clean up empty or low-value action intelligence files
-            action_intel_files = list(Path("data").glob("action_intelligence_*.json"))
+            # Use the persistence directory instead of hardcoded "data"
+            data_dir = getattr(self, 'persistence_dir', Path("data"))
+            if isinstance(data_dir, str):
+                data_dir = Path(data_dir)
+            action_intel_files = list(data_dir.glob("action_intelligence_*.json"))
             for intel_file in action_intel_files:
                 try:
                     with open(intel_file, 'r') as f:
@@ -1732,7 +1832,7 @@ class MetaCognitiveGovernor:
             # All main parameters recently adjusted, suggest multi-parameter fine-tuning
             return (
                 {
-                    'max_actions_per_game': min(1000, int(750 * (1 + (1 - efficiency)))),
+                    'max_actions_per_game': min(1000, int(500 * (1 + (1 - efficiency)))),  # TODO: Use ActionLimits
                     'exploration_bonus': 0.1 if efficiency < 0.8 else 0.05
                 },
                 adaptive_confidence * 0.6,

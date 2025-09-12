@@ -518,6 +518,11 @@ class CrossSessionLearningManager:
         patterns_file = self.persistence_dir / "learned_patterns.pkl"
         # Ensure the directory exists
         patterns_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Debug: Log the actual path being used
+        self.logger.debug(f"Attempting to save patterns to: {patterns_file}")
+        self.logger.debug(f"Persistence dir type: {type(self.persistence_dir)}, value: {self.persistence_dir}")
+        
         try:
             # Save ALL patterns, not just permanent ones (for testing and gradual learning)
             # Create a copy to avoid "dictionary changed size during iteration" error
@@ -533,6 +538,11 @@ class CrossSessionLearningManager:
             self.logger.debug(f"Saved {len(persistent_patterns)} patterns to disk")
         except Exception as e:
             self.logger.error(f"Failed to save learned patterns: {e}")
+            self.logger.error(f"Patterns file path: {patterns_file}")
+            self.logger.error(f"Persistence dir: {self.persistence_dir}")
+            self.logger.error(f"File exists: {patterns_file.exists()}")
+            self.logger.error(f"Parent dir exists: {patterns_file.parent.exists()}")
+            self.logger.error(f"Parent dir is dir: {patterns_file.parent.is_dir()}")
         
         # Save current session to history
         if self.current_session:

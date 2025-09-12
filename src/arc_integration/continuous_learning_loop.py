@@ -41,6 +41,40 @@ except Exception:
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# ACTION LIMIT CONFIGURATION
+# =============================================================================
+# Import centralized action limits configuration
+try:
+    from action_limits_config import ActionLimits
+except ImportError:
+    # Fallback configuration if the config file is not available
+    class ActionLimits:
+        """Fallback configuration for action limits - optimized for learning."""
+        MAX_ACTIONS_PER_GAME = 2000
+        MAX_ACTIONS_PER_SESSION = 5000
+        MAX_ACTIONS_PER_SCORECARD = 8000
+        MAX_ACTIONS_PER_EPISODE = 1500
+        MAX_ACTIONS_SCALING_BASE = 800
+        MAX_ACTIONS_SCALING_MAX = 3000
+        
+        @classmethod
+        def get_max_actions_per_game(cls) -> int:
+            return cls.MAX_ACTIONS_PER_GAME
+        
+        @classmethod
+        def get_max_actions_per_session(cls) -> int:
+            return cls.MAX_ACTIONS_PER_SESSION
+        
+        @classmethod
+        def get_max_actions_per_scorecard(cls) -> int:
+            return cls.MAX_ACTIONS_PER_SCORECARD
+        
+        @classmethod
+        def get_scaled_max_actions(cls, efficiency: float) -> int:
+            scaled = int(cls.MAX_ACTIONS_SCALING_BASE * (1 + (1 - efficiency)))
+            return min(cls.MAX_ACTIONS_SCALING_MAX, scaled)
 try:
     # Runtime instrumentation: print the file path when this module is imported so we can
     # confirm which copy of the module the Python process actually loaded at runtime.
@@ -271,7 +305,7 @@ class TrainingSession:
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
-    max_actions_per_session: int = 25000  # Default action limit per game session (will be overridden by dynamic calculation)
+    max_actions_per_session: int = ActionLimits.get_max_actions_per_session()  # Default action limit per game session (will be overridden by dynamic calculation)
     enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.DECAY_COMPRESSION
     enable_salience_comparison: bool = False
@@ -1592,8 +1626,24 @@ class ContinuousLearningLoop:
             }
     
         
-    def _calculate_dynamic_action_cap(self, available_actions: List[int], max_actions_per_game: int = 5000) -> int:
+    def _calculate_dynamic_action_cap(self, available_actions: List[int], max_actions_per_game: int = None) -> int:
         """Calculate smart action cap based on game complexity, scaled to max_actions_per_game."""
+        if max_actions_per_game is None:
+            # Try to get dynamic limit from Governor first
+            if hasattr(self, 'governor') and self.governor and hasattr(self.governor, 'get_dynamic_action_limit'):
+                try:
+                    # Calculate game complexity based on available actions
+                    game_complexity = min(1.0, len(available_actions) / 6.0) if available_actions else 0.5
+                    max_actions_per_game = self.governor.get_dynamic_action_limit(
+                        'per_game', 
+                        game_complexity=game_complexity,
+                        available_actions=len(available_actions) if available_actions else 6
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to get dynamic action limit from Governor: {e}")
+                    max_actions_per_game = ActionLimits.get_max_actions_per_game()
+            else:
+                max_actions_per_game = ActionLimits.get_max_actions_per_game()
         # Ensure action cap system is initialized
         if not hasattr(self, '_action_cap_system') or not self._action_cap_system:
             # Fallback configuration if not initialized
@@ -1628,6 +1678,55 @@ class ContinuousLearningLoop:
         
         print(f" SMART CAP: {base_actions} actions available → {capped_value} action limit (scaled from {max_actions_per_game})")
         return capped_value
+    
+    def _update_governor_action_metrics(self, game_id: str, performance_data: Dict[str, Any]):
+        """Update the Governor with performance metrics for dynamic action limit adjustment."""
+        if not hasattr(self, 'governor') or not self.governor:
+            return
+        
+        try:
+            # Calculate efficiency based on performance
+            efficiency = 0.5  # Default
+            if 'score' in performance_data and 'max_score' in performance_data:
+                efficiency = min(1.0, performance_data['score'] / max(1, performance_data['max_score']))
+            elif 'reward' in performance_data:
+                efficiency = max(0.0, min(1.0, (performance_data['reward'] + 1) / 2))  # Convert -1 to 1 range to 0 to 1
+            
+            # Calculate learning progress based on recent improvements
+            learning_progress = 0.0
+            if hasattr(self, 'performance_history') and len(self.performance_history) > 5:
+                recent_scores = [p.get('score', 0) for p in self.performance_history[-5:]]
+                older_scores = [p.get('score', 0) for p in self.performance_history[-10:-5]] if len(self.performance_history) >= 10 else recent_scores
+                if older_scores:
+                    recent_avg = sum(recent_scores) / len(recent_scores)
+                    older_avg = sum(older_scores) / len(older_scores)
+                    learning_progress = max(0.0, min(1.0, (recent_avg - older_avg) / max(1, older_avg)))
+            
+            # Calculate system stress based on memory usage and error rates
+            system_stress = 0.0
+            if hasattr(self, 'memory_consolidation_tracker'):
+                consolidation_data = self.memory_consolidation_tracker.get('consolidation_data', {})
+                if consolidation_data:
+                    # Higher consolidation frequency indicates stress
+                    consolidation_freq = consolidation_data.get('consolidation_frequency', 0)
+                    system_stress = min(1.0, consolidation_freq / 10.0)  # Scale to 0-1
+            
+            # Calculate game complexity based on available actions
+            available_actions = performance_data.get('available_actions', [])
+            game_complexity = min(1.0, len(available_actions) / 6.0) if available_actions else 0.5
+            
+            # Update Governor with metrics
+            self.governor.update_action_limit_metrics(
+                efficiency=efficiency,
+                learning_progress=learning_progress,
+                system_stress=system_stress,
+                game_complexity=game_complexity
+            )
+            
+            logger.debug(f"Updated Governor action metrics: efficiency={efficiency:.2f}, learning={learning_progress:.2f}, stress={system_stress:.2f}, complexity={game_complexity:.2f}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to update Governor action metrics: {e}")
     
     def _calculate_dynamic_session_limit(self, max_actions_per_game: int, available_games: List[str]) -> int:
         """Calculate session limit based on available games and per-game limit."""
@@ -6199,7 +6298,7 @@ class ContinuousLearningLoop:
             
             # 7. Calculate dynamic session limit based on available games and per-game limit
             available_games = self.games if hasattr(self, 'games') else [game_id]
-            max_actions_per_game = getattr(self.current_session, 'max_actions_per_game', 5000)
+            max_actions_per_game = getattr(self.current_session, 'max_actions_per_game', ActionLimits.get_max_actions_per_game())
             max_actions_per_session = self._calculate_dynamic_session_limit(max_actions_per_game, available_games)
             logger.debug(f"Dynamic max actions per session: {max_actions_per_session} (based on {len(available_games)} games)")
             
@@ -9608,7 +9707,7 @@ class ContinuousLearningLoop:
         self,
         games: List[str],
         max_mastery_sessions_per_game: int = 50,  # Updated parameter name
-        max_actions_per_session: int = 5000,  # Default action limit per game session
+        max_actions_per_session: int = ActionLimits.get_max_actions_per_session(),  # Default action limit per game session
         enable_contrarian_mode: bool = False,  # New parameter
         target_win_rate: float = 0.3,
         target_avg_score: float = 50.0,
@@ -12208,7 +12307,7 @@ class ContinuousLearningLoop:
     async def start_training_with_direct_control(
         self, 
         game_id: str,
-        max_actions_per_game: int = 5000,
+        max_actions_per_game: int = ActionLimits.get_max_actions_per_game(),
         session_count: int = 0
     ) -> Dict[str, Any]:
         """Run training session with direct API action control instead of external main.py."""
