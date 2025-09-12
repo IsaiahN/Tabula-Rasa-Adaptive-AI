@@ -564,7 +564,7 @@ class ContinuousLearningLoop:
         try:
             if MetaCognitiveGovernor is not None:
                 self.governor = MetaCognitiveGovernor(
-                    persistence_dir=str(self.save_directory)  # Enable pattern learning
+                    persistence_dir=self.save_directory  # Enable pattern learning - pass Path object directly
                 )
             if Architect is not None:
                 self.architect = Architect(
@@ -878,7 +878,7 @@ class ContinuousLearningLoop:
                     memory_capacity=1000,
                     decision_threshold=0.5,  # REDUCED - Less strict decision threshold
                     adaptation_rate=0.1,
-                    persistence_dir=str(self.save_directory)  # Enable pattern learning
+                    persistence_dir=self.save_directory  # Enable pattern learning - pass Path object directly
                 )
                 print("✅ Governor initialized")
                 logger.info("🧠 Meta-Cognitive Governor initialized (Third Brain) with pattern learning")

@@ -522,6 +522,10 @@ class CrossSessionLearningManager:
         # Debug: Log the actual path being used
         self.logger.debug(f"Attempting to save patterns to: {patterns_file}")
         self.logger.debug(f"Persistence dir type: {type(self.persistence_dir)}, value: {self.persistence_dir}")
+        self.logger.debug(f"Patterns file type: {type(patterns_file)}, value: {patterns_file}")
+        self.logger.debug(f"Patterns file parent: {patterns_file.parent}")
+        self.logger.debug(f"Parent exists: {patterns_file.parent.exists()}")
+        self.logger.debug(f"Parent is dir: {patterns_file.parent.is_dir()}")
         
         try:
             # Save ALL patterns, not just permanent ones (for testing and gradual learning)
@@ -539,10 +543,23 @@ class CrossSessionLearningManager:
         except Exception as e:
             self.logger.error(f"Failed to save learned patterns: {e}")
             self.logger.error(f"Patterns file path: {patterns_file}")
+            self.logger.error(f"Patterns file path (str): {str(patterns_file)}")
             self.logger.error(f"Persistence dir: {self.persistence_dir}")
+            self.logger.error(f"Persistence dir (str): {str(self.persistence_dir)}")
             self.logger.error(f"File exists: {patterns_file.exists()}")
             self.logger.error(f"Parent dir exists: {patterns_file.parent.exists()}")
             self.logger.error(f"Parent dir is dir: {patterns_file.parent.is_dir()}")
+            self.logger.error(f"Error type: {type(e)}")
+            self.logger.error(f"Error args: {e.args}")
+            
+            # Try to create the directory again with more explicit error handling
+            try:
+                patterns_file.parent.mkdir(parents=True, exist_ok=True)
+                self.logger.info(f"Successfully created directory: {patterns_file.parent}")
+            except Exception as mkdir_error:
+                self.logger.error(f"Failed to create directory: {mkdir_error}")
+                self.logger.error(f"Directory path: {patterns_file.parent}")
+                self.logger.error(f"Directory path (str): {str(patterns_file.parent)}")
         
         # Save current session to history
         if self.current_session:
