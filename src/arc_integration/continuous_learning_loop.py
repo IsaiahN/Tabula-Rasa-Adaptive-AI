@@ -2137,15 +2137,28 @@ class ContinuousLearningLoop:
                                     legacy_boundary = self.available_actions_memory['action6_boundary_detection']
 
                                     # Clear universal boundary data
-                                    if game_id in universal_boundary['boundary_data']:
+                                    if 'boundary_data' in universal_boundary and game_id in universal_boundary['boundary_data']:
                                         old_boundaries = len(universal_boundary['boundary_data'][game_id])
                                         print(f" Cleared {old_boundaries} previous universal boundary mappings for new game {game_id}")
 
                                     # Initialize fresh universal boundary detection for this game
+                                    if 'boundary_data' not in universal_boundary:
+                                        universal_boundary['boundary_data'] = {}
                                     universal_boundary['boundary_data'][game_id] = {}
+                                    if 'coordinate_attempts' not in universal_boundary:
+                                        universal_boundary['coordinate_attempts'] = {}
                                     universal_boundary['coordinate_attempts'][game_id] = {}
+                                    
+                                    if 'action_coordinate_history' not in universal_boundary:
+                                        universal_boundary['action_coordinate_history'] = {}
                                     universal_boundary['action_coordinate_history'][game_id] = {}
+                                    
+                                    if 'stuck_patterns' not in universal_boundary:
+                                        universal_boundary['stuck_patterns'] = {}
                                     universal_boundary['stuck_patterns'][game_id] = {}
+                                    
+                                    if 'success_zone_mapping' not in universal_boundary:
+                                        universal_boundary['success_zone_mapping'] = {}
                                     universal_boundary['success_zone_mapping'][game_id] = {}
 
                                     # Initialize ACTION 6 directional system
@@ -2153,10 +2166,24 @@ class ContinuousLearningLoop:
                                         universal_boundary['directional_systems'][6]['current_direction'][game_id] = 'right'
 
                                     # Initialize legacy system for backward compatibility
+                                    if 'boundary_data' not in legacy_boundary:
+                                        legacy_boundary['boundary_data'] = {}
                                     legacy_boundary['boundary_data'][game_id] = {}
+                                    
+                                    if 'coordinate_attempts' not in legacy_boundary:
+                                        legacy_boundary['coordinate_attempts'] = {}
                                     legacy_boundary['coordinate_attempts'][game_id] = {}
+                                    
+                                    if 'last_coordinates' not in legacy_boundary:
+                                        legacy_boundary['last_coordinates'] = {}
                                     legacy_boundary['last_coordinates'][game_id] = None
+                                    
+                                    if 'stuck_count' not in legacy_boundary:
+                                        legacy_boundary['stuck_count'] = {}
                                     legacy_boundary['stuck_count'][game_id] = 0
+                                    
+                                    if 'current_direction' not in legacy_boundary:
+                                        legacy_boundary['current_direction'] = {}
                                     legacy_boundary['current_direction'][game_id] = 'right'
 
                                     print(f" Initialized universal boundary detection system for {game_id}")
