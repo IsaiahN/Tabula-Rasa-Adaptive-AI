@@ -291,6 +291,66 @@ class ContinuousLearningLoop:
     7. Tracks long-term learning progress
     """
 
+    def _initialize_available_actions_memory(self) -> Dict[str, Any]:
+        """Initialize the available actions memory with all required keys and proper structure."""
+        return {
+            'current_game_id': None,
+            'current_actions': [],
+            'action_history': [],
+            'action_effectiveness': {},
+            'action_relevance_scores': {},
+            'action_sequences': [],
+            'winning_action_sequences': [],
+            'coordinate_patterns': {},
+            'action_transitions': {},
+            'action_learning_stats': {
+                'total_observations': 0,
+                'pattern_confidence_threshold': 0.7,
+                'movements_tracked': 0,
+                'effects_catalogued': 0,
+                'game_contexts_learned': 0
+            },
+            'action_semantic_mapping': {},
+            'sequence_in_progress': [],
+            'initial_actions': [],
+            'action_stagnation': {},
+            'universal_boundary_detection': {
+                'boundary_data': {},
+                'coordinate_attempts': {},
+                'action_coordinate_history': {},
+                'stuck_patterns': {},
+                'success_zone_mapping': {},
+                'danger_zones': {},
+                'coordinate_clusters': {},
+                'directional_systems': {
+                    6: {'current_direction': {}, 'direction_history': {}}
+                },
+                'current_direction': {},
+                'last_coordinates': {},
+                'stuck_count': {},
+                'coordinate_attempts': {}
+            },
+            'action6_boundary_detection': {
+                'boundary_data': {},
+                'coordinate_attempts': {},
+                'last_coordinates': {},
+                'stuck_count': {},
+                'current_direction': {}
+            }
+        }
+
+    def _ensure_available_actions_memory(self) -> None:
+        """Ensure available_actions_memory is properly initialized with all required keys."""
+        if not hasattr(self, 'available_actions_memory'):
+            self.available_actions_memory = self._initialize_available_actions_memory()
+            return
+        
+        # Ensure all required keys exist
+        required_keys = self._initialize_available_actions_memory()
+        for key, default_value in required_keys.items():
+            if key not in self.available_actions_memory:
+                self.available_actions_memory[key] = default_value.copy() if isinstance(default_value, dict) else default_value
+
     def __init__(
         self,
         arc_agents_path: str,
@@ -393,37 +453,18 @@ class ContinuousLearningLoop:
             'recent_consecutive_failures': 0
         }
         
-        # Initialize available actions memory
-        self.available_actions_memory = {
-            'current_game_id': None,
-            'current_actions': [],
-            'action_history': [],
-            'action_effectiveness': {},
-            'action_relevance_scores': {},
-            'action_sequences': [],
-            'winning_action_sequences': [],
-            'coordinate_patterns': {},
-            'action_transitions': {},
-            'action_learning_stats': {
-                'total_observations': 0,
-                'pattern_confidence_threshold': 0.7,
-                'movements_tracked': 0,
-                'effects_catalogued': 0,
-                'game_contexts_learned': 0
-            },
-            'action_semantic_mapping': {},
-            'sequence_in_progress': [],
-            'initial_actions': [],
-            'action_stagnation': {},
-            'universal_boundary_detection': {},
-            'action6_boundary_detection': {},
+        # Initialize available actions memory using the centralized method
+        self.available_actions_memory = self._initialize_available_actions_memory()
+        
+        # Add additional fields specific to this initialization
+        self.available_actions_memory.update({
             'action6_strategy': {
                 'last_progress_action': 0,
                 'last_action6_used': 0,
                 'consecutive_failures': 0
             },
             'experiment_mode': False
-        }
+        })
         
         # Initialize frame analysis and available actions tracking
         self._last_frame_analysis = {}
@@ -2688,6 +2729,8 @@ class ContinuousLearningLoop:
     
     def _update_action_effectiveness(self, action_number: int, frame_changed: Dict, score_change: float):
         """Update action effectiveness based on frame changes."""
+        # Ensure memory is properly initialized
+        self._ensure_available_actions_memory()
         try:
             if not hasattr(self, 'available_actions_memory'):
                 return
@@ -3243,6 +3286,8 @@ class ContinuousLearningLoop:
             return {}
     def _select_next_action(self, response_data: Dict[str, Any], game_id: str) -> Optional[int]:
         """Select appropriate action based on learned intelligence, available_actions from API response, and visual frame analysis."""
+        # Ensure memory is properly initialized
+        self._ensure_available_actions_memory()
         available = response_data.get('available_actions', [])
         
         if not available:
@@ -4558,6 +4603,9 @@ class ContinuousLearningLoop:
         return False
 
     def _select_intelligent_action_with_relevance(self, available_actions: List[int], context: Dict[str, Any]) -> int:
+        """Select action using intelligent relevance scoring with comprehensive fallbacks."""
+        # Ensure memory is properly initialized
+        self._ensure_available_actions_memory()
         """
          ADVANCED ACTION6 DECISION PROTOCOL - Visual-Interactive Agent
         
@@ -5192,7 +5240,7 @@ class ContinuousLearningLoop:
     def _get_recent_action_attempts(self, action_num: int, window: int = 10) -> Dict[str, int]:
         """Get recent attempt statistics for an action."""
         # FIXED: Use actual action effectiveness data instead of placeholder
-        effectiveness_data = self.available_actions_memory['action_effectiveness'].get(action_num, {
+        effectiveness_data = self.available_actions_memory.get('action_effectiveness', {}).get(action_num, {
             'attempts': 0, 'successes': 0, 'success_rate': 0.0
         })
         
@@ -12261,9 +12309,9 @@ class ContinuousLearningLoop:
                     print(f"    {learned_info[:80]}..." if len(learned_info) > 80 else f"    {learned_info}")
                 elif self.available_actions_memory.get('action_learning_stats', {}).get('total_observations', 0) > 0:
                     # Show basic stats
-                    total_attempts = self.available_actions_memory['action_effectiveness'].get(selected_action, {}).get('attempts', 0)
+                    total_attempts = self.available_actions_memory.get('action_effectiveness', {}).get(selected_action, {}).get('attempts', 0)
                     if total_attempts > 0:
-                        success_rate = self.available_actions_memory['action_effectiveness'][selected_action]['success_rate']
+                        success_rate = self.available_actions_memory.get('action_effectiveness', {}).get(selected_action, {}).get('success_rate', 0.0)
                         print(f"    Success: {success_rate:.1%} ({total_attempts} tries)")
                 
                 # Execute the action with actual grid dimensions
