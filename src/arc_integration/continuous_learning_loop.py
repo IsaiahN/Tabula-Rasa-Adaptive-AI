@@ -12716,9 +12716,21 @@ class ContinuousLearningLoop:
                         print(f"  RESULT: Score unchanged ({new_score}) | State: {new_state}")
                     
                     # Update available actions for next iteration
-                    if new_available != available_actions:
-                        print(f" Actions: {available_actions} → {new_available}")
-                        available_actions = new_available  # CRITICAL FIX: Update available_actions with fresh API data
+                    try:
+                        if new_available != available_actions:
+                            print(f" Actions: {available_actions} → {new_available}")
+                            available_actions = new_available  # CRITICAL FIX: Update available_actions with fresh API data
+                    except ValueError as e:
+                        # Handle array comparison issues
+                        if "ambiguous" in str(e):
+                            # Convert to lists for comparison
+                            new_list = list(new_available) if hasattr(new_available, '__iter__') else new_available
+                            old_list = list(available_actions) if hasattr(available_actions, '__iter__') else available_actions
+                            if new_list != old_list:
+                                print(f" Actions: {available_actions} → {new_available}")
+                                available_actions = new_available
+                        else:
+                            raise
                     
                 # CRITICAL: Validate that action_result is a dictionary before processing
                 if not isinstance(action_result, dict):
