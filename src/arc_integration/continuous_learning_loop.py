@@ -545,7 +545,9 @@ class ContinuousLearningLoop:
         # Initialize simulation agent (optional)
         self.simulation_agent = None
         try:
-            if SIMULATION_AVAILABLE and SimulationDrivenARCAgent is not None and PredictiveCore is not None:
+            if SIMULATION_AVAILABLE and SimulationDrivenARCAgent is not None:
+                # Import PredictiveCore locally to ensure it's available
+                from core.predictive_core import PredictiveCore
                 # Create a basic predictive core first
                 predictive_core = PredictiveCore()
                 self.simulation_agent = SimulationDrivenARCAgent(
@@ -553,6 +555,8 @@ class ContinuousLearningLoop:
                     persistence_dir=str(self.save_directory / "simulation_agent")
                 )
                 print("✅ Simulation agent initialized successfully")
+            else:
+                print("⚠️  Simulation agent initialization skipped - dependencies not available")
         except Exception as e:
             print(f"⚠️  Simulation agent initialization failed: {e}")
             self.simulation_agent = None
