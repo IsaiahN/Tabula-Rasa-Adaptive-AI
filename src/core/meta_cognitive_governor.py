@@ -18,7 +18,7 @@ abstract computational cycles and algorithmic efficiency.
 import time
 import json
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from enum import Enum
@@ -256,10 +256,16 @@ class MetaCognitiveGovernor:
     
     def __init__(self, memory_capacity: int = 1000, decision_threshold: float = 0.7, adaptation_rate: float = 0.1,
                  log_file: Optional[str] = None, outcome_tracking_dir: Optional[str] = None,
-                 persistence_dir: Optional[str] = None):
+                 persistence_dir: Optional[Union[str, Path]] = None):
         self.logger = logging.getLogger(f"{__name__}.Governor")
         self.log_file = log_file
-        self.persistence_dir = Path(persistence_dir) if persistence_dir else Path("data")
+        # Handle both string and Path objects for persistence_dir
+        if persistence_dir is None:
+            self.persistence_dir = Path("data")
+        elif isinstance(persistence_dir, Path):
+            self.persistence_dir = persistence_dir
+        else:
+            self.persistence_dir = Path(persistence_dir)
         
         # Outcome tracking integration
         self.outcome_tracker = None
