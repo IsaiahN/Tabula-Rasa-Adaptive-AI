@@ -271,7 +271,7 @@ class TrainingSession:
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
-    max_actions_per_session: int = 50000  # Default action limit per game session (will be overridden by dynamic calculation)
+    max_actions_per_session: int = 25000  # Default action limit per game session (will be overridden by dynamic calculation)
     enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.DECAY_COMPRESSION
     enable_salience_comparison: bool = False
@@ -616,8 +616,8 @@ class ContinuousLearningLoop:
         
         # Initialize training configuration
         self.training_config = {
-            'max_episodes_per_game': 10,
-            'max_actions_per_episode': 1000,
+            'max_episodes_per_game': 20,
+            'max_actions_per_episode': 500,
             'learning_rate': 0.01,
             'exploration_rate': 0.1
         }
