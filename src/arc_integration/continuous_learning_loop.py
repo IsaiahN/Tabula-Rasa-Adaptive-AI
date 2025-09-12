@@ -1773,6 +1773,10 @@ class ContinuousLearningLoop:
             if actions_since_change < 100:  # Recent change within last 100 actions
                 recent_progress = True
                 print(f" PROGRESS DETECTED: Meaningful change {actions_since_change} actions ago")
+                
+                # Reset avoidance scores when significant changes occur
+                if hasattr(self, 'frame_analyzer') and hasattr(self.frame_analyzer, 'reset_avoidance_scores'):
+                    self.frame_analyzer.reset_avoidance_scores("meaningful_change_detected")
         
         # 3. Low stagnation counter (not stuck)
         stagnation_actions = tracker.get('actions_without_progress', 0)
@@ -3287,6 +3291,10 @@ class ContinuousLearningLoop:
         try:
             # Use the actual FrameAnalyzer API
             analysis_results = self.frame_analyzer.analyze_frame(frame, game_id)
+            
+            # Apply decay to avoidance scores periodically
+            if hasattr(self.frame_analyzer, 'decay_avoidance_scores'):
+                self.frame_analyzer.decay_avoidance_scores()
             
             if not analysis_results:
                 return {}
