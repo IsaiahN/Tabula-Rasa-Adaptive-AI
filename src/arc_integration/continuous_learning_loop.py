@@ -404,7 +404,13 @@ class ContinuousLearningLoop:
             'winning_action_sequences': [],
             'coordinate_patterns': {},
             'action_transitions': {},
-            'action_learning_stats': {},
+            'action_learning_stats': {
+                'total_observations': 0,
+                'pattern_confidence_threshold': 0.7,
+                'movements_tracked': 0,
+                'effects_catalogued': 0,
+                'game_contexts_learned': 0
+            },
             'action_semantic_mapping': {},
             'sequence_in_progress': [],
             'initial_actions': [],
@@ -7544,12 +7550,12 @@ class ContinuousLearningLoop:
         print(f"\n ACTION INTELLIGENCE SUMMARY")
         print("="*50)
         
-        learning_stats = self.available_actions_memory['action_learning_stats']
+        learning_stats = self.available_actions_memory.get('action_learning_stats', {})
         print(f" Global Learning Stats:")
-        print(f"   Total Observations: {learning_stats['total_observations']}")
-        print(f"   Movements Tracked: {learning_stats['movements_tracked']}")
-        print(f"   Effects Catalogued: {learning_stats['effects_catalogued']}")
-        print(f"   Game Contexts Learned: {learning_stats['game_contexts_learned']}")
+        print(f"   Total Observations: {learning_stats.get('total_observations', 0)}")
+        print(f"   Movements Tracked: {learning_stats.get('movements_tracked', 0)}")
+        print(f"   Effects Catalogued: {learning_stats.get('effects_catalogued', 0)}")
+        print(f"   Game Contexts Learned: {learning_stats.get('game_contexts_learned', 0)}")
         
         print(f"\n ACTION MAPPINGS:")
         for action, mapping in self.available_actions_memory['action_semantic_mapping'].items():
@@ -7752,6 +7758,14 @@ class ContinuousLearningLoop:
         game_id = self.available_actions_memory.get('current_game_id')
         
         # Update learning statistics
+        if 'action_learning_stats' not in self.available_actions_memory:
+            self.available_actions_memory['action_learning_stats'] = {
+                'total_observations': 0,
+                'pattern_confidence_threshold': 0.7,
+                'movements_tracked': 0,
+                'effects_catalogued': 0,
+                'game_contexts_learned': 0
+            }
         self.available_actions_memory['action_learning_stats']['total_observations'] += 1
         
         # Analyze grid movement patterns (for actions 1-5, 7)
@@ -7760,6 +7774,7 @@ class ContinuousLearningLoop:
             if movement:
                 if movement in mapping['grid_movement_patterns']:
                     mapping['grid_movement_patterns'][movement] += 1
+                    self.available_actions_memory.get('action_learning_stats', {}).setdefault('movements_tracked', 0)
                     self.available_actions_memory['action_learning_stats']['movements_tracked'] += 1
                     print(f" ACTION{action} learned movement: {movement} (total: {mapping['grid_movement_patterns'][movement]})")
         else:
@@ -7774,6 +7789,7 @@ class ContinuousLearningLoop:
                 mapping['common_effects'][effect] += 1
             else:
                 mapping['common_effects'][effect] = 1
+                self.available_actions_memory.get('action_learning_stats', {}).setdefault('effects_catalogued', 0)
                 self.available_actions_memory['action_learning_stats']['effects_catalogued'] += 1
                 print(f" ACTION{action} learned new effect: {effect}")
         
@@ -7783,6 +7799,7 @@ class ContinuousLearningLoop:
             if role:
                 if game_id not in mapping['game_specific_roles']:
                     mapping['game_specific_roles'][game_id] = {'role': role, 'confidence': 0.1}
+                    self.available_actions_memory.get('action_learning_stats', {}).setdefault('game_contexts_learned', 0)
                     self.available_actions_memory['action_learning_stats']['game_contexts_learned'] += 1
                     print(f" ACTION{action} role in {game_id}: {role}")
                 else:
@@ -7901,7 +7918,7 @@ class ContinuousLearningLoop:
         description = mapping['default_description']
         
         # Add learned behaviors if confident enough
-        confidence_threshold = self.available_actions_memory['action_learning_stats']['pattern_confidence_threshold']
+        confidence_threshold = self.available_actions_memory.get('action_learning_stats', {}).get('pattern_confidence_threshold', 0.7)
         
         # Add movement pattern info
         movements = mapping['grid_movement_patterns']
@@ -8051,7 +8068,7 @@ class ContinuousLearningLoop:
         # 1. Game-specific role bonus
         if game_id and game_id in mapping['game_specific_roles']:
             role_info = mapping['game_specific_roles'][game_id]
-            confidence_threshold = self.available_actions_memory['action_learning_stats']['pattern_confidence_threshold']
+            confidence_threshold = self.available_actions_memory.get('action_learning_stats', {}).get('pattern_confidence_threshold', 0.7)
             
             if role_info['confidence'] > confidence_threshold:
                 role_bonuses = {
@@ -12215,7 +12232,7 @@ class ContinuousLearningLoop:
                     # Extract just the key learning info
                     learned_info = action_desc.split("Learned:")[-1].strip()
                     print(f"    {learned_info[:80]}..." if len(learned_info) > 80 else f"    {learned_info}")
-                elif self.available_actions_memory['action_learning_stats']['total_observations'] > 0:
+                elif self.available_actions_memory.get('action_learning_stats', {}).get('total_observations', 0) > 0:
                     # Show basic stats
                     total_attempts = self.available_actions_memory['action_effectiveness'].get(selected_action, {}).get('attempts', 0)
                     if total_attempts > 0:
