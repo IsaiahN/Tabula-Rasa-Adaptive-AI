@@ -3316,6 +3316,14 @@ class ContinuousLearningLoop:
             print(f" Available Actions for {game_id}: {current_available}")
             self._last_available_actions[game_id] = current_available
         
+        # Create context for simulation agent
+        context = {
+            'game_id': game_id, 
+            'frame_analysis': frame_analysis,
+            'response_data': response_data,
+            'frame': response_data.get('frame') if response_data else None
+        }
+        
         # Use simulation-driven action selection if available, otherwise fallback to intelligent selection
         if self.simulation_agent:
             try:
@@ -3336,21 +3344,9 @@ class ContinuousLearningLoop:
             except Exception as e:
                 logger.warning(f"Simulation-driven action selection failed: {e}, falling back to intelligent selection")
                 # Fallback to original intelligent action selection
-                context = {
-                    'game_id': game_id, 
-                    'frame_analysis': frame_analysis,
-                    'response_data': response_data,
-                    'frame': response_data.get('frame') if response_data else None
-                }
                 selected_action = self._select_intelligent_action_with_relevance(available, context)
         else:
             # Use intelligent action selection with frame analysis context
-            context = {
-                'game_id': game_id, 
-                'frame_analysis': frame_analysis,
-                'response_data': response_data,
-                'frame': response_data.get('frame') if response_data else None  # Add actual frame data
-            }
             selected_action = self._select_intelligent_action_with_relevance(available, context)
         
         # Add to action history
