@@ -633,6 +633,7 @@ class ContinuousLearningLoop:
         # Initialize game session tracking
         self._swarm_mode_active: bool = False
         self.standalone_mode: bool = False
+        self._game_completed: bool = False
         
         # Initialize sleep state tracker
         self.sleep_state_tracker = {
@@ -6544,6 +6545,7 @@ class ContinuousLearningLoop:
         
         #  CRITICAL FIX: Set swarm mode flag to enable per-game scorecard isolation
         self._swarm_mode_active = True
+        print(f" [SWARM-FIX] Swarm mode activated for per-game scorecard isolation")
         
         swarm_results = {
             'mode': 'swarm',
@@ -6627,7 +6629,20 @@ class ContinuousLearningLoop:
         self._swarm_mode_active = False
         print(f" [SWARM-FIX] Swarm mode deactivated, scorecard isolation disabled")
         
+        # Reset game completion tracking
+        if hasattr(self, '_game_completed'):
+            self._game_completed = False
+        
         return swarm_results
+    
+    def _mark_game_completed(self, game_id: str) -> None:
+        """Mark a game as completed for proper scorecard lifecycle management."""
+        self._game_completed = True
+        print(f" [GAME-COMPLETE] Game {game_id} marked as completed")
+    
+    def _reset_game_completion(self) -> None:
+        """Reset game completion flag when starting a new game."""
+        self._game_completed = False
     
     def _learn_from_action_outcome(self, game_id: str, action_number: int, x: Optional[int], y: Optional[int], 
                                  response_data: Dict[str, Any], before_state: Dict[str, Any], 
@@ -6814,6 +6829,11 @@ class ContinuousLearningLoop:
                 try:
                     # Run the enhanced mastery session with detailed logging
                     logger.info(f" Starting episode {episode_count}/{max_episodes} for {game_id}")
+                    
+                    # Reset game completion flag for new episode
+                    if episode_count == 1:
+                        self._reset_game_completion()
+                    
                     episode_result = await self._run_real_arc_mastery_session_enhanced(
                         game_id, episode_count
                     )
@@ -6878,6 +6898,9 @@ class ContinuousLearningLoop:
                 last_episode = game_results['episodes'][-1]
                 logger.info(f" Completed training on {game_id} - Final Score: {last_episode.get('final_score', 0)} | "
                         f"Episodes: {len(game_results['episodes'])} | Errors: {game_results['error_count']}")
+                
+                # Mark game as completed for proper scorecard lifecycle management
+                self._mark_game_completed(game_id)
             else:
                 logger.warning(f" No successful episodes for {game_id} - {game_results['error_count']} errors")
             
@@ -12655,27 +12678,63 @@ class ContinuousLearningLoop:
             
             # Session complete - handle scorecard cleanup based on mode and creation status
             if hasattr(self, 'current_scorecard_id') and self.current_scorecard_id:
-                # Determine if we should close the scorecard
+                # Determine if we should close the scorecard - be more conservative
                 should_close_scorecard = False
+                close_reason = ""
                 
-                # Close if we're in swarm mode (per-game scorecards)
+                # Track scorecard usage
+                if not hasattr(self, '_scorecard_usage_tracker'):
+                    self._scorecard_usage_tracker = {
+                        'created_at': time.time(),
+                        'games_used': set(),
+                        'actions_taken': 0,
+                        'sessions_completed': 0
+                    }
+                
+                # Update usage tracking
+                self._scorecard_usage_tracker['games_used'].add(game_id)
+                self._scorecard_usage_tracker['sessions_completed'] = session_count
+                
+                # Only close scorecards in very specific circumstances
+                
+                # 1. Close if we're explicitly in swarm mode AND this is the end of a game
                 if hasattr(self, '_swarm_mode_active') and self._swarm_mode_active:
+                    # Only close at the end of a complete game, not during gameplay
+                    if hasattr(self, '_game_completed') and self._game_completed:
+                        should_close_scorecard = True
+                        close_reason = f"Swarm mode: Game {game_id} completed"
+                        print(f" [SCORECARD] {close_reason}")
+                
+                # 2. Close if we've used this scorecard for too many games (prevent memory issues)
+                elif len(self._scorecard_usage_tracker['games_used']) >= 20:
                     should_close_scorecard = True
-                    print(f" Swarm mode: Closing scorecard {self.current_scorecard_id} for {game_id}...")
+                    close_reason = f"Scorecard limit reached: {len(self._scorecard_usage_tracker['games_used'])} games"
+                    print(f" [SCORECARD] {close_reason}")
                 
-                # Don't close scorecards just because we created them - keep them for reuse
-                # Only close in specific circumstances like swarm mode or final session
-                
-                # Close if this is the final session or we want to start completely fresh
-                elif session_count >= 100:  # Close after 100 sessions to start fresh
+                # 3. Close if this is the final session (very high session count)
+                elif session_count >= 500:  # Increased threshold from 100 to 500
                     should_close_scorecard = True
-                    print(f" Fresh start: Closing scorecard {self.current_scorecard_id} after {session_count} sessions...")
+                    close_reason = f"Session limit reached: {session_count} sessions"
+                    print(f" [SCORECARD] {close_reason}")
                 
-                # Close if we're explicitly clearing sessions (e.g., switching games)
+                # 4. Close if we're explicitly clearing sessions (e.g., switching games)
                 elif hasattr(self, '_force_scorecard_close') and self._force_scorecard_close:
                     should_close_scorecard = True
-                    print(f" Forced close: Closing scorecard {self.current_scorecard_id}...")
+                    close_reason = "Forced close requested"
+                    print(f" [SCORECARD] {close_reason}")
                     self._force_scorecard_close = False  # Reset the flag
+                
+                # 5. Close if scorecard is very old (prevent stale scorecards)
+                elif time.time() - self._scorecard_usage_tracker['created_at'] > 3600:  # 1 hour
+                    should_close_scorecard = True
+                    close_reason = f"Scorecard expired: {int(time.time() - self._scorecard_usage_tracker['created_at'])}s old"
+                    print(f" [SCORECARD] {close_reason}")
+                
+                # Log the decision
+                if should_close_scorecard:
+                    print(f" [SCORECARD] Closing scorecard {self.current_scorecard_id} - {close_reason}")
+                else:
+                    print(f" [SCORECARD] Keeping scorecard {self.current_scorecard_id} active (games: {len(self._scorecard_usage_tracker['games_used'])}, sessions: {session_count})")
                 
                 if should_close_scorecard:
                     try:
