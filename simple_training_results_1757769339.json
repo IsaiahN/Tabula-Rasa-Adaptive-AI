@@ -1,0 +1,42 @@
+{
+  "summary": {
+    "total_sessions": 5,
+    "successful_sessions": 0,
+    "failed_sessions": 5,
+    "success_rate": 0.0,
+    "total_duration_hours": 0.012291964093844096,
+    "average_duration_seconds": 8.85021414756775
+  },
+  "detailed_results": [
+    {
+      "session_id": 1,
+      "return_code": 1,
+      "duration": 8.946156978607178,
+      "success": false
+    },
+    {
+      "session_id": 2,
+      "return_code": 1,
+      "duration": 8.409021139144897,
+      "success": false
+    },
+    {
+      "session_id": 3,
+      "return_code": 1,
+      "duration": 9.237002611160278,
+      "success": false
+    },
+    {
+      "session_id": 4,
+      "return_code": 1,
+      "duration": 8.477744817733765,
+      "success": false
+    },
+    {
+      "session_id": 5,
+      "return_code": 1,
+      "duration": 9.181145191192627,
+      "success": false
+    }
+  ]
+}
