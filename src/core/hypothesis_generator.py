@@ -16,6 +16,7 @@ import numpy as np
 from .simulation_models import (
     SimulationHypothesis, SimulationContext, HypothesisType
 )
+from .detrimental_path_tracker import DetrimentalPathTracker
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,9 @@ class SimulationHypothesisGenerator:
     Transforms the Architect from parameter tweaker to imagination engine.
     """
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None, detrimental_tracker: Optional[DetrimentalPathTracker] = None):
         self.config = config or {}
+        self.detrimental_tracker = detrimental_tracker
         
         # Hypothesis generation weights
         self.visual_weight = self.config.get('visual_hypothesis_weight', 0.3)
@@ -54,6 +56,48 @@ class SimulationHypothesisGenerator:
         }
         
         logger.info("Simulation Hypothesis Generator initialized")
+    
+    def _filter_detrimental_hypotheses(self, 
+                                     hypotheses: List[SimulationHypothesis],
+                                     context: SimulationContext) -> List[SimulationHypothesis]:
+        """
+        Filter out hypotheses that contain known detrimental patterns.
+        
+        Args:
+            hypotheses: List of generated hypotheses
+            context: Current simulation context
+            
+        Returns:
+            Filtered list of hypotheses with detrimental patterns removed
+        """
+        if not self.detrimental_tracker:
+            return hypotheses
+        
+        filtered_hypotheses = []
+        avoided_count = 0
+        
+        for hypothesis in hypotheses:
+            # Check if hypothesis action sequence should be avoided
+            should_avoid, confidence, reason = self.detrimental_tracker.should_avoid_sequence(
+                hypothesis.action_sequence, context.current_state
+            )
+            
+            if should_avoid and confidence > 0.6:
+                # Avoid this hypothesis due to detrimental patterns
+                avoided_count += 1
+                logger.debug(f"Avoiding hypothesis '{hypothesis.name}' due to detrimental patterns: {reason}")
+            else:
+                # Apply penalty to priority if pattern has some detrimental history
+                if confidence > 0.3:
+                    hypothesis.priority *= (1.0 - confidence * 0.5)  # Reduce priority by up to 50%
+                    logger.debug(f"Reduced priority for hypothesis '{hypothesis.name}' due to partial detrimental history")
+                
+                filtered_hypotheses.append(hypothesis)
+        
+        if avoided_count > 0:
+            logger.info(f"Filtered out {avoided_count} detrimental hypotheses, {len(filtered_hypotheses)} remaining")
+        
+        return filtered_hypotheses
     
     def generate_simulation_hypotheses(self, 
                                      context: SimulationContext,
@@ -87,6 +131,10 @@ class SimulationHypothesisGenerator:
         # Add strategy-based hypotheses if we have successful patterns
         if context.success_history:
             hypotheses.extend(self._generate_strategy_hypotheses(context))
+        
+        # Filter out detrimental patterns if tracker is available
+        if self.detrimental_tracker:
+            hypotheses = self._filter_detrimental_hypotheses(hypotheses, context)
         
         # Sort by priority and return top hypotheses
         hypotheses.sort(key=lambda h: h.priority, reverse=True)
