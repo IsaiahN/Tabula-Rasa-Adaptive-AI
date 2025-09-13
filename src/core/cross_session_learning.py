@@ -563,25 +563,69 @@ class CrossSessionLearningManager:
             # Use string path for Windows compatibility
             absolute_path = str(patterns_file.absolute())
             
-            # Try to save with file locking protection
-            max_retries = 3
+            # Check if file is being used by another process
+            if os.path.exists(absolute_path):
+                try:
+                    # Try to open the file in append mode to check if it's locked
+                    with open(absolute_path, 'ab') as f:
+                        pass
+                except (OSError, PermissionError) as e:
+                    self.logger.warning(f"File appears to be locked by another process: {e}")
+                    # Try to wait a bit and retry
+                    time.sleep(1.0)
+            
+            # Try to save with file locking protection and access denied handling
+            max_retries = 5
             for attempt in range(max_retries):
                 try:
                     # Use atomic write: write to temp file first, then move
-                    temp_path = absolute_path + f".tmp_{os.getpid()}_{attempt}"
+                    temp_path = absolute_path + f".tmp_{os.getpid()}_{attempt}_{int(time.time())}"
+                    
+                    # Try to write to temp file
                     with open(temp_path, 'wb') as f:
                         pickle.dump(persistent_patterns, f)
                     
-                    # Atomic move (works on Windows)
+                    # Try to remove existing file if it exists
                     if os.path.exists(absolute_path):
-                        os.remove(absolute_path)
-                    os.rename(temp_path, absolute_path)
+                        try:
+                            os.remove(absolute_path)
+                        except (OSError, PermissionError):
+                            # If we can't remove the existing file, try to rename it
+                            backup_path = absolute_path + f".backup_{int(time.time())}"
+                            try:
+                                os.rename(absolute_path, backup_path)
+                            except (OSError, PermissionError):
+                                # If we can't rename either, just continue with the temp file
+                                pass
+                    
+                    # Atomic move (works on Windows)
+                    try:
+                        os.rename(temp_path, absolute_path)
+                    except (OSError, PermissionError):
+                        # If atomic move fails, try copy and delete
+                        import shutil
+                        shutil.copy2(temp_path, absolute_path)
+                        os.remove(temp_path)
+                    
                     break
                     
                 except (OSError, PermissionError) as e:
                     if attempt == max_retries - 1:
-                        raise e
-                    time.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                        # Final fallback: save to a different location
+                        fallback_path = absolute_path + f".fallback_{int(time.time())}"
+                        try:
+                            with open(fallback_path, 'wb') as f:
+                                pickle.dump(persistent_patterns, f)
+                            self.logger.warning(f"Saved patterns to fallback location: {fallback_path}")
+                            break
+                        except Exception as fallback_error:
+                            self.logger.error(f"All save attempts failed. Final error: {fallback_error}")
+                            raise e
+                    
+                    # Wait longer between retries for access denied errors
+                    wait_time = 0.5 * (2 ** attempt)  # Exponential backoff: 0.5, 1.0, 2.0, 4.0 seconds
+                    self.logger.warning(f"Save attempt {attempt + 1} failed: {e}. Retrying in {wait_time:.1f}s...")
+                    time.sleep(wait_time)
                     continue
                 
             self.logger.debug(f"Saved {len(persistent_patterns)} patterns to disk at {absolute_path}")

@@ -2952,6 +2952,14 @@ class ContinuousLearningLoop:
             stats = action_effectiveness[action_number]
             stats['attempts'] += 1
             
+            # Ensure all required keys exist in stats
+            if 'frame_changes' not in stats:
+                stats['frame_changes'] = 0
+            if 'movement_detected' not in stats:
+                stats['movement_detected'] = 0
+            if 'score_changes' not in stats:
+                stats['score_changes'] = 0
+            
             # Count frame changes as positive indicators
             if frame_changed and isinstance(frame_changed, dict):
                 stats['frame_changes'] += 1
