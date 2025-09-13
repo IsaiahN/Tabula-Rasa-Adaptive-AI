@@ -103,14 +103,10 @@ class FrameAnalyzer:
                 arr = frame.copy()
             else:
                 # If wrapped in an extra list: [[row1,row2,...]]
-                # Use a canonical local normalization to handle wrapped frames ([[rows]]) and flat lists
-                try:
-                    arr_local, (w_local, h_local) = self._normalize_local_frame(frame)
-                    if arr_local is None:
-                        return np.zeros((64, 64), dtype=int)
-                    arr = arr_local
-                except Exception:
-                    return np.zeros((64, 64), dtype=int)
+                # Handle wrapped frames by extracting the inner list
+                if isinstance(frame, list) and len(frame) > 0 and isinstance(frame[0], list):
+                    # Unwrap: [[row1, row2, ...]] -> [row1, row2, ...]
+                    arr = np.array(frame[0])
                 else:
                     arr = np.array(frame)
 
