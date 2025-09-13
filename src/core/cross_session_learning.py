@@ -562,8 +562,27 @@ class CrossSessionLearningManager:
             
             # Use string path for Windows compatibility
             absolute_path = str(patterns_file.absolute())
-            with open(absolute_path, 'wb') as f:
-                pickle.dump(persistent_patterns, f)
+            
+            # Try to save with file locking protection
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    # Use atomic write: write to temp file first, then move
+                    temp_path = absolute_path + f".tmp_{os.getpid()}_{attempt}"
+                    with open(temp_path, 'wb') as f:
+                        pickle.dump(persistent_patterns, f)
+                    
+                    # Atomic move (works on Windows)
+                    if os.path.exists(absolute_path):
+                        os.remove(absolute_path)
+                    os.rename(temp_path, absolute_path)
+                    break
+                    
+                except (OSError, PermissionError) as e:
+                    if attempt == max_retries - 1:
+                        raise e
+                    time.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                    continue
                 
             self.logger.debug(f"Saved {len(persistent_patterns)} patterns to disk at {absolute_path}")
         except Exception as e:

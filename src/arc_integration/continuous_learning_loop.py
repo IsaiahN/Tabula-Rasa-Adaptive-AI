@@ -2946,6 +2946,9 @@ class ContinuousLearningLoop:
                     'frame_changes': 0, 'movement_detected': 0, 'score_changes': 0
                 }
             
+            # Ensure the action_effectiveness is stored back in memory
+            self.available_actions_memory['action_effectiveness'] = action_effectiveness
+            
             stats = action_effectiveness[action_number]
             stats['attempts'] += 1
             
