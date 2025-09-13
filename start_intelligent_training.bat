@@ -9,12 +9,21 @@ echo Mode: Intelligent parallel with dynamic resource optimization
 echo Features: RAM-aware scaling, CPU optimization, adaptive learning
 echo.
 
-REM Check if API key is set
+REM Load API key from .env file if not already set
 if "%ARC_API_KEY%"=="" (
-    echo ❌ ERROR: ARC_API_KEY environment variable is not set!
+    echo 🔍 Loading API key from .env file...
+    for /f "usebackq tokens=1,2 delims==" %%a in ("%cd%\.env") do (
+        if "%%a"=="ARC_API_KEY" set ARC_API_KEY=%%b
+    )
+)
+
+REM Check if API key is now available
+if "%ARC_API_KEY%"=="" (
+    echo ❌ ERROR: ARC_API_KEY not found in environment or .env file!
     echo.
-    echo Please set your API key first:
-    echo   set ARC_API_KEY=your_api_key_here
+    echo Please either:
+    echo 1. Set the environment variable: set ARC_API_KEY=your_api_key_here
+    echo 2. Or add it to your .env file: ARC_API_KEY=your_api_key_here
     echo.
     echo Then run this script again.
     echo.
@@ -22,7 +31,7 @@ if "%ARC_API_KEY%"=="" (
     exit /b 1
 )
 
-echo ✅ API key found: %ARC_API_KEY:~0,8%...%ARC_API_KEY:~-4%
+echo ✅ API key loaded: %ARC_API_KEY:~0,8%...%ARC_API_KEY:~-4%
 echo.
 
 REM Set environment variables for optimal performance
@@ -31,7 +40,7 @@ set PYTHONIOENCODING=utf-8
 
 REM Test API connection first
 echo 🔍 Testing API connection...
-python test_api_connection.py
+python tests/test_api_connection.py
 if errorlevel 1 (
     echo.
     echo ❌ API connection test failed!
