@@ -267,6 +267,9 @@ class MetaCognitiveGovernor:
         else:
             self.persistence_dir = Path(persistence_dir)
         
+        # Initialize log rotation
+        self._init_log_rotation()
+        
         # Outcome tracking integration
         self.outcome_tracker = None
         if outcome_tracking_dir:
@@ -1410,6 +1413,116 @@ class MetaCognitiveGovernor:
             result['error'] = str(e)
         
         return result
+    
+    def _init_log_rotation(self):
+        """Initialize log rotation system."""
+        try:
+            from src.utils.log_rotation import LogRotator
+            from src.config.log_config import LogConfig
+            self.log_rotator = LogRotator(self.logger)
+            self.log_config = LogConfig()
+            self.logger.info("Log rotation system initialized")
+        except ImportError as e:
+            self.logger.warning(f"Log rotation not available: {e}")
+            self.log_rotator = None
+            self.log_config = None
+    
+    def rotate_logs(self, max_lines: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Rotate log files to keep them manageable.
+        
+        Args:
+            max_lines: Maximum lines to keep (uses config default if None)
+            
+        Returns:
+            Dictionary with rotation results
+        """
+        if not self.log_rotator:
+            return {"error": "Log rotation not available"}
+        
+        try:
+            max_lines = max_lines or self.log_config.get_max_lines()
+            success = self.log_rotator.rotate_all_logs(max_lines)
+            
+            if success:
+                stats = self.log_rotator.get_log_stats()
+                self.logger.info(f"Log rotation completed successfully. Max lines: {max_lines}")
+                return {
+                    "success": True,
+                    "max_lines": max_lines,
+                    "stats": stats
+                }
+            else:
+                return {"success": False, "error": "Log rotation failed"}
+                
+        except Exception as e:
+            self.logger.error(f"Error during log rotation: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def cleanup_logs_on_new_game(self, game_id: str) -> Dict[str, Any]:
+        """
+        Clean up logs when a new game starts.
+        This is called by the Governor to maintain log file sizes.
+        
+        Args:
+            game_id: The new game ID
+            
+        Returns:
+            Dictionary with cleanup results
+        """
+        if not self.log_rotator:
+            return {"error": "Log rotation not available"}
+        
+        try:
+            # Check if logs need rotation
+            needs_rotation = (
+                self.log_rotator.should_rotate(self.log_config.MASTER_ARC_TRAINER_LOG) or
+                self.log_rotator.should_rotate(self.log_config.MASTER_ARC_TRAINER_OUTPUT_LOG)
+            )
+            
+            if needs_rotation:
+                self.logger.info(f"New game {game_id} started - rotating logs")
+                return self.rotate_logs()
+            else:
+                self.logger.debug(f"New game {game_id} started - logs within limits")
+                return {"success": True, "action": "no_rotation_needed"}
+                
+        except Exception as e:
+            self.logger.error(f"Error during log cleanup for game {game_id}: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def set_log_line_limit(self, max_lines: int) -> bool:
+        """
+        Set the maximum number of lines per log file.
+        
+        Args:
+            max_lines: New maximum line limit
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            if self.log_config:
+                self.log_config.set_max_lines(max_lines)
+                self.logger.info(f"Log line limit set to {max_lines}")
+                return True
+            else:
+                self.logger.error("Log configuration not available")
+                return False
+        except Exception as e:
+            self.logger.error(f"Error setting log line limit: {e}")
+            return False
+    
+    def get_log_stats(self) -> Dict[str, Any]:
+        """Get current log file statistics."""
+        if not self.log_rotator:
+            return {"error": "Log rotation not available"}
+        
+        try:
+            return self.log_rotator.get_log_stats()
+        except Exception as e:
+            self.logger.error(f"Error getting log stats: {e}")
+            return {"error": str(e)}
     
     def create_architect_request(self, issue_type: str, 
                                problem_description: str,

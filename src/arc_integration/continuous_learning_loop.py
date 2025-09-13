@@ -2203,6 +2203,14 @@ class ContinuousLearningLoop:
             Session data with GUID if successful, None if failed
         """
         try:
+            # Clean up logs when starting a new game (if Governor is available)
+            if hasattr(self, 'governor') and self.governor:
+                try:
+                    cleanup_result = self.governor.cleanup_logs_on_new_game(game_id)
+                    if cleanup_result.get('success') and cleanup_result.get('action') == 'rotated':
+                        logger.info(f"Logs rotated for new game {game_id}")
+                except Exception as e:
+                    logger.warning(f"Log cleanup failed for game {game_id}: {e}")
             # Step 1: Open a scorecard if we don't have one
             if not self.current_scorecard_id:
                 scorecard_result = await self._open_scorecard()
