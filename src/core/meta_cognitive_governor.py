@@ -771,9 +771,9 @@ class MetaCognitiveGovernor:
                 self._archive_cleanup_counter = 0
             self._archive_cleanup_counter += 1
             
-            # Clean archives based on configuration
+            # Clean archives based on configuration - be more aggressive for testing
             should_clean_archives = (
-                self._archive_cleanup_counter % self.archive_cleanup_config['cleanup_frequency'] == 0 or 
+                self._archive_cleanup_counter % max(1, self.archive_cleanup_config['cleanup_frequency']) == 0 or 
                 not hasattr(self, '_last_archive_cleanup') or 
                 (time.time() - getattr(self, '_last_archive_cleanup', 0)) > self.archive_cleanup_config['max_cleanup_interval']
             )
