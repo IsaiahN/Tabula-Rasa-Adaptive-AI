@@ -155,6 +155,13 @@ class ArchitectEvolutionEngine:
             self.evolution_strategies.extend(new_strategies)
             
             logger.info(f"🏗️ Generated {len(new_strategies)} new evolution strategies")
+            
+            # If no high-confidence insights, generate basic strategies for testing
+            if len(new_strategies) == 0 and len(new_insights) > 0:
+                logger.info("🔄 No high-confidence insights found, generating basic evolution strategies")
+                basic_strategies = self._generate_basic_evolution_strategies(new_insights)
+                self.evolution_strategies.extend(basic_strategies)
+                logger.info(f"🏗️ Generated {len(basic_strategies)} basic evolution strategies")
         
         # CRITICAL FIX: Save evolution state after analysis
         try:
@@ -541,6 +548,60 @@ class ArchitectEvolutionEngine:
                     "test_pattern_recognition_enhancement",
                     "test_cluster_intelligence_improvement", 
                     "test_system_integration_stability"
+                ]
+            )
+            strategies.append(strategy)
+        
+        return strategies
+    
+    def _generate_basic_evolution_strategies(
+        self, 
+        insights: List[ArchitecturalInsight]
+    ) -> List[EvolutionStrategy]:
+        """Generate basic evolution strategies from any insights, even low-confidence ones."""
+        strategies = []
+        
+        # Generate a basic strategy for any insight with confidence > 0.3
+        basic_insights = [i for i in insights if i.confidence >= 0.3]
+        
+        for insight in basic_insights:
+            strategy = EvolutionStrategy(
+                strategy_id=f"basic_{insight.insight_type}_{int(time.time())}",
+                strategy_type="incremental",
+                target_subsystems=[insight.insight_type.replace("_", "_system")],
+                evolution_steps=[
+                    {
+                        "step": 1,
+                        "action": f"analyze_{insight.insight_type}",
+                        "duration": 30,
+                        "validation": f"{insight.insight_type}_analysis_complete"
+                    },
+                    {
+                        "step": 2,
+                        "action": f"implement_{insight.insight_type}_improvements",
+                        "duration": 120,
+                        "validation": f"{insight.insight_type}_improvements_deployed"
+                    }
+                ],
+                success_metrics={
+                    "basic_improvement": 0.05,
+                    "system_stability": 0.95
+                },
+                expected_impact=insight.expected_impact,
+                rollback_plan=[
+                    f"Restore previous {insight.insight_type} configuration",
+                    f"Validate system stability after {insight.insight_type} rollback"
+                ],
+                risk_assessment={
+                    "system_instability": 0.10,
+                    "performance_regression": 0.05,
+                    "compatibility_issues": 0.15
+                },
+                estimated_duration=150.0,
+                prerequisite_insights=[insight.insight_id],
+                validation_tests=[
+                    f"test_{insight.insight_type}_improvement",
+                    "test_system_stability_post_evolution"
                 ]
             )
             strategies.append(strategy)

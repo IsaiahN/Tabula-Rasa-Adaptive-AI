@@ -1100,13 +1100,40 @@ class SandboxTester:
         return improvement
     
     async def _cleanup_sandbox(self, sandbox_path: Path):
-        """Clean up sandbox environment."""
+        """Clean up sandbox environment with improved error handling."""
         try:
             if sandbox_path.exists():
-                shutil.rmtree(sandbox_path)
+                # Force remove any read-only files on Windows
+                if os.name == 'nt':  # Windows
+                    for root, dirs, files in os.walk(sandbox_path, topdown=False):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            try:
+                                os.chmod(file_path, 0o777)  # Make writable
+                            except:
+                                pass
+                        for dir in dirs:
+                            dir_path = os.path.join(root, dir)
+                            try:
+                                os.chmod(dir_path, 0o777)  # Make writable
+                            except:
+                                pass
+                
+                shutil.rmtree(sandbox_path, ignore_errors=True)
                 self.logger.debug(f"🧹 Cleaned up sandbox: {sandbox_path}")
         except Exception as e:
             self.logger.warning(f"⚠️ Failed to cleanup sandbox {sandbox_path}: {e}")
+            # Try alternative cleanup method
+            try:
+                import subprocess
+                if os.name == 'nt':  # Windows
+                    subprocess.run(['rmdir', '/s', '/q', str(sandbox_path)], 
+                                 shell=True, capture_output=True)
+                else:  # Unix-like
+                    subprocess.run(['rm', '-rf', str(sandbox_path)], 
+                                 capture_output=True)
+            except Exception as e2:
+                self.logger.error(f"❌ Alternative cleanup also failed: {e2}")
 
 class Architect:
     """
@@ -1126,6 +1153,7 @@ class Architect:
         self.current_genome = self._load_current_genome()
         self.mutation_engine = MutationEngine(self.current_genome, self.logger)
         self.sandbox_tester = SandboxTester(self.base_path, self.logger)
+        self.sandbox_dir = self.base_path / "sandbox_tests"  # Make sandbox_dir accessible
         
         # Evolution state
         self.generation = 0
@@ -1146,6 +1174,18 @@ class Architect:
             self.logger.info("Architect memory management enabled")
         except ImportError:
             self.logger.warning("Meta-cognitive memory manager not available for Architect")
+        
+        # Initialize Evolution Engine integration
+        self.evolution_engine = None
+        try:
+            from .architect_evolution_engine import ArchitectEvolutionEngine
+            self.evolution_engine = ArchitectEvolutionEngine(
+                persistence_dir=str(self.base_path),
+                enable_autonomous_evolution=True
+            )
+            self.logger.info("Architect Evolution Engine integrated")
+        except ImportError as e:
+            self.logger.warning(f"Evolution Engine not available: {e}")
         
         # Git integration
         self.repo = None
@@ -1473,7 +1513,33 @@ class Architect:
         self.logger.info(f"🧬 Starting evolution cycle {self.generation}")
         
         try:
-            # Generate exploratory mutation
+            # First, try to get evolution strategies from Evolution Engine
+            evolution_strategies = []
+            if self.evolution_engine:
+                try:
+                    # Check if we should analyze Governor data for new insights
+                    if self.evolution_engine.should_analyze_governor_data():
+                        self.logger.info("🔍 Analyzing Governor data for evolution insights")
+                        # Get Governor data (simplified - in real implementation would come from Governor)
+                        governor_patterns = self._get_governor_patterns()
+                        governor_clusters = self._get_governor_clusters()
+                        memory_status = self._get_memory_status()
+                        
+                        insights = self.evolution_engine.analyze_governor_intelligence(
+                            governor_patterns, governor_clusters, memory_status
+                        )
+                        self.logger.info(f"🧠 Generated {len(insights)} architectural insights")
+                    
+                    # Execute autonomous evolution from Evolution Engine
+                    evolution_result = self.evolution_engine.execute_autonomous_evolution()
+                    if evolution_result.get('success'):
+                        self.logger.info("🚀 Evolution Engine executed autonomous evolution")
+                        return evolution_result
+                    
+                except Exception as e:
+                    self.logger.warning(f"Evolution Engine failed: {e}")
+            
+            # Fallback to traditional mutation approach
             mutation = self.mutation_engine.generate_exploratory_mutation()
             
             # Test in sandbox
@@ -1833,54 +1899,197 @@ This is an experimental change - requires review before merging.
             self.logger.warning(f"⚠️ Error checking gitignore: {e}")
     
     def perform_memory_maintenance(self, force_cleanup: bool = False) -> Dict[str, Any]:
-        """Perform memory maintenance from Architect perspective."""
-        if not self.memory_manager:
-            self.logger.warning("Memory manager not available for Architect")
-            return {"status": "unavailable"}
+        """Perform comprehensive memory and data maintenance from Architect perspective."""
+        results = {
+            "architect_maintenance_performed": False,
+            "memory_cleanup": {"status": "skipped"},
+            "evolution_data_cleanup": {"status": "skipped"},
+            "sandbox_cleanup": {"status": "skipped"},
+            "git_cleanup": {"status": "skipped"}
+        }
         
         try:
-            # Get current memory status
-            memory_status = self.memory_manager.get_memory_status()
-            
-            # Architect-specific analysis
-            architect_files_mb = 0
-            for classification, stats in memory_status["classifications"].items():
-                if classification == "critical_lossless":
-                    architect_files_mb += stats["total_size_mb"]
-            
-            results = {
-                "architect_critical_files_mb": architect_files_mb,
-                "memory_maintenance_performed": False
-            }
-            
-            # Determine if cleanup is needed
-            total_size = memory_status["total_size_mb"]
-            needs_cleanup = force_cleanup or total_size > 1500  # 1.5GB threshold
-            
-            if needs_cleanup:
-                self.logger.info(f"🧠 Architect performing memory maintenance (total: {total_size:.2f} MB)")
+            # 1. Memory manager cleanup
+            if self.memory_manager:
+                memory_status = self.memory_manager.get_memory_status()
+                total_size = memory_status.get("total_size_mb", 0)
+                needs_memory_cleanup = force_cleanup or total_size > 1500  # 1.5GB threshold
                 
-                # Perform cleanup but protect critical evolution data
-                cleanup_results = self.memory_manager.perform_garbage_collection(dry_run=False)
-                results.update(cleanup_results)
-                results["memory_maintenance_performed"] = True
-                
-                # Log evolution decision
+                if needs_memory_cleanup:
+                    self.logger.info(f"🧠 Architect performing memory maintenance (total: {total_size:.2f} MB)")
+                    cleanup_results = self.memory_manager.perform_garbage_collection(dry_run=False)
+                    results["memory_cleanup"] = cleanup_results
+                    results["architect_maintenance_performed"] = True
+            
+            # 2. Evolution data cleanup
+            if self.evolution_engine:
+                evolution_cleanup = self._cleanup_evolution_data()
+                results["evolution_data_cleanup"] = evolution_cleanup
+                if evolution_cleanup.get("files_cleaned", 0) > 0:
+                    results["architect_maintenance_performed"] = True
+            
+            # 3. Sandbox cleanup
+            sandbox_cleanup = self._cleanup_old_sandboxes()
+            results["sandbox_cleanup"] = sandbox_cleanup
+            if sandbox_cleanup.get("sandboxes_cleaned", 0) > 0:
+                results["architect_maintenance_performed"] = True
+            
+            # 4. Git cleanup (clean up old branches)
+            if self.repo and force_cleanup:
+                git_cleanup = self._cleanup_old_branches()
+                results["git_cleanup"] = git_cleanup
+                if git_cleanup.get("branches_deleted", 0) > 0:
+                    results["architect_maintenance_performed"] = True
+            
+            # Log comprehensive maintenance decision
+            if results["architect_maintenance_performed"]:
                 evolution_log = {
                     "timestamp": time.time(),
-                    "decision": "memory_maintenance",
-                    "reason": "Architect initiated memory cleanup",
-                    "files_deleted": cleanup_results["files_deleted"],
-                    "bytes_freed": cleanup_results["bytes_freed"],
-                    "critical_files_protected": cleanup_results["critical_files_protected"]
+                    "decision": "comprehensive_maintenance",
+                    "reason": "Architect initiated comprehensive data cleanup",
+                    "memory_cleanup": results["memory_cleanup"],
+                    "evolution_cleanup": results["evolution_data_cleanup"],
+                    "sandbox_cleanup": results["sandbox_cleanup"],
+                    "git_cleanup": results["git_cleanup"]
                 }
-                
                 self._log_evolution_decision(evolution_log)
             
             return results
             
         except Exception as e:
-            self.logger.error(f"Architect memory maintenance failed: {e}")
+            self.logger.error(f"Architect comprehensive maintenance failed: {e}")
+            return {"status": "failed", "error": str(e)}
+    
+    def _cleanup_evolution_data(self) -> Dict[str, Any]:
+        """Clean up old evolution data files."""
+        try:
+            evolution_dir = self.base_path / "data" / "architecture" / "evolution"
+            if not evolution_dir.exists():
+                return {"status": "no_evolution_data"}
+            
+            files_cleaned = 0
+            bytes_freed = 0
+            
+            # Clean up old evolution history (keep last 100 entries)
+            history_file = evolution_dir / "evolution_history.json"
+            if history_file.exists():
+                try:
+                    with open(history_file, 'r') as f:
+                        history_data = json.load(f)
+                    
+                    if isinstance(history_data, list) and len(history_data) > 100:
+                        # Keep only last 100 entries
+                        history_data = history_data[-100:]
+                        
+                        with open(history_file, 'w') as f:
+                            json.dump(history_data, f, indent=2)
+                        
+                        files_cleaned += 1
+                        self.logger.info(f"🧹 Trimmed evolution history to last 100 entries")
+                except Exception as e:
+                    self.logger.warning(f"Failed to cleanup evolution history: {e}")
+            
+            return {
+                "status": "completed",
+                "files_cleaned": files_cleaned,
+                "bytes_freed": bytes_freed
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Evolution data cleanup failed: {e}")
+            return {"status": "failed", "error": str(e)}
+    
+    def _cleanup_old_sandboxes(self) -> Dict[str, Any]:
+        """Clean up old sandbox directories."""
+        try:
+            if not self.sandbox_dir.exists():
+                return {"status": "no_sandboxes"}
+            
+            sandboxes_cleaned = 0
+            current_time = time.time()
+            max_age_hours = 24  # Clean up sandboxes older than 24 hours
+            
+            for sandbox_path in self.sandbox_dir.iterdir():
+                if sandbox_path.is_dir():
+                    try:
+                        # Check age of sandbox
+                        age_hours = (current_time - sandbox_path.stat().st_mtime) / 3600
+                        if age_hours > max_age_hours:
+                            # Use synchronous cleanup method
+                            try:
+                                # Force remove any read-only files on Windows
+                                if os.name == 'nt':  # Windows
+                                    for root, dirs, files in os.walk(sandbox_path, topdown=False):
+                                        for file in files:
+                                            file_path = os.path.join(root, file)
+                                            try:
+                                                os.chmod(file_path, 0o777)  # Make writable
+                                            except:
+                                                pass
+                                        for dir in dirs:
+                                            dir_path = os.path.join(root, dir)
+                                            try:
+                                                os.chmod(dir_path, 0o777)  # Make writable
+                                            except:
+                                                pass
+                                
+                                shutil.rmtree(sandbox_path, ignore_errors=True)
+                                sandboxes_cleaned += 1
+                                self.logger.debug(f"🧹 Cleaned up old sandbox: {sandbox_path.name}")
+                            except Exception as cleanup_error:
+                                self.logger.warning(f"Failed to cleanup sandbox {sandbox_path}: {cleanup_error}")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to cleanup sandbox {sandbox_path}: {e}")
+            
+            return {
+                "status": "completed",
+                "sandboxes_cleaned": sandboxes_cleaned
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Sandbox cleanup failed: {e}")
+            return {"status": "failed", "error": str(e)}
+    
+    def _cleanup_old_branches(self) -> Dict[str, Any]:
+        """Clean up old experimental and improvement branches."""
+        try:
+            if not self.repo:
+                return {"status": "no_git_repo"}
+            
+            branches_deleted = 0
+            current_time = time.time()
+            max_age_days = 7  # Delete branches older than 7 days
+            
+            # Get all local branches
+            for branch in self.repo.heads:
+                branch_name = branch.name
+                
+                # Only clean up architect-created branches
+                if not (branch_name.startswith("experimental/") or branch_name.startswith("improvement/")):
+                    continue
+                
+                try:
+                    # Check branch age
+                    branch_commit = branch.commit
+                    commit_time = branch_commit.committed_date
+                    age_days = (current_time - commit_time) / 86400
+                    
+                    if age_days > max_age_days:
+                        # Delete the branch
+                        self.repo.git.branch('-D', branch_name)
+                        branches_deleted += 1
+                        self.logger.info(f"🧹 Deleted old branch: {branch_name} (age: {age_days:.1f} days)")
+                        
+                except Exception as e:
+                    self.logger.warning(f"Failed to delete branch {branch_name}: {e}")
+            
+            return {
+                "status": "completed",
+                "branches_deleted": branches_deleted
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Git cleanup failed: {e}")
             return {"status": "failed", "error": str(e)}
     
     def _log_evolution_decision(self, decision_data: Dict[str, Any]) -> None:
@@ -1970,6 +2179,61 @@ This is an experimental change - requires review before merging.
         except Exception as e:
             self.logger.error(f"❌ Error starting training system: {e}")
             return False
+    
+    def _get_governor_patterns(self) -> Dict[str, Any]:
+        """Get Governor pattern data for Evolution Engine analysis."""
+        try:
+            # Try to get real Governor data if available
+            if hasattr(self, 'governor') and self.governor:
+                return self.governor.get_pattern_analysis()
+            
+            # Fallback to simulated data for testing
+            return {
+                "patterns_detected": 12,
+                "optimization_potential": 0.75,
+                "confidence": 0.85,
+                "pattern_types": {"temporal": 4, "spatial": 3, "semantic": 3, "causal": 2}
+            }
+        except Exception as e:
+            self.logger.warning(f"Could not get Governor patterns: {e}")
+            return {}
+    
+    def _get_governor_clusters(self) -> Dict[str, Any]:
+        """Get Governor cluster data for Evolution Engine analysis."""
+        try:
+            # Try to get real Governor data if available
+            if hasattr(self, 'governor') and self.governor:
+                return self.governor.get_cluster_analysis()
+            
+            # Fallback to simulated data for testing
+            return {
+                "clusters_created": 8,
+                "average_health": 0.92,
+                "optimization_recommendations": [f"opt_{i}" for i in range(6)],
+                "cluster_types": {"causal_chain": 2, "temporal_sequence": 2, "semantic_group": 2, "performance_cluster": 2}
+            }
+        except Exception as e:
+            self.logger.warning(f"Could not get Governor clusters: {e}")
+            return {}
+    
+    def _get_memory_status(self) -> Dict[str, Any]:
+        """Get memory system status for Evolution Engine analysis."""
+        try:
+            # Try to get real memory manager data if available
+            if self.memory_manager:
+                return self.memory_manager.get_memory_status()
+            
+            # Fallback to simulated data for testing
+            return {
+                "governor_analysis": {
+                    "efficiency_trend": "improving",
+                    "optimization_potential": 0.70,
+                    "health_status": "good"
+                }
+            }
+        except Exception as e:
+            self.logger.warning(f"Could not get memory status: {e}")
+            return {}
 
 
 # Example usage and testing
