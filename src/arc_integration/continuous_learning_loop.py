@@ -2671,18 +2671,28 @@ class ContinuousLearningLoop:
         print(f" 🔄 Reset scorecard action count - new limit: {self._max_actions_per_scorecard}")
     
     def _setup_graceful_shutdown(self):
-        """Setup signal handlers for graceful shutdown."""
+        """Setup signal handlers for graceful shutdown (only in main thread)."""
         def signal_handler(signum, frame):
             print(f"\n🛑 Received signal {signum} - initiating graceful shutdown...")
             self._force_close_all_scorecards()
             print("✅ Graceful shutdown complete - exiting safely")
             sys.exit(0)
         
-        # Register signal handlers for graceful shutdown
-        signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
-        signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
-        if hasattr(signal, 'SIGBREAK'):  # Windows
-            signal.signal(signal.SIGBREAK, signal_handler)
+        # Only setup signal handlers in the main thread
+        try:
+            import threading
+            if threading.current_thread() is threading.main_thread():
+                # Register signal handlers for graceful shutdown
+                signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+                signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
+                if hasattr(signal, 'SIGBREAK'):  # Windows
+                    signal.signal(signal.SIGBREAK, signal_handler)
+                print("✅ Graceful shutdown handlers registered")
+            else:
+                print("⚠️ Skipping signal handler setup (not in main thread)")
+        except Exception as e:
+            print(f"⚠️ Could not setup signal handlers: {e}")
+            print("⚠️ Graceful shutdown may not work properly")
     
     async def _close_scorecard(self, scorecard_id: str) -> bool:
         """
