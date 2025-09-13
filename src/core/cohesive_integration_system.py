@@ -23,6 +23,17 @@ from .governor_hypothesis_manager import GovernorHypothesisManager, SimulationHy
 from .simulation_models import SimulationContext
 from .enhanced_curiosity_system import EnhancedCuriositySystem
 from .enhanced_memory_abstraction import EnhancedMemoryAbstractionSystem, SemanticConcept
+# Import symbiosis protocol components (avoid circular imports)
+try:
+    from .recursive_self_improvement import RecursiveSelfImprovementSystem, ImprovementCycleStatus, TriggerType
+    from .governor_session_reporter import GovernorSessionReporter, SessionStatus
+except ImportError:
+    # Fallback for when symbiosis protocol is not available
+    RecursiveSelfImprovementSystem = None
+    ImprovementCycleStatus = None
+    TriggerType = None
+    GovernorSessionReporter = None
+    SessionStatus = None
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +49,11 @@ class CohesiveSystemState:
     knowledge_transfers: int
     strategy_switch_needed: bool
     system_health: float
+    # Symbiosis protocol state
+    improvement_cycles_completed: int
+    directives_executed: int
+    performance_improvement: float
+    evolution_health: float
 
 
 class CohesiveIntegrationSystem:
@@ -49,12 +65,19 @@ class CohesiveIntegrationSystem:
     exploration towards intelligent, curiosity-guided learning.
     """
     
-    def __init__(self):
+    def __init__(self, enable_symbiosis_protocol: bool = True):
         # Initialize all subsystems
         self.architect_priors = ArchitectPriorsSystem()
         self.governor_hypothesis_manager = GovernorHypothesisManager(self.architect_priors)
         self.curiosity_system = EnhancedCuriositySystem()
         self.memory_abstraction = EnhancedMemoryAbstractionSystem()
+        
+        # Initialize symbiosis protocol
+        self.enable_symbiosis_protocol = enable_symbiosis_protocol and RecursiveSelfImprovementSystem is not None
+        if self.enable_symbiosis_protocol:
+            self.recursive_improvement = RecursiveSelfImprovementSystem()
+        else:
+            self.recursive_improvement = None
         
         # Integration state
         self.current_state = CohesiveSystemState(
@@ -65,7 +88,11 @@ class CohesiveIntegrationSystem:
             semantic_concepts=0,
             knowledge_transfers=0,
             strategy_switch_needed=False,
-            system_health=1.0
+            system_health=1.0,
+            improvement_cycles_completed=0,
+            directives_executed=0,
+            performance_improvement=0.0,
+            evolution_health=1.0
         )
         
         # Decision history for learning
@@ -78,7 +105,8 @@ class CohesiveIntegrationSystem:
             'strategy_switches': 0
         }
         
-        logger.info("Cohesive Integration System initialized with all subsystems")
+        logger.info("Cohesive Integration System initialized with all subsystems" + 
+                   (" and Symbiosis Protocol" if enable_symbiosis_protocol else ""))
     
     def process_environment_update(self, 
                                  frame: np.ndarray,
@@ -378,3 +406,153 @@ class CohesiveIntegrationSystem:
             'recent_decisions': len(recent_decisions),
             'system_health': self.current_state.system_health
         }
+    
+    # ===== SYMBIOSIS PROTOCOL INTEGRATION =====
+    
+    def start_symbiosis_session(self, 
+                               session_id: str, 
+                               objectives: List[Dict[str, Any]],
+                               previous_session_id: Optional[str] = None) -> None:
+        """Start a new session with symbiosis protocol tracking."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            logger.warning("Symbiosis protocol not enabled")
+            return
+        
+        self.recursive_improvement.start_session(session_id, objectives, previous_session_id)
+        logger.info(f"Started symbiosis session {session_id}")
+    
+    def log_symbiosis_decision(self, 
+                              decision_type: str,
+                              decision_data: Dict[str, Any],
+                              result: Dict[str, Any],
+                              success: bool,
+                              confidence: float,
+                              energy_cost: float = 0.0,
+                              learning_gain: float = 0.0) -> None:
+        """Log a decision for symbiosis protocol tracking."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            return
+        
+        self.recursive_improvement.log_decision(
+            decision_type, decision_data, result, success, 
+            confidence, energy_cost, learning_gain
+        )
+    
+    def log_symbiosis_performance(self, 
+                                 performance_metrics: Dict[str, float],
+                                 system_state: Dict[str, Any]) -> None:
+        """Log performance metrics for symbiosis protocol tracking."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            return
+        
+        self.recursive_improvement.log_performance_snapshot(performance_metrics, system_state)
+        
+        # Update cohesive system state with symbiosis metrics
+        if self.recursive_improvement:
+            symbiosis_status = self.recursive_improvement.get_system_status()
+            self.current_state.improvement_cycles_completed = symbiosis_status['evolution_metrics']['total_cycles']
+            self.current_state.directives_executed = symbiosis_status['evolution_metrics']['total_directives_executed']
+            self.current_state.performance_improvement = symbiosis_status['evolution_metrics']['cumulative_performance_improvement']
+            self.current_state.evolution_health = symbiosis_status['system_health']
+    
+    def end_symbiosis_session(self, 
+                             session_status: SessionStatus = SessionStatus.COMPLETED,
+                             next_session_recommendations: List[str] = None) -> Optional[Any]:
+        """End the current symbiosis session and generate final report."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            return None
+        
+        final_report = self.recursive_improvement.end_session(session_status, next_session_recommendations)
+        logger.info(f"Ended symbiosis session with status: {session_status.value}")
+        return final_report
+    
+    def force_symbiosis_improvement_cycle(self, trigger_reason: str = "manual") -> Optional[Any]:
+        """Force an improvement cycle to run."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            logger.warning("Symbiosis protocol not enabled")
+            return None
+        
+        cycle = self.recursive_improvement.force_improvement_cycle(trigger_reason)
+        logger.info(f"Forced improvement cycle: {trigger_reason}")
+        return cycle
+    
+    def get_symbiosis_status(self) -> Dict[str, Any]:
+        """Get status of the symbiosis protocol."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            return {'enabled': False}
+        
+        return {
+            'enabled': True,
+            'system_status': self.recursive_improvement.get_system_status(),
+            'evolution_summary': self.recursive_improvement.get_evolution_summary()
+        }
+    
+    def save_symbiosis_state(self, filepath: str) -> None:
+        """Save the current symbiosis state."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            logger.warning("Symbiosis protocol not enabled")
+            return
+        
+        self.recursive_improvement.save_evolution_state(filepath)
+        logger.info(f"Symbiosis state saved to {filepath}")
+    
+    def load_symbiosis_state(self, filepath: str) -> None:
+        """Load symbiosis state from a file."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            logger.warning("Symbiosis protocol not enabled")
+            return
+        
+        self.recursive_improvement.load_evolution_state(filepath)
+        logger.info(f"Symbiosis state loaded from {filepath}")
+    
+    def _update_symbiosis_protocol(self, 
+                                  action: Tuple[int, Optional[Tuple[int, int]]],
+                                  coordinate: Optional[Tuple[int, int]],
+                                  context: Dict[str, Any],
+                                  confidence: float,
+                                  success: bool) -> None:
+        """Update symbiosis protocol with decision data."""
+        if not self.enable_symbiosis_protocol or not self.recursive_improvement:
+            return
+        
+        # Prepare decision data
+        decision_data = {
+            'action': action,
+            'coordinate': coordinate,
+            'context': context
+        }
+        
+        result = {
+            'success': success,
+            'confidence': confidence,
+            'timestamp': time.time()
+        }
+        
+        # Log the decision
+        self.log_symbiosis_decision(
+            decision_type='action_selection',
+            decision_data=decision_data,
+            result=result,
+            success=success,
+            confidence=confidence,
+            energy_cost=context.get('energy_cost', 0.0),
+            learning_gain=context.get('learning_gain', 0.0)
+        )
+        
+        # Log performance snapshot
+        performance_metrics = {
+            'curiosity_level': self.current_state.curiosity_level,
+            'boredom_level': self.current_state.boredom_level,
+            'learning_acceleration': self.current_state.learning_acceleration,
+            'system_health': self.current_state.system_health,
+            'active_hypotheses': self.current_state.active_hypotheses,
+            'semantic_concepts': self.current_state.semantic_concepts
+        }
+        
+        system_state = {
+            'cohesive_state': self.current_state.__dict__,
+            'learning_metrics': self.learning_metrics,
+            'decision_history_length': len(self.decision_history)
+        }
+        
+        self.log_symbiosis_performance(performance_metrics, system_state)
