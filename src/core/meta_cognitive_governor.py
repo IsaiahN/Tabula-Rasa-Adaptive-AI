@@ -3762,3 +3762,123 @@ if __name__ == "__main__":
     print(f"   Success rate: {status['success_rate']:.1%}")
     print(f"   Active systems: {len(status['system_efficiencies'])}")
     print(f"   Top performers: {status['top_performers']}")
+
+
+# Enhanced Game Memory Analysis Methods
+def analyze_game_context(governor, game_id: str, current_state: Dict[str, Any]) -> Dict[str, Any]:
+    """Analyze the current game context for decision making with memory integration."""
+    analysis = {
+        'game_id': game_id,
+        'timestamp': time.time(),
+        'context_analysis': {},
+        'recommendations': [],
+        'previous_wins': {},
+        'frame_comparison': {},
+        'memory_insights': {}
+    }
+    
+    # Check for previous wins in this game
+    previous_wins = check_previous_game_wins(game_id)
+    analysis['previous_wins'] = previous_wins
+    
+    # Compare current frame with previous winning frames
+    if previous_wins and 'winning_frames' in previous_wins:
+        frame_comparison = compare_frames_with_previous_wins(current_state, previous_wins)
+        analysis['frame_comparison'] = frame_comparison
+    
+    # Get memory insights for this game
+    memory_insights = get_game_memory_insights(game_id)
+    analysis['memory_insights'] = memory_insights
+    
+    # Generate recommendations based on analysis
+    if previous_wins:
+        analysis['recommendations'].append(f"Game {game_id} has {previous_wins.get('level_count', 0)} previous wins - use learned strategies")
+    
+    if frame_comparison and frame_comparison.get('similarity', 0) > 0.8:
+        analysis['recommendations'].append("Current frame similar to previous winning frame - apply known strategies")
+    
+    return analysis
+
+def check_previous_game_wins(game_id: str) -> Dict[str, Any]:
+    """Check if this game has been won before and retrieve winning data."""
+    try:
+        # Extract game prefix (e.g., 'sp80' from 'sp80-0605ab9e5b2a')
+        game_prefix = game_id.split('-')[0] if '-' in game_id else game_id
+        
+        # Check action intelligence data for this game
+        action_intel_file = f"data/action_intelligence_{game_prefix}-*.json"
+        import glob
+        matching_files = glob.glob(action_intel_file)
+        
+        if matching_files:
+            with open(matching_files[0], 'r') as f:
+                action_data = json.load(f)
+            
+            return {
+                'has_previous_wins': len(action_data.get('winning_sequences', [])) > 0,
+                'level_count': len(action_data.get('winning_sequences', [])),
+                'winning_sequences': action_data.get('winning_sequences', []),
+                'effective_actions': action_data.get('effective_actions', {}),
+                'coordinate_patterns': action_data.get('coordinate_patterns', {}),
+                'total_sessions': action_data.get('total_sessions_learned', 0),
+                'last_updated': action_data.get('last_updated', 0)
+            }
+        
+        return {'has_previous_wins': False, 'level_count': 0}
+        
+    except Exception as e:
+        print(f"Warning: Error checking previous wins for {game_id}: {e}")
+        return {'has_previous_wins': False, 'level_count': 0}
+
+def compare_frames_with_previous_wins(current_state: Dict[str, Any], previous_wins: Dict[str, Any]) -> Dict[str, Any]:
+    """Compare current frame with previous winning frames."""
+    try:
+        # Simple frame comparison based on available data
+        current_frame = current_state.get('frame', {})
+        if not current_frame:
+            return {'similarity': 0.0, 'comparison_available': False}
+        
+        # Check if we have previous winning frames to compare
+        winning_sequences = previous_wins.get('winning_sequences', [])
+        if not winning_sequences:
+            return {'similarity': 0.0, 'comparison_available': False}
+        
+        # For now, return basic similarity based on game state
+        # In a full implementation, this would do actual frame comparison
+        similarity = 0.5  # Placeholder - would be calculated from actual frame data
+        
+        return {
+            'similarity': similarity,
+            'comparison_available': True,
+            'winning_sequences_count': len(winning_sequences),
+            'recommended_actions': winning_sequences[0] if winning_sequences else []
+        }
+        
+    except Exception as e:
+        print(f"Warning: Error comparing frames: {e}")
+        return {'similarity': 0.0, 'comparison_available': False}
+
+def get_game_memory_insights(game_id: str) -> Dict[str, Any]:
+    """Get memory insights specific to this game."""
+    try:
+        # Check if we have learned patterns for this game
+        patterns_file = "data/learned_patterns.pkl"
+        if os.path.exists(patterns_file):
+            import pickle
+            with open(patterns_file, 'rb') as f:
+                patterns = pickle.load(f)
+            
+            # Filter patterns for this game
+            game_patterns = [p for p in patterns if game_id in str(p.get('game_id', ''))]
+            
+            return {
+                'has_learned_patterns': len(game_patterns) > 0,
+                'pattern_count': len(game_patterns),
+                'patterns': game_patterns[:5] if game_patterns else []  # Top 5 patterns
+            }
+        
+        return {'has_learned_patterns': False, 'pattern_count': 0}
+        
+    except Exception as e:
+        print(f"Warning: Error getting memory insights for {game_id}: {e}")
+        return {'has_learned_patterns': False, 'pattern_count': 0}
