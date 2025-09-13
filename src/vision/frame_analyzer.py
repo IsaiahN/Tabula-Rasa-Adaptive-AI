@@ -329,7 +329,7 @@ class FrameAnalyzer:
                     color_objects = self._cluster_color_positions(positions[0], positions[1], color)
                     
                     for obj_id, obj_data in color_objects.items():
-                        center_y, center_x = obj_data['centroid']
+                        center_x, center_y = obj_data['centroid']
                         object_size = obj_data['size']
                         
                         # Skip if we've already tried this exact coordinate repeatedly
@@ -2262,7 +2262,7 @@ class FrameAnalyzer:
         
         # Choose a representative location for this color (center of mass) 
         # Note: argwhere returns (row, col) which is (y, x)
-        center_y, center_x = np.mean(color_locations, axis=0).astype(int)
+        center_x, center_y = np.mean(color_locations, axis=0).astype(int)
         
         # Ensure coordinates are within bounds
         center_x = max(0, min(center_x, frame_array.shape[1] - 1))
@@ -2272,7 +2272,7 @@ class FrameAnalyzer:
         actual_color_at_target = frame_array[center_y, center_x]
         if actual_color_at_target != target_color:
             # If center of mass doesn't hit the target color, pick first occurrence
-            center_y, center_x = color_locations[0]
+            center_x, center_y = color_locations[0]
             print(f"🔧 Center of mass mismatch, using first occurrence: ({center_x},{center_y})")
         
         # PRODUCTIVITY OVERRIDE - Key user insight implementation!
