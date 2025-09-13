@@ -12,6 +12,7 @@ import pickle
 import time
 import logging
 import hashlib
+import os
 from typing import Dict, List, Any, Optional, Set, Tuple
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
@@ -531,15 +532,36 @@ class CrossSessionLearningManager:
             # Save ALL patterns, not just permanent ones (for testing and gradual learning)
             # Create a copy to avoid "dictionary changed size during iteration" error
             patterns_copy = dict(self.learned_patterns)
-            persistent_patterns = {
-                pattern_id: asdict(pattern)
-                for pattern_id, pattern in patterns_copy.items()
-            }
+            persistent_patterns = {}
             
-            with open(patterns_file, 'wb') as f:
+            # Safely convert patterns to dictionaries, handling any serialization issues
+            for pattern_id, pattern in patterns_copy.items():
+                try:
+                    pattern_dict = asdict(pattern)
+                    # Remove any problematic fields that might not be serializable
+                    if 'metadata' in pattern_dict and isinstance(pattern_dict['metadata'], dict):
+                        # Ensure metadata is serializable
+                        cleaned_metadata = {}
+                        for k, v in pattern_dict['metadata'].items():
+                            try:
+                                # Test if the value is picklable
+                                pickle.dumps(v)
+                                cleaned_metadata[k] = v
+                            except (TypeError, pickle.PicklingError):
+                                # Convert non-picklable values to strings
+                                cleaned_metadata[k] = str(v)
+                        pattern_dict['metadata'] = cleaned_metadata
+                    persistent_patterns[pattern_id] = pattern_dict
+                except Exception as pattern_error:
+                    self.logger.warning(f"Failed to serialize pattern {pattern_id}: {pattern_error}")
+                    continue
+            
+            # Use absolute path to avoid Windows path issues
+            absolute_path = patterns_file.absolute()
+            with open(absolute_path, 'wb') as f:
                 pickle.dump(persistent_patterns, f)
                 
-            self.logger.debug(f"Saved {len(persistent_patterns)} patterns to disk")
+            self.logger.debug(f"Saved {len(persistent_patterns)} patterns to disk at {absolute_path}")
         except Exception as e:
             self.logger.error(f"Failed to save learned patterns: {e}")
             self.logger.error(f"Patterns file path: {patterns_file}")
@@ -551,6 +573,31 @@ class CrossSessionLearningManager:
             self.logger.error(f"Parent dir is dir: {patterns_file.parent.is_dir()}")
             self.logger.error(f"Error type: {type(e)}")
             self.logger.error(f"Error args: {e.args}")
+            
+            # Fallback: Try saving to a temporary file first, then move it
+            try:
+                import tempfile
+                import shutil
+                
+                # Create a temporary file in the same directory
+                temp_file = patterns_file.parent / f"learned_patterns_temp_{os.getpid()}.pkl"
+                
+                # Try to save to temp file first
+                with open(temp_file, 'wb') as f:
+                    pickle.dump(persistent_patterns, f)
+                
+                # If successful, move temp file to final location
+                shutil.move(str(temp_file), str(patterns_file))
+                self.logger.info(f"Successfully saved patterns using fallback method")
+                
+            except Exception as fallback_error:
+                self.logger.error(f"Fallback save also failed: {fallback_error}")
+                # Clean up temp file if it exists
+                try:
+                    if 'temp_file' in locals() and temp_file.exists():
+                        temp_file.unlink()
+                except:
+                    pass
             
             # Try to create the directory again with more explicit error handling
             try:
