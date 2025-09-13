@@ -2923,7 +2923,7 @@ class ContinuousLearningLoop:
         else:
             return 'minor_change'
     
-    def _update_action_effectiveness(self, action_number: int, frame_changed: Dict, score_change: float):
+    def _update_action_effectiveness(self, action_number: int, frame_changed: Optional[Dict], score_change: float):
         """Update action effectiveness based on frame changes."""
         # Ensure memory is properly initialized
         self._ensure_available_actions_memory()
@@ -2942,7 +2942,7 @@ class ContinuousLearningLoop:
             stats['attempts'] += 1
             
             # Count frame changes as positive indicators
-            if frame_changed:
+            if frame_changed and isinstance(frame_changed, dict):
                 stats['frame_changes'] += 1
                 if frame_changed.get('movement_detected', False):
                     stats['movement_detected'] += 1
@@ -2958,6 +2958,10 @@ class ContinuousLearningLoop:
             
         except Exception as e:
             logger.error(f"Error updating action effectiveness: {e}")
+            logger.error(f"Action number: {action_number}")
+            logger.error(f"Frame changed type: {type(frame_changed)}")
+            logger.error(f"Frame changed value: {frame_changed}")
+            logger.error(f"Score change: {score_change}")
     
     def _reset_stagnation_counter(self, game_id: str):
         """Reset stagnation counter for a game when movement is detected."""

@@ -38,6 +38,25 @@ REM Set environment variables for optimal performance
 set PYTHONUNBUFFERED=1
 set PYTHONIOENCODING=utf-8
 
+REM Check and install required dependencies
+echo 🔍 Checking required dependencies...
+python -c "import psutil" 2>nul
+if errorlevel 1 (
+    echo ⚠️ Required dependencies not found, installing...
+    echo Installing from requirements.txt...
+    pip install -r requirements.txt
+    if errorlevel 1 (
+        echo ❌ Failed to install dependencies!
+        echo Please install them manually: pip install -r requirements.txt
+        echo.
+        pause
+        exit /b 1
+    )
+    echo ✅ Dependencies installed successfully!
+) else (
+    echo ✅ All required dependencies are available!
+)
+
 REM Test API connection first
 echo 🔍 Testing API connection...
 python tests/test_api_connection.py
