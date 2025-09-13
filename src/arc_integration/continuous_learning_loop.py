@@ -11,6 +11,7 @@ import logging
 import os
 import random
 import re
+import signal
 import sys
 import time
 import traceback
@@ -402,9 +403,16 @@ class ContinuousLearningLoop:
         self.api_key = api_key or os.getenv('ARC_API_KEY')
         self.save_directory = Path(save_directory)
         
+        # Setup graceful shutdown handlers
+        self._setup_graceful_shutdown()
+        
         # Initialize only the most basic attributes needed immediately
         self._initialized = False
         self._active_sessions = []
+        
+        # Scorecard action tracking
+        self._scorecard_action_count = 0
+        self._max_actions_per_scorecard = ActionLimits.get_max_actions_per_scorecard()
         
         # Create save directory
         self.save_directory.mkdir(parents=True, exist_ok=True)
@@ -2606,6 +2614,75 @@ class ContinuousLearningLoop:
         """Force close the current scorecard on next cleanup."""
         self._force_scorecard_close = True
         print(" Marked scorecard for forced closure")
+    
+    def _force_close_all_scorecards(self):
+        """Force close ALL active scorecards immediately."""
+        print(" 🛑 GRACEFUL SHUTDOWN: Closing all active scorecards...")
+        
+        # Close current scorecard if exists
+        if hasattr(self, 'current_scorecard_id') and self.current_scorecard_id:
+            try:
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(self._close_scorecard(self.current_scorecard_id))
+                if result:
+                    print(f" ✅ Closed current scorecard: {self.current_scorecard_id}")
+                else:
+                    print(f" ⚠️ Failed to close current scorecard: {self.current_scorecard_id}")
+                loop.close()
+            except Exception as e:
+                print(f" ❌ Error closing current scorecard: {e}")
+        
+        # Close any other active scorecards from game sessions
+        for game_id, session_data in self.current_game_sessions.items():
+            if 'scorecard_id' in session_data and session_data['scorecard_id']:
+                try:
+                    import asyncio
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    result = loop.run_until_complete(self._close_scorecard(session_data['scorecard_id']))
+                    if result:
+                        print(f" ✅ Closed scorecard for game {game_id}: {session_data['scorecard_id']}")
+                    else:
+                        print(f" ⚠️ Failed to close scorecard for game {game_id}: {session_data['scorecard_id']}")
+                    loop.close()
+                except Exception as e:
+                    print(f" ❌ Error closing scorecard for game {game_id}: {e}")
+        
+        print(" 🎯 All scorecards closed - graceful shutdown complete")
+    
+    def _check_scorecard_action_limit(self) -> bool:
+        """Check if we've exceeded the max actions per scorecard limit."""
+        if self._scorecard_action_count >= self._max_actions_per_scorecard:
+            print(f" ⚠️ SCORECARD ACTION LIMIT REACHED: {self._scorecard_action_count}/{self._max_actions_per_scorecard}")
+            return True
+        return False
+    
+    def _increment_scorecard_action_count(self):
+        """Increment the scorecard action count."""
+        self._scorecard_action_count += 1
+        if self._scorecard_action_count % 1000 == 0:  # Log every 1000 actions
+            print(f" 📊 Scorecard actions: {self._scorecard_action_count}/{self._max_actions_per_scorecard}")
+    
+    def _reset_scorecard_action_count(self):
+        """Reset the scorecard action count (when creating new scorecard)."""
+        self._scorecard_action_count = 0
+        print(f" 🔄 Reset scorecard action count - new limit: {self._max_actions_per_scorecard}")
+    
+    def _setup_graceful_shutdown(self):
+        """Setup signal handlers for graceful shutdown."""
+        def signal_handler(signum, frame):
+            print(f"\n🛑 Received signal {signum} - initiating graceful shutdown...")
+            self._force_close_all_scorecards()
+            print("✅ Graceful shutdown complete - exiting safely")
+            sys.exit(0)
+        
+        # Register signal handlers for graceful shutdown
+        signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+        signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
+        if hasattr(signal, 'SIGBREAK'):  # Windows
+            signal.signal(signal.SIGBREAK, signal_handler)
     
     async def _close_scorecard(self, scorecard_id: str) -> bool:
         """
