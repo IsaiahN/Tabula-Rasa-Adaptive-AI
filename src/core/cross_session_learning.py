@@ -557,7 +557,11 @@ class CrossSessionLearningManager:
                     continue
             
             # Use absolute path to avoid Windows path issues
-            absolute_path = patterns_file.absolute()
+            # Ensure the directory exists
+            patterns_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Use string path for Windows compatibility
+            absolute_path = str(patterns_file.absolute())
             with open(absolute_path, 'wb') as f:
                 pickle.dump(persistent_patterns, f)
                 

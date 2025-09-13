@@ -178,7 +178,15 @@ def run_parallel_training_sessions(num_sessions: int = 20, session_duration: int
     
     results = []
     
-    with ThreadPoolExecutor(max_workers=min(num_sessions, 4)) as executor:  # Limit to 4 concurrent processes for stability
+    # Use intelligent resource detection with reasonable safety limits
+    max_workers = min(num_sessions, 20)  # Cap at 20 for safety, but respect intelligent detection
+    
+    if num_sessions > max_workers:
+        print(f"⚠️ Limiting to {max_workers} concurrent workers for system stability")
+        print(f"   (Requested: {num_sessions}, Using: {max_workers})")
+        print()
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all sessions
         future_to_session = {
             executor.submit(run_single_training_session, i, session_duration): i 

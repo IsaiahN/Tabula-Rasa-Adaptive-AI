@@ -6,15 +6,4 @@
     3,
     4
   ],
-  "effective_actions": {},
-  "winning_sequences": [],
-  "coordinate_patterns": {
-    "1": {},
-    "2": {},
-    "3": {},
-    "4": {}
-  },
-  "action_transitions": {},
-  "total_sessions_learned": 1,
-  "last_updated": 1757736611.9741673
-}
+  "effective_actions": {
