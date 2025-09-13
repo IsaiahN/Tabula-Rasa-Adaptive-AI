@@ -53,3 +53,4 @@ psutil>=5.9.0
 
 # Computer Vision for frame analysis
 opencv-python>=4.8.0
+scikit-image>=0.21.0
