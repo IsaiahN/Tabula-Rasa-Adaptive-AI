@@ -1,5 +1,7 @@
-# Ignore master_trainer.log
+# Ignore large log files
 master_trainer.log
+data/logs/master_arc_trainer.log
+data/logs/master_arc_trainer_output.log
 # Environment files
 #.env
 #.env.local
@@ -43,4 +45,4 @@ debug_*.log
 
 # Temporary experiment sandboxes only
 experiments/temp/
-sandbox_tests/temp/
+sandbox_tests/temp/data/logs/*_backup.log
