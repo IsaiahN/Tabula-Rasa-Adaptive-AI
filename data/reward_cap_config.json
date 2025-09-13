@@ -1,0 +1,16 @@
+{
+  "current_caps": {
+    "productivity_multiplier": 25.0,
+    "productivity_max": 85.0,
+    "recent_gains_multiplier": 15.0,
+    "recent_gains_max": 75.0,
+    "recent_losses_multiplier": 10.0,
+    "recent_losses_max": 50.0,
+    "exploration_bonus": 17.25,
+    "movement_bonus": 20.0
+  },
+  "cap_history": [],
+  "learning_phase": "exploitation",
+  "last_adjustment": 0,
+  "action_count": 1000
+}

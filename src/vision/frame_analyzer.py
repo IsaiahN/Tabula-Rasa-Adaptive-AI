@@ -9,6 +9,31 @@ from collections import deque
 import json
 from datetime import datetime
 
+# Import the meta-learner
+try:
+    from ..core.reward_cap_meta_learner import RewardCapMetaLearner
+except ImportError:
+    try:
+        from core.reward_cap_meta_learner import RewardCapMetaLearner
+    except ImportError:
+        # Fallback for when meta-learner is not available
+        class RewardCapMetaLearner:
+            def __init__(self, *args, **kwargs):
+                pass
+            def update_performance(self, *args, **kwargs):
+                pass
+            def get_current_caps(self):
+                return type('Caps', (), {
+                    'productivity_multiplier': 25.0,
+                    'productivity_max': 100.0,
+                    'recent_gains_multiplier': 15.0,
+                    'recent_gains_max': 75.0,
+                    'recent_losses_multiplier': 10.0,
+                    'recent_losses_max': 50.0,
+                    'exploration_bonus': 15.0,
+                    'movement_bonus': 20.0
+                })()
+
 
 class FrameAnalyzer:
     """
@@ -16,7 +41,7 @@ class FrameAnalyzer:
     in ARC-AGI-3 game frames.
     """
     
-    def __init__(self):
+    def __init__(self, base_path: str = "."):
         self.previous_frame = None
         self.agent_position = None  # (x, y) coordinates
         self.frame_history = []  # Store recent frames for pattern detection
@@ -37,6 +62,10 @@ class FrameAnalyzer:
         self.color_object_tracker = {}  # Track all color objects and their movements
         self.frame_scan_history = []  # Complete frame analysis history
         self.exploration_spiral = 0  # For systematic exploration
+        
+        # Meta-learning system for dynamic caps
+        self.meta_learner = RewardCapMetaLearner(base_path=base_path)
+        self.current_caps = self.meta_learner.get_current_caps()
         self.last_successful_coords = []  # Track successful interactions
         
         # ENHANCED INTERACTION LOGGING SYSTEM
@@ -835,12 +864,12 @@ class FrameAnalyzer:
                 
                 # Calculate net productivity (positive = good, negative = bad)
                 if total_score_change > 0:
-                    # Net positive - give bonus (REDUCED MULTIPLIERS)
-                    productivity_bonus = min(total_score_change * 25, 100)  # Reduced: 25x multiplier, 100 max
+                    # Net positive - give bonus (DYNAMIC MULTIPLIERS)
+                    productivity_bonus = min(total_score_change * self.current_caps.productivity_multiplier, self.current_caps.productivity_max)
                     productivity_bonuses.append((target['x'], target['y'], productivity_bonus, total_score_change))
                 elif total_score_change < 0:
-                    # Net negative - give penalty (REDUCED MULTIPLIERS)
-                    productivity_penalty = min(abs(total_score_change) * 20, 80)  # Reduced: 20x multiplier, 80 max
+                    # Net negative - give penalty (DYNAMIC MULTIPLIERS)
+                    productivity_penalty = min(abs(total_score_change) * self.current_caps.recent_losses_multiplier, self.current_caps.recent_losses_max)
                     productivity_bonus = -productivity_penalty
                     productivity_penalties.append((target['x'], target['y'], productivity_penalty, total_score_change))
                 
@@ -853,15 +882,15 @@ class FrameAnalyzer:
                                     for attempt in recent_attempts 
                                     if attempt.get('score_change', 0) < 0)
                 
-                # Recent gains bonus (only if net positive) (REDUCED MULTIPLIERS)
+                # Recent gains bonus (only if net positive) (DYNAMIC MULTIPLIERS)
                 if recent_positive > 0:
                     recent_net = recent_positive + recent_negative  # recent_negative is already negative
                     if recent_net > 0:
-                        recent_bonus = min(recent_net * 15, 75)  # Reduced: 15x multiplier, 75 max
+                        recent_bonus = min(recent_net * self.current_caps.recent_gains_multiplier, self.current_caps.recent_gains_max)
                         productivity_bonus += recent_bonus
                         recent_gains_bonuses.append((target['x'], target['y'], recent_bonus, recent_net))
                     elif recent_net < 0:
-                        recent_penalty = min(abs(recent_net) * 10, 50)  # Reduced: 10x multiplier, 50 max
+                        recent_penalty = min(abs(recent_net) * self.current_caps.recent_losses_multiplier, self.current_caps.recent_losses_max)
                         productivity_bonus -= recent_penalty
                         recent_losses_penalties.append((target['x'], target['y'], recent_penalty, recent_net))
                 
@@ -880,17 +909,17 @@ class FrameAnalyzer:
                     elif success_count > 0 and total_score_change == 0:
                         avoidance_penalty = 20  # Light penalty for "successful" but no score gain
             
-            # MOVEMENT BONUS for objects that have moved
+            # MOVEMENT BONUS for objects that have moved (DYNAMIC)
             movement_bonus = 0
             if 'object_id' in target and target['object_id'] in self.color_object_tracker:
                 tracker = self.color_object_tracker[target['object_id']]
                 if tracker.get('movement_vector') and tracker['movement_vector'] != (0, 0):
-                    movement_bonus = 20  # Bonus for moving objects
+                    movement_bonus = self.current_caps.movement_bonus  # Dynamic bonus for moving objects
             
-            # EXPLORATION BONUS for unexplored regions
+            # EXPLORATION BONUS for unexplored regions (DYNAMIC)
             exploration_bonus = 0
             if coord_key not in self.tried_coordinates:
-                exploration_bonus = 15  # Bonus for completely new coordinates
+                exploration_bonus = self.current_caps.exploration_bonus  # Dynamic bonus for new coordinates
             
             target['priority_score'] = (
                 base_score + 
@@ -1100,6 +1129,14 @@ class FrameAnalyzer:
         
         if decayed_count > 0:
             print(f"⏰ Applied decay to {decayed_count} coordinate avoidance scores")
+    
+    def get_meta_learning_summary(self) -> Dict[str, Any]:
+        """Get meta-learning performance summary."""
+        return self.meta_learner.get_performance_summary()
+    
+    def get_current_caps(self) -> Dict[str, Any]:
+        """Get current dynamic cap configuration."""
+        return self.current_caps.to_dict()
 
     def log_action6_interaction(self, x: int, y: int, target_info: Dict[str, Any], 
                                before_state: Dict[str, Any], after_state: Dict[str, Any],
@@ -2074,6 +2111,14 @@ class FrameAnalyzer:
             'made_progress': made_progress
         }
         result['recent_attempts'].append(attempt_result)
+        
+        # Update meta-learner with performance data
+        bonus_type = "productivity" if score_change > 0 else "recent_losses" if score_change < 0 else "exploration"
+        is_exploration = coord_key not in self.tried_coordinates
+        self.meta_learner.update_performance(score_change, bonus_type, is_exploration)
+        
+        # Update current caps from meta-learner
+        self.current_caps = self.meta_learner.get_current_caps()
         
         # ENHANCED EFFECTIVENESS SCORING with penalties for stuck coordinates
         if result['try_count'] > 0:
