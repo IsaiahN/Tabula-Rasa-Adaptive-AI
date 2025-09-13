@@ -1,6 +1,6 @@
 {
   "current_caps": {
-    "productivity_multiplier": 25.0,
+    "productivity_multiplier": 27.500000000000004,
     "productivity_max": 85.0,
     "recent_gains_multiplier": 15.0,
     "recent_gains_max": 75.0,
@@ -10,7 +10,7 @@
     "movement_bonus": 20.0
   },
   "cap_history": [],
-  "learning_phase": "exploitation",
+  "learning_phase": "balanced",
   "last_adjustment": 0,
-  "action_count": 1000
+  "action_count": 1012
 }
