@@ -20,6 +20,7 @@ from .hypothesis_generator import SimulationHypothesisGenerator
 from .simulation_evaluator import SimulationEvaluator
 from .strategy_memory import StrategyMemory
 from .predictive_core import PredictiveCore
+from .detrimental_path_tracker import DetrimentalPathTracker, FailureType, SeverityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,13 @@ class SimulationAgent:
         self.predictive_core = predictive_core
         self.config = config or SimulationConfig()
         
+        # Initialize detrimental path tracker first
+        self.detrimental_tracker = DetrimentalPathTracker(
+            max_patterns=1000,
+            min_failure_rate=0.3,
+            persistence_dir=f"{persistence_dir}/detrimental_patterns"
+        )
+        
         # Initialize components
         self.hypothesis_generator = SimulationHypothesisGenerator({
             'visual_hypothesis_weight': self.config.visual_hypothesis_weight,
@@ -51,7 +59,7 @@ class SimulationAgent:
             'exploration_hypothesis_weight': self.config.exploration_hypothesis_weight,
             'energy_hypothesis_weight': self.config.energy_hypothesis_weight,
             'learning_hypothesis_weight': self.config.learning_hypothesis_weight
-        })
+        }, detrimental_tracker=self.detrimental_tracker)
         
         self.simulation_evaluator = SimulationEvaluator(self.config)
         self.strategy_memory = StrategyMemory(
@@ -61,6 +69,7 @@ class SimulationAgent:
             min_success_rate=self.config.min_strategy_success_rate,
             persistence_dir=persistence_dir
         )
+        
         
         # Simulation state
         self.current_context: Optional[SimulationContext] = None
@@ -72,8 +81,9 @@ class SimulationAgent:
         self.successful_simulations = 0
         self.strategy_hits = 0
         self.strategy_misses = 0
+        self.detrimental_avoidances = 0
         
-        logger.info("Simulation Agent initialized with imagination capabilities")
+        logger.info("Simulation Agent initialized with imagination capabilities and detrimental path tracking")
     
     def generate_action_plan(self, 
                            current_state: Dict[str, Any],
@@ -109,21 +119,31 @@ class SimulationAgent:
         relevant_strategies = self.strategy_memory.retrieve_relevant_strategies(context, max_strategies=3)
         
         if relevant_strategies and self._should_use_strategy(relevant_strategies[0], context):
-            # Use existing strategy (autopilot)
+            # Check if strategy contains detrimental patterns
             strategy = relevant_strategies[0]
-            action_item = strategy.action_sequence[0]
+            should_avoid, confidence, reason = self.detrimental_tracker.should_avoid_sequence(
+                strategy.action_sequence, context.current_state
+            )
             
-            # Handle both (action, coords) and (action, None) formats
-            if isinstance(action_item, tuple) and len(action_item) == 2:
-                action, coords = action_item
+            if should_avoid and confidence > 0.7:
+                # Strategy contains detrimental patterns, avoid it
+                self.detrimental_avoidances += 1
+                logger.debug(f"Avoiding strategy '{strategy.name}' due to detrimental patterns: {reason}")
             else:
-                action = action_item
-                coords = None
+                # Use existing strategy (autopilot)
+                action_item = strategy.action_sequence[0]
                 
-            reasoning = f"Using strategy '{strategy.name}' (success rate: {strategy.success_rate:.2f})"
-            
-            logger.debug(f"Using strategy: {strategy.name}")
-            return action, coords, reasoning
+                # Handle both (action, coords) and (action, None) formats
+                if isinstance(action_item, tuple) and len(action_item) == 2:
+                    action, coords = action_item
+                else:
+                    action = action_item
+                    coords = None
+                    
+                reasoning = f"Using strategy '{strategy.name}' (success rate: {strategy.success_rate:.2f})"
+                
+                logger.debug(f"Using strategy: {strategy.name}")
+                return action, coords, reasoning
         
         # Generate and evaluate hypotheses
         hypotheses = self.hypothesis_generator.generate_simulation_hypotheses(
@@ -141,6 +161,86 @@ class SimulationAgent:
         )
         
         return best_action, best_coords, best_reasoning
+    
+    def record_simulation_failure(self, 
+                                action_sequence: List[Tuple[int, Optional[Tuple[int, int]]]],
+                                failure_type: str,
+                                energy_loss: float = 0.0,
+                                score_loss: float = 0.0,
+                                game_id: str = "",
+                                context: Optional[Dict[str, Any]] = None):
+        """
+        Record a simulation failure for detrimental pattern learning.
+        
+        Args:
+            action_sequence: The sequence of actions that failed
+            failure_type: Type of failure that occurred
+            energy_loss: Amount of energy lost
+            score_loss: Amount of score lost
+            game_id: Current game identifier
+            context: Environmental context when failure occurred
+        """
+        # Map string failure types to enum
+        failure_type_map = {
+            'zero_progress': FailureType.ZERO_PROGRESS,
+            'energy_loss': FailureType.ENERGY_LOSS,
+            'coordinate_stuck': FailureType.COORDINATE_STUCK,
+            'prediction_error': FailureType.PREDICTION_ERROR,
+            'learning_regression': FailureType.LEARNING_REGRESSION,
+            'strategy_failure': FailureType.STRATEGY_FAILURE,
+            'simulation_failure': FailureType.SIMULATION_FAILURE
+        }
+        
+        failure_enum = failure_type_map.get(failure_type, FailureType.SIMULATION_FAILURE)
+        
+        # Calculate severity based on losses
+        severity = min(1.0, (energy_loss / 10.0) + (score_loss / 100.0))
+        
+        # Record the failure
+        pattern_id = self.detrimental_tracker.record_failure(
+            action_sequence=action_sequence,
+            failure_type=failure_enum,
+            energy_loss=energy_loss,
+            score_loss=score_loss,
+            game_id=game_id,
+            context=context
+        )
+        
+        logger.debug(f"Recorded simulation failure: {failure_type} (pattern: {pattern_id})")
+        return pattern_id
+    
+    def record_simulation_success(self, action_sequence: List[Tuple[int, Optional[Tuple[int, int]]]]):
+        """Record a successful simulation to update detrimental pattern confidence."""
+        self.detrimental_tracker.record_success(action_sequence)
+    
+    def get_detrimental_avoidance_recommendations(self, 
+                                                current_context: Dict[str, Any],
+                                                max_recommendations: int = 5) -> List[Dict[str, Any]]:
+        """Get recommendations for avoiding detrimental patterns in current context."""
+        return self.detrimental_tracker.get_avoidance_recommendations(
+            current_context, max_recommendations
+        )
+    
+    def get_imagination_status(self) -> Dict[str, Any]:
+        """Get comprehensive status of the imagination system including detrimental tracking."""
+        detrimental_metrics = self.detrimental_tracker.get_learning_metrics()
+        
+        return {
+            "imagination_active": True,
+            "stored_strategies": len(self.strategy_memory.strategies),
+            "recent_simulations": len(self.simulation_history),
+            "simulation_success_rate": (
+                self.successful_simulations / max(self.simulation_count, 1)
+            ),
+            "strategy_hit_rate": (
+                self.strategy_hits / max(self.strategy_hits + self.strategy_misses, 1)
+            ),
+            "detrimental_patterns": detrimental_metrics.get("total_patterns", 0),
+            "critical_patterns": detrimental_metrics.get("critical_patterns", 0),
+            "patterns_avoided": detrimental_metrics.get("patterns_avoided", 0),
+            "avoidance_success_rate": detrimental_metrics.get("avoidance_success_rate", 0.0),
+            "detrimental_avoidances": self.detrimental_avoidances
+        }
     
     def _simulate_and_evaluate_hypotheses(self, 
                                          hypotheses: List[SimulationHypothesis],
@@ -388,14 +488,3 @@ class SimulationAgent:
             self.strategy_memory.min_success_rate = 0.8  # Higher threshold for manual control
             logger.info("Autopilot mode disabled")
     
-    def get_imagination_status(self) -> Dict[str, Any]:
-        """Get the current status of the imagination system."""
-        
-        return {
-            'active_hypotheses': len(self.hypothesis_generator.action_patterns),
-            'stored_strategies': len(self.strategy_memory.strategies),
-            'recent_simulations': len(self.simulation_history),
-            'evaluation_accuracy': self.simulation_evaluator.get_evaluation_statistics().get('average_valence', 0.0),
-            'strategy_hit_rate': self.strategy_memory.get_strategy_statistics().get('strategy_hit_rate', 0.0),
-            'imagination_active': self.simulation_count > 0
-        }

@@ -2,14 +2,15 @@
 Learning Progress Drive - Core intrinsic motivation system.
 
 This module implements the learning progress calculation with extensive
-stability measures and validation capabilities.
+stability measures and validation capabilities, including negative outcome tracking.
 """
 
 import torch
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from collections import deque
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,8 @@ class LearningProgressDrive:
         boredom_steps: int = 500,
         lp_weight: float = 0.7,
         empowerment_weight: float = 0.3,
-        use_adaptive_weights: bool = False
+        use_adaptive_weights: bool = False,
+        enable_negative_tracking: bool = True
     ):
         self.smoothing_window = smoothing_window
         self.derivative_clamp = derivative_clamp
@@ -38,6 +40,7 @@ class LearningProgressDrive:
         self.lp_weight = lp_weight
         self.empowerment_weight = empowerment_weight
         self.use_adaptive_weights = use_adaptive_weights
+        self.enable_negative_tracking = enable_negative_tracking
         
         # Error tracking with per-modality normalization
         self.error_history = deque(maxlen=smoothing_window)
@@ -52,11 +55,19 @@ class LearningProgressDrive:
         self.lp_history = deque(maxlen=1000)
         self.empowerment_history = deque(maxlen=1000)
         
+        # Negative outcome tracking
+        self.negative_outcomes = deque(maxlen=1000)
+        self.regression_events = deque(maxlen=500)
+        self.failure_patterns = {}
+        self.negative_learning_rate = 0.1
+        
         # Validation metrics
         self.validation_metrics = {
             'signal_to_noise_ratio': 0.0,
             'stability_score': 0.0,
-            'outlier_rate': 0.0
+            'outlier_rate': 0.0,
+            'negative_outcome_rate': 0.0,
+            'regression_frequency': 0.0
         }
         
     def update_error_statistics(self, prediction_error: float):
@@ -201,6 +212,249 @@ class LearningProgressDrive:
     def reset_boredom_counter(self):
         """Reset boredom counter (called when new goals invented or complexity increases)."""
         self.low_lp_counter = 0
+    
+    def record_negative_outcome(self, 
+                              outcome_type: str,
+                              severity: float,
+                              context: Optional[Dict[str, Any]] = None,
+                              action_sequence: Optional[List[Tuple[int, Optional[Tuple[int, int]]]]] = None):
+        """
+        Record a negative outcome for learning from failures.
+        
+        Args:
+            outcome_type: Type of negative outcome (e.g., 'energy_loss', 'score_decrease', 'stuck_coordinate')
+            severity: Severity of the negative outcome (0.0 to 1.0)
+            context: Environmental context when the outcome occurred
+            action_sequence: Sequence of actions that led to the negative outcome
+        """
+        if not self.enable_negative_tracking:
+            return
+        
+        negative_outcome = {
+            'timestamp': time.time(),
+            'outcome_type': outcome_type,
+            'severity': severity,
+            'context': context or {},
+            'action_sequence': action_sequence or [],
+            'step_count': self.step_count
+        }
+        
+        self.negative_outcomes.append(negative_outcome)
+        
+        # Track failure patterns if action sequence provided
+        if action_sequence:
+            self._update_failure_patterns(action_sequence, outcome_type, severity)
+        
+        # Update validation metrics
+        self._update_negative_metrics()
+        
+        logger.debug(f"Recorded negative outcome: {outcome_type} (severity: {severity:.3f})")
+    
+    def record_learning_regression(self, 
+                                 previous_lp: float,
+                                 current_lp: float,
+                                 context: Optional[Dict[str, Any]] = None):
+        """
+        Record a learning regression (decrease in learning progress).
+        
+        Args:
+            previous_lp: Previous learning progress value
+            current_lp: Current learning progress value
+            context: Context when regression occurred
+        """
+        if not self.enable_negative_tracking:
+            return
+        
+        regression_magnitude = previous_lp - current_lp
+        
+        if regression_magnitude > 0.01:  # Only record significant regressions
+            regression_event = {
+                'timestamp': time.time(),
+                'previous_lp': previous_lp,
+                'current_lp': current_lp,
+                'regression_magnitude': regression_magnitude,
+                'context': context or {},
+                'step_count': self.step_count
+            }
+            
+            self.regression_events.append(regression_event)
+            logger.debug(f"Recorded learning regression: {regression_magnitude:.4f}")
+    
+    def get_negative_outcome_penalty(self, 
+                                   action_sequence: List[Tuple[int, Optional[Tuple[int, int]]]],
+                                   context: Optional[Dict[str, Any]] = None) -> float:
+        """
+        Get penalty for an action sequence based on negative outcome history.
+        
+        Special handling for ACTION5 (interact/select/rotate/attach/detach/execute):
+        - Reduces penalty for ACTION5 sequences that might be enabling other actions
+        - Considers context-dependent nature of ACTION5
+        
+        Returns:
+            Penalty value (0.0 to 1.0) based on historical negative outcomes
+        """
+        if not self.enable_negative_tracking or not action_sequence:
+            return 0.0
+        
+        # Check for exact sequence matches
+        sequence_key = tuple(action_sequence)
+        if sequence_key in self.failure_patterns:
+            pattern = self.failure_patterns[sequence_key]
+            base_penalty = pattern['severity'] * pattern['frequency']
+            
+            # Apply ACTION5 penalty reduction
+            if self._is_action5_sequence(action_sequence):
+                base_penalty = self._adjust_action5_penalty(base_penalty, action_sequence, context)
+            
+            return min(1.0, base_penalty)
+        
+        # Check for partial sequence matches
+        penalty = 0.0
+        for i in range(len(action_sequence)):
+            for j in range(i + 1, len(action_sequence) + 1):
+                partial_sequence = tuple(action_sequence[i:j])
+                if partial_sequence in self.failure_patterns:
+                    pattern = self.failure_patterns[partial_sequence]
+                    # Weight by sequence length and recency
+                    weight = (j - i) / len(action_sequence)
+                    partial_penalty = pattern['severity'] * pattern['frequency'] * weight
+                    
+                    # Apply ACTION5 penalty reduction for partial matches
+                    if self._is_action5_sequence(list(partial_sequence)):
+                        partial_penalty = self._adjust_action5_penalty(partial_penalty, list(partial_sequence), context)
+                    
+                    penalty += partial_penalty
+        
+        return min(1.0, penalty)
+    
+    def get_negative_learning_signal(self) -> float:
+        """
+        Get a learning signal based on negative outcomes to encourage avoidance.
+        
+        Returns:
+            Negative learning signal (0.0 to 1.0) based on recent negative outcomes
+        """
+        if not self.enable_negative_tracking or len(self.negative_outcomes) == 0:
+            return 0.0
+        
+        # Calculate recent negative outcome rate
+        recent_outcomes = list(self.negative_outcomes)[-100:]  # Last 100 outcomes
+        if len(recent_outcomes) == 0:
+            return 0.0
+        
+        # Weight by recency and severity
+        total_weight = 0.0
+        weighted_severity = 0.0
+        
+        current_time = time.time()
+        for outcome in recent_outcomes:
+            # Recency weight (more recent = higher weight)
+            age = current_time - outcome['timestamp']
+            recency_weight = max(0.0, 1.0 - (age / 3600.0))  # Decay over 1 hour
+            
+            # Severity weight
+            severity_weight = outcome['severity']
+            
+            # Combined weight
+            weight = recency_weight * severity_weight
+            weighted_severity += weight * outcome['severity']
+            total_weight += weight
+        
+        if total_weight == 0.0:
+            return 0.0
+        
+        # Normalize and apply learning rate
+        negative_signal = (weighted_severity / total_weight) * self.negative_learning_rate
+        return min(1.0, negative_signal)
+    
+    def _update_failure_patterns(self, 
+                               action_sequence: List[Tuple[int, Optional[Tuple[int, int]]]],
+                               outcome_type: str,
+                               severity: float):
+        """Update failure pattern tracking for action sequences."""
+        sequence_key = tuple(action_sequence)
+        
+        if sequence_key not in self.failure_patterns:
+            self.failure_patterns[sequence_key] = {
+                'count': 0,
+                'total_severity': 0.0,
+                'severity': 0.0,
+                'frequency': 0.0,
+                'last_seen': time.time(),
+                'outcome_types': set()
+            }
+        
+        pattern = self.failure_patterns[sequence_key]
+        pattern['count'] += 1
+        pattern['total_severity'] += severity
+        pattern['severity'] = pattern['total_severity'] / pattern['count']
+        pattern['last_seen'] = time.time()
+        pattern['outcome_types'].add(outcome_type)
+        
+        # Update frequency based on recent occurrences
+        recent_count = sum(1 for outcome in self.negative_outcomes 
+                          if outcome.get('action_sequence') == action_sequence and
+                          time.time() - outcome['timestamp'] < 3600)  # Last hour
+        pattern['frequency'] = min(1.0, recent_count / 10.0)  # Normalize to 0-1
+    
+    def _is_action5_sequence(self, action_sequence: List[Tuple[int, Optional[Tuple[int, int]]]]) -> bool:
+        """Check if the sequence contains ACTION5 (interact/select/rotate/attach/detach/execute)."""
+        return any(action == 5 for action, _ in action_sequence)
+    
+    def _adjust_action5_penalty(self, 
+                               base_penalty: float, 
+                               action_sequence: List[Tuple[int, Optional[Tuple[int, int]]]], 
+                               context: Optional[Dict[str, Any]] = None) -> float:
+        """
+        Adjust penalty for ACTION5 sequences considering their enabling nature.
+        
+        ACTION5 can enable other actions, so we reduce penalties for:
+        - ACTION5 followed by other actions (setup sequences)
+        - ACTION5 in contexts where it might be enabling
+        - Pure ACTION5 sequences that might be necessary setup
+        """
+        if not action_sequence:
+            return base_penalty
+        
+        # Check if this is a pure ACTION5 sequence
+        action5_only = all(action == 5 for action, _ in action_sequence)
+        
+        if action5_only:
+            # Pure ACTION5 sequences get significant penalty reduction
+            # They might be necessary setup actions
+            return base_penalty * 0.3  # 70% penalty reduction
+        
+        # Check if ACTION5 is followed by other actions (setup sequence)
+        action5_positions = [i for i, (action, _) in enumerate(action_sequence) if action == 5]
+        
+        for pos in action5_positions:
+            if pos < len(action_sequence) - 1:
+                # ACTION5 is not the last action - it might be enabling
+                # Reduce penalty significantly for setup sequences
+                return base_penalty * 0.4  # 60% penalty reduction
+        
+        # Check context for enabling indicators
+        if context:
+            # If context suggests ACTION5 might be enabling (e.g., interaction opportunities)
+            if context.get('interaction_opportunity', False) or context.get('has_interactive_targets', False):
+                return base_penalty * 0.5  # 50% penalty reduction
+        
+        # Default: moderate penalty reduction for ACTION5 sequences
+        return base_penalty * 0.7  # 30% penalty reduction
+    
+    def _update_negative_metrics(self):
+        """Update validation metrics related to negative outcomes."""
+        if len(self.negative_outcomes) == 0:
+            return
+        
+        # Calculate negative outcome rate
+        recent_outcomes = list(self.negative_outcomes)[-100:]
+        self.validation_metrics['negative_outcome_rate'] = len(recent_outcomes) / 100.0
+        
+        # Calculate regression frequency
+        if len(self.regression_events) > 0:
+            recent_regressions = list(self.regression_events)[-50:]
+            self.validation_metrics['regression_frequency'] = len(recent_regressions) / 50.0
         
     def _compute_adaptive_weights(self) -> Tuple[float, float]:
         """
