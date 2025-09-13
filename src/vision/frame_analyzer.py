@@ -716,7 +716,9 @@ class FrameAnalyzer:
                                 # Check if it's different from surrounding rows
                                 above = gray[y-1, x-2:x+3]
                                 below = gray[y+1, x-2:x+3]
-                                if not np.array_equal(row, above) and not np.array_equal(row, below):
+                                # Fix array ambiguity by ensuring arrays have same shape before comparison
+                                if (row.shape == above.shape and row.shape == below.shape and 
+                                    not np.array_equal(row, above) and not np.array_equal(row, below)):
                                     targets.append({
                                         'x': int(x),
                                         'y': int(y),
@@ -734,7 +736,9 @@ class FrameAnalyzer:
                                 # Check if it's different from surrounding columns
                                 left = gray[y-2:y+3, x-1]
                                 right = gray[y-2:y+3, x+1]
-                                if not np.array_equal(col, left) and not np.array_equal(col, right):
+                                # Fix array ambiguity by ensuring arrays have same shape before comparison
+                                if (col.shape == left.shape and col.shape == right.shape and 
+                                    not np.array_equal(col, left) and not np.array_equal(col, right)):
                                     targets.append({
                                         'x': int(x),
                                         'y': int(y),
