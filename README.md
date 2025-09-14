@@ -47,12 +47,12 @@ Transforms reactive AI into proactive planning:
 ### 4. **Simulation Before Action**
 - Current AI is largely reactive
 - Tabula Rasa simulates multiple futures before acting
-- Uses emotional intelligence (energy, learning drive, boredom) to evaluate outcomes
+- Uses internal drives to (energy, learning drive, boredom) to evaluate outcomes
 
 ### 5. **Hierarchical Memory with Semantic Understanding**
 - Traditional systems treat all memories equally
-- Tabula Rasa implements 5-tier memory hierarchy with breakthrough detection
-- Only preserves memories when achieving new personal bests
+- Tabula Rasa implements strategic memory decay with prioritization
+- Mainly preserves memories when achieving new personal bests
 
 ## 🚀 Quick Start
 
@@ -246,17 +246,22 @@ This project explores novel approaches to AI architecture and meta-cognition. Co
 - Autonomous evolution: Safe architectural modification
 - Testing framework: Validation and monitoring tools
 
-## 📚 Documentation
+## 📚 Future State
 
-- **Technical Documentation**: `docs/` directory
-- **Test Suite**: `tests/` directory with comprehensive testing
-- **Tools**: `tools/` directory with utility scripts
-- **Research Notes**: Various `.md` files in project root
+The next version involves integrating a Large Language Model as a "Conductor" to synthesize the cognitive subsystems into a unified "self". 
+
+This would add some missing pillars of simulated consciousness through specialized agent modules: 
+- a NarrativeEngine for internal monologue 
+- an AffectiveAgent for emotional context 
+- a DriveAgent for intrinsic motivation 
+- a SocialSimulant for cultural learning
+- a CodingAgent to help self-refactor and test core architecture 
+
+The LLM would serve as the central executive that translates technical data into context based data points, enabling proactive rather than reactive behavior to obstacles in expanded sandbox environments. 
+
+Beyond ARC AGI puzzles, this architecture could eventually operate in rich simulation environment Games with Open World Models, where the agent could develop theory of mind, negotiate with NPCs, and pursue self-generated goals based on intrinsic drives rather than external rewards. 
 
 ## 📄 License
 
 MIT License - See LICENSE file for details.
 
----
-
-**Tabula Rasa: Where meta-cognitive supervision meets autonomous evolution for adaptive AI.**
