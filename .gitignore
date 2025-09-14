@@ -50,3 +50,4 @@ data/logs/master_arc_trainer.log.tmp
 # Temporary experiment sandboxes only
 experiments/temp/
 sandbox_tests/temp/data/logs/*_backup.log
+.env
