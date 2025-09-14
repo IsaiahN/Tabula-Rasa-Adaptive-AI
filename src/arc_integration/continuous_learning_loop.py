@@ -414,6 +414,9 @@ class ContinuousLearningLoop:
         self._scorecard_action_count = 0
         self._max_actions_per_scorecard = ActionLimits.get_max_actions_per_scorecard()
         
+        # Level tracking for hierarchical pattern learning
+        self.current_level = 1
+        
         # Create save directory
         self.save_directory.mkdir(parents=True, exist_ok=True)
         
@@ -574,6 +577,7 @@ class ContinuousLearningLoop:
                 self.governor = MetaCognitiveGovernor(
                     persistence_dir=self.save_directory  # Enable pattern learning - pass Path object directly
                 )
+                print(f"✅ Governor initialized with learning manager: {hasattr(self.governor, 'learning_manager')}")
             if Architect is not None:
                 self.architect = Architect(
                     base_path=str(self.save_directory),
@@ -4326,6 +4330,9 @@ class ContinuousLearningLoop:
                         new_level = session_result.get('current_level', 1)
                         previous_best = self.game_level_records.get(game_id, {}).get('highest_level', 0)
                         
+                        # Update current level tracking for hierarchical pattern learning
+                        self.current_level = new_level
+                        
                         if new_level > previous_best:
                             print(f"🎯 LEVEL BREAKTHROUGH! {game_id} advanced from level {previous_best} to {new_level}")
                             # This is a real breakthrough - preserve with hierarchical priority
@@ -4943,13 +4950,19 @@ class ContinuousLearningLoop:
                     return 1  # Emergency fallback
         
         # 🧠 PATTERN RETRIEVAL: Get learned patterns for this context
-        pattern_recommendations = self._get_pattern_recommendations(game_id, context, available_actions)
+        if not hasattr(self, 'governor') or not self.governor:
+            print(f"🧠 NO GOVERNOR: Pattern retrieval disabled - Governor not initialized")
+            pattern_recommendations = {}
+        else:
+            pattern_recommendations = self._get_pattern_recommendations(game_id, context, available_actions)
         if pattern_recommendations:
             print(f"🧠 PATTERN RECOMMENDATIONS: {len(pattern_recommendations)} patterns found")
             # Boost scores for pattern-recommended actions
             for action, boost in pattern_recommendations.items():
                 if action in available_actions:
                     print(f"   Action {action}: +{boost:.2f} pattern boost")
+        else:
+            print(f"🧠 NO PATTERN RECOMMENDATIONS: No learned patterns found for game {game_id}")
         
         # Store pattern recommendations for use in scoring
         self._current_pattern_recommendations = pattern_recommendations
@@ -6998,6 +7011,7 @@ class ContinuousLearningLoop:
                                  after_state: Dict[str, Any]):
         """Learn patterns from action outcomes and store them for future use."""
         if not self.governor or not hasattr(self.governor, 'learning_manager') or not self.governor.learning_manager:
+            print(f"🧠 NO LEARNING MANAGER: Pattern learning disabled - Governor learning manager not initialized")
             return
         
         try:
@@ -7014,7 +7028,8 @@ class ContinuousLearningLoop:
                 'grid_size': (response_data.get('grid_width', 64), response_data.get('grid_height', 64)),
                 'game_state': game_state,
                 'score_change': score_change,
-                'available_actions': response_data.get('available_actions', [])
+                'available_actions': response_data.get('available_actions', []),
+                'current_level': getattr(self, 'current_level', 1)  # Add current level tracking
             }
             
             # Create pattern data
@@ -7024,7 +7039,9 @@ class ContinuousLearningLoop:
                 'success': success,
                 'score_change': score_change,
                 'game_state': game_state,
-                'context_hash': hash(str(sorted(context.items())))
+                'context_hash': hash(str(sorted(context.items()))),
+                'level': context.get('current_level', 1),  # Add current level to pattern data
+                'game_id': context.get('game_id', 'unknown')  # Add game ID for tracking
             }
             
             # Learn the pattern
@@ -7042,7 +7059,10 @@ class ContinuousLearningLoop:
             )
             
             if pattern_id:
+                print(f"🧠 LEARNED PATTERN: {pattern_id} for ACTION{action_number} (success: {success}, score: {1.0 if success else 0.0:.2f})")
                 logger.debug(f"🧠 Learned action pattern {pattern_id}: ACTION{action_number} {'successful' if success else 'unsuccessful'}")
+            else:
+                print(f"🧠 PATTERN LEARNING FAILED: ACTION{action_number} pattern not saved")
                 
                 # Also learn coordinate patterns for ACTION6
                 if action_number == 6 and x is not None and y is not None:
@@ -7052,7 +7072,9 @@ class ContinuousLearningLoop:
                         'y': y,
                         'success': success,
                         'score_change': score_change,
-                        'grid_size': context['grid_size']
+                        'grid_size': context['grid_size'],
+                        'level': context.get('current_level', 1),  # Add current level to coordinate patterns
+                        'game_id': context.get('game_id', 'unknown')  # Add game ID for tracking
                     }
                     
                     coord_pattern_id = self.governor.learning_manager.learn_pattern(
@@ -7070,40 +7092,46 @@ class ContinuousLearningLoop:
             logger.error(f"Error learning from action outcome: {e}")
 
     def _get_pattern_recommendations(self, game_id: str, context: Dict[str, Any], available_actions: List[int]) -> Dict[int, float]:
-        """Get pattern-based recommendations for action selection."""
+        """Get pattern-based recommendations with hierarchical level prioritization."""
         if not self.governor or not hasattr(self.governor, 'learning_manager') or not self.governor.learning_manager:
             return {}
         
         try:
             from src.core.cross_session_learning import KnowledgeType
             
+            # Get current level for proximity calculation
+            current_level = context.get('current_level', 1)
+            
             # Create context for pattern retrieval
             pattern_context = {
                 'game_id': game_id,
                 'grid_size': context.get('response_data', {}).get('grid_width', 64),
                 'available_actions': available_actions,
-                'frame_analysis': context.get('frame_analysis', {})
+                'frame_analysis': context.get('frame_analysis', {}),
+                'current_level': current_level
             }
             
-            # Get action patterns
+            # Get ALL action patterns (not limited by max_results for hierarchical analysis)
             action_patterns = self.governor.learning_manager.retrieve_applicable_patterns(
                 KnowledgeType.ACTION_PATTERN,
                 pattern_context,
-                min_confidence=0.3,
-                max_results=10
+                min_confidence=0.2,  # Lower threshold to get more patterns
+                max_results=50  # Get more patterns for hierarchical analysis
             )
             
-            # Get spatial patterns for ACTION6
+            # Get ALL spatial patterns for ACTION6
             spatial_patterns = self.governor.learning_manager.retrieve_applicable_patterns(
                 KnowledgeType.SPATIAL_PATTERN,
                 pattern_context,
-                min_confidence=0.3,
-                max_results=5
+                min_confidence=0.2,  # Lower threshold to get more patterns
+                max_results=25  # Get more patterns for hierarchical analysis
             )
+            
+            print(f"🧠 HIERARCHICAL RETRIEVAL: Found {len(action_patterns)} action patterns, {len(spatial_patterns)} spatial patterns for level {current_level}")
             
             recommendations = {}
             
-            # Process action patterns
+            # Process action patterns with hierarchical prioritization
             for pattern in action_patterns:
                 if pattern.pattern_data.get('success', False):
                     action_type = pattern.pattern_data.get('action_type', '')
@@ -7111,25 +7139,97 @@ class ContinuousLearningLoop:
                         try:
                             action_num = int(action_type.replace('ACTION', ''))
                             if action_num in available_actions:
-                                # Boost based on pattern confidence and success rate
-                                boost = pattern.confidence * pattern.success_rate * 0.5
+                                # Calculate hierarchical boost
+                                boost = self._calculate_hierarchical_boost(pattern, current_level)
                                 recommendations[action_num] = recommendations.get(action_num, 0) + boost
                         except ValueError:
                             continue
             
-            # Process spatial patterns for ACTION6
+            # Process spatial patterns for ACTION6 with hierarchical prioritization
             if 6 in available_actions:
                 for pattern in spatial_patterns:
                     if pattern.pattern_data.get('success', False):
-                        # Boost ACTION6 based on spatial pattern success
-                        boost = pattern.confidence * pattern.success_rate * 0.3
+                        # Calculate hierarchical boost for spatial patterns
+                        boost = self._calculate_hierarchical_boost(pattern, current_level) * 0.6  # Slightly lower weight for spatial
                         recommendations[6] = recommendations.get(6, 0) + boost
+            
+            # Sort recommendations by boost value and log top patterns
+            sorted_recs = sorted(recommendations.items(), key=lambda x: x[1], reverse=True)
+            if sorted_recs:
+                print(f"🧠 TOP PATTERN RECOMMENDATIONS:")
+                for action, boost in sorted_recs[:5]:  # Show top 5
+                    print(f"   ACTION{action}: +{boost:.3f} boost")
             
             return recommendations
             
         except Exception as e:
             logger.error(f"Error getting pattern recommendations: {e}")
             return {}
+
+    def _calculate_hierarchical_boost(self, pattern, current_level: int) -> float:
+        """Calculate hierarchical boost based on level proximity, efficiency, and decay."""
+        try:
+            # Get pattern level (default to 1 if not specified)
+            pattern_level = pattern.pattern_data.get('level', 1)
+            
+            # Base boost from pattern confidence and success rate
+            base_boost = pattern.confidence * pattern.success_rate
+            
+            # 1. LEVEL PROXIMITY BOOST: Closer levels get higher priority
+            level_distance = abs(current_level - pattern_level)
+            if level_distance == 0:
+                proximity_multiplier = 1.0  # Same level - highest priority
+            elif level_distance <= 2:
+                proximity_multiplier = 0.8  # Very close levels (1-2 away)
+            elif level_distance <= 5:
+                proximity_multiplier = 0.6  # Close levels (3-5 away)
+            elif level_distance <= 10:
+                proximity_multiplier = 0.4  # Medium levels (6-10 away)
+            else:
+                proximity_multiplier = 0.2  # Distant levels (11+ away)
+            
+            # 2. EFFICIENCY BOOST: Higher score changes get higher priority
+            score_change = pattern.pattern_data.get('score_change', 0)
+            if score_change > 20:
+                efficiency_multiplier = 1.2  # High efficiency
+            elif score_change > 10:
+                efficiency_multiplier = 1.0  # Medium efficiency
+            elif score_change > 5:
+                efficiency_multiplier = 0.8  # Low efficiency
+            else:
+                efficiency_multiplier = 0.6  # Very low efficiency
+            
+            # 3. LEVEL DECAY: Older levels get progressively less weight
+            # This implements the "level 15 vs level 98" prioritization you mentioned
+            if pattern_level < current_level:
+                # For levels below current, apply decay based on distance
+                decay_factor = max(0.1, 1.0 - (level_distance * 0.05))  # 5% decay per level distance
+            else:
+                # For levels above current, they're future knowledge - keep full weight
+                decay_factor = 1.0
+            
+            # 4. RECENCY BOOST: More recent patterns get slight boost
+            # This could be enhanced with timestamp tracking in the future
+            recency_multiplier = 1.0  # Placeholder for future enhancement
+            
+            # Calculate final hierarchical boost
+            hierarchical_boost = (base_boost * 
+                                proximity_multiplier * 
+                                efficiency_multiplier * 
+                                decay_factor * 
+                                recency_multiplier)
+            
+            # Debug logging for top patterns
+            if hierarchical_boost > 0.1:  # Only log significant patterns
+                print(f"   Level {pattern_level} → {current_level}: boost={hierarchical_boost:.3f} "
+                      f"(prox={proximity_multiplier:.2f}, eff={efficiency_multiplier:.2f}, "
+                      f"decay={decay_factor:.2f})")
+            
+            return hierarchical_boost
+            
+        except Exception as e:
+            logger.error(f"Error calculating hierarchical boost: {e}")
+            return 0.0
 
     def _update_action_probabilities(self):
         """Dynamically update action probabilities based on success rates and recent usage."""
@@ -10205,10 +10305,10 @@ class ContinuousLearningLoop:
             # Quick memory consolidation (shorter than post-episode sleep)
             try:
                 # Sleep system not available in ContinuousLearningLoop - skip consolidation
+                # Trigger short consolidation cycle
+                consolidation_duration = min(10, len(effective_actions) * 0.5)  # 0.5s per action
+                
                 if False:  # Disabled: hasattr(self.agent, 'sleep_system')
-                    # Trigger short consolidation cycle
-                    consolidation_duration = min(10, len(effective_actions) * 0.5)  # 0.5s per action
-                    
                     sleep_input = {
                         'effective_actions': effective_actions,
                         'consolidation_type': 'mid_game',
@@ -10217,10 +10317,11 @@ class ContinuousLearningLoop:
                     
                     # Quick memory strengthening without full sleep cycle
                     for i, action in enumerate(effective_actions):
-                        # Memory system not available in ContinuousLearningLoop - skip salience update  
-                        if False:  # Disabled: memory system not available
+                        # Memory system not available in ContinuousLearningLoop - skip salience update
+                        if hasattr(self, 'agent') and hasattr(self.agent, 'memory'):
                             # Use action index as memory index for salience update
-                            pass  # Memory operations disabled
+                            # TODO: Implement memory salience update
+                            pass
                     
                     logger.info(f" Mid-game consolidation completed in {consolidation_duration:.1f}s")
                 
@@ -11979,7 +12080,7 @@ class ContinuousLearningLoop:
         """
         try:
             # Memory system not available in ContinuousLearningLoop - skip memory preservation
-            if True:  # Changed: not hasattr(self.agent, 'memory')
+            if not hasattr(self, 'agent') or not hasattr(self.agent, 'memory'):
                 return
                 
             # Ultimate win gets maximum preservation
@@ -12012,7 +12113,7 @@ class ContinuousLearningLoop:
         """
         try:
             # Memory system not available in ContinuousLearningLoop - skip memory preservation
-            if True:  # Changed: not hasattr(self.agent, 'memory')
+            if not hasattr(self, 'agent') or not hasattr(self.agent, 'memory'):
                 return
                 
             # Determine preservation strength based on achievement type
@@ -12053,9 +12154,10 @@ class ContinuousLearningLoop:
             winning_memory_count = 0
             for i, action in enumerate(effective_actions):
                 # Memory system not available in ContinuousLearningLoop - skip salience update
-                if False:  # Disabled: memory system not available
+                if hasattr(self, 'agent') and hasattr(self.agent, 'memory'):
                     # Create high-salience preservation
-                    pass  # Memory operations disabled
+                    # TODO: Implement memory salience preservation
+                    pass
                     winning_memory_count += 1
                     
                 # Mark in training state for long-term protection
@@ -12093,7 +12195,7 @@ class ContinuousLearningLoop:
         """
         try:
             # Memory system not available in ContinuousLearningLoop - skip memory hierarchy
-            if True:  # Changed: not hasattr(self.agent, 'memory')
+            if not hasattr(self, 'agent') or not hasattr(self.agent, 'memory'):
                 return
                 
             # Update game level records
@@ -12142,9 +12244,10 @@ class ContinuousLearningLoop:
                 memory_id = f"{game_id}_L{new_level}_{i}"
                 
                 # Memory system not available in ContinuousLearningLoop - skip salience update
-                if False:  # Disabled: memory system not available
+                if hasattr(self, 'agent') and hasattr(self.agent, 'memory'):
                     # Apply tier-based salience boost
-                    pass  # Memory operations disabled
+                    # TODO: Implement memory salience boost
+                    pass
                     
                 # Store in hierarchical memory system
                 protection_entry = {
