@@ -4,6 +4,7 @@ Log rotation utility for managing log file sizes
 
 import os
 import shutil
+import time
 from pathlib import Path
 from typing import List, Optional
 import logging
@@ -67,8 +68,8 @@ class LogRotator:
                 
                 outfile.writelines(lines_to_write)
             
-            # Replace original with trimmed version
-            os.replace(temp_file, log_path)
+            # Replace original with trimmed version (with Windows compatibility)
+            self._safe_replace_file(temp_file, log_path)
             
             self.logger.info(f"Log rotation complete: {log_path} now has {len(lines_to_write)} lines")
             return True
@@ -76,6 +77,40 @@ class LogRotator:
         except Exception as e:
             self.logger.error(f"Failed to rotate log file {log_path}: {e}")
             return False
+    
+    def _safe_replace_file(self, temp_file: str, target_file: str) -> None:
+        """
+        Safely replace a file with Windows access denied handling.
+        
+        Args:
+            temp_file: Path to the temporary file
+            target_file: Path to the target file to replace
+        """
+        max_retries = 5
+        
+        for attempt in range(max_retries):
+            try:
+                # Try direct replace first (works on most systems)
+                os.replace(temp_file, target_file)
+                return
+                
+            except (OSError, PermissionError) as e:
+                if attempt == max_retries - 1:
+                    # Final attempt: use copy and delete
+                    try:
+                        shutil.copy2(temp_file, target_file)
+                        os.remove(temp_file)
+                        self.logger.warning(f"Used copy+delete fallback for log rotation: {target_file}")
+                        return
+                    except Exception as final_error:
+                        self.logger.error(f"All log rotation attempts failed for {target_file}: {final_error}")
+                        raise e
+                
+                # Wait with exponential backoff
+                wait_time = 0.5 * (2 ** attempt)
+                self.logger.warning(f"Log rotation attempt {attempt + 1} failed: {e}. Retrying in {wait_time:.1f}s...")
+                time.sleep(wait_time)
+                continue
     
     def rotate_all_logs(self, max_lines: Optional[int] = None) -> bool:
         """

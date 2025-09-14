@@ -3928,6 +3928,8 @@ class ContinuousLearningLoop:
                                 try:
                                     # Try to reset the game
                                     reset_result = await self._start_game_session(game_id)
+                                    logger.info(f"Reset result for {game_id}: {reset_result}")
+                                    
                                     if reset_result and 'guid' in reset_result:
                                         logger.info(f"Successfully reset game {game_id}, retrying action...")
                                         # Update the session GUID
@@ -3935,9 +3937,23 @@ class ContinuousLearningLoop:
                                         # Retry the action
                                         return await self._send_enhanced_action(game_id, action_number, x, y, grid_width, grid_height, frame_analysis)
                                     else:
-                                        logger.error(f"Failed to reset game {game_id}")
+                                        logger.error(f"Failed to reset game {game_id} - reset_result: {reset_result}")
+                                        # Try to continue without retry to avoid infinite loops
+                                        return {
+                                            'error': f'Game {game_id} reset failed - {reset_result}',
+                                            'state': 'ERROR',
+                                            'score': 0,
+                                            'available_actions': []
+                                        }
                                 except Exception as reset_error:
                                     logger.error(f"Error resetting game {game_id}: {reset_error}")
+                                    # Return error instead of continuing to avoid infinite loops
+                                    return {
+                                        'error': f'Game reset failed: {reset_error}',
+                                        'state': 'ERROR',
+                                        'score': 0,
+                                        'available_actions': []
+                                    }
                             
                             # Special handling for 401 Unauthorized
                             elif response.status == 401:
