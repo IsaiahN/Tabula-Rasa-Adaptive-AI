@@ -1189,7 +1189,7 @@ class Architect:
         
         # Git integration
         self.repo = None
-        self.default_branch = "Tabula-Rasa-v3"  # Our working branch
+        self.default_branch = "Tabula-Rasa-v4"  # Our working branch
         if GIT_AVAILABLE:
             try:
                 self.repo = git.Repo(self.repo_path)
@@ -1408,31 +1408,117 @@ class Architect:
         return SystemGenome()
     
     def _ensure_correct_branch(self):
-        """Ensure we're on the Tabula-Rasa-v3 branch and never switch to main/master."""
+        """Ensure we're on the latest Tabula-Rasa-vX branch and never switch to main/master."""
         if not self.repo:
             return
             
         try:
             current_branch = self.repo.active_branch.name
             
-            if current_branch != self.default_branch:
-                self.logger.warning(f"⚠️ Currently on branch '{current_branch}', expected '{self.default_branch}'")
+            # Find the latest Tabula-Rasa-vX branch
+            available_branches = [head.name for head in self.repo.heads]
+            tabula_branches = [b for b in available_branches if b.startswith('Tabula-Rasa-v')]
+            
+            if tabula_branches:
+                # Sort by version number to find the latest
+                def extract_version(branch_name):
+                    try:
+                        return int(branch_name.split('Tabula-Rasa-v')[1])
+                    except (IndexError, ValueError):
+                        return 0
                 
-                # Try to switch to the correct branch
-                if self.default_branch in [head.name for head in self.repo.heads]:
-                    self.logger.info(f"🌿 Switching to {self.default_branch} branch for safety")
-                    self.repo.heads[self.default_branch].checkout()
+                latest_branch = max(tabula_branches, key=extract_version)
+                self.default_branch = latest_branch
+                
+                if current_branch != self.default_branch:
+                    if current_branch.startswith('Tabula-Rasa-v'):
+                        self.logger.info(f"🔄 Found newer branch: {self.default_branch} (current: {current_branch})")
+                        self.logger.info(f"🤔 Should I switch to the newer branch? This will preserve your current work.")
+                        # For now, stay on current branch to avoid disrupting experiments
+                        self.logger.info(f"✅ Staying on current branch '{current_branch}' for safety")
+                        self.default_branch = current_branch  # Use current branch as default
+                    else:
+                        self.logger.warning(f"⚠️ Currently on branch '{current_branch}', found Tabula-Rasa branch '{self.default_branch}'")
+                        self.logger.info(f"🤔 Should I switch to the Tabula-Rasa branch? This will preserve your current work.")
+                        # For now, stay on current branch to avoid disrupting experiments
+                        self.logger.info(f"✅ Staying on current branch '{current_branch}' for safety")
+                        self.default_branch = current_branch  # Use current branch as default
                 else:
-                    self.logger.warning(f"⚠️ {self.default_branch} branch not found. Staying on current branch '{current_branch}'")
-                    self.logger.warning("⚠️ IMPORTANT: Architect will NOT create branches from main/master")
+                    self.logger.info(f"✅ Already on latest branch: {self.default_branch}")
             else:
-                self.logger.info(f"✅ Already on correct branch: {self.default_branch}")
+                # No Tabula-Rasa-vX branches found, stay on current if it's safe
+                if current_branch in ['main', 'master']:
+                    self.logger.warning(f"⚠️ On {current_branch} branch - staying but will be cautious")
+                    self.logger.warning("⚠️ IMPORTANT: Architect will NOT create branches from main/master")
+                else:
+                    self.logger.info(f"✅ Staying on current branch: {current_branch}")
+                    self.default_branch = current_branch
                 
         except Exception as e:
             self.logger.error(f"❌ Branch verification failed: {e}")
     
+    def offer_branch_switch(self, target_branch: str) -> bool:
+        """Offer to switch to a different branch with user confirmation."""
+        if not self.repo:
+            return False
+            
+        try:
+            current_branch = self.repo.active_branch.name
+            
+            # Check if target branch exists
+            if target_branch not in [head.name for head in self.repo.heads]:
+                self.logger.warning(f"⚠️ Target branch '{target_branch}' not found")
+                return False
+            
+            # Check for uncommitted changes
+            if self.repo.is_dirty():
+                self.logger.warning(f"⚠️ Uncommitted changes detected on '{current_branch}'")
+                self.logger.info("💡 Consider committing or stashing changes before switching branches")
+                return False
+            
+            self.logger.info(f"🔄 Branch switch available: {current_branch} → {target_branch}")
+            self.logger.info(f"🤔 Would you like to switch to '{target_branch}'? (This preserves your current work)")
+            
+            # In a real implementation, this would wait for user input
+            # For now, we'll be conservative and not auto-switch
+            self.logger.info(f"✅ Staying on '{current_branch}' - use manual git checkout if desired")
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"❌ Branch switch offer failed: {e}")
+            return False
+    
+    def switch_to_branch(self, target_branch: str) -> bool:
+        """Manually switch to a specific branch (for user-initiated experiments)."""
+        if not self.repo:
+            return False
+            
+        try:
+            current_branch = self.repo.active_branch.name
+            
+            # Check if target branch exists
+            if target_branch not in [head.name for head in self.repo.heads]:
+                self.logger.warning(f"⚠️ Target branch '{target_branch}' not found")
+                return False
+            
+            # Check for uncommitted changes
+            if self.repo.is_dirty():
+                self.logger.warning(f"⚠️ Uncommitted changes detected on '{current_branch}'")
+                self.logger.info("💡 Consider committing or stashing changes before switching branches")
+                return False
+            
+            # Perform the switch
+            self.repo.heads[target_branch].checkout()
+            self.default_branch = target_branch
+            self.logger.info(f"✅ Successfully switched to '{target_branch}' branch")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Branch switch failed: {e}")
+            return False
+    
     def _safe_checkout_default_branch(self):
-        """Safely checkout the Tabula-Rasa-v3 branch, never main/master."""
+        """Safely checkout the latest Tabula-Rasa-vX branch, never main/master."""
         if not self.repo:
             return False
             
@@ -1629,7 +1715,7 @@ Generated by Architect (Zeroth Brain) - Safe Self-Improvement System
             
             self.logger.info(f"🌿 Created improvement branch: {branch_name}")
             
-            # Return to Tabula-Rasa-v3 branch (our default working branch)
+            # Return to latest Tabula-Rasa-vX branch (our default working branch)
             self._safe_checkout_default_branch()
             
             return {
@@ -1671,7 +1757,7 @@ This is an experimental change - requires review before merging.
             
             self.logger.info(f"🧪 Created experimental branch: {branch_name}")
             
-            # Try to return to Tabula-Rasa-v3 branch (our default working branch)
+            # Try to return to latest Tabula-Rasa-vX branch (our default working branch)
             self._safe_checkout_default_branch()
             
             return {'branch_name': branch_name}
