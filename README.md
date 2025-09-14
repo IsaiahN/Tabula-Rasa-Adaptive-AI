@@ -79,16 +79,23 @@ start_intelligent_training.bat
 launch_trainer.bat
 ```
 
+#### Advanced Users
+```bash
+# Direct access to advanced 9-hour training scripts
+python run_9hour_scaled_training.py    # Intelligent parallel training
+python run_9hour_simple_training.py    # Sequential training
+```
+
 #### Manual Usage
 ```bash
-# Meta-cognitive training (default)
+# Intelligent 9-hour scaled training (Recommended)
+python run_9hour_scaled_training.py
+
+# Simple 9-hour sequential training
+python run_9hour_simple_training.py
+
+# Legacy master trainer (basic functionality)
 python master_arc_trainer.py
-
-# Quick validation
-python master_arc_trainer.py --mode quick-validation --max-cycles 2
-
-# Continuous training with dashboard
-python master_arc_trainer.py --mode continuous --dashboard gui
 ```
 
 ### Get Your API Key
@@ -103,6 +110,10 @@ python master_arc_trainer.py --mode continuous --dashboard gui
 
 ```
 Tabula Rasa
+├── Entry Points
+│   ├── run_9hour_scaled_training.py (Primary)
+│   ├── run_9hour_simple_training.py (Alternative)
+│   └── master_arc_trainer.py (Legacy)
 ├── Meta-Cognitive Layer
 │   ├── Governor System (Runtime Supervisor)
 │   ├── Architect System (Self-Improvement)
@@ -195,27 +206,6 @@ Orchestrates the complete cycle:
 3. Architect analyzes reports and generates evolutionary directives
 4. Governor implements directives and continues operation
 
-## 🧪 Testing
-
-### Run Tests
-```bash
-# Comprehensive test suite
-python tests/test_all_critical_fixes.py
-
-# Test core systems
-python tests/test_critical_fixes.py
-python tests/test_memory_solutions.py
-python tests/test_meta_cognitive_integration.py
-
-# Test API connection
-python tests/test_api_connection.py
-
-# Run unit tests
-python -m pytest tests/unit/
-
-# Run integration tests
-python -m pytest tests/integration/
-```
 
 ## 📊 Performance Monitoring
 
@@ -233,14 +223,16 @@ python -m pytest tests/integration/
 
 ## 🔧 Advanced Configuration
 
-### Memory System
+### Advanced Training
 ```bash
-python master_arc_trainer.py --memory-size 1024 --memory-read-heads 8
-```
+# Intelligent scaled training with resource optimization
+python run_9hour_scaled_training.py
 
-### Meta-Cognitive Control
-```bash
-python master_arc_trainer.py --enable-governor --enable-architect
+# Simple sequential training for stability
+python run_9hour_simple_training.py
+
+# Legacy trainer with custom parameters
+python master_arc_trainer.py --memory-size 1024 --memory-read-heads 8
 ```
 
 ## 🤝 Contributing

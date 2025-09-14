@@ -19,6 +19,8 @@ venv/
 env/
 ENV/
 
+docs/
+
 # SELECTIVE MEMORY MANAGEMENT - Allow meta-cognitive control
 # Only ignore raw/temporary training data, preserve important states
 continuous_learning_data/temp/

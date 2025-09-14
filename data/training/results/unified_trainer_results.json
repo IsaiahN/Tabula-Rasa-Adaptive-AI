@@ -1,7 +1,7 @@
 {
   "config": {
     "mode": "maximum-intelligence",
-    "api_key": "3405f9ba-f632-48e6-ac2b-73ed62056b24",
+    "api_key": "[REDACTED]",
     "arc_agents_path": "C:\\Users\\Admin\\Documents\\GitHub\\ARC-AGI-3-Agents",
     "salience_mode": "SalienceMode.DECAY_COMPRESSION",
     "max_actions_per_game": 1,
