@@ -6,7 +6,11 @@ data/logs/*_backup.log
 
 # Environment files
 .env
-
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
 
 # Python cache and artifacts
 __pycache__/
@@ -50,4 +54,3 @@ data/logs/master_arc_trainer.log.tmp
 # Temporary experiment sandboxes only
 experiments/temp/
 sandbox_tests/temp/data/logs/*_backup.log
-.env
