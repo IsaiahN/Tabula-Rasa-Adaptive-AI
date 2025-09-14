@@ -3,6 +3,11 @@ master_trainer.log
 data/logs/master_arc_trainer.log
 data/logs/master_arc_trainer_output.log
 data/logs/*_backup.log
+
+# Ignore backup files from pattern saving
+*.pkl.backup_*
+*.pkl.tmp_*
+*.pkl.fallback_*
 # Environment files
 #.env
 #.env.local

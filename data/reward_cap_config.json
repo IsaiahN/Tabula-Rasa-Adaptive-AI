@@ -11,186 +11,6 @@
   },
   "cap_history": [
     {
-      "productivity_multiplier": 36.60250000000002,
-      "productivity_max": 85.0,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 17.25,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 36.60250000000002,
-      "productivity_max": 72.25,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 19.8375,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 36.60250000000002,
-      "productivity_max": 61.4125,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 22.813124999999996,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 36.60250000000002,
-      "productivity_max": 52.200625,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 26.235093749999994,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 36.60250000000002,
-      "productivity_max": 44.37053125,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 30.17035781249999,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 36.60250000000002,
-      "productivity_max": 37.7149515625,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 34.69591148437499,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 40.262750000000025,
-      "productivity_max": 37.7149515625,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 34.69591148437499,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 37.7149515625,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 34.69591148437499,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 32.057708828124994,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 39.900298207031234,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 27.249052503906245,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 45.88534293808591,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 23.16169462832031,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 50.0,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 19.68744043407226,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 50.0,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 16.73432436896142,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 50.0,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 14.224175713617207,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 50.0,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 12.090549356574625,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 50.0,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 10.276966953088431,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 50.0,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 10.0,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 50.0,
-      "movement_bonus": 20.0
-    },
-    {
-      "productivity_multiplier": 44.28902500000003,
-      "productivity_max": 10.0,
-      "recent_gains_multiplier": 15.0,
-      "recent_gains_max": 75.0,
-      "recent_losses_multiplier": 10.0,
-      "recent_losses_max": 50.0,
-      "exploration_bonus": 50.0,
-      "movement_bonus": 20.0
-    },
-    {
       "productivity_multiplier": 44.28902500000003,
       "productivity_max": 10.0,
       "recent_gains_multiplier": 15.0,
@@ -989,9 +809,209 @@
       "recent_losses_max": 50.0,
       "exploration_bonus": 50.0,
       "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
+    },
+    {
+      "productivity_multiplier": 100.0,
+      "productivity_max": 10.0,
+      "recent_gains_multiplier": 15.0,
+      "recent_gains_max": 75.0,
+      "recent_losses_multiplier": 10.0,
+      "recent_losses_max": 50.0,
+      "exploration_bonus": 50.0,
+      "movement_bonus": 20.0
     }
   ],
   "learning_phase": "exploitation",
-  "last_adjustment": 98120,
-  "action_count": 99120
+  "last_adjustment": 118132,
+  "action_count": 119132
 }

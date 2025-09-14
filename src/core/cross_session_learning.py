@@ -474,6 +474,9 @@ class CrossSessionLearningManager:
     
     def _load_persistent_state(self):
         """Load persistent state from disk."""
+        # Clean up any existing backup files on startup
+        self._cleanup_old_backup_files()
+        
         patterns_file = self.persistence_dir / "learned_patterns.pkl"
         # Ensure the directory exists
         patterns_file.parent.mkdir(parents=True, exist_ok=True)
@@ -513,8 +516,49 @@ class CrossSessionLearningManager:
             except Exception as e:
                 self.logger.error(f"Failed to load session history: {e}")
     
+    def _cleanup_old_backup_files(self):
+        """Clean up old backup files to prevent accumulation."""
+        try:
+            import glob
+            patterns_dir = self.persistence_dir
+            
+            # Clean up backup files older than 1 hour
+            current_time = time.time()
+            cutoff_time = current_time - 3600  # 1 hour ago
+            
+            for pattern in ['*.pkl.backup_*', '*.pkl.tmp_*', '*.pkl.fallback_*']:
+                for backup_file in glob.glob(str(patterns_dir / pattern)):
+                    try:
+                        # Extract timestamp from filename
+                        if '.backup_' in backup_file:
+                            timestamp_str = backup_file.split('.backup_')[-1]
+                        elif '.tmp_' in backup_file:
+                            timestamp_str = backup_file.split('.tmp_')[-1].split('_')[-1]
+                        elif '.fallback_' in backup_file:
+                            timestamp_str = backup_file.split('.fallback_')[-1]
+                        else:
+                            continue
+                            
+                        timestamp = int(timestamp_str)
+                        
+                        # Delete if older than cutoff
+                        if timestamp < cutoff_time:
+                            os.remove(backup_file)
+                            self.logger.debug(f"Cleaned up old backup file: {backup_file}")
+                            
+                    except (ValueError, OSError) as e:
+                        # If we can't parse timestamp or delete file, skip it
+                        self.logger.debug(f"Could not clean up backup file {backup_file}: {e}")
+                        continue
+                        
+        except Exception as e:
+            self.logger.debug(f"Error during backup cleanup: {e}")
+
     def _save_persistent_state(self):
         """Save persistent state to disk."""
+        # Clean up old backup files first
+        self._cleanup_old_backup_files()
+        
         # Save learned patterns
         patterns_file = self.persistence_dir / "learned_patterns.pkl"
         # Ensure the directory exists
@@ -590,12 +634,18 @@ class CrossSessionLearningManager:
                         try:
                             os.remove(absolute_path)
                         except (OSError, PermissionError):
-                            # If we can't remove the existing file, try to rename it
-                            backup_path = absolute_path + f".backup_{int(time.time())}"
-                            try:
-                                os.rename(absolute_path, backup_path)
-                            except (OSError, PermissionError):
-                                # If we can't rename either, just continue with the temp file
+                            # Only create backup if we absolutely can't remove the file
+                            # and we're on the last attempt
+                            if attempt == max_retries - 1:
+                                backup_path = absolute_path + f".backup_{int(time.time())}"
+                                try:
+                                    os.rename(absolute_path, backup_path)
+                                    self.logger.warning(f"Created backup file due to access issues: {backup_path}")
+                                except (OSError, PermissionError):
+                                    # If we can't rename either, just continue with the temp file
+                                    pass
+                            else:
+                                # On early attempts, just skip removing and try to overwrite
                                 pass
                     
                     # Atomic move (works on Windows)
