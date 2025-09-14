@@ -24,7 +24,7 @@ def test_critical_fixes_integration():
             # Create a minimal test configuration
             config = TrainingConfig(
                 mode="test-fixes",
-                api_key="3405f9ba-f632-48e6-ac2b-73ed62056b24",
+                api_key=os.getenv('ARC_API_KEY', 'test_key'),
                 arc_agents_path="C:\\Users\\Admin\\Documents\\GitHub\\ARC-AGI-3-Agents",
                 max_actions_per_game=25,  # Limited actions for quick test
                 max_learning_cycles=3,    # Only 3 games for validation
