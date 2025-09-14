@@ -44,6 +44,14 @@ arc3_competition_debug.log
 temp_*.log
 debug_*.log
 
+# Ignore temporary and backup pickle files
+*.pkl.backup_*
+*.pkl.tmp_*
+*.pkl.fallback_*
+
+# Ignore temporary log files
+data/logs/master_arc_trainer.log.tmp
+
 # Temporary experiment sandboxes only
 experiments/temp/
 sandbox_tests/temp/data/logs/*_backup.log
