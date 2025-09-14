@@ -1,4 +1,4 @@
-# Tabula Rasa: Meta-Cognitive AI Architecture
+# Tabula Rasa: Adaptive AI Architecture
 
 A novel AI system that implements **meta-cognitive supervision** and **simulation-driven intelligence** for adaptive reasoning and autonomous evolution. Built for the ARC-AGI-3 challenge with unique architectural approaches to consciousness, memory management, and self-improvement.
 
