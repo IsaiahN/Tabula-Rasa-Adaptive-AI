@@ -33,13 +33,7 @@ continuous_session_*.json
 mutation_exploratory_temp_*.json
 temp_meta_learning_session*.json
 
-# PRESERVE CRITICAL META-COGNITIVE FILES FOR VERSION CONTROL
-# These are needed for Architect/Governor evolution tracking:
-# - meta_learning_data/         (PRESERVED - contains cross-session intelligence)
-# - persistent_learning_state.json (PRESERVED - critical for continuity)
-# - governor_decisions_*.log    (PRESERVED - meta-cognitive audit trail)
-# - meta_cognitive_results_*.json (PRESERVED - evolution tracking)
-# - unified_trainer_results.json  (PRESERVED - performance tracking)
+.claude/
 
 # Only ignore high-volume debug logs, preserve important logs
 arc3_competition_debug.log
