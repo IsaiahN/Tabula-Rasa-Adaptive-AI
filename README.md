@@ -69,6 +69,17 @@ python setup_env.py
 ```
 
 ### Basic Usage
+
+#### Windows Users (Recommended)
+```bash
+# Intelligent 9-hour training with automatic resource optimization
+start_intelligent_training.bat
+
+# Interactive launcher with multiple training modes
+launch_trainer.bat
+```
+
+#### Manual Usage
 ```bash
 # Meta-cognitive training (default)
 python master_arc_trainer.py
@@ -77,7 +88,7 @@ python master_arc_trainer.py
 python master_arc_trainer.py --mode quick-validation --max-cycles 2
 
 # Continuous training with dashboard
-python master_arc_trainer.py --mode continuous-training --dashboard gui
+python master_arc_trainer.py --mode continuous --dashboard gui
 ```
 
 ### Get Your API Key
@@ -98,7 +109,7 @@ Tabula Rasa
 │   └── Recursive Self-Improvement Loop
 ├── Cognitive Layer
 │   ├── Differentiable Neural Computer
-│   ├── 4-Phase Memory Optimization
+│   ├── Phased Memory Optimization
 │   └── Simulation-Driven Intelligence
 └── Application Layer
     ├── ARC-AGI-3 Integration
@@ -122,7 +133,7 @@ data/
 
 ### Key Parameters
 - `--max-actions`: Maximum actions per game (default: 500)
-- `--mode`: Training mode (meta-cognitive-training, continuous-training, analysis)
+- `--mode`: Training mode (maximum-intelligence, quick-validation, meta-cognitive-training, continuous, etc.)
 - `--enable-governor`: Enable meta-cognitive supervision (default: True)
 - `--enable-architect`: Enable autonomous evolution (default: True)
 
@@ -136,19 +147,29 @@ MAX_EPISODES_PER_GAME=50
 
 ## 🧪 Training Modes
 
-### Meta-Cognitive Training (Default)
+### Maximum Intelligence (Default)
+- All advanced features enabled with optimal settings
 - Governor + Architect supervision with 37 cognitive subsystems
 - Autonomous evolution with self-improvement capabilities
-- Cross-session learning with persistent state
+
+### Quick Validation
+- Fast testing with essential features only
+- 2-3 cycles for rapid feedback
+- Perfect for testing setup and basic functionality
+
+### Meta-Cognitive Training
+- Full meta-cognitive supervision with cross-session learning
+- Persistent state management across sessions
+- Advanced memory optimization
 
 ### Continuous Training
 - Extended training sessions with persistent state
 - Progressive difficulty with adaptive curriculum
 - Cross-task knowledge transfer
 
-### Analysis Mode
-- Performance analysis and system comparison
-- Cognitive system monitoring and optimization
+### Research Lab
+- Scientific analysis and system comparison
+- Performance monitoring and optimization
 - Meta-cognitive effectiveness measurement
 
 ## 🧠 Meta-Cognitive Systems
@@ -181,14 +202,19 @@ Orchestrates the complete cycle:
 # Comprehensive test suite
 python tests/test_all_critical_fixes.py
 
-# Test specific components
-python tests/test_phase1_pattern_recognition.py
-python tests/test_phase2_hierarchical_clustering.py
-python tests/test_phase3_architect_evolution.py
-python tests/test_phase4_performance_optimization.py
+# Test core systems
+python tests/test_critical_fixes.py
+python tests/test_memory_solutions.py
+python tests/test_meta_cognitive_integration.py
 
-# Test simulation system
-python test_simulation_system.py
+# Test API connection
+python tests/test_api_connection.py
+
+# Run unit tests
+python -m pytest tests/unit/
+
+# Run integration tests
+python -m pytest tests/integration/
 ```
 
 ## 📊 Performance Monitoring
@@ -231,8 +257,8 @@ This project explores novel approaches to AI architecture and meta-cognition. Co
 ## 📚 Documentation
 
 - **Technical Documentation**: `docs/` directory
-- **Configuration Examples**: `configs/` folder
-- **Demo Scripts**: `examples/` directory
+- **Test Suite**: `tests/` directory with comprehensive testing
+- **Tools**: `tools/` directory with utility scripts
 - **Research Notes**: Various `.md` files in project root
 
 ## 📄 License
