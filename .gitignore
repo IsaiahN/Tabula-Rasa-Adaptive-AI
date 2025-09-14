@@ -3,9 +3,10 @@ master_trainer.log
 data/logs/master_arc_trainer.log
 data/logs/master_arc_trainer_output.log
 data/logs/*_backup.log
+
 # Environment files
-#.env
-#.env.local
+.env
+
 
 # Python cache and artifacts
 __pycache__/
@@ -32,8 +33,6 @@ research_results/temp/
 continuous_session_*.json
 mutation_exploratory_temp_*.json
 temp_meta_learning_session*.json
-
-.claude/
 
 # Only ignore high-volume debug logs, preserve important logs
 arc3_competition_debug.log
