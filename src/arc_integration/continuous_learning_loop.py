@@ -535,6 +535,15 @@ class ContinuousLearningLoop:
         # Initialize strategy flags
         self.contrarian_strategy_active = False
         
+        # Initialize game complexity tracking
+        self.game_complexity_history = {}
+        
+        # Initialize session tracking
+        self.session_count = 0
+        
+        # Initialize training mode
+        self.training_mode = "direct_control"
+        
         # Initialize other complex attributes
         self._initialize_remaining_attributes()
 
@@ -2240,7 +2249,7 @@ class ContinuousLearningLoop:
             # Step 2: Prepare RESET call
             url = f"{ARC3_BASE_URL}/api/cmd/RESET"
             headers = {
-                "X-API-Key": self.api_key,
+                "X-API-Key": self.api_key or "",
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             }
@@ -2248,7 +2257,7 @@ class ContinuousLearningLoop:
             # Build payload based on reset type
             payload = {
                 "game_id": game_id,
-                "card_id": self.current_scorecard_id
+                "card_id": self.current_scorecard_id or ""
             }
             
             if existing_guid:
@@ -2481,7 +2490,7 @@ class ContinuousLearningLoop:
         ])
         
         # Training mode tags
-        if hasattr(self, 'training_mode'):
+        if hasattr(self, 'training_mode') and self.training_mode is not None:
             tags.append(f"mode_{self.training_mode}")
         
         # System capability tags
@@ -2508,7 +2517,7 @@ class ContinuousLearningLoop:
             tags.append("has_learned_patterns")
         
         # Session tags
-        if hasattr(self, 'session_count'):
+        if hasattr(self, 'session_count') and self.session_count is not None:
             tags.append(f"session_{self.session_count}")
         
         # Timestamp tag for uniqueness
@@ -2532,7 +2541,7 @@ class ContinuousLearningLoop:
         try:
             url = "https://three.arcprize.org/api/scorecard/open"
             headers = {
-                "X-API-Key": self.api_key,
+                "X-API-Key": self.api_key or "",
                 "Content-Type": "application/json"
             }
             
@@ -5630,7 +5639,7 @@ class ContinuousLearningLoop:
             'game_state': getattr(self, 'current_game_state', 'IDLE'),
             'memory_usage': len(getattr(self, 'memory', [])),
             'sleep_cycles': getattr(self, 'sleep_cycles', 0),
-            'game_complexity': getattr(self, 'current_game_complexity', 'medium'),
+            'game_complexity': self.game_complexity,
             'available_actions': getattr(self, 'available_actions', list(range(10))),  # Assuming 10 possible actions
             'action_history': getattr(self, 'action_history', []),
             'learning_progress': getattr(self, 'learning_progress', 0.0),
@@ -7617,7 +7626,7 @@ class ContinuousLearningLoop:
             str: 'low', 'medium', or 'high' complexity
         """
         # Check if we have a cached complexity for this game
-        for complexity, games in self.game_complexity.items():
+        for complexity, games in self.game_complexity_history.items():
             if game_id in games:
                 return complexity
                 
@@ -12524,6 +12533,9 @@ class ContinuousLearningLoop:
         print(f"\n STARTING DIRECT CONTROL TRAINING for {game_id}")
         print(f"   Max Actions: {max_actions_per_game}, Session: {session_count}")
         
+        # CRITICAL FIX: Ensure system is fully initialized before training
+        self._ensure_initialized()
+        
         #  CRITICAL FIX: Handle per-game scorecard for swarm mode
         original_scorecard_id = self.current_scorecard_id
         
@@ -12685,13 +12697,35 @@ class ContinuousLearningLoop:
                         
                         break
                 
+                # 🧠 GOVERNOR INTEGRATION - Get Governor recommendations before action selection
+                governor_recommendation = None
+                if self.governor:
+                    try:
+                        governor_recommendation = self.governor.analyze_performance_and_recommend(
+                            current_state=current_state,
+                            current_score=current_score,
+                            actions_taken=actions_taken,
+                            available_actions=available_actions,
+                            game_id=game_id,
+                            context={
+                                'session_count': session_count,
+                                'max_actions_per_game': max_actions_per_game,
+                                'recent_effectiveness': len(effective_actions) / max(1, actions_taken) if actions_taken > 0 else 0.0
+                            }
+                        )
+                        if governor_recommendation:
+                            print(f"🧠 GOVERNOR RECOMMENDATION: {governor_recommendation.get('reasoning', 'No reasoning provided')}")
+                    except Exception as e:
+                        print(f"🧠 GOVERNOR ANALYSIS ERROR: {e}")
+
                 # Use our intelligent action selection with current available actions
                 try:
                     action_selection_response = {
                         'available_actions': available_actions,
                         'state': current_state,
                         'score': current_score,
-                        'frame': session_data.get('frame', [])  # Get frame from session data
+                        'frame': session_data.get('frame', []),  # Get frame from session data
+                        'governor_recommendation': governor_recommendation  # Include Governor input
                     }
                     selected_action = self._select_next_action(action_selection_response, game_id)
                     
@@ -12924,6 +12958,24 @@ class ContinuousLearningLoop:
                         print(f" RESULT: Score {current_score} → {new_score} ({score_improvement:.1f}) | State: {new_state}")
                     else:
                         print(f"  RESULT: Score unchanged ({new_score}) | State: {new_state}")
+                    
+                    # 🧠 GOVERNOR INTEGRATION - Report action results to Governor
+                    if self.governor:
+                        try:
+                            self.governor.record_action_result(
+                                action=selected_action,
+                                result=action_result,
+                                effectiveness=was_effective,
+                                score_improvement=score_improvement,
+                                game_id=game_id,
+                                context={
+                                    'actions_taken': actions_taken,
+                                    'current_state': new_state,
+                                    'current_score': new_score
+                                }
+                            )
+                        except Exception as e:
+                            print(f"🧠 GOVERNOR RECORDING ERROR: {e}")
                     
                     # Update available actions for next iteration
                     try:
@@ -13264,6 +13316,31 @@ class ContinuousLearningLoop:
                 # Show coordinate intelligence summary if available
                 if hasattr(self, 'enhanced_coordinate_intelligence'):
                     print(" Coordinate Intelligence: ACTIVE")
+                
+                # 🏗️ ARCHITECT INTEGRATION - Analyze session performance for evolutionary improvements
+                if self.architect:
+                    try:
+                        architect_analysis = self.architect.analyze_session_performance(
+                            session_data={
+                                'game_id': game_id,
+                                'actions_taken': actions_taken,
+                                'effective_actions': len(effective_actions),
+                                'final_score': current_score,
+                                'success': final_result.get('success', False),
+                                'termination_reason': final_result.get('termination_reason', 'UNKNOWN')
+                            },
+                            performance_metrics={
+                                'effectiveness_rate': len(effective_actions) / max(1, actions_taken),
+                                'score_progression': current_score,
+                                'action_efficiency': actions_taken / max(1, current_score) if current_score > 0 else float('inf')
+                            }
+                        )
+                        if architect_analysis:
+                            print(f"🏗️ ARCHITECT ANALYSIS: {architect_analysis.get('reasoning', 'No reasoning provided')}")
+                            if architect_analysis.get('recommendations'):
+                                print(f"🏗️ ARCHITECT RECOMMENDATIONS: {architect_analysis['recommendations']}")
+                    except Exception as e:
+                        print(f"🏗️ ARCHITECT ANALYSIS ERROR: {e}")
                 
                 print("="*80)
             except Exception as e:
