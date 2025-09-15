@@ -3865,6 +3865,7 @@ class ContinuousLearningLoop:
                 payload = {
                     "game_id": str(game_id),  # Ensure string type
                     "guid": str(guid),        # Ensure string type
+                    "scorecard_id": str(self.current_scorecard_id) if self.current_scorecard_id else None,  # CRITICAL FIX: Link actions to scorecard
                     "metadata": {
                         "action_timestamp": time.time(),
                         "agent_version": "1.0.0"
@@ -3925,6 +3926,17 @@ class ContinuousLearningLoop:
                                 
                                 # Log successful action execution
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
+                                
+                                # CRITICAL FIX: Increment action counters
+                                self._increment_scorecard_action_count()
+                                self.global_counters['total_actions'] = self.global_counters.get('total_actions', 0) + 1
+                                
+                                # Also increment session-level counter
+                                if hasattr(self, 'available_actions_memory') and 'total_actions_taken' in self.available_actions_memory:
+                                    self.available_actions_memory['total_actions_taken'] += 1
+                                
+                                # Save global counters to persist action counts
+                                self._save_global_counters()
                                 
                                 # Process successful response
                                 last_available = getattr(self, '_last_available_actions', {}).get(game_id, [])
@@ -4325,6 +4337,17 @@ class ContinuousLearningLoop:
                                 
                                 # Log successful action execution
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
+                                
+                                # CRITICAL FIX: Increment action counters
+                                self._increment_scorecard_action_count()
+                                self.global_counters['total_actions'] = self.global_counters.get('total_actions', 0) + 1
+                                
+                                # Also increment session-level counter
+                                if hasattr(self, 'available_actions_memory') and 'total_actions_taken' in self.available_actions_memory:
+                                    self.available_actions_memory['total_actions_taken'] += 1
+                                
+                                # Save global counters to persist action counts
+                                self._save_global_counters()
                                 
                                 # Process successful response
                                 last_available = getattr(self, '_last_available_actions', {}).get(game_id, [])
