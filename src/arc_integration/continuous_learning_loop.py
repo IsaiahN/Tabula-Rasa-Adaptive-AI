@@ -537,6 +537,29 @@ class ContinuousLearningLoop:
             'experiment_mode': False
         })
         
+        # Initialize game reset tracker
+        self.game_reset_tracker = {
+            'reset_decisions_made': 0,
+            'reset_reasons': [],
+            'reset_effectiveness_scores': [],
+            'last_reset_timestamp': 0,
+            'consecutive_resets': 0,
+            'reset_success_rate': 0.0,
+            'last_reset_decision': None,
+            'reset_decision_criteria': {}
+        }
+        
+        # Initialize training state
+        self.training_state = {
+            'current_game': None,
+            'current_episode': 0,
+            'total_episodes': 0,
+            'session_start_time': time.time(),
+            'last_action_time': 0,
+            'consecutive_failures': 0,
+            'learning_progress': 0.0
+        }
+        
         # Initialize frame analysis and available actions tracking
         self._last_frame_analysis = {}
         self._last_available_actions = {}
@@ -2052,6 +2075,7 @@ class ContinuousLearningLoop:
         
     def get_rate_limit_stats(self) -> Dict[str, Any]:
         """Get comprehensive rate limiting statistics."""
+        self._ensure_initialized()
         stats = self.rate_limiter.get_stats()
         stats.update({
             'rate_limit_config': ARC3_RATE_LIMIT,
@@ -2067,6 +2091,7 @@ class ContinuousLearningLoop:
         
     def print_rate_limit_status(self):
         """Print current rate limiting status."""
+        self._ensure_initialized()
         stats = self.get_rate_limit_stats()
         print(f"\n RATE LIMIT STATUS:")
         print(f"   Total Requests: {stats['total_requests']}")
@@ -7945,6 +7970,7 @@ class ContinuousLearningLoop:
 
     def _display_game_completion_status(self, game_id: str, game_results: Dict[str, Any], detailed_metrics: Dict[str, Any]):
         """Display compact game completion status with sleep and memory info."""
+        self._ensure_initialized()
         performance = game_results.get('performance_metrics', {})
         win_rate = performance.get('win_rate', 0)
         avg_score = performance.get('average_score', 0)
@@ -10388,6 +10414,7 @@ class ContinuousLearningLoop:
         Returns:
             Dict containing boredom detection results and strategy changes made.
         """
+        self._ensure_initialized()
         boredom_results = {
             'boredom_detected': False,
             'boredom_type': 'none',
@@ -10934,6 +10961,7 @@ class ContinuousLearningLoop:
         This integrates the goal invention system to automatically discover new goals
         based on patterns, failures, and learning progress signals.
         """
+        self._ensure_initialized()
         goal_results = {
             'new_goals_discovered': False,
             'new_goals': [],
@@ -11291,6 +11319,7 @@ class ContinuousLearningLoop:
     
     def _evaluate_game_reset_decision(self, game_id: str, episode_count: int, agent_state: Dict[str, Any]) -> Dict[str, Any]:
         """Evaluate whether the model should decide to reset the game."""
+        self._ensure_initialized()
         reset_decision = {
             'should_reset': False,
             'reason': None,
@@ -11332,6 +11361,7 @@ class ContinuousLearningLoop:
     
     def _record_reset_decision(self, reset_decision: Dict[str, Any]):
         """Record that a reset decision was made."""
+        self._ensure_initialized()
         self.game_reset_tracker['reset_decisions_made'] += 1
         self.game_reset_tracker['reset_reasons'].append(reset_decision['reason'])
         self.game_reset_tracker['last_reset_decision'] = {
@@ -11345,6 +11375,7 @@ class ContinuousLearningLoop:
     
     def _evaluate_reset_effectiveness(self, episode_result: Dict[str, Any], reset_decision: Dict[str, Any]) -> float:
         """Evaluate how effective the reset decision was."""
+        self._ensure_initialized()
         # Compare performance after reset
         post_reset_score = episode_result.get('final_score', 0)
         expected_benefit = reset_decision.get('expected_benefit', 0)

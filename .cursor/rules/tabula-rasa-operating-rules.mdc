@@ -257,7 +257,7 @@ continue monitoring how effective your changes are, the logging of all generated
 "
 1. Monitor training session effectiveness and performance metrics
 2. Track all generated files and data outputs
-3. Create a list of any changes that might be needed, and if they are important, make the changes via code & commit them with a description.
+3. Create a list of any changes that might be needed (like errors or improvements), and if they are important, make the changes via code & commit them with a description.
 4.  restart 9 hour training whenever you feel like you need to retest core changes to measure progress thats getting in the way of beating levels.
 "
 

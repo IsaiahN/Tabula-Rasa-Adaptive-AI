@@ -43,14 +43,6 @@ def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[st
         '--max-cycles', '100',        # Moderate cycles
         '--target-score', '85.0',     # Target score
         '--enable-detailed-monitoring',
-        '--enable-action-intelligence',
-        '--enable-knowledge-transfer',
-        '--enable-pattern-recognition',
-        '--enable-coordinates',
-        '--enable-predictive-coordinates',
-        '--enable-action-experimentation',
-        '--enable-exploration-strategies',
-        '--enable-stagnation-detection',
         '--salience-threshold', '0.4',
         '--salience-decay', '0.95',
         '--memory-size', '512',

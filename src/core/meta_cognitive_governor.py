@@ -3999,7 +3999,67 @@ def get_game_memory_insights(game_id: str) -> Dict[str, Any]:
             }
         
         return {'has_learned_patterns': False, 'pattern_count': 0}
-        
+
     except Exception as e:
         print(f"Warning: Error getting memory insights for {game_id}: {e}")
+
+    def record_action_result(self, action_id: int, game_id: str, result: Dict[str, Any]):
+        """Record the result of an action for analysis and learning."""
+        try:
+            # Basic action result recording
+            if not hasattr(self, 'action_results'):
+                self.action_results = []
+            
+            action_record = {
+                'action_id': action_id,
+                'game_id': game_id,
+                'timestamp': time.time(),
+                'result': result
+            }
+            self.action_results.append(action_record)
+            
+            # Keep only last 1000 records
+            if len(self.action_results) > 1000:
+                self.action_results = self.action_results[-1000:]
+                
+        except Exception as e:
+            self.logger.warning(f"Error recording action result: {e}")
+
+    def analyze_performance_and_recommend(self, game_id: str, recent_actions: int = 10) -> Dict[str, Any]:
+        """Analyze recent performance and provide recommendations."""
+        try:
+            if not hasattr(self, 'action_results'):
+                return {'recommendation': 'continue', 'confidence': 0.5}
+            
+            # Get recent actions for this game
+            recent_results = [r for r in self.action_results if r['game_id'] == game_id][-recent_actions:]
+            
+            if not recent_results:
+                return {'recommendation': 'continue', 'confidence': 0.5}
+            
+            # Analyze patterns
+            success_count = sum(1 for r in recent_results if r['result'].get('success', False))
+            success_rate = success_count / len(recent_results)
+            
+            # Simple recommendation logic
+            if success_rate > 0.7:
+                recommendation = 'continue_current_strategy'
+                confidence = 0.8
+            elif success_rate > 0.3:
+                recommendation = 'try_different_actions'
+                confidence = 0.6
+            else:
+                recommendation = 'switch_strategy'
+                confidence = 0.7
+            
+            return {
+                'recommendation': recommendation,
+                'confidence': confidence,
+                'success_rate': success_rate,
+                'actions_analyzed': len(recent_results)
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Error analyzing performance: {e}")
+            return {'recommendation': 'continue', 'confidence': 0.5}
         return {'has_learned_patterns': False, 'pattern_count': 0}

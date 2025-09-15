@@ -122,14 +122,6 @@ def run_single_training_session(session_id: int, duration_minutes: int = 30) -> 
         '--max-cycles', '100',        # Reduced per session
         '--target-score', '85.0',     # Target score
         '--enable-detailed-monitoring',
-        '--enable-action-intelligence',
-        '--enable-knowledge-transfer',
-        '--enable-pattern-recognition',
-        '--enable-coordinates',
-        '--enable-predictive-coordinates',
-        '--enable-action-experimentation',
-        '--enable-exploration-strategies',
-        '--enable-stagnation-detection',
         '--salience-threshold', '0.4',  # Balanced learning
         '--salience-decay', '0.95',
         '--memory-size', '512',        # Smaller per session
