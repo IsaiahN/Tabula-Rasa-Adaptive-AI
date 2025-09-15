@@ -8,7 +8,13 @@
     5,
     6
   ],
-  "effective_actions": {},
+  "effective_actions": {
+    "6": {
+      "success_rate": 2.0,
+      "attempts": 1,
+      "successes": 2
+    }
+  },
   "winning_sequences": [],
   "coordinate_patterns": {
     "1": {},
@@ -19,6 +25,6 @@
     "6": {}
   },
   "action_transitions": {},
-  "total_sessions_learned": 2640,
-  "last_updated": 1757909457.908916
+  "total_sessions_learned": 1,
+  "last_updated": 1757934638.0391107
 }

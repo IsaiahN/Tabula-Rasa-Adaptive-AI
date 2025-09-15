@@ -3,12 +3,18 @@
   "initial_actions": [
     6
   ],
-  "effective_actions": {},
+  "effective_actions": {
+    "6": {
+      "success_rate": 1.9913793103448276,
+      "attempts": 116,
+      "successes": 231
+    }
+  },
   "winning_sequences": [],
   "coordinate_patterns": {
     "6": {}
   },
   "action_transitions": {},
-  "total_sessions_learned": 13364,
-  "last_updated": 1757903584.5614307
+  "total_sessions_learned": 4284,
+  "last_updated": 1757943924.2888906
 }

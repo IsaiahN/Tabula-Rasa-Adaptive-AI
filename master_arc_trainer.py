@@ -345,7 +345,7 @@ class MasterTrainingConfig:
     api_key: Optional[str] = None  # ARC API key
     arc_agents_path: Optional[str] = None  # Path to arc-agents directory
     local_mode: bool = False  # Use local mock client for testing
-    max_actions: int = ActionLimits.MAX_ACTIONS_PER_SESSION
+    max_actions: int = 5  # Optimized action limit for better learning
     max_cycles: int = 150
     target_score: float = 85.0
     session_duration: int = 60  # minutes
@@ -378,6 +378,13 @@ class MasterTrainingConfig:
     enable_boundary_detection: bool = True
     enable_memory_consolidation: bool = True
     enable_action_intelligence: bool = True
+    enable_knowledge_transfer: bool = True
+    enable_pattern_recognition: bool = True
+    enable_coordinates: bool = True
+    enable_predictive_coordinates: bool = True
+    enable_action_experimentation: bool = True
+    enable_exploration_strategies: bool = True
+    enable_stagnation_detection: bool = True
     enable_meta_cognitive_governor: bool = True
     enable_architect_evolution: bool = True
     
@@ -746,18 +753,29 @@ class MasterARCTrainer:
                     game_ids = [game.strip() for game in self.config.games.split(',')]
                     self.logger.info(f"Using specified games: {game_ids}")
                 else:
-                    # Get available games from API
-                    games = await self.continuous_loop.get_available_games()
-                    if games:
-                        game_ids = [game.get('game_id') for game in games[:5]]  # Use first 5 games
-                        self.logger.info(f"Using available games: {game_ids}")
-                    else:
-                        self.logger.warning("No games available, skipping training")
-                        return {
-                            'success': False,
-                            'error': 'No games available',
-                            'timestamp': datetime.now().isoformat()
-                        }
+                    # Use optimized game selection with ACTION6 success patterns
+                    optimized_games = [
+                        "ft09-b8377d4b7815",  # Game with ACTION6 success
+                        "lp85-d265526edbaa",  # Game with ACTION6 success
+                        "sp80-0605ab9e5b2a",  # Game with ACTION6 success
+                        "vc33-6ae7bf49eea5",  # Game with ACTION6 success
+                    ]
+                    game_ids = optimized_games
+                    self.logger.info(f"Using optimized games with ACTION6 success patterns: {game_ids}")
+                    
+                    # Fallback to API games if needed
+                    if not game_ids:
+                        games = await self.continuous_loop.get_available_games()
+                        if games:
+                            game_ids = [game.get('game_id') for game in games[:5]]  # Use first 5 games
+                            self.logger.info(f"Using available games: {game_ids}")
+                        else:
+                            self.logger.warning("No games available, skipping training")
+                            return {
+                                'success': False,
+                                'error': 'No games available',
+                                'timestamp': datetime.now().isoformat()
+                            }
                 
                 # Run in swarm mode with specified games
                 await self.continuous_loop.run_swarm_mode(

@@ -192,31 +192,61 @@ class CrossSessionLearningManager:
         self.last_save_time = time.time()
         self.auto_save_thread = None
     
-    def _save_patterns_windows_safe(self, patterns_file: Path, patterns: Dict[str, Any], max_retries: int = 3) -> bool:
-        """Windows-safe pattern saving with retry logic."""
+    def _save_patterns_windows_safe(self, patterns_file: Path, patterns: Dict[str, Any], max_retries: int = 5) -> bool:
+        """Windows-safe pattern saving with retry logic and better file locking handling."""
         for attempt in range(max_retries):
             try:
                 # Force garbage collection to close any file handles
                 import gc
                 gc.collect()
                 
-                # Small delay to let file handles close
-                time.sleep(0.1)
+                # Longer delay to let file handles close
+                time.sleep(0.5 + attempt * 0.5)
                 
-                # Try to save directly
-                with open(patterns_file, 'wb') as f:
+                # Try to save to a temporary file first, then rename
+                temp_file = patterns_file.with_suffix('.tmp')
+                
+                # Remove temp file if it exists
+                if temp_file.exists():
+                    try:
+                        temp_file.unlink()
+                    except OSError:
+                        pass
+                
+                # Save to temporary file
+                with open(temp_file, 'wb') as f:
                     pickle.dump(patterns, f)
+                
+                # Atomic rename on Windows
+                try:
+                    if patterns_file.exists():
+                        patterns_file.unlink()
+                    temp_file.rename(patterns_file)
+                except OSError as rename_error:
+                    # If rename fails, try direct copy
+                    import shutil
+                    shutil.copy2(temp_file, patterns_file)
+                    temp_file.unlink()
                 
                 self.logger.debug(f"Saved {len(patterns)} patterns to disk at {patterns_file}")
                 return True
                 
-            except (OSError, PermissionError) as e:
+            except (OSError, PermissionError, FileExistsError) as e:
                 if attempt < max_retries - 1:
                     self.logger.warning(f"Pattern save attempt {attempt + 1} failed: {e}, retrying...")
-                    time.sleep(0.5)  # Wait longer between retries
+                    time.sleep(2.0 + attempt * 1.0)  # Longer exponential backoff for Windows
                 else:
                     self.logger.error(f"All pattern save attempts failed: {e}")
-                    return False
+                    # Try fallback: save to a different filename
+                    try:
+                        fallback_file = patterns_file.with_suffix('.backup.pkl')
+                        with open(fallback_file, 'wb') as f:
+                            pickle.dump(patterns, f)
+                        self.logger.warning(f"Saved patterns to fallback file: {fallback_file}")
+                        return True
+                    except Exception as fallback_error:
+                        self.logger.error(f"Fallback save also failed: {fallback_error}")
+                        return False
         
         return False
         

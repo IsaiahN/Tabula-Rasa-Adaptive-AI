@@ -113,17 +113,25 @@ def run_single_training_session(session_id: int, duration_minutes: int = 30) -> 
     env['PYTHONIOENCODING'] = 'utf-8'
     env['TRAINING_SESSION_ID'] = str(session_id)
     
-    # Build the command with SCALED INTELLIGENCE optimizations
+    # Build the command with OPTIMIZED INTELLIGENCE settings
     cmd = [
         'python', 'master_arc_trainer.py',
         '--mode', 'maximum-intelligence',
         '--session-duration', str(duration_minutes),
-        '--max-actions', '3000',      # Reduced per session for parallelization
-        '--max-cycles', '200',        # Reduced per session
-        '--target-score', '85.0',     # Slightly lower for faster convergence
+        '--max-actions', '5',         # Optimized action limit for better learning
+        '--max-cycles', '100',        # Reduced per session
+        '--target-score', '85.0',     # Target score
         '--enable-detailed-monitoring',
-        '--salience-threshold', '0.3',  # More aggressive learning
-        '--salience-decay', '0.97',
+        '--enable-action-intelligence',
+        '--enable-knowledge-transfer',
+        '--enable-pattern-recognition',
+        '--enable-coordinates',
+        '--enable-predictive-coordinates',
+        '--enable-action-experimentation',
+        '--enable-exploration-strategies',
+        '--enable-stagnation-detection',
+        '--salience-threshold', '0.4',  # Balanced learning
+        '--salience-decay', '0.95',
         '--memory-size', '512',        # Smaller per session
         '--memory-word-size', '64',
         '--memory-read-heads', '4',

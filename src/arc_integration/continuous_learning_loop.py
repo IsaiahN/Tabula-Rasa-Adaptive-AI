@@ -97,6 +97,7 @@ from typing import Dict, Any, List, Optional, Tuple  # Add type hints
 from arc_integration.arc_meta_learning import ARCMetaLearningSystem
 from core.meta_learning import MetaLearningSystem
 from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeightedReplayBuffer
+from arc_integration.scorecard_api import ScorecardAPIManager, get_api_key_from_config
 
 # Import Governor and Architect
 try:
@@ -417,6 +418,18 @@ class ContinuousLearningLoop:
         # Level tracking for hierarchical pattern learning
         self.current_level = 1
         
+        # Initialize scorecard API integration
+        self.scorecard_manager = None
+        self.active_scorecard_id = None
+        self.scorecard_stats = {
+            'total_level_completions': 0,
+            'total_games_completed': 0,
+            'total_wins': 0,
+            'total_played': 0,
+            'total_actions': 0,
+            'total_score': 0
+        }
+        
         # Create save directory
         self.save_directory.mkdir(parents=True, exist_ok=True)
         
@@ -486,6 +499,18 @@ class ContinuousLearningLoop:
             'progress_extension_enabled': True,
             'extension_threshold': 0.1  # 10% progress threshold
         }
+        
+        # Initialize scorecard API manager
+        if self.api_key:
+            try:
+                self.scorecard_manager = ScorecardAPIManager(self.api_key)
+                print("✅ Scorecard API manager initialized")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize scorecard API manager: {e}")
+                self.scorecard_manager = None
+        else:
+            print("⚠️ No API key available for scorecard integration")
+            self.scorecard_manager = None
         
         # Initialize global counters
         self.global_counters = {
@@ -2881,6 +2906,15 @@ class ContinuousLearningLoop:
                             safe_change_locations.append(loc.tolist())
                         elif hasattr(loc, 'item'):  # numpy scalar
                             safe_change_locations.append(loc.item())
+                        elif isinstance(loc, (list, tuple)) and len(loc) >= 2:
+                            # Handle tuple of numpy types
+                            safe_loc = []
+                            for coord in loc:
+                                if hasattr(coord, 'item'):
+                                    safe_loc.append(int(coord.item()))
+                                else:
+                                    safe_loc.append(int(coord))
+                            safe_change_locations.append(tuple(safe_loc))
                         else:
                             safe_change_locations.append(int(loc) if isinstance(loc, (int, float)) else loc)
                     
@@ -2889,10 +2923,15 @@ class ContinuousLearningLoop:
                     if hasattr(safe_change_percentage, 'item'):
                         safe_change_percentage = safe_change_percentage.item()
                     
+                    # Convert movement_detected numpy boolean
+                    safe_movement_detected = bool(movement_detected)
+                    if hasattr(movement_detected, 'item'):
+                        safe_movement_detected = bool(movement_detected.item())
+                    
                     return {
                         'change_type': change_classification,
                         'description': f"{change_classification}: {safe_num_pixels} pixels changed",
-                        'movement_detected': movement_detected,
+                        'movement_detected': safe_movement_detected,
                         'num_pixels_changed': safe_num_pixels,
                         'change_locations': safe_change_locations,
                         'change_percentage': safe_change_percentage
@@ -2959,7 +2998,7 @@ class ContinuousLearningLoop:
         else:
             return 'minor_change'
     
-    def _update_action_effectiveness(self, action_number: int, frame_changed: Optional[Dict], score_change: float):
+    def _update_action_effectiveness(self, action_number: int, frame_changed: Optional[Dict], score_change: float, game_id: str = None):
         """Update action effectiveness based on frame changes."""
         # Ensure memory is properly initialized
         self._ensure_available_actions_memory()
@@ -3019,7 +3058,8 @@ class ContinuousLearningLoop:
                     stats['successes'] += 1  # Significant changes are success indicators
                 
                 # Learn from change patterns
-                self._learn_from_frame_changes(action_number, frame_changed, game_id)
+                if game_id:
+                    self._learn_from_frame_changes(action_number, frame_changed, game_id)
             
             # Count score changes as success
             if score_change > 0:
@@ -3086,36 +3126,54 @@ class ContinuousLearningLoop:
         """Enforce action diversity by tracking usage and selecting underused actions."""
         if not hasattr(self, '_action_usage_tracker'):
             self._action_usage_tracker = {}
-        
+
         if game_id not in self._action_usage_tracker:
             self._action_usage_tracker[game_id] = {}
-        
+
         usage_tracker = self._action_usage_tracker[game_id]
-        
+
         # Initialize usage counts for available actions
         for action in available_actions:
             if action not in usage_tracker:
                 usage_tracker[action] = 0
-        
-        # Find the least used action
+
+        # Enhanced diversity enforcement
         if usage_tracker:
             min_usage = min(usage_tracker.values())
-            least_used_actions = [a for a, count in usage_tracker.items() if count == min_usage]
+            max_usage = max(usage_tracker.values())
+            total_actions = sum(usage_tracker.values())
             
-            # If there's a clear least-used action and it hasn't been used recently, select it
-            if len(least_used_actions) == 1 and min_usage < 3:
-                selected_action = least_used_actions[0]
-                usage_tracker[selected_action] += 1
-                print(f"🎯 DIVERSITY: Action {selected_action} used only {min_usage} times, selecting for diversity")
-                return selected_action
-            
-            # If multiple actions have same low usage, randomly select one
-            elif len(least_used_actions) > 1 and min_usage < 5:
-                selected_action = np.random.choice(least_used_actions)
-                usage_tracker[selected_action] += 1
-                print(f"🎯 DIVERSITY: Random selection from {len(least_used_actions)} least-used actions: {selected_action}")
-                return selected_action
-        
+            # If there's a significant imbalance (max usage > 3x min usage), enforce diversity
+            if max_usage > 0 and max_usage > min_usage * 3:
+                least_used_actions = [a for a, count in usage_tracker.items() if count == min_usage]
+                
+                # Prefer non-ACTION6 actions for diversity
+                non_action6_actions = [a for a in least_used_actions if a != 6]
+                if non_action6_actions:
+                    selected_action = np.random.choice(non_action6_actions)
+                    usage_tracker[selected_action] += 1
+                    print(f"🎯 DIVERSITY: Selecting non-ACTION6 {selected_action} (used {min_usage} times) for better diversity")
+                    return selected_action
+                elif least_used_actions:
+                    selected_action = np.random.choice(least_used_actions)
+                    usage_tracker[selected_action] += 1
+                    print(f"🎯 DIVERSITY: Selecting least-used action {selected_action} (used {min_usage} times)")
+                    return selected_action
+
+            # If ACTION6 is overused (>50% of actions), force other actions
+            action6_usage = usage_tracker.get(6, 0)
+            if total_actions > 10 and action6_usage > total_actions * 0.5:
+                other_actions = [a for a in available_actions if a != 6]
+                if other_actions:
+                    # Select the least used non-ACTION6 action
+                    other_usage = {a: usage_tracker.get(a, 0) for a in other_actions}
+                    min_other_usage = min(other_usage.values())
+                    least_used_other = [a for a, count in other_usage.items() if count == min_other_usage]
+                    selected_action = np.random.choice(least_used_other)
+                    usage_tracker[selected_action] += 1
+                    print(f"🎯 DIVERSITY: ACTION6 overused ({action6_usage}/{total_actions}), forcing {selected_action}")
+                    return selected_action
+
         return None
     
     def _check_action_stagnation(self, game_id: str, available_actions: List[int]) -> Dict[str, Any]:
@@ -3950,7 +4008,7 @@ class ContinuousLearningLoop:
                                             logger.info(f"🎯 FRAME CHANGE DETECTED: {frame_changed['change_type']} - {frame_changed['description']}")
                                             
                                             # Update action effectiveness based on frame changes
-                                            self._update_action_effectiveness(action_number, frame_changed, score_change)
+                                            self._update_action_effectiveness(action_number, frame_changed, score_change, game_id)
                                             
                                             # Reset stagnation counter if we see movement
                                             if frame_changed.get('movement_detected', False):
@@ -3960,6 +4018,10 @@ class ContinuousLearningLoop:
                                             # No frame change - increment stagnation counter
                                             self._increment_stagnation_counter(game_id, action_number)
                                             logger.warning(f"⚠️ NO FRAME CHANGE: Action {action_number} produced no visual changes")
+                                            
+                                            # Record failed coordinate for ACTION6
+                                            if action_number == 6 and hasattr(self, '_last_coordinates') and self._last_coordinates:
+                                                self._record_coordinate_result(self._last_coordinates[0], self._last_coordinates[1], game_id, False)
                                         
                                     except Exception as e:
                                         logger.error(f"Error in frame analysis logging: {e}")
@@ -4823,7 +4885,7 @@ class ContinuousLearningLoop:
         except Exception as e:
             print(f"Error recording coordinate result: {e}")
     
-    def _get_learned_coordinates(self, game_id: str) -> Tuple[Set[Tuple[int, int]], Set[Tuple[int, int]]]:
+    def _get_learned_coordinates(self, game_id: str) -> Tuple[set, set]:
         """Get learned successful and failed coordinates for a game."""
         if not hasattr(self, '_coordinate_tracking'):
             return set(), set()
@@ -4849,6 +4911,10 @@ class ContinuousLearningLoop:
                 if 0 <= coord[0] < grid_width and 0 <= coord[1] < grid_height:
                     print(f"🧠 LEARNED SUCCESS: Reusing successful coordinate ({coord[0]},{coord[1]})")
                     return coord
+        
+        # Avoid failed coordinates
+        if failed_coords:
+            print(f"🧠 AVOIDING {len(failed_coords)} previously failed coordinates")
         
         #  CRITICAL FIX: Integrate stuck coordinate avoidance from frame analyzer
         # Check if frame analyzer has coordinate avoidance data
@@ -4881,11 +4947,22 @@ class ContinuousLearningLoop:
                     candidate_y = random.randint(1, grid_height - 2)
                 
                 # Check if this coordinate should be avoided
-                if not self.frame_analyzer.should_avoid_coordinate(candidate_x, candidate_y):
-                    print(f" Selected non-stuck coordinate: ({candidate_x},{candidate_y}) after {attempt + 1} attempts")
-                    return (candidate_x, candidate_y)
-                else:
+                coord_key = (candidate_x, candidate_y)
+                should_avoid = False
+                
+                # Avoid if frame analyzer says so
+                if hasattr(self.frame_analyzer, 'should_avoid_coordinate') and self.frame_analyzer.should_avoid_coordinate(candidate_x, candidate_y):
+                    should_avoid = True
                     print(f" Avoiding stuck coordinate: ({candidate_x},{candidate_y}) - attempt {attempt + 1}")
+                
+                # Avoid if previously failed
+                if coord_key in failed_coords:
+                    should_avoid = True
+                    print(f" Avoiding previously failed coordinate: ({candidate_x},{candidate_y}) - attempt {attempt + 1}")
+                
+                if not should_avoid:
+                    print(f" Selected coordinate: ({candidate_x},{candidate_y}) after {attempt + 1} attempts")
+                    return (candidate_x, candidate_y)
                 
                 attempt += 1
             
@@ -13156,6 +13233,106 @@ class ContinuousLearningLoop:
             print(f"    {error_msg}")
             return {"error": error_msg}
 
+    def _initialize_scorecard(self, source_url: str = None) -> Optional[str]:
+        """Initialize a new scorecard for tracking Tabula Rasa performance."""
+        if not self.scorecard_manager:
+            print("⚠️ Scorecard manager not available")
+            return None
+        
+        if source_url is None:
+            source_url = "https://github.com/your-org/tabula-rasa"
+        
+        tags = ["tabula_rasa", "adaptive_learning_agent", "arc_agi_3", "mode_direct_control"]
+        opaque = {
+            "system": "tabula_rasa",
+            "version": "1.0",
+            "timestamp": time.time(),
+            "training_mode": "direct_control"
+        }
+        
+        card_id = self.scorecard_manager.open_scorecard(source_url, tags, opaque)
+        if card_id:
+            self.active_scorecard_id = card_id
+            print(f"✅ Opened scorecard: {card_id}")
+        else:
+            print("❌ Failed to open scorecard")
+        
+        return card_id
+    
+    def _update_scorecard_stats(self):
+        """Update local scorecard statistics from API."""
+        if not self.scorecard_manager or not self.active_scorecard_id:
+            return
+        
+        try:
+            scorecard_data = self.scorecard_manager.get_scorecard_data(self.active_scorecard_id)
+            if scorecard_data:
+                analysis = self.scorecard_manager.analyze_level_completions(scorecard_data)
+                
+                # Update local stats
+                self.scorecard_stats.update({
+                    'total_level_completions': analysis['level_completions'],
+                    'total_games_completed': analysis['games_completed'],
+                    'total_wins': analysis['total_wins'],
+                    'total_played': analysis['total_played'],
+                    'total_actions': analysis['total_actions'],
+                    'total_score': analysis['total_score']
+                })
+                
+                # Save data locally
+                self.scorecard_manager.save_scorecard_data(
+                    self.active_scorecard_id, 
+                    scorecard_data, 
+                    analysis
+                )
+                
+                print(f"📊 Scorecard updated: {analysis['level_completions']} level completions, {analysis['games_completed']} games completed")
+                
+        except Exception as e:
+            print(f"⚠️ Error updating scorecard stats: {e}")
+    
+    def _log_level_completion(self, game_id: str, level: int, score: int):
+        """Log a level completion event."""
+        print(f"🎯 LEVEL COMPLETION: Game {game_id}, Level {level}, Score {score}")
+        
+        # Update local tracking
+        self.scorecard_stats['total_level_completions'] += 1
+        
+        # Update scorecard if available
+        if self.scorecard_manager and self.active_scorecard_id:
+            self._update_scorecard_stats()
+    
+    def _log_game_completion(self, game_id: str, total_score: int):
+        """Log a full game completion event."""
+        print(f"🏆 GAME COMPLETION: Game {game_id}, Total Score {total_score}")
+        
+        # Update local tracking
+        self.scorecard_stats['total_games_completed'] += 1
+        
+        # Update scorecard if available
+        if self.scorecard_manager and self.active_scorecard_id:
+            self._update_scorecard_stats()
+    
+    def get_performance_summary(self) -> Dict[str, Any]:
+        """Get comprehensive performance summary including scorecard data."""
+        summary = {
+            'local_stats': self.scorecard_stats.copy(),
+            'active_scorecard_id': self.active_scorecard_id,
+            'scorecard_available': self.scorecard_manager is not None
+        }
+        
+        # Add scorecard data if available
+        if self.scorecard_manager and self.active_scorecard_id:
+            try:
+                scorecard_data = self.scorecard_manager.get_scorecard_data(self.active_scorecard_id)
+                if scorecard_data:
+                    analysis = self.scorecard_manager.analyze_level_completions(scorecard_data)
+                    summary['scorecard_analysis'] = analysis
+            except Exception as e:
+                summary['scorecard_error'] = str(e)
+        
+        return summary
+
     async def start_training_with_direct_control(
         self, 
         game_id: str,
@@ -13168,6 +13345,10 @@ class ContinuousLearningLoop:
         
         # CRITICAL FIX: Ensure system is fully initialized before training
         self._ensure_initialized()
+        
+        # Initialize scorecard for tracking if not already active
+        if not self.active_scorecard_id and self.scorecard_manager:
+            self._initialize_scorecard()
         
         #  CRITICAL FIX: Handle per-game scorecard for swarm mode
         original_scorecard_id = self.current_scorecard_id

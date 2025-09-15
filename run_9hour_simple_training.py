@@ -34,15 +34,23 @@ def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[st
     env['PYTHONIOENCODING'] = 'utf-8'
     env['TRAINING_SESSION_ID'] = str(session_id)
     
-    # Build the command with SIMPLE INTELLIGENCE optimizations
+    # Build the command with OPTIMIZED INTELLIGENCE settings
     cmd = [
         'python', 'master_arc_trainer.py',
         '--mode', 'maximum-intelligence',
         '--session-duration', str(duration_minutes),
-        '--max-actions', '2000',      # Moderate actions per session
+        '--max-actions', '5',         # Optimized action limit for better learning
         '--max-cycles', '100',        # Moderate cycles
-        '--target-score', '80.0',     # Reasonable target
+        '--target-score', '85.0',     # Target score
         '--enable-detailed-monitoring',
+        '--enable-action-intelligence',
+        '--enable-knowledge-transfer',
+        '--enable-pattern-recognition',
+        '--enable-coordinates',
+        '--enable-predictive-coordinates',
+        '--enable-action-experimentation',
+        '--enable-exploration-strategies',
+        '--enable-stagnation-detection',
         '--salience-threshold', '0.4',
         '--salience-decay', '0.95',
         '--memory-size', '512',
