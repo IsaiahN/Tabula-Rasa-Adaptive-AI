@@ -4,6 +4,9 @@ data/logs/master_arc_trainer.log
 data/logs/master_arc_trainer_output.log
 data/logs/*_backup.log
 
+# Ignore action traces backup files
+data/action_traces_backup.ndjson
+
 # Environment files
 .env
 .env.local
