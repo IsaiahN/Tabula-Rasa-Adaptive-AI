@@ -13555,16 +13555,8 @@ class ContinuousLearningLoop:
                 if self.governor:
                     try:
                         governor_recommendation = self.governor.analyze_performance_and_recommend(
-                            current_state=current_state,
-                            current_score=current_score,
-                            actions_taken=actions_taken,
-                            available_actions=available_actions,
                             game_id=game_id,
-                            context={
-                                'session_count': session_count,
-                                'max_actions_per_game': max_actions_per_game,
-                                'recent_effectiveness': len(effective_actions) / max(1, actions_taken) if actions_taken > 0 else 0.0
-                            }
+                            recent_actions=actions_taken
                         )
                         if governor_recommendation:
                             print(f"🧠 GOVERNOR RECOMMENDATION: {governor_recommendation.get('reasoning', 'No reasoning provided')}")
@@ -13816,12 +13808,12 @@ class ContinuousLearningLoop:
                     if self.governor:
                         try:
                             self.governor.record_action_result(
-                                action=selected_action,
-                                result=action_result,
-                                effectiveness=was_effective,
-                                score_improvement=score_improvement,
+                                action_id=selected_action,
                                 game_id=game_id,
-                                context={
+                                result={
+                                    'success': was_effective,
+                                    'score_improvement': score_improvement,
+                                    'action_result': action_result,
                                     'actions_taken': actions_taken,
                                     'current_state': new_state,
                                     'current_score': new_score

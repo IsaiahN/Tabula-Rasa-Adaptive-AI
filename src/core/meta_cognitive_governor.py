@@ -160,92 +160,7 @@ class CognitiveSystemMonitor:
         else:
             return "stable"
 
-class MetaCognitiveGovernor:
-
-    def archive_and_cleanup_logs(self, log_dir, results_dir, keep_per_game=1, keep_recent=10):
-        """
-        Archive and clean up training logs and results using GitPython.
-        Prioritize by effectiveness, recency, and game coverage.
-        """
-        repo = Repo(os.path.abspath(os.path.join(log_dir, '..')))
-        logs = self._parse_logs(log_dir)
-        results = self._parse_results(results_dir)
-        to_keep = set()
-        # 1. Keep best per game (logs)
-        for game_id, group in self._group_by(logs, 'game_id').items():
-            best = max(group, key=lambda x: x['score'])
-            to_keep.add(best['filename'])
-        # 2. Keep most recent overall (logs)
-        recent = sorted(logs, key=lambda x: x['timestamp'], reverse=True)[:keep_recent]
-        to_keep.update(log['filename'] for log in recent)
-        # 3. Repeat for results
-        for game_id, group in self._group_by(results, 'game_id').items():
-            best = max(group, key=lambda x: x['score'])
-            to_keep.add(best['filename'])
-        recent_results = sorted(results, key=lambda x: x['timestamp'], reverse=True)[:keep_recent]
-        to_keep.update(r['filename'] for r in recent_results)
-        # 4. Archive and delete the rest
-        for file in logs + results:
-            if file['filename'] not in to_keep:
-                abs_path = os.path.join(log_dir if file in logs else results_dir, file['filename'])
-                repo.index.add([abs_path])
-                repo.index.commit(f"Archive log: {file['filename']} (score={file['score']}, game={file['game_id']})")
-                os.remove(abs_path)
-
-    def _parse_logs(self, log_dir):
-        files = glob.glob(os.path.join(log_dir, '*.log'))
-        parsed = []
-        for f in files:
-            try:
-                with open(f, 'r', encoding='utf-8', errors='ignore') as fh:
-                    content = fh.read()
-                # Extract game_id, score, timestamp (customize as needed)
-                game_id = self._extract_game_id(content)
-                score = self._extract_score(content)
-                timestamp = os.path.getmtime(f)
-                parsed.append({'filename': os.path.basename(f), 'game_id': game_id, 'score': score, 'timestamp': timestamp})
-            except Exception:
-                continue
-        return parsed
-
-    def _parse_results(self, results_dir):
-        files = glob.glob(os.path.join(results_dir, '*.json'))
-        parsed = []
-        for f in files:
-            try:
-                with open(f, 'r', encoding='utf-8', errors='ignore') as fh:
-                    data = json.load(fh)
-                game_id = data.get('game_id', 'unknown')
-                score = data.get('score', 0)
-                timestamp = os.path.getmtime(f)
-                parsed.append({'filename': os.path.basename(f), 'game_id': game_id, 'score': score, 'timestamp': timestamp})
-            except Exception:
-                continue
-        return parsed
-
-    def _group_by(self, items, key):
-        grouped = {}
-        for item in items:
-            grouped.setdefault(item[key], []).append(item)
-        return grouped
-
-    def _extract_game_id(self, content):
-        # Implement logic to extract game_id from log content
-        # Placeholder: look for 'Game: <id>'
-        import re
-        m = re.search(r'Game[s]?: ([\w\-, ]+)', content)
-        if m:
-            return m.group(1).split(',')[0].strip()
-        return 'unknown'
-
-    def _extract_score(self, content):
-        # Implement logic to extract score from log content
-        # Placeholder: look for 'Score: <number>'
-        import re
-        m = re.search(r'Score: (\d+)', content)
-        if m:
-            return int(m.group(1))
-        return 0
+# Archive and cleanup methods moved to main MetaCognitiveGovernor class
 class MetaCognitiveGovernor:
     """
     The "Third Brain" - Meta-Cognitive Resource Allocator
@@ -3822,6 +3737,66 @@ class MetaCognitiveGovernor:
             
             return results
 
+    def record_action_result(self, action_id: int, game_id: str, result: Dict[str, Any]):
+        """Record the result of an action for analysis and learning."""
+        try:
+            # Basic action result recording
+            if not hasattr(self, 'action_results'):
+                self.action_results = []
+            
+            action_record = {
+                'action_id': action_id,
+                'game_id': game_id,
+                'timestamp': time.time(),
+                'result': result
+            }
+            self.action_results.append(action_record)
+            
+            # Keep only last 1000 records
+            if len(self.action_results) > 1000:
+                self.action_results = self.action_results[-1000:]
+                
+        except Exception as e:
+            self.logger.warning(f"Error recording action result: {e}")
+
+    def analyze_performance_and_recommend(self, game_id: str, recent_actions: int = 10) -> Dict[str, Any]:
+        """Analyze recent performance and provide recommendations."""
+        try:
+            if not hasattr(self, 'action_results'):
+                return {'recommendation': 'continue', 'confidence': 0.5}
+            
+            # Get recent actions for this game
+            recent_results = [r for r in self.action_results if r['game_id'] == game_id][-recent_actions:]
+            
+            if not recent_results:
+                return {'recommendation': 'continue', 'confidence': 0.5}
+            
+            # Analyze patterns
+            success_count = sum(1 for r in recent_results if r['result'].get('success', False))
+            success_rate = success_count / len(recent_results)
+            
+            # Simple recommendation logic
+            if success_rate > 0.7:
+                recommendation = 'continue_current_strategy'
+                confidence = 0.8
+            elif success_rate > 0.3:
+                recommendation = 'try_different_actions'
+                confidence = 0.6
+            else:
+                recommendation = 'switch_strategy'
+                confidence = 0.7
+            
+            return {
+                'recommendation': recommendation,
+                'confidence': confidence,
+                'success_rate': success_rate,
+                'actions_analyzed': len(recent_results)
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Error analyzing performance: {e}")
+            return {'recommendation': 'continue', 'confidence': 0.5}
+
 
 # Example usage and testing
 if __name__ == "__main__":
@@ -4002,64 +3977,93 @@ def get_game_memory_insights(game_id: str) -> Dict[str, Any]:
 
     except Exception as e:
         print(f"Warning: Error getting memory insights for {game_id}: {e}")
-
-    def record_action_result(self, action_id: int, game_id: str, result: Dict[str, Any]):
-        """Record the result of an action for analysis and learning."""
-        try:
-            # Basic action result recording
-            if not hasattr(self, 'action_results'):
-                self.action_results = []
-            
-            action_record = {
-                'action_id': action_id,
-                'game_id': game_id,
-                'timestamp': time.time(),
-                'result': result
-            }
-            self.action_results.append(action_record)
-            
-            # Keep only last 1000 records
-            if len(self.action_results) > 1000:
-                self.action_results = self.action_results[-1000:]
-                
-        except Exception as e:
-            self.logger.warning(f"Error recording action result: {e}")
-
-    def analyze_performance_and_recommend(self, game_id: str, recent_actions: int = 10) -> Dict[str, Any]:
-        """Analyze recent performance and provide recommendations."""
-        try:
-            if not hasattr(self, 'action_results'):
-                return {'recommendation': 'continue', 'confidence': 0.5}
-            
-            # Get recent actions for this game
-            recent_results = [r for r in self.action_results if r['game_id'] == game_id][-recent_actions:]
-            
-            if not recent_results:
-                return {'recommendation': 'continue', 'confidence': 0.5}
-            
-            # Analyze patterns
-            success_count = sum(1 for r in recent_results if r['result'].get('success', False))
-            success_rate = success_count / len(recent_results)
-            
-            # Simple recommendation logic
-            if success_rate > 0.7:
-                recommendation = 'continue_current_strategy'
-                confidence = 0.8
-            elif success_rate > 0.3:
-                recommendation = 'try_different_actions'
-                confidence = 0.6
-            else:
-                recommendation = 'switch_strategy'
-                confidence = 0.7
-            
-            return {
-                'recommendation': recommendation,
-                'confidence': confidence,
-                'success_rate': success_rate,
-                'actions_analyzed': len(recent_results)
-            }
-            
-        except Exception as e:
-            self.logger.warning(f"Error analyzing performance: {e}")
-            return {'recommendation': 'continue', 'confidence': 0.5}
         return {'has_learned_patterns': False, 'pattern_count': 0}
+    
+    def archive_and_cleanup_logs(self, log_dir, results_dir, keep_per_game=1, keep_recent=10):
+        """
+        Archive and clean up training logs and results using GitPython.
+        Prioritize by effectiveness, recency, and game coverage.
+        """
+        try:
+            from git import Repo
+            repo = Repo(os.path.abspath(os.path.join(log_dir, '..')))
+            logs = self._parse_logs(log_dir)
+            results = self._parse_results(results_dir)
+            to_keep = set()
+            # 1. Keep best per game (logs)
+            for game_id, group in self._group_by(logs, 'game_id').items():
+                best = max(group, key=lambda x: x['score'])
+                to_keep.add(best['filename'])
+            # 2. Keep most recent overall (logs)
+            recent = sorted(logs, key=lambda x: x['timestamp'], reverse=True)[:keep_recent]
+            to_keep.update(log['filename'] for log in recent)
+            # 3. Repeat for results
+            for game_id, group in self._group_by(results, 'game_id').items():
+                best = max(group, key=lambda x: x['score'])
+                to_keep.add(best['filename'])
+            recent_results = sorted(results, key=lambda x: x['timestamp'], reverse=True)[:keep_recent]
+            to_keep.update(r['filename'] for r in recent_results)
+            # 4. Archive and delete the rest
+            for file in logs + results:
+                if file['filename'] not in to_keep:
+                    abs_path = os.path.join(log_dir if file in logs else results_dir, file['filename'])
+                    repo.index.add([abs_path])
+                    repo.index.commit(f"Archive log: {file['filename']} (score={file['score']}, game={file['game_id']})")
+                    os.remove(abs_path)
+        except Exception as e:
+            self.logger.warning(f"Error in archive_and_cleanup_logs: {e}")
+
+    def _parse_logs(self, log_dir):
+        files = glob.glob(os.path.join(log_dir, '*.log'))
+        parsed = []
+        for f in files:
+            try:
+                with open(f, 'r', encoding='utf-8', errors='ignore') as fh:
+                    content = fh.read()
+                # Extract game_id, score, timestamp (customize as needed)
+                game_id = self._extract_game_id(content)
+                score = self._extract_score(content)
+                timestamp = os.path.getmtime(f)
+                parsed.append({'filename': os.path.basename(f), 'game_id': game_id, 'score': score, 'timestamp': timestamp})
+            except Exception:
+                continue
+        return parsed
+
+    def _parse_results(self, results_dir):
+        files = glob.glob(os.path.join(results_dir, '*.json'))
+        parsed = []
+        for f in files:
+            try:
+                with open(f, 'r', encoding='utf-8', errors='ignore') as fh:
+                    data = json.load(fh)
+                game_id = data.get('game_id', 'unknown')
+                score = data.get('score', 0)
+                timestamp = os.path.getmtime(f)
+                parsed.append({'filename': os.path.basename(f), 'game_id': game_id, 'score': score, 'timestamp': timestamp})
+            except Exception:
+                continue
+        return parsed
+
+    def _group_by(self, items, key):
+        grouped = {}
+        for item in items:
+            grouped.setdefault(item[key], []).append(item)
+        return grouped
+
+    def _extract_game_id(self, content):
+        # Implement logic to extract game_id from log content
+        # Placeholder: look for 'Game: <id>'
+        import re
+        m = re.search(r'Game[s]?: ([\w\-, ]+)', content)
+        if m:
+            return m.group(1).split(',')[0].strip()
+        return 'unknown'
+
+    def _extract_score(self, content):
+        # Implement logic to extract score from log content
+        # Placeholder: look for 'Score: <number>'
+        import re
+        m = re.search(r'Score: (\d+)', content)
+        if m:
+            return int(m.group(1))
+        return 0
