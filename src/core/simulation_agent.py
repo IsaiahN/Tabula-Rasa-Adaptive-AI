@@ -338,22 +338,37 @@ class SimulationAgent:
         
         available_actions = context.available_actions
         
-        # Prefer movement actions if available
-        movement_actions = [a for a in [1, 2, 3, 4] if a in available_actions]
-        if movement_actions:
-            action = np.random.choice(movement_actions)
+        # Create action preference weights for better diversity
+        action_weights = {
+            1: 0.25,  # Movement actions
+            2: 0.25,
+            3: 0.25,
+            4: 0.25,
+            5: 0.15,  # Interaction action
+            6: 0.10,  # Coordinate action (less preferred)
+            7: 0.20,  # Other actions
+            8: 0.20,
+            9: 0.20,
+            10: 0.20
+        }
+        
+        # Filter available actions and apply weights
+        weighted_actions = []
+        for action in available_actions:
+            if action in action_weights:
+                weighted_actions.extend([action] * int(action_weights[action] * 100))
+        
+        if weighted_actions:
+            action = np.random.choice(weighted_actions)
+            
+            # Generate coordinates for ACTION6
+            if action == 6:
+                coords = (np.random.randint(0, 64), np.random.randint(0, 64))
+                return action, coords
+            
             return action, None
         
-        # Prefer interaction actions
-        if 5 in available_actions:
-            return 5, None
-        
-        # Use coordinate action as last resort
-        if 6 in available_actions:
-            coords = (np.random.randint(0, 64), np.random.randint(0, 64))
-            return 6, coords
-        
-        # Use any available action
+        # Use any available action as last resort
         if available_actions:
             return available_actions[0], None
         

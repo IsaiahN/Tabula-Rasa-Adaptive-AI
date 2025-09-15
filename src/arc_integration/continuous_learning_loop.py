@@ -2874,13 +2874,28 @@ class ContinuousLearningLoop:
                     # Classify the type of change
                     change_classification = self._classify_change_type(change_type, num_pixels_changed, movement_detected)
                     
+                    # Convert numpy types to Python native types for JSON serialization
+                    safe_change_locations = []
+                    for loc in change_locations[:10]:  # Limit for storage
+                        if hasattr(loc, 'tolist'):  # numpy array
+                            safe_change_locations.append(loc.tolist())
+                        elif hasattr(loc, 'item'):  # numpy scalar
+                            safe_change_locations.append(loc.item())
+                        else:
+                            safe_change_locations.append(int(loc) if isinstance(loc, (int, float)) else loc)
+                    
+                    safe_num_pixels = int(num_pixels_changed) if hasattr(num_pixels_changed, 'item') else int(num_pixels_changed)
+                    safe_change_percentage = float(frame_changes.get('change_percentage', 0.0))
+                    if hasattr(safe_change_percentage, 'item'):
+                        safe_change_percentage = safe_change_percentage.item()
+                    
                     return {
                         'change_type': change_classification,
-                        'description': f"{change_classification}: {num_pixels_changed} pixels changed",
+                        'description': f"{change_classification}: {safe_num_pixels} pixels changed",
                         'movement_detected': movement_detected,
-                        'num_pixels_changed': num_pixels_changed,
-                        'change_locations': change_locations[:10],  # Limit for storage
-                        'change_percentage': frame_changes.get('change_percentage', 0.0)
+                        'num_pixels_changed': safe_num_pixels,
+                        'change_locations': safe_change_locations,
+                        'change_percentage': safe_change_percentage
                     }
             
             return None
@@ -2960,14 +2975,51 @@ class ContinuousLearningLoop:
                 }
             
             stats = action_effectiveness[action_number]
+            
+            # Ensure stats dictionary has all required keys
+            if not isinstance(stats, dict):
+                action_effectiveness[action_number] = {
+                    'attempts': 0, 'successes': 0, 'success_rate': 0.0,
+                    'frame_changes': 0, 'movement_detected': 0, 'score_changes': 0
+                }
+                stats = action_effectiveness[action_number]
+            
+            # Ensure all required keys exist
+            for key in ['attempts', 'successes', 'success_rate', 'frame_changes', 'movement_detected', 'score_changes']:
+                if key not in stats:
+                    stats[key] = 0 if key != 'success_rate' else 0.0
+            
             stats['attempts'] += 1
             
-            # Count frame changes as positive indicators
+            # Count frame changes as positive indicators with enhanced learning
             if frame_changed and isinstance(frame_changed, dict):
                 stats['frame_changes'] += 1
-                if frame_changed.get('movement_detected', False):
+                
+                # Enhanced learning from frame change patterns
+                change_type = frame_changed.get('change_type', 'unknown')
+                movement_detected = frame_changed.get('movement_detected', False)
+                num_pixels = frame_changed.get('num_pixels_changed', 0)
+                change_percentage = frame_changed.get('change_percentage', 0.0)
+                
+                # Learn from different types of changes
+                if change_type not in stats:
+                    stats[change_type] = 0
+                stats[change_type] += 1
+                
+                # Movement is a strong success indicator
+                if movement_detected:
                     stats['movement_detected'] += 1
                     stats['successes'] += 1  # Movement is a success indicator
+                
+                # Significant pixel changes are also positive
+                if num_pixels > 5 or change_percentage > 0.01:
+                    if 'significant_changes' not in stats:
+                        stats['significant_changes'] = 0
+                    stats['significant_changes'] += 1
+                    stats['successes'] += 1  # Significant changes are success indicators
+                
+                # Learn from change patterns
+                self._learn_from_frame_changes(action_number, frame_changed, game_id)
             
             # Count score changes as success
             if score_change > 0:
@@ -3029,6 +3081,42 @@ class ContinuousLearningLoop:
             
         except Exception as e:
             logger.error(f"Error incrementing stagnation counter: {e}")
+    
+    def _enforce_action_diversity(self, available_actions: List[int], game_id: str) -> Optional[int]:
+        """Enforce action diversity by tracking usage and selecting underused actions."""
+        if not hasattr(self, '_action_usage_tracker'):
+            self._action_usage_tracker = {}
+        
+        if game_id not in self._action_usage_tracker:
+            self._action_usage_tracker[game_id] = {}
+        
+        usage_tracker = self._action_usage_tracker[game_id]
+        
+        # Initialize usage counts for available actions
+        for action in available_actions:
+            if action not in usage_tracker:
+                usage_tracker[action] = 0
+        
+        # Find the least used action
+        if usage_tracker:
+            min_usage = min(usage_tracker.values())
+            least_used_actions = [a for a, count in usage_tracker.items() if count == min_usage]
+            
+            # If there's a clear least-used action and it hasn't been used recently, select it
+            if len(least_used_actions) == 1 and min_usage < 3:
+                selected_action = least_used_actions[0]
+                usage_tracker[selected_action] += 1
+                print(f"🎯 DIVERSITY: Action {selected_action} used only {min_usage} times, selecting for diversity")
+                return selected_action
+            
+            # If multiple actions have same low usage, randomly select one
+            elif len(least_used_actions) > 1 and min_usage < 5:
+                selected_action = np.random.choice(least_used_actions)
+                usage_tracker[selected_action] += 1
+                print(f"🎯 DIVERSITY: Random selection from {len(least_used_actions)} least-used actions: {selected_action}")
+                return selected_action
+        
+        return None
     
     def _check_action_stagnation(self, game_id: str, available_actions: List[int]) -> Dict[str, Any]:
         """Check for action stagnation and recommend switching strategies."""
@@ -4666,15 +4754,101 @@ class ContinuousLearningLoop:
                 except Exception as e:
                     print(f" Enhanced exploration failed: {e}")
         
-        # Final fallback: strategic grid exploration
+        # Final fallback: strategic grid exploration with learning
         explore_x, explore_y = self._generate_exploration_coordinates(grid_dimensions, game_id)
         print(f" SYSTEMATIC EXPLORATION: Tapping at ({explore_x},{explore_y}) to discover interactions")
         
+        # Track coordinate selection for learning
+        self._track_coordinate_selection(explore_x, explore_y, game_id, "exploration")
+        
         return explore_x, explore_y
+    
+    def _track_coordinate_selection(self, x: int, y: int, game_id: str, method: str):
+        """Track coordinate selections for learning and optimization."""
+        try:
+            if not hasattr(self, '_coordinate_tracking'):
+                self._coordinate_tracking = {}
+            
+            if game_id not in self._coordinate_tracking:
+                self._coordinate_tracking[game_id] = {
+                    'selections': [],
+                    'successful_coords': set(),
+                    'failed_coords': set(),
+                    'method_preferences': {}
+                }
+            
+            tracking = self._coordinate_tracking[game_id]
+            coord_key = (x, y)
+            
+            # Record selection
+            tracking['selections'].append({
+                'coord': coord_key,
+                'method': method,
+                'timestamp': time.time()
+            })
+            
+            # Keep only recent selections (last 100)
+            if len(tracking['selections']) > 100:
+                tracking['selections'] = tracking['selections'][-100:]
+            
+            # Update method preferences
+            if method not in tracking['method_preferences']:
+                tracking['method_preferences'][method] = 0
+            tracking['method_preferences'][method] += 1
+            
+        except Exception as e:
+            print(f"Error tracking coordinate selection: {e}")
+    
+    def _record_coordinate_result(self, x: int, y: int, game_id: str, success: bool):
+        """Record the result of a coordinate selection for learning."""
+        try:
+            if not hasattr(self, '_coordinate_tracking'):
+                return
+            
+            if game_id not in self._coordinate_tracking:
+                return
+            
+            tracking = self._coordinate_tracking[game_id]
+            coord_key = (x, y)
+            
+            if success:
+                tracking['successful_coords'].add(coord_key)
+                # Remove from failed if it was there
+                tracking['failed_coords'].discard(coord_key)
+            else:
+                tracking['failed_coords'].add(coord_key)
+                # Remove from successful if it was there
+                tracking['successful_coords'].discard(coord_key)
+            
+        except Exception as e:
+            print(f"Error recording coordinate result: {e}")
+    
+    def _get_learned_coordinates(self, game_id: str) -> Tuple[Set[Tuple[int, int]], Set[Tuple[int, int]]]:
+        """Get learned successful and failed coordinates for a game."""
+        if not hasattr(self, '_coordinate_tracking'):
+            return set(), set()
+        
+        if game_id not in self._coordinate_tracking:
+            return set(), set()
+        
+        tracking = self._coordinate_tracking[game_id]
+        return tracking['successful_coords'], tracking['failed_coords']
     
     def _generate_exploration_coordinates(self, grid_dimensions: Tuple[int, int], game_id: str) -> Tuple[int, int]:
         """ ENHANCED: Generate systematic exploration coordinates with stuck coordinate avoidance."""
         grid_width, grid_height = grid_dimensions
+        
+        # 🧠 LEARNED COORDINATE OPTIMIZATION
+        successful_coords, failed_coords = self._get_learned_coordinates(game_id)
+        
+        # Try successful coordinates first if available
+        if successful_coords:
+            # Prefer recently successful coordinates
+            recent_successful = list(successful_coords)[-3:]  # Last 3 successful
+            for coord in recent_successful:
+                if 0 <= coord[0] < grid_width and 0 <= coord[1] < grid_height:
+                    print(f"🧠 LEARNED SUCCESS: Reusing successful coordinate ({coord[0]},{coord[1]})")
+                    return coord
         
         #  CRITICAL FIX: Integrate stuck coordinate avoidance from frame analyzer
         # Check if frame analyzer has coordinate avoidance data
@@ -4941,6 +5115,12 @@ class ContinuousLearningLoop:
         frame_analysis = context.get('frame_analysis', {})
         
         print(f" ACTION DECISION PROTOCOL - Available: {available_actions}")
+        
+        # 🎯 ACTION DIVERSITY ENFORCEMENT
+        diversity_action = self._enforce_action_diversity(available_actions, game_id)
+        if diversity_action:
+            print(f"🎯 DIVERSITY ENFORCEMENT: Selecting {diversity_action} for better action variety")
+            return diversity_action
         
         # 🔄 STAGNATION DETECTION AND ACTION SWITCHING
         stagnation_info = self._check_action_stagnation(game_id, available_actions)
@@ -9287,6 +9467,10 @@ class ContinuousLearningLoop:
             coord_data['successes'] += 1
             coord_data['last_successful_action'] = action_num
             
+            # Record successful coordinate for learning
+            if coordinates and len(coordinates) == 2:
+                self._record_coordinate_result(coordinates[0], coordinates[1], game_id, True)
+            
             # Update success zone mapping
             if coordinates not in boundary_system['success_zone_mapping'][game_id]:
                 boundary_system['success_zone_mapping'][game_id][coordinates] = {
@@ -9304,6 +9488,10 @@ class ContinuousLearningLoop:
                 zone_data['best_action'] = action_num
         
         coord_data['success_rate'] = coord_data['successes'] / coord_data['attempts']
+        
+        # Record coordinate result for learning (both success and failure)
+        if coordinates and len(coordinates) == 2:
+            self._record_coordinate_result(coordinates[0], coordinates[1], game_id, success)
         
         # Record action coordinate history
         if action_num not in boundary_system['action_coordinate_history'][game_id]:
@@ -12059,7 +12247,7 @@ class ContinuousLearningLoop:
         except Exception as e:
             print(f"Could not save global counters: {e}")
     
-    def _update_global_counters(self, sleep_cycle_completed: bool = False, memory_ops: int = 0, memories_deleted: int = 0, memories_combined: int = 0, memories_strengthened: int = 0):
+    def _update_global_counters(self, sleep_cycle_completed: bool = False, memory_ops: int = 0, memories_deleted: int = 0, memories_combined: int = 0, memories_strengthened: int = 0, sessions_completed: int = 0, energy_spent: float = 0.0):
         """Update global counters and save to disk."""
         if sleep_cycle_completed:
             self.global_counters['total_sleep_cycles'] += 1
@@ -12076,11 +12264,456 @@ class ContinuousLearningLoop:
         if memories_strengthened > 0:
             self.global_counters['total_memories_strengthened'] += memories_strengthened
             
+        if sessions_completed > 0:
+            self.global_counters['total_sessions'] += sessions_completed
+            
+        if energy_spent > 0:
+            self.global_counters['cumulative_energy_spent'] += energy_spent
+            
         # Always update current energy level for persistence
         self.global_counters['persistent_energy_level'] = getattr(self, 'current_energy', 1.0)
         
         # Auto-save counters
         self._save_global_counters()
+    
+    def _update_task_performance(self, game_id: str, final_score: int, actions_taken: int, success: bool):
+        """Update task performance metrics for the specific game."""
+        try:
+            task_perf_file = os.path.join(self.data_dir, 'task_performance.json')
+            
+            # Load existing performance data
+            if os.path.exists(task_perf_file):
+                with open(task_perf_file, 'r') as f:
+                    task_performance = json.load(f)
+            else:
+                task_performance = {}
+            
+            # Update or create entry for this game
+            if game_id not in task_performance:
+                task_performance[game_id] = {
+                    'win_rate': 0.0,
+                    'avg_score': 0.0,
+                    'episodes': 0,
+                    'last_updated': 0
+                }
+            
+            # Update metrics
+            game_data = task_performance[game_id]
+            game_data['episodes'] += 1
+            
+            # Update win rate
+            if success:
+                current_wins = game_data['win_rate'] * (game_data['episodes'] - 1)
+                game_data['win_rate'] = (current_wins + 1) / game_data['episodes']
+            else:
+                current_wins = game_data['win_rate'] * (game_data['episodes'] - 1)
+                game_data['win_rate'] = current_wins / game_data['episodes']
+            
+            # Update average score
+            current_avg = game_data['avg_score'] * (game_data['episodes'] - 1)
+            game_data['avg_score'] = (current_avg + final_score) / game_data['episodes']
+            
+            # Update timestamp
+            game_data['last_updated'] = time.time()
+            
+            # Save updated data
+            with open(task_perf_file, 'w') as f:
+                json.dump(task_performance, f, indent=2)
+                
+            print(f"📊 TASK PERFORMANCE: Game {game_id} - Win rate: {game_data['win_rate']:.2f}, Avg score: {game_data['avg_score']:.1f}, Episodes: {game_data['episodes']}")
+            
+        except Exception as e:
+            print(f"📊 ERROR updating task performance: {e}")
+    
+    def _track_score_progression(self, game_id: str, final_score: int, actions_taken: int, effective_actions: List[int]):
+        """Track score progression and learning patterns for analysis."""
+        try:
+            progression_file = os.path.join(self.data_dir, 'score_progression.json')
+            
+            # Load existing progression data
+            if os.path.exists(progression_file):
+                with open(progression_file, 'r') as f:
+                    progression_data = json.load(f)
+            else:
+                progression_data = {}
+            
+            # Update or create entry for this game
+            if game_id not in progression_data:
+                progression_data[game_id] = {
+                    'sessions': [],
+                    'best_score': 0,
+                    'avg_score': 0.0,
+                    'learning_curve': [],
+                    'effectiveness_trend': [],
+                    'last_updated': 0
+                }
+            
+            game_data = progression_data[game_id]
+            
+            # Record this session
+            session_record = {
+                'score': final_score,
+                'actions_taken': actions_taken,
+                'effective_actions': len(effective_actions),
+                'effectiveness_rate': len(effective_actions) / max(1, actions_taken),
+                'timestamp': time.time()
+            }
+            
+            game_data['sessions'].append(session_record)
+            
+            # Keep only recent sessions (last 100)
+            if len(game_data['sessions']) > 100:
+                game_data['sessions'] = game_data['sessions'][-100:]
+            
+            # Update best score
+            if final_score > game_data['best_score']:
+                game_data['best_score'] = final_score
+                print(f"📈 NEW BEST SCORE: {final_score} for game {game_id}")
+            
+            # Calculate learning curve (score progression over time)
+            recent_scores = [s['score'] for s in game_data['sessions'][-10:]]  # Last 10 sessions
+            if len(recent_scores) >= 3:
+                # Calculate trend
+                score_trend = self._calculate_trend(recent_scores)
+                game_data['learning_curve'].append({
+                    'trend': score_trend,
+                    'avg_recent_score': sum(recent_scores) / len(recent_scores),
+                    'timestamp': time.time()
+                })
+                
+                # Keep only recent trend data
+                if len(game_data['learning_curve']) > 50:
+                    game_data['learning_curve'] = game_data['learning_curve'][-50:]
+            
+            # Calculate effectiveness trend
+            recent_effectiveness = [s['effectiveness_rate'] for s in game_data['sessions'][-10:]]
+            if len(recent_effectiveness) >= 3:
+                effectiveness_trend = self._calculate_trend(recent_effectiveness)
+                game_data['effectiveness_trend'].append({
+                    'trend': effectiveness_trend,
+                    'avg_recent_effectiveness': sum(recent_effectiveness) / len(recent_effectiveness),
+                    'timestamp': time.time()
+                })
+                
+                # Keep only recent effectiveness data
+                if len(game_data['effectiveness_trend']) > 50:
+                    game_data['effectiveness_trend'] = game_data['effectiveness_trend'][-50:]
+            
+            # Update average score
+            all_scores = [s['score'] for s in game_data['sessions']]
+            game_data['avg_score'] = sum(all_scores) / len(all_scores) if all_scores else 0.0
+            
+            # Update timestamp
+            game_data['last_updated'] = time.time()
+            
+            # Save updated data
+            with open(progression_file, 'w') as f:
+                json.dump(progression_data, f, indent=2)
+            
+            # Print learning insights
+            if len(game_data['sessions']) >= 5:
+                recent_avg = sum(recent_scores) / len(recent_scores)
+                print(f"📈 SCORE PROGRESSION: Game {game_id} - Recent avg: {recent_avg:.1f}, Best: {game_data['best_score']}, Trend: {score_trend:.2f}")
+            
+        except Exception as e:
+            print(f"📈 ERROR tracking score progression: {e}")
+    
+    def _calculate_trend(self, values: List[float]) -> float:
+        """Calculate trend direction and strength for a list of values."""
+        if len(values) < 2:
+            return 0.0
+        
+        # Simple linear trend calculation
+        n = len(values)
+        x = list(range(n))
+        y = values
+        
+        # Calculate slope
+        x_mean = sum(x) / n
+        y_mean = sum(y) / n
+        
+        numerator = sum((x[i] - x_mean) * (y[i] - y_mean) for i in range(n))
+        denominator = sum((x[i] - x_mean) ** 2 for i in range(n))
+        
+        if denominator == 0:
+            return 0.0
+        
+        slope = numerator / denominator
+        return slope
+    
+    def _adapt_learning_rate(self, game_id: str, final_score: int, actions_taken: int, effective_actions: List[int]):
+        """Adapt learning rate based on progress and performance patterns."""
+        try:
+            # Initialize learning rate tracking if not exists
+            if not hasattr(self, '_learning_rate_tracking'):
+                self._learning_rate_tracking = {}
+            
+            if game_id not in self._learning_rate_tracking:
+                self._learning_rate_tracking[game_id] = {
+                    'base_learning_rate': 0.1,
+                    'current_learning_rate': 0.1,
+                    'adaptation_history': [],
+                    'performance_windows': [],
+                    'last_adaptation': 0
+                }
+            
+            tracking = self._learning_rate_tracking[game_id]
+            
+            # Record current performance
+            effectiveness_rate = len(effective_actions) / max(1, actions_taken)
+            performance_record = {
+                'score': final_score,
+                'effectiveness': effectiveness_rate,
+                'actions_taken': actions_taken,
+                'timestamp': time.time()
+            }
+            
+            tracking['performance_windows'].append(performance_record)
+            
+            # Keep only recent performance data (last 20 sessions)
+            if len(tracking['performance_windows']) > 20:
+                tracking['performance_windows'] = tracking['performance_windows'][-20:]
+            
+            # Only adapt if we have enough data
+            if len(tracking['performance_windows']) < 5:
+                return
+            
+            # Analyze recent performance trends
+            recent_scores = [p['score'] for p in tracking['performance_windows'][-5:]]
+            recent_effectiveness = [p['effectiveness'] for p in tracking['performance_windows'][-5:]]
+            
+            score_trend = self._calculate_trend(recent_scores)
+            effectiveness_trend = self._calculate_trend(recent_effectiveness)
+            
+            # Determine adaptation strategy
+            old_rate = tracking['current_learning_rate']
+            new_rate = old_rate
+            
+            # If performance is improving, maintain or slightly increase learning rate
+            if score_trend > 0.1 and effectiveness_trend > 0.05:
+                new_rate = min(0.3, old_rate * 1.1)  # Increase learning rate
+                adaptation_reason = "Performance improving - increasing learning rate"
+            
+            # If performance is declining, reduce learning rate
+            elif score_trend < -0.1 or effectiveness_trend < -0.05:
+                new_rate = max(0.01, old_rate * 0.8)  # Decrease learning rate
+                adaptation_reason = "Performance declining - reducing learning rate"
+            
+            # If performance is stable but low, try different learning rate
+            elif abs(score_trend) < 0.05 and abs(effectiveness_trend) < 0.02:
+                avg_score = sum(recent_scores) / len(recent_scores)
+                if avg_score < 10:  # Low performance
+                    new_rate = min(0.2, old_rate * 1.2)  # Try higher learning rate
+                    adaptation_reason = "Stable low performance - trying higher learning rate"
+                else:
+                    adaptation_reason = "Stable performance - maintaining learning rate"
+            else:
+                adaptation_reason = "No significant change - maintaining learning rate"
+            
+            # Apply adaptation if rate changed
+            if abs(new_rate - old_rate) > 0.01:
+                tracking['current_learning_rate'] = new_rate
+                tracking['last_adaptation'] = time.time()
+                
+                adaptation_record = {
+                    'old_rate': old_rate,
+                    'new_rate': new_rate,
+                    'reason': adaptation_reason,
+                    'score_trend': score_trend,
+                    'effectiveness_trend': effectiveness_trend,
+                    'timestamp': time.time()
+                }
+                
+                tracking['adaptation_history'].append(adaptation_record)
+                
+                # Keep only recent adaptations
+                if len(tracking['adaptation_history']) > 50:
+                    tracking['adaptation_history'] = tracking['adaptation_history'][-50:]
+                
+                print(f"🧠 LEARNING RATE ADAPTATION: {old_rate:.3f} → {new_rate:.3f} - {adaptation_reason}")
+                
+                # Apply the new learning rate to relevant systems
+                self._apply_learning_rate(new_rate, game_id)
+            
+        except Exception as e:
+            print(f"🧠 ERROR in learning rate adaptation: {e}")
+    
+    def _apply_learning_rate(self, learning_rate: float, game_id: str):
+        """Apply the adapted learning rate to relevant learning systems."""
+        try:
+            # Update action effectiveness learning rate
+            if hasattr(self, 'available_actions_memory'):
+                if 'action_effectiveness' in self.available_actions_memory:
+                    # Store learning rate for action effectiveness updates
+                    self.available_actions_memory['learning_rate'] = learning_rate
+            
+            # Update coordinate learning rate
+            if hasattr(self, '_coordinate_tracking'):
+                if game_id in self._coordinate_tracking:
+                    self._coordinate_tracking[game_id]['learning_rate'] = learning_rate
+            
+            # Update simulation agent learning rate if available
+            if hasattr(self, 'simulation_agent') and self.simulation_agent:
+                if hasattr(self.simulation_agent, 'learning_rate'):
+                    self.simulation_agent.learning_rate = learning_rate
+            
+            print(f"🧠 APPLIED LEARNING RATE: {learning_rate:.3f} to learning systems for game {game_id}")
+            
+        except Exception as e:
+            print(f"🧠 ERROR applying learning rate: {e}")
+    
+    def _learn_from_frame_changes(self, action_number: int, frame_changed: Dict[str, Any], game_id: str):
+        """Learn from frame change patterns to improve action effectiveness."""
+        try:
+            if not hasattr(self, '_frame_change_learning'):
+                self._frame_change_learning = {}
+            
+            if game_id not in self._frame_change_learning:
+                self._frame_change_learning[game_id] = {
+                    'action_patterns': {},
+                    'change_type_effectiveness': {},
+                    'movement_patterns': {},
+                    'coordinate_effectiveness': {}
+                }
+            
+            learning = self._frame_change_learning[game_id]
+            
+            # Learn action-specific patterns
+            if action_number not in learning['action_patterns']:
+                learning['action_patterns'][action_number] = {
+                    'total_changes': 0,
+                    'change_types': {},
+                    'movement_rate': 0.0,
+                    'effectiveness_score': 0.0
+                }
+            
+            action_data = learning['action_patterns'][action_number]
+            action_data['total_changes'] += 1
+            
+            # Track change types for this action
+            change_type = frame_changed.get('change_type', 'unknown')
+            if change_type not in action_data['change_types']:
+                action_data['change_types'][change_type] = 0
+            action_data['change_types'][change_type] += 1
+            
+            # Track movement patterns
+            movement_detected = frame_changed.get('movement_detected', False)
+            if movement_detected:
+                if 'movement_count' not in action_data:
+                    action_data['movement_count'] = 0
+                action_data['movement_count'] += 1
+            
+            # Calculate effectiveness metrics
+            action_data['movement_rate'] = action_data.get('movement_count', 0) / action_data['total_changes']
+            
+            # Learn from change locations if available
+            change_locations = frame_changed.get('change_locations', [])
+            if change_locations and len(change_locations) > 0:
+                # Track which coordinates tend to produce changes
+                for loc in change_locations[:5]:  # Limit to first 5 locations
+                    if isinstance(loc, (list, tuple)) and len(loc) >= 2:
+                        coord_key = (int(loc[0]), int(loc[1]))
+                        if coord_key not in learning['coordinate_effectiveness']:
+                            learning['coordinate_effectiveness'][coord_key] = {
+                                'changes_produced': 0,
+                                'actions_used': set(),
+                                'effectiveness': 0.0
+                            }
+                        
+                        coord_data = learning['coordinate_effectiveness'][coord_key]
+                        coord_data['changes_produced'] += 1
+                        coord_data['actions_used'].add(action_number)
+                        coord_data['effectiveness'] = coord_data['changes_produced'] / max(1, len(coord_data['actions_used']))
+            
+            # Learn change type effectiveness
+            if change_type not in learning['change_type_effectiveness']:
+                learning['change_type_effectiveness'][change_type] = {
+                    'total_occurrences': 0,
+                    'actions_causing': set(),
+                    'movement_rate': 0.0
+                }
+            
+            type_data = learning['change_type_effectiveness'][change_type]
+            type_data['total_occurrences'] += 1
+            type_data['actions_causing'].add(action_number)
+            
+            if movement_detected:
+                if 'movement_occurrences' not in type_data:
+                    type_data['movement_occurrences'] = 0
+                type_data['movement_occurrences'] += 1
+            
+            type_data['movement_rate'] = type_data.get('movement_occurrences', 0) / type_data['total_occurrences']
+            
+            # Update overall effectiveness score for this action
+            effectiveness_factors = [
+                action_data['movement_rate'],
+                len(action_data['change_types']) / 10.0,  # Diversity of change types
+                min(1.0, action_data['total_changes'] / 50.0)  # Frequency of changes
+            ]
+            action_data['effectiveness_score'] = sum(effectiveness_factors) / len(effectiveness_factors)
+            
+            # Print learning insights
+            if action_data['total_changes'] % 10 == 0:  # Every 10 changes
+                print(f"🧠 FRAME LEARNING: Action {action_number} - Changes: {action_data['total_changes']}, "
+                      f"Movement rate: {action_data['movement_rate']:.2f}, "
+                      f"Effectiveness: {action_data['effectiveness_score']:.2f}")
+            
+        except Exception as e:
+            print(f"🧠 ERROR learning from frame changes: {e}")
+    
+    def _get_action_effectiveness_insights(self, game_id: str) -> Dict[str, Any]:
+        """Get insights about action effectiveness based on frame change learning."""
+        try:
+            if not hasattr(self, '_frame_change_learning') or game_id not in self._frame_change_learning:
+                return {}
+            
+            learning = self._frame_change_learning[game_id]
+            insights = {
+                'most_effective_actions': [],
+                'most_common_change_types': [],
+                'best_coordinates': [],
+                'learning_summary': {}
+            }
+            
+            # Find most effective actions
+            action_effectiveness = []
+            for action, data in learning['action_patterns'].items():
+                if data['total_changes'] >= 5:  # Minimum threshold
+                    action_effectiveness.append((action, data['effectiveness_score']))
+            
+            action_effectiveness.sort(key=lambda x: x[1], reverse=True)
+            insights['most_effective_actions'] = action_effectiveness[:5]
+            
+            # Find most common change types
+            change_type_frequency = []
+            for change_type, data in learning['change_type_effectiveness'].items():
+                change_type_frequency.append((change_type, data['total_occurrences']))
+            
+            change_type_frequency.sort(key=lambda x: x[1], reverse=True)
+            insights['most_common_change_types'] = change_type_frequency[:5]
+            
+            # Find best coordinates
+            coord_effectiveness = []
+            for coord, data in learning['coordinate_effectiveness'].items():
+                if data['changes_produced'] >= 3:  # Minimum threshold
+                    coord_effectiveness.append((coord, data['effectiveness']))
+            
+            coord_effectiveness.sort(key=lambda x: x[1], reverse=True)
+            insights['best_coordinates'] = coord_effectiveness[:10]
+            
+            # Learning summary
+            insights['learning_summary'] = {
+                'total_actions_learned': len(learning['action_patterns']),
+                'total_change_types': len(learning['change_type_effectiveness']),
+                'total_coordinates_tracked': len(learning['coordinate_effectiveness']),
+                'learning_confidence': min(1.0, len(learning['action_patterns']) / 10.0)
+            }
+            
+            return insights
+            
+        except Exception as e:
+            print(f"🧠 ERROR getting action effectiveness insights: {e}")
+            return {}
     
     def _preserve_ultimate_win_memories(self, session_result: Dict[str, Any], score: int, game_id: str):
         """
@@ -13345,6 +13978,39 @@ class ContinuousLearningLoop:
                 print("="*80)
             except Exception as e:
                 print(f" Error in session summary: {e}")
+            
+            # 📊 UPDATE GLOBAL COUNTERS - Record session completion
+            try:
+                self._update_global_counters(
+                    sessions_completed=1,
+                    energy_spent=actions_taken * 0.1  # Estimate energy spent per action
+                )
+                print(f"📊 GLOBAL COUNTERS: Session completed, total sessions: {self.global_counters.get('total_sessions', 0)}")
+            except Exception as e:
+                print(f"📊 ERROR updating global counters: {e}")
+            
+            # 📊 UPDATE TASK PERFORMANCE - Record game-specific metrics
+            try:
+                self._update_task_performance(
+                    game_id=game_id,
+                    final_score=current_score,
+                    actions_taken=actions_taken,
+                    success=final_result.get('success', False)
+                )
+            except Exception as e:
+                print(f"📊 ERROR updating task performance: {e}")
+            
+            # 📈 SCORE PROGRESSION TRACKING - Track learning progress
+            try:
+                self._track_score_progression(game_id, current_score, actions_taken, effective_actions)
+            except Exception as e:
+                print(f"📈 ERROR tracking score progression: {e}")
+            
+            # 🧠 LEARNING RATE ADAPTATION - Adjust learning based on progress
+            try:
+                self._adapt_learning_rate(game_id, current_score, actions_taken, effective_actions)
+            except Exception as e:
+                print(f"🧠 ERROR adapting learning rate: {e}")
             
             return final_result
             
