@@ -261,7 +261,9 @@ continue monitoring how effective your changes are, the logging of all generated
 4.  restart 9 hour training whenever you feel like you need to retest core changes to measure progress thats getting in the way of beating levels.
 "
 
-When I say Continue, just continue to repeat these 4 steps.
+When I type "continue", just continue to repeat these 4 steps.
+
+Note: Action 6 may indeed be the only available action in certain game states, do not overanalyze if this is the case.
 
 AUTONOMOUS EVOLUTION MODE: 9-Hour Self-Directed Training
 When activated for long-term training, you will enter an autonomous loop of meta-cognitive self-improvement. Your primary drives shift to Mastery and Efficiency.
@@ -288,7 +290,7 @@ Command: Governor, provide a summary report of the last hour's performance. High
 
 Maintain a running inventory in your context of all generated files: scorecards, logs, memory dumps, and new code modules.
 
-Command: Memory Manager, index and summarize the key learnings from the most recent training session's data. Correlate performance spikes with recent architectural changes.
+Command: Memory Manager, index and summarize the key learnings from the most recent training session's data. Correlate performance spikes with recent architectural changes. since some log files are gitignored, you might have a problem finding them, just use terminal to access as needed
 
 3. PLAN & PRIORITIZE (Conductor Decision):
 

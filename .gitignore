@@ -57,3 +57,9 @@ data/logs/master_arc_trainer.log.tmp
 # Temporary experiment sandboxes only
 experiments/temp/
 sandbox_tests/temp/data/logs/*_backup.log
+
+# Generated training data files
+data/scorecards/scorecard_*.json
+data/sessions/session_*.json
+data/sessions/continuous_session_*.json
+data/sessions/master_training_results_*.json

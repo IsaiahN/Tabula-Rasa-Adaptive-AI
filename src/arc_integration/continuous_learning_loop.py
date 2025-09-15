@@ -3463,40 +3463,37 @@ class ContinuousLearningLoop:
                 print(f"🏆 FULL GAME WIN DETECTED: Complete game victory - marking as FULL WIN!")
                 break
         
-        # Check for level progression indicators - ENHANCED DETECTION
+        # Check for episode completion indicators - ACTUAL ARC API FORMAT
         if not result.get('full_game_win', False):
-            level_progression_patterns = [
-                r'level.*(\d+).*complete',
-                r'passed.*level.*(\d+)', 
-                r'advanced.*level.*(\d+)',
-                r'next.*level.*(\d+)',
-                r'level.*up.*(\d+)',
-                r'stage.*(\d+).*complete',
-                r'tier.*(\d+).*unlock',
-                r'levels.*completed.*(\d+)',  # NEW: Direct level count from scorecard
-                r'completed.*(\d+).*levels',  # NEW: Alternative phrasing
-                r'level.*(\d+).*solved',      # NEW: Solved terminology
-                r'solved.*level.*(\d+)',      # NEW: Alternative solved phrasing
+            episode_completion_patterns = [
+                r'episode.*(\d+).*completed.*successfully',  # ACTUAL FORMAT: "Episode 10 completed successfully"
+                r'episode.*(\d+).*complete',                 # Alternative format
+                r'completed.*episode.*(\d+)',                # Alternative phrasing
+                r'episode.*(\d+).*finished',                 # Alternative terminology
+                r'episode.*(\d+).*done',                     # Alternative terminology
+                r'episode.*(\d+).*solved',                   # Alternative terminology
             ]
             
-            for pattern in level_progression_patterns:
+            for pattern in episode_completion_patterns:
                 match = re.search(pattern, combined_output, re.IGNORECASE)
                 if match:
                     try:
-                        level = int(match.group(1))
-                        result['level_progressed'] = True
-                        result['current_level'] = level
-                        result['success'] = True  # 🎯 LEVEL COMPLETION = SUCCESS!
-                        result['win_type'] = 'LEVEL_WIN'
-                        print(f"🎯 LEVEL WIN DETECTED: Level {level} completed - marking as LEVEL WIN!")
+                        episode = int(match.group(1))
+                        result['episode_completed'] = True
+                        result['current_episode'] = episode
+                        result['success'] = True  # 🎯 EPISODE COMPLETION = SUCCESS!
+                        result['win_type'] = 'EPISODE_WIN'
+                        print(f"🎯 EPISODE WIN DETECTED: Episode {episode} completed successfully - marking as EPISODE WIN!")
                         break
                     except ValueError:
                         continue
         
-        # Enhanced success detection patterns
+        # Enhanced success detection patterns - ACTUAL ARC API FORMAT
         success_patterns = [
+            r'episode.*completed.*successfully',  # ACTUAL FORMAT: "Episode X completed successfully"
+            r'final.*score.*(\d+)',               # ACTUAL FORMAT: "Final Score: X"
+            r'episodes.*(\d+)',                   # ACTUAL FORMAT: "Episodes: X"
             r'\b(win|victory|success|solved|correct|passed)\b',
-            r'',
             r'\btrue\b.*answer',
             r'answer.*\bcorrect\b',
             r'result.*\btrue\b',
@@ -9478,21 +9475,9 @@ class ContinuousLearningLoop:
             x = max(1, min(grid_width - 1, base_x + random.randint(-3, 3)))
             y = max(1, min(grid_height - 1, base_y + random.randint(-3, 3)))
             return (x, y)
-        elif action == 6:  # Special coordinate-based action - explore more broadly
-            # For action 6, explore different grid regions more systematically
-            regions = [
-                (grid_width // 4, grid_height // 4),      # Upper left
-                (3 * grid_width // 4, grid_height // 4),  # Upper right  
-                (grid_width // 4, 3 * grid_height // 4),  # Lower left
-                (3 * grid_width // 4, 3 * grid_height // 4), # Lower right
-                (grid_width // 2, grid_height // 2),      # Center
-                (grid_width // 8, grid_height // 8),      # Far upper left
-                (7 * grid_width // 8, 7 * grid_height // 8), # Far lower right
-            ]
-            base_x, base_y = random.choice(regions)
-            x = max(1, min(grid_width - 1, base_x + random.randint(-4, 4)))
-            y = max(1, min(grid_height - 1, base_y + random.randint(-4, 4)))
-            return (x, y)
+        elif action == 6:  # Interactive/clicking - STRATEGIC COORDINATE SELECTION
+            # Use strategic analysis instead of random selection
+            return self._get_strategic_action6_coordinates(grid_dims, game_id)
         else:
             # For any other actions, explore the entire grid more broadly
             x = random.randint(2, grid_width - 2)
