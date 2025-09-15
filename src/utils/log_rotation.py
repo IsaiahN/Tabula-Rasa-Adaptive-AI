@@ -4,10 +4,12 @@ Log rotation utility for managing log file sizes
 
 import os
 import shutil
+import time
 from pathlib import Path
 from typing import List, Optional
 import logging
 from datetime import datetime
+import platform
 
 from src.config.log_config import LogConfig
 
@@ -18,6 +20,32 @@ class LogRotator:
     def __init__(self, logger: Optional[logging.Logger] = None):
         self.logger = logger or logging.getLogger(__name__)
         self.config = LogConfig()
+        self.is_windows = platform.system() == "Windows"
+    
+    def _safe_file_replace_windows(self, temp_file: str, log_path: str, max_retries: int = 3) -> bool:
+        """Windows-safe file replacement with retry logic."""
+        for attempt in range(max_retries):
+            try:
+                # Force garbage collection to close any file handles
+                import gc
+                gc.collect()
+                
+                # Small delay to let file handles close
+                time.sleep(0.1)
+                
+                # Try to replace the file
+                os.replace(temp_file, log_path)
+                return True
+                
+            except (OSError, PermissionError) as e:
+                if attempt < max_retries - 1:
+                    self.logger.warning(f"File replace attempt {attempt + 1} failed: {e}, retrying...")
+                    time.sleep(0.5)  # Wait longer between retries
+                else:
+                    self.logger.error(f"All file replace attempts failed: {e}")
+                    return False
+        
+        return False
     
     def rotate_log_file(self, log_path: str, backup_path: str, max_lines: Optional[int] = None) -> bool:
         """
@@ -67,8 +95,33 @@ class LogRotator:
                 
                 outfile.writelines(lines_to_write)
             
-            # Replace original with trimmed version
-            os.replace(temp_file, log_path)
+            # Replace original with trimmed version (Windows-safe)
+            if self.is_windows:
+                # Use Windows-specific safe replacement
+                if not self._safe_file_replace_windows(temp_file, log_path):
+                    # Final fallback: copy method
+                    self.logger.warning("Using copy method as final fallback")
+                    try:
+                        shutil.copy2(temp_file, log_path)
+                        os.remove(temp_file)
+                    except Exception as copy_error:
+                        self.logger.error(f"Copy method failed: {copy_error}")
+                        try:
+                            os.remove(temp_file)
+                        except:
+                            pass
+                        return False
+            else:
+                # Unix/Linux: use atomic replace
+                try:
+                    os.replace(temp_file, log_path)
+                except (OSError, PermissionError) as e:
+                    self.logger.error(f"File replace failed: {e}")
+                    try:
+                        os.remove(temp_file)
+                    except:
+                        pass
+                    return False
             
             self.logger.info(f"Log rotation complete: {log_path} now has {len(lines_to_write)} lines")
             return True
@@ -88,6 +141,7 @@ class LogRotator:
             True if all rotations were successful, False otherwise
         """
         success = True
+        failed_logs = []
         
         # Rotate master_arc_trainer.log
         if not self.rotate_log_file(
@@ -96,6 +150,7 @@ class LogRotator:
             max_lines
         ):
             success = False
+            failed_logs.append("master_arc_trainer.log")
         
         # Rotate master_arc_trainer_output.log
         if not self.rotate_log_file(
@@ -104,8 +159,54 @@ class LogRotator:
             max_lines
         ):
             success = False
+            failed_logs.append("master_arc_trainer_output.log")
+        
+        # Log summary
+        if failed_logs:
+            self.logger.warning(f"Log rotation partially failed for: {', '.join(failed_logs)}")
+            if self.is_windows:
+                self.logger.info("💡 On Windows, this is often due to file locking. The system will continue normally.")
+        else:
+            self.logger.info("✅ All log files rotated successfully")
         
         return success
+    
+    def rotate_with_graceful_fallback(self, max_lines: Optional[int] = None) -> dict:
+        """
+        Rotate logs with graceful fallback for locked files.
+        
+        Returns:
+            dict with rotation results and recommendations
+        """
+        results = {
+            "success": True,
+            "rotated_files": [],
+            "failed_files": [],
+            "recommendations": []
+        }
+        
+        # Try to rotate each log file individually
+        log_files = [
+            (self.config.MASTER_ARC_TRAINER_LOG, self.config.MASTER_ARC_TRAINER_BACKUP, "master_arc_trainer.log"),
+            (self.config.MASTER_ARC_TRAINER_OUTPUT_LOG, self.config.MASTER_ARC_TRAINER_OUTPUT_BACKUP, "master_arc_trainer_output.log")
+        ]
+        
+        for log_path, backup_path, log_name in log_files:
+            if self.rotate_log_file(log_path, backup_path, max_lines):
+                results["rotated_files"].append(log_name)
+            else:
+                results["failed_files"].append(log_name)
+                results["success"] = False
+        
+        # Add recommendations based on results
+        if results["failed_files"]:
+            if self.is_windows:
+                results["recommendations"].append("Consider restarting the application to release file locks")
+                results["recommendations"].append("The system will continue normally despite rotation failures")
+            else:
+                results["recommendations"].append("Check file permissions and disk space")
+        
+        return results
     
     def cleanup_old_logs(self, days_to_keep: int = 30) -> bool:
         """

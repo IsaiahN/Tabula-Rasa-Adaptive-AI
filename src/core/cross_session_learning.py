@@ -170,6 +170,9 @@ class CrossSessionLearningManager:
         self.persistence_dir.mkdir(exist_ok=True)
         self.logger = logger or logging.getLogger(f"{__name__}.CrossSessionLearning")
         
+        # Windows compatibility
+        self.is_windows = platform.system() == "Windows"
+        
         # Current session state
         self.current_session = None
         self.session_start_time = time.time()
@@ -187,7 +190,34 @@ class CrossSessionLearningManager:
         self.auto_save_interval = 300  # 5 minutes
         self.last_save_time = time.time()
         self.auto_save_thread = None
-        self.shutdown_flag = threading.Event()
+    
+    def _save_patterns_windows_safe(self, patterns_file: Path, patterns: Dict[str, Any], max_retries: int = 3) -> bool:
+        """Windows-safe pattern saving with retry logic."""
+        for attempt in range(max_retries):
+            try:
+                # Force garbage collection to close any file handles
+                import gc
+                gc.collect()
+                
+                # Small delay to let file handles close
+                time.sleep(0.1)
+                
+                # Try to save directly
+                with open(patterns_file, 'wb') as f:
+                    pickle.dump(patterns, f)
+                
+                self.logger.debug(f"Saved {len(patterns)} patterns to disk at {patterns_file}")
+                return True
+                
+            except (OSError, PermissionError) as e:
+                if attempt < max_retries - 1:
+                    self.logger.warning(f"Pattern save attempt {attempt + 1} failed: {e}, retrying...")
+                    time.sleep(0.5)  # Wait longer between retries
+                else:
+                    self.logger.error(f"All pattern save attempts failed: {e}")
+                    return False
+        
+        return False
         
         # Load existing state
         self._load_persistent_state()
@@ -560,12 +590,16 @@ class CrossSessionLearningManager:
             # Ensure the directory exists
             patterns_file.parent.mkdir(parents=True, exist_ok=True)
             
-            # Use string path for Windows compatibility
-            absolute_path = str(patterns_file.absolute())
-            with open(absolute_path, 'wb') as f:
-                pickle.dump(persistent_patterns, f)
+            # Use Windows-safe saving method
+            if self.is_windows:
+                if not self._save_patterns_windows_safe(patterns_file, persistent_patterns):
+                    raise OSError("Windows-safe pattern saving failed")
+            else:
+                # Unix/Linux: use direct saving
+                with open(patterns_file, 'wb') as f:
+                    pickle.dump(persistent_patterns, f)
                 
-            self.logger.debug(f"Saved {len(persistent_patterns)} patterns to disk at {absolute_path}")
+            self.logger.debug(f"Saved {len(persistent_patterns)} patterns to disk at {patterns_file}")
         except Exception as e:
             self.logger.error(f"Failed to save learned patterns: {e}")
             self.logger.error(f"Patterns file path: {patterns_file}")
@@ -586,12 +620,24 @@ class CrossSessionLearningManager:
                 # Create a temporary file in the same directory
                 temp_file = patterns_file.parent / f"learned_patterns_temp_{os.getpid()}.pkl"
                 
-                # Try to save to temp file first
-                with open(temp_file, 'wb') as f:
-                    pickle.dump(persistent_patterns, f)
+                # Try to save to temp file first with Windows-safe approach
+                if self.is_windows:
+                    # Use Windows-safe saving for temp file too
+                    if not self._save_patterns_windows_safe(temp_file, persistent_patterns):
+                        raise OSError("Windows-safe temp file saving failed")
+                else:
+                    with open(temp_file, 'wb') as f:
+                        pickle.dump(persistent_patterns, f)
                 
-                # If successful, move temp file to final location
-                shutil.move(str(temp_file), str(patterns_file))
+                # If successful, move temp file to final location (Windows-safe)
+                try:
+                    # Try atomic move first
+                    shutil.move(str(temp_file), str(patterns_file))
+                except (OSError, PermissionError):
+                    # Fallback to copy and delete
+                    shutil.copy2(str(temp_file), str(patterns_file))
+                    temp_file.unlink()
+                
                 self.logger.info(f"Successfully saved patterns using fallback method")
                 
             except Exception as fallback_error:
