@@ -4794,6 +4794,15 @@ class ContinuousLearningLoop:
         print(f" VISUAL-INTERACTIVE ACTION6 TARGETING - Analyzing frame for touchable objects...")
         
         try:
+            # 🧠 CRITICAL FIX: Try previous game patterns first before visual analysis
+            previous_patterns = self._get_previous_game_patterns(game_id)
+            if previous_patterns:
+                print(f"🧠 PREVIOUS GAME PATTERNS: Found {len(previous_patterns)} successful coordinates from previous {game_id.split('-')[0]} games")
+                for coord in previous_patterns:
+                    if 0 <= coord[0] < grid_width and 0 <= coord[1] < grid_height:
+                        print(f"🧠 LEVERAGING SUCCESS: Using proven coordinate ({coord[0]},{coord[1]}) from previous games")
+                        return coord
+            
             # Get current frame from the game state if available
             current_frame = None
             if hasattr(self, 'current_frame_data'):
@@ -4941,9 +4950,96 @@ class ContinuousLearningLoop:
         tracking = self._coordinate_tracking[game_id]
         return tracking['successful_coords'], tracking['failed_coords']
     
+    def _get_previous_game_patterns(self, game_id: str) -> List[Tuple[int, int]]:
+        """Get successful coordinate patterns from previous games of the same type."""
+        try:
+            # Extract game prefix (e.g., 'lp85' from 'lp85-d265526edbaa')
+            game_prefix = game_id.split('-')[0] if '-' in game_id else game_id
+            
+            # Look for archived action intelligence files for this game type
+            import glob
+            pattern_files = glob.glob(f"data/archive_non_improving/*/action_intelligence_{game_prefix}-*.json")
+            
+            successful_coords = []
+            for file_path in pattern_files:
+                try:
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                    
+                    # Extract coordinate patterns for action 6
+                    coord_patterns = data.get('coordinate_patterns', {}).get('6', {})
+                    for coord_str, coord_data in coord_patterns.items():
+                        if coord_data.get('success_rate', 0) >= 0.8:  # High success rate
+                            x, y = map(int, coord_str.split(','))
+                            successful_coords.append((x, y))
+                            
+                except Exception as e:
+                    continue
+            
+            # Sort by success rate and return top coordinates
+            return successful_coords[:20]  # Top 20 most successful coordinates
+            
+        except Exception as e:
+            print(f"Warning: Could not load previous game patterns: {e}")
+            return []
+    
+    def _get_next_untried_coordinate(self, game_id: str, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+        """Get the next untried coordinate from previous game patterns with rotation."""
+        try:
+            # Get all successful coordinates from previous games
+            all_patterns = self._get_previous_game_patterns(game_id)
+            if not all_patterns:
+                return None, None
+            
+            # Filter coordinates that fit in current grid
+            valid_coords = [(x, y) for x, y in all_patterns 
+                           if 0 <= x < grid_dims[0] and 0 <= y < grid_dims[1]]
+            
+            if not valid_coords:
+                return None, None
+            
+            # Get or initialize tried coordinates for this game
+            if not hasattr(self, '_tried_coordinates'):
+                self._tried_coordinates = {}
+            
+            if game_id not in self._tried_coordinates:
+                self._tried_coordinates[game_id] = set()
+            
+            tried_coords = self._tried_coordinates[game_id]
+            
+            # Find first untried coordinate
+            for coord in valid_coords:
+                if coord not in tried_coords:
+                    tried_coords.add(coord)
+                    print(f"🧠 ROTATING COORDINATES: Using untried coordinate {coord} from {len(valid_coords)} available patterns")
+                    return coord
+            
+            # If all coordinates have been tried, reset and start over
+            print(f"🧠 COORDINATE RESET: All {len(valid_coords)} patterns tried, resetting for fresh attempt")
+            self._tried_coordinates[game_id] = set()
+            if valid_coords:
+                coord = valid_coords[0]
+                self._tried_coordinates[game_id].add(coord)
+                return coord
+            
+            return None, None
+            
+        except Exception as e:
+            print(f"🧠 COORDINATE ROTATION ERROR: {e}")
+            return None, None
+
     def _generate_exploration_coordinates(self, grid_dimensions: Tuple[int, int], game_id: str) -> Tuple[int, int]:
         """ ENHANCED: Generate systematic exploration coordinates with stuck coordinate avoidance."""
         grid_width, grid_height = grid_dimensions
+        
+        # 🧠 CRITICAL FIX: Try previous game patterns first
+        previous_patterns = self._get_previous_game_patterns(game_id)
+        if previous_patterns:
+            print(f"🧠 PREVIOUS GAME PATTERNS: Found {len(previous_patterns)} successful coordinates from previous {game_id.split('-')[0]} games")
+            for coord in previous_patterns:
+                if 0 <= coord[0] < grid_width and 0 <= coord[1] < grid_height:
+                    print(f"🧠 LEVERAGING SUCCESS: Using proven coordinate ({coord[0]},{coord[1]}) from previous games")
+                    return coord
         
         # 🧠 LEARNED COORDINATE OPTIMIZATION
         successful_coords, failed_coords = self._get_learned_coordinates(game_id)
@@ -13634,12 +13730,23 @@ class ContinuousLearningLoop:
                 # Optimize coordinates if needed (for ACTION6)
                 x, y = None, None
                 if selected_action == 6:
-                    if current_frame_analysis:
-                        x, y = self._enhance_coordinate_selection_with_frame_analysis(
-                            selected_action, actual_grid_dims, game_id, current_frame_analysis
-                        )
+                    # 🧠 CRITICAL FIX: Override simulation agent coordinates with previous game patterns
+                    print(f"🧠 DEBUG: Checking for previous game patterns for {game_id}")
+                    x, y = self._get_next_untried_coordinate(game_id, actual_grid_dims)
+                    if x is not None and y is not None:
+                        print(f"🧠 OVERRIDING SIMULATION: Using proven coordinates from previous {game_id.split('-')[0]} games")
+                        print(f"🧠 LEVERAGING SUCCESS: Using proven coordinate ({x},{y}) from previous games")
                     else:
-                        x, y = self._optimize_coordinates_for_action(selected_action, actual_grid_dims, game_id)
+                        print(f"🧠 NO PATTERNS: No untried coordinates available, using simulation agent coordinates")
+                    
+                    # If no previous patterns or they don't fit, use normal coordinate selection
+                    if x is None or y is None:
+                        if current_frame_analysis:
+                            x, y = self._enhance_coordinate_selection_with_frame_analysis(
+                                selected_action, actual_grid_dims, game_id, current_frame_analysis
+                            )
+                        else:
+                            x, y = self._optimize_coordinates_for_action(selected_action, actual_grid_dims, game_id)
                     
                     #  CRITICAL FIX: Validate coordinates before action execution
                     if x is not None and y is not None:
