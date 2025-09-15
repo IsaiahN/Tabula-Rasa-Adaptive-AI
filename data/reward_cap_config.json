@@ -11,7 +11,7 @@
   },
   "cap_history": [
     {
-      "productivity_multiplier": 78.46070941802509,
+      "productivity_multiplier": 100.0,
       "productivity_max": 10.0,
       "recent_gains_multiplier": 15.0,
       "recent_gains_max": 75.0,
@@ -21,7 +21,7 @@
       "movement_bonus": 20.0
     },
     {
-      "productivity_multiplier": 86.3067803598276,
+      "productivity_multiplier": 100.0,
       "productivity_max": 10.0,
       "recent_gains_multiplier": 15.0,
       "recent_gains_max": 75.0,
@@ -31,7 +31,7 @@
       "movement_bonus": 20.0
     },
     {
-      "productivity_multiplier": 94.93745839581037,
+      "productivity_multiplier": 100.0,
       "productivity_max": 10.0,
       "recent_gains_multiplier": 15.0,
       "recent_gains_max": 75.0,
@@ -1012,6 +1012,6 @@
     }
   ],
   "learning_phase": "balanced",
-  "last_adjustment": 175096,
-  "action_count": 176108
+  "last_adjustment": 206120,
+  "action_count": 207120
 }
