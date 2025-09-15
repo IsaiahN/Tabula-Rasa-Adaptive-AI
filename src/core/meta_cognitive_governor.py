@@ -1442,18 +1442,26 @@ class MetaCognitiveGovernor:
         
         try:
             max_lines = max_lines or self.log_config.get_max_lines()
-            success = self.log_rotator.rotate_all_logs(max_lines)
             
-            if success:
-                stats = self.log_rotator.get_log_stats()
+            # Use graceful fallback method for better Windows compatibility
+            results = self.log_rotator.rotate_with_graceful_fallback(max_lines)
+            stats = self.log_rotator.get_log_stats()
+            
+            if results["success"]:
                 self.logger.info(f"Log rotation completed successfully. Max lines: {max_lines}")
-                return {
-                    "success": True,
-                    "max_lines": max_lines,
-                    "stats": stats
-                }
             else:
-                return {"success": False, "error": "Log rotation failed"}
+                self.logger.warning(f"Log rotation partially failed. Rotated: {results['rotated_files']}, Failed: {results['failed_files']}")
+                for recommendation in results["recommendations"]:
+                    self.logger.info(f"💡 {recommendation}")
+            
+            return {
+                "success": results["success"],
+                "max_lines": max_lines,
+                "stats": stats,
+                "rotated_files": results["rotated_files"],
+                "failed_files": results["failed_files"],
+                "recommendations": results["recommendations"]
+            }
                 
         except Exception as e:
             self.logger.error(f"Error during log rotation: {e}")
