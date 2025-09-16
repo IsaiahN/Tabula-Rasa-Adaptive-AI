@@ -38,10 +38,11 @@ class EnhancedCoordinateIntelligence:
         Get intelligently selected coordinates that leverage memory and cluster expansion.
         
         Priority Order:
-        1. Expand existing successful clusters
-        2. Avoid recently attempted coordinates
-        3. Use strategic exploration patterns
-        4. Fall back to smart random selection
+        1. Use historical successful coordinate patterns
+        2. Expand existing successful clusters
+        3. Avoid recently attempted coordinates
+        4. Use strategic exploration patterns
+        5. Fall back to smart random selection
         """
         grid_width, grid_height = grid_dims
         boundary_system = self.continuous_loop.available_actions_memory['universal_boundary_detection']
@@ -49,28 +50,82 @@ class EnhancedCoordinateIntelligence:
         # Ensure boundary system is initialized
         self._ensure_boundary_system_initialized(game_id)
         
-        # Priority 1: Expand successful clusters
+        # Priority 1: Use historical successful coordinate patterns
+        historical_coord = self._get_historical_coordinate(action, grid_dims, game_id)
+        if historical_coord:
+            print(f"🏆 ACTION {action} HISTORICAL SUCCESS: Using proven coordinate {historical_coord}")
+            return historical_coord
+        
+        # Priority 2: Expand successful clusters
         cluster_coord = self._get_cluster_expansion_coordinate(action, grid_dims, game_id)
         if cluster_coord:
             print(f"🔗 ACTION {action} CLUSTER EXPANSION: Expanding to {cluster_coord}")
             return cluster_coord
         
-        # Priority 2: Avoid recently attempted coordinates
+        # Priority 3: Avoid recently attempted coordinates
         memory_guided_coord = self._get_memory_guided_coordinate(action, grid_dims, game_id)
         if memory_guided_coord:
             print(f"🧠 ACTION {action} MEMORY GUIDED: Avoiding known coordinates, trying {memory_guided_coord}")
             return memory_guided_coord
         
-        # Priority 3: Strategic exploration
+        # Priority 4: Strategic exploration
         strategic_coord = self._get_strategic_exploration_coordinate(action, grid_dims, game_id)
         if strategic_coord:
             print(f"🎯 ACTION {action} STRATEGIC: Exploring {strategic_coord}")
             return strategic_coord
         
-        # Priority 4: Smart random with grid analysis
+        # Priority 5: Smart random with grid analysis
         smart_random_coord = self._get_smart_random_coordinate(action, grid_dims, game_id)
         print(f"🎲 ACTION {action} SMART RANDOM: Trying {smart_random_coord}")
         return smart_random_coord
+    
+    def _get_historical_coordinate(self, action: int, grid_dims: Tuple[int, int], game_id: str) -> Optional[Tuple[int, int]]:
+        """Use historical successful coordinate patterns from action intelligence data."""
+        try:
+            # Check if historical coordinate patterns are available
+            historical_patterns = self.continuous_loop.available_actions_memory.get('historical_coordinate_patterns', {})
+            
+            if not historical_patterns:
+                return None
+            
+            # Get patterns for this specific action
+            action_patterns = historical_patterns.get(str(action), {})
+            
+            if not action_patterns:
+                return None
+            
+            # Find the most successful coordinate pattern
+            best_coord = None
+            best_success_rate = 0.0
+            
+            for coord_str, pattern_data in action_patterns.items():
+                if isinstance(pattern_data, dict):
+                    success_rate = pattern_data.get('success_rate', 0.0)
+                    attempts = pattern_data.get('attempts', 0)
+                    
+                    # Only consider patterns with multiple attempts and high success rate
+                    if attempts >= 2 and success_rate > best_success_rate:
+                        best_success_rate = success_rate
+                        best_coord = coord_str
+            
+            if best_coord and best_success_rate > 0.8:  # Only use highly successful patterns
+                # Parse coordinate string (format: "x,y")
+                try:
+                    x, y = map(int, best_coord.split(','))
+                    grid_width, grid_height = grid_dims
+                    
+                    # Ensure coordinates are within bounds
+                    if 0 <= x < grid_width and 0 <= y < grid_height:
+                        print(f"   📊 Historical pattern: {best_coord} (success rate: {best_success_rate:.2f})")
+                        return (x, y)
+                except (ValueError, IndexError):
+                    pass
+            
+            return None
+            
+        except Exception as e:
+            print(f"Warning: Historical coordinate lookup failed: {e}")
+            return None
     
     def _get_cluster_expansion_coordinate(self, action: int, grid_dims: Tuple[int, int], game_id: str) -> Optional[Tuple[int, int]]:
         """Find coordinates to expand existing successful clusters."""

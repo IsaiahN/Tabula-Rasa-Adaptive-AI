@@ -3825,6 +3825,62 @@ class ContinuousLearningLoop:
             logger.warning(f"No available actions for game {game_id}")
             return None
         
+        # CRITICAL FIX: Load and apply historical intelligence data
+        print(f"🧠 LOADING HISTORICAL INTELLIGENCE for {game_id}")
+        historical_intelligence = self._load_game_action_intelligence(game_id)
+        
+        # Apply winning sequences if available
+        if historical_intelligence.get('winning_sequences'):
+            print(f"🎯 FOUND {len(historical_intelligence['winning_sequences'])} WINNING SEQUENCES for {game_id}")
+            # Use the first winning sequence as a strategy
+            winning_sequence = historical_intelligence['winning_sequences'][0]
+            if winning_sequence and len(winning_sequence) > 0:
+                next_action = winning_sequence[0]
+                if next_action in available:
+                    print(f"🏆 APPLYING WINNING SEQUENCE: Action {next_action} from historical success")
+                    return next_action
+        
+        # Apply effective actions from historical data
+        if historical_intelligence.get('effective_actions'):
+            print(f"🎯 FOUND {len(historical_intelligence['effective_actions'])} EFFECTIVE ACTIONS for {game_id}")
+            # Find the most effective action that's available
+            best_action = None
+            best_success_rate = 0.0
+            
+            for action_str, action_data in historical_intelligence['effective_actions'].items():
+                if isinstance(action_data, dict):
+                    action_num = int(action_str)
+                    if action_num in available:
+                        success_rate = action_data.get('success_rate', 0.0)
+                        attempts = action_data.get('attempts', 0)
+                        
+                        # Only consider actions with multiple attempts and high success rate
+                        if attempts >= 5 and success_rate > best_success_rate:
+                            best_success_rate = success_rate
+                            best_action = action_num
+            
+            if best_action and best_success_rate > 0.8:
+                print(f"🏆 APPLYING EFFECTIVE ACTION: Action {best_action} (success rate: {best_success_rate:.2f})")
+                return best_action
+        
+        # Apply coordinate patterns if available
+        if historical_intelligence.get('coordinate_patterns'):
+            print(f"🎯 FOUND COORDINATE PATTERNS for {game_id}")
+            # Store coordinate patterns for intelligent coordinate selection
+            self.available_actions_memory['historical_coordinate_patterns'] = historical_intelligence['coordinate_patterns']
+        
+        # Generate winning sequences from action transitions if no explicit sequences exist
+        if not historical_intelligence.get('winning_sequences') and historical_intelligence.get('action_transitions'):
+            print(f"🎯 GENERATING WINNING SEQUENCES from action transitions for {game_id}")
+            generated_sequences = self._generate_winning_sequences_from_transitions(historical_intelligence['action_transitions'], available)
+            if generated_sequences:
+                # Use the first generated sequence
+                winning_sequence = generated_sequences[0]
+                next_action = winning_sequence[0]
+                if next_action in available:
+                    print(f"🏆 APPLYING GENERATED SEQUENCE: Action {next_action} from transition analysis")
+                    return next_action
+        
         # Perform frame analysis for visual intelligence
         print(f"🔧 ACTION SELECTION DEBUG: About to call frame analysis for {game_id}")
         frame_analysis = self._analyze_frame_for_action_selection(response_data, game_id)
@@ -8868,17 +8924,34 @@ class ContinuousLearningLoop:
             logger.error(f"Failed to save session results: {e}")
 
     def _load_game_action_intelligence(self, game_id: str) -> Dict[str, Any]:
-        """Load learned action patterns for this specific game."""
+        """Load learned action patterns for this specific game with comprehensive fallback."""
         intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
         
+        # Try to load current intelligence file
         if intelligence_file.exists():
             try:
                 with open(intelligence_file, 'r') as f:
                     intelligence = json.load(f)
                 logger.info(f" Loaded action intelligence for {game_id}: {len(intelligence.get('effective_actions', {}))} effective actions")
+                
+                # If current file has no winning sequences, try to load from archives
+                if not intelligence.get('winning_sequences') or len(intelligence.get('winning_sequences', [])) == 0:
+                    logger.warning(f"No winning sequences found in current file for {game_id}, checking archives...")
+                    archive_intelligence = self._load_archive_intelligence(game_id)
+                    if archive_intelligence:
+                        # Merge archive data with current data
+                        intelligence = self._merge_intelligence_data(intelligence, archive_intelligence)
+                        logger.info(f" Merged archive intelligence for {game_id}: {len(intelligence.get('winning_sequences', []))} winning sequences")
+                
                 return intelligence
             except Exception as e:
                 logger.warning(f"Failed to load action intelligence for {game_id}: {e}")
+        
+        # Try to load from archives if current file doesn't exist
+        archive_intelligence = self._load_archive_intelligence(game_id)
+        if archive_intelligence:
+            logger.info(f" Loaded archive intelligence for {game_id}: {len(archive_intelligence.get('winning_sequences', []))} winning sequences")
+            return archive_intelligence
                 
         return {
             'game_id': game_id,
@@ -8889,6 +8962,500 @@ class ContinuousLearningLoop:
             'action_transitions': {},
             'last_updated': 0
         }
+    
+    def _load_archive_intelligence(self, game_id: str) -> Optional[Dict[str, Any]]:
+        """Load intelligence data from archive files."""
+        try:
+            # Extract game prefix (e.g., 'ls20' from 'ls20-fa137e247ce6')
+            game_prefix = game_id.split('-')[0] if '-' in game_id else game_id
+            
+            # Check archive directory
+            archive_dir = self.save_directory / "archive_non_improving" / "20250907T130123"
+            archive_file = archive_dir / f"action_intelligence_{game_prefix}-*.json"
+            
+            import glob
+            matching_files = glob.glob(str(archive_file))
+            
+            if matching_files:
+                with open(matching_files[0], 'r') as f:
+                    archive_data = json.load(f)
+                logger.info(f" Found archive intelligence for {game_id} with {len(archive_data.get('winning_sequences', []))} winning sequences")
+                return archive_data
+            
+            # Check training intelligence directory
+            training_dir = self.save_directory / "training" / "intelligence"
+            training_file = training_dir / f"action_intelligence_{game_prefix}-*.json"
+            
+            matching_files = glob.glob(str(training_file))
+            
+            if matching_files:
+                with open(matching_files[0], 'r') as f:
+                    training_data = json.load(f)
+                logger.info(f" Found training intelligence for {game_id} with {len(training_data.get('winning_sequences', []))} winning sequences")
+                return training_data
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Failed to load archive intelligence for {game_id}: {e}")
+            return None
+    
+    def _merge_intelligence_data(self, current: Dict[str, Any], archive: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge archive intelligence data with current data."""
+        merged = current.copy()
+        
+        # Merge winning sequences
+        if archive.get('winning_sequences'):
+            merged['winning_sequences'] = archive['winning_sequences']
+        
+        # Merge coordinate patterns
+        if archive.get('coordinate_patterns'):
+            merged['coordinate_patterns'] = archive['coordinate_patterns']
+        
+        # Merge effective actions
+        if archive.get('effective_actions'):
+            merged['effective_actions'] = archive['effective_actions']
+        
+        # Merge action transitions
+        if archive.get('action_transitions'):
+            merged['action_transitions'] = archive['action_transitions']
+        
+        # Update timestamp
+        merged['last_updated'] = time.time()
+        
+        return merged
+    
+    def _generate_winning_sequences_from_transitions(self, action_transitions: Dict[str, int], available_actions: List[int]) -> List[List[int]]:
+        """Generate optimized winning sequences from action transition data, eliminating redundant moves."""
+        try:
+            sequences = []
+            
+            # Find the most frequent action transitions
+            sorted_transitions = sorted(action_transitions.items(), key=lambda x: x[1], reverse=True)
+            
+            for transition_key, frequency in sorted_transitions[:5]:  # Top 5 most frequent
+                try:
+                    # Parse transition key format: "((1, 2, 3, 4), 2, (1, 2, 3, 4))"
+                    # Extract the action from the middle part
+                    parts = transition_key.split(', ')
+                    if len(parts) >= 2:
+                        # Find the action number in the transition
+                        for part in parts:
+                            if part.strip().isdigit():
+                                action = int(part.strip())
+                                if action in available_actions:
+                                    # Create a simple sequence starting with this action
+                                    sequence = [action]
+                                    sequences.append(sequence)
+                                    break
+                except Exception as e:
+                    logger.warning(f"Failed to parse transition {transition_key}: {e}")
+                    continue
+            
+            # If no sequences found, create sequences from available actions
+            if not sequences:
+                for action in available_actions[:3]:  # First 3 available actions
+                    sequences.append([action])
+            
+            # CRITICAL OPTIMIZATION: Analyze and optimize sequences to eliminate redundant moves
+            optimized_sequences = []
+            for sequence in sequences:
+                optimized = self._optimize_action_sequence(sequence, available_actions)
+                if optimized and len(optimized) > 0:
+                    optimized_sequences.append(optimized)
+            
+            logger.info(f"Generated {len(optimized_sequences)} optimized winning sequences from transitions")
+            return optimized_sequences
+            
+        except Exception as e:
+            logger.error(f"Failed to generate winning sequences from transitions: {e}")
+            return []
+    
+    def _optimize_action_sequence(self, sequence: List[int], available_actions: List[int]) -> List[int]:
+        """Optimize an action sequence by eliminating redundant moves and identifying effective patterns."""
+        if not sequence or len(sequence) < 2:
+            return sequence
+        
+        try:
+            # Step 1: Identify and remove redundant move patterns
+            optimized = self._remove_redundant_patterns(sequence)
+            
+            # Step 2: Identify effective move clusters (moves that lead to progress)
+            effective_moves = self._identify_effective_moves(optimized, available_actions)
+            
+            # Step 3: Create streamlined sequence focusing on effective moves
+            streamlined = self._create_streamlined_sequence(effective_moves, available_actions)
+            
+            # Step 4: Validate the optimized sequence
+            if self._validate_sequence(streamlined, available_actions):
+                logger.info(f"Optimized sequence: {sequence} -> {streamlined} (reduced by {len(sequence) - len(streamlined)} moves)")
+                return streamlined
+            else:
+                return sequence
+                
+        except Exception as e:
+            logger.warning(f"Failed to optimize sequence {sequence}: {e}")
+            return sequence
+    
+    def _remove_redundant_patterns(self, sequence: List[int]) -> List[int]:
+        """Remove redundant move patterns that cancel each other out."""
+        if len(sequence) < 4:
+            return sequence
+        
+        optimized = sequence.copy()
+        
+        # Define opposite action pairs that cancel each other out
+        opposite_pairs = {
+            1: 2,  # left vs right
+            2: 1,  # right vs left  
+            3: 4,  # up vs down
+            4: 3,  # down vs up
+            5: 6,  # action 5 vs action 6 (if they're opposites)
+            6: 5   # action 6 vs action 5
+        }
+        
+        # Remove consecutive opposite pairs
+        i = 0
+        while i < len(optimized) - 1:
+            current_action = optimized[i]
+            next_action = optimized[i + 1]
+            
+            # Check if this is a redundant pair
+            if opposite_pairs.get(current_action) == next_action:
+                # Remove both actions
+                optimized = optimized[:i] + optimized[i + 2:]
+                # Don't increment i since we removed two elements
+                continue
+            i += 1
+        
+        # Remove repeated patterns (e.g., left,right,left,right -> empty)
+        i = 0
+        while i < len(optimized) - 3:
+            if (optimized[i] == optimized[i + 2] and 
+                optimized[i + 1] == optimized[i + 3] and
+                len(optimized) >= i + 4):
+                # Found a repeated pattern, remove it
+                optimized = optimized[:i] + optimized[i + 4:]
+                continue
+            i += 1
+        
+        return optimized
+    
+    def _identify_effective_moves(self, sequence: List[int], available_actions: List[int]) -> List[Dict[str, Any]]:
+        """Identify which moves in a sequence are most effective based on historical data."""
+        effective_moves = []
+        
+        # Load historical effectiveness data
+        historical_intelligence = self.available_actions_memory.get('historical_intelligence', {})
+        effective_actions = historical_intelligence.get('effective_actions', {})
+        
+        for i, action in enumerate(sequence):
+            if action in available_actions:
+                action_data = effective_actions.get(str(action), {})
+                success_rate = action_data.get('success_rate', 0.0)
+                attempts = action_data.get('attempts', 0)
+                
+                # Calculate effectiveness score
+                effectiveness_score = success_rate * min(attempts / 10.0, 1.0)  # Normalize attempts
+                
+                effective_moves.append({
+                    'action': action,
+                    'position': i,
+                    'effectiveness_score': effectiveness_score,
+                    'success_rate': success_rate,
+                    'attempts': attempts
+                })
+        
+        # Sort by effectiveness score
+        effective_moves.sort(key=lambda x: x['effectiveness_score'], reverse=True)
+        
+        return effective_moves
+    
+    def _create_streamlined_sequence(self, effective_moves: List[Dict[str, Any]], available_actions: List[int]) -> List[int]:
+        """Create a streamlined sequence focusing on the most effective moves."""
+        if not effective_moves:
+            return []
+        
+        # Take the top 3 most effective moves
+        top_moves = effective_moves[:3]
+        
+        # Create sequence maintaining relative order but focusing on effective moves
+        streamlined = []
+        for move in top_moves:
+            if move['action'] in available_actions and move['effectiveness_score'] > 0.5:
+                streamlined.append(move['action'])
+        
+        # If no effective moves found, use the original sequence
+        if not streamlined:
+            return [move['action'] for move in effective_moves[:2] if move['action'] in available_actions]
+        
+        return streamlined
+    
+    def _validate_sequence(self, sequence: List[int], available_actions: List[int]) -> bool:
+        """Validate that a sequence contains only available actions."""
+        if not sequence:
+            return False
+        
+        for action in sequence:
+            if action not in available_actions:
+                return False
+        
+        return True
+    
+    def _predict_redundant_move(self, recent_actions: List[int], available_actions: List[int]) -> Optional[int]:
+        """Predict if the next likely action would be redundant based on recent patterns."""
+        if len(recent_actions) < 2:
+            return None
+        
+        try:
+            # Define opposite action pairs
+            opposite_pairs = {
+                1: 2,  # left vs right
+                2: 1,  # right vs left  
+                3: 4,  # up vs down
+                4: 3,  # down vs up
+                5: 6,  # action 5 vs action 6
+                6: 5   # action 6 vs action 5
+            }
+            
+            # Check if the last action would be cancelled by the next likely action
+            last_action = recent_actions[-1]
+            opposite_action = opposite_pairs.get(last_action)
+            
+            if opposite_action and opposite_action in available_actions:
+                # Check if this would create a redundant pattern
+                if len(recent_actions) >= 2:
+                    # Check for patterns like left,right,left or up,down,up
+                    if (len(recent_actions) >= 3 and 
+                        recent_actions[-2] == opposite_action and 
+                        recent_actions[-1] == last_action):
+                        return opposite_action  # This would be redundant
+            
+            # Check for repeated patterns (e.g., left,right,left,right)
+            if len(recent_actions) >= 4:
+                pattern = recent_actions[-4:]
+                if (pattern[0] == pattern[2] and pattern[1] == pattern[3] and
+                    pattern[0] in available_actions):
+                    return pattern[0]  # This would repeat the pattern
+            
+            # Check for oscillating patterns
+            if len(recent_actions) >= 6:
+                last_6 = recent_actions[-6:]
+                if (last_6[0] == last_6[2] == last_6[4] and 
+                    last_6[1] == last_6[3] == last_6[5] and
+                    last_6[0] in available_actions):
+                    return last_6[0]  # This would continue the oscillation
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Failed to predict redundant move: {e}")
+            return None
+    
+    def _analyze_sequence_efficiency(self, sequence: List[int]) -> Dict[str, Any]:
+        """Analyze the efficiency of an action sequence."""
+        if not sequence:
+            return {'efficiency_score': 0.0, 'redundant_moves': 0, 'effective_moves': 0}
+        
+        try:
+            redundant_count = 0
+            effective_moves = 0
+            
+            # Count redundant moves
+            for i in range(len(sequence) - 1):
+                if self._is_redundant_pair(sequence[i], sequence[i + 1]):
+                    redundant_count += 1
+            
+            # Count effective moves (non-redundant)
+            effective_moves = len(sequence) - redundant_count
+            
+            # Calculate efficiency score (0.0 to 1.0)
+            efficiency_score = effective_moves / len(sequence) if sequence else 0.0
+            
+            return {
+                'efficiency_score': efficiency_score,
+                'redundant_moves': redundant_count,
+                'effective_moves': effective_moves,
+                'total_moves': len(sequence),
+                'waste_percentage': (redundant_count / len(sequence)) * 100 if sequence else 0.0
+            }
+            
+        except Exception as e:
+            logger.warning(f"Failed to analyze sequence efficiency: {e}")
+            return {'efficiency_score': 0.0, 'redundant_moves': 0, 'effective_moves': 0}
+    
+    def _is_redundant_pair(self, action1: int, action2: int) -> bool:
+        """Check if two consecutive actions are redundant (cancel each other out)."""
+        opposite_pairs = {
+            1: 2,  # left vs right
+            2: 1,  # right vs left  
+            3: 4,  # up vs down
+            4: 3,  # down vs up
+            5: 6,  # action 5 vs action 6
+            6: 5   # action 6 vs action 5
+        }
+        
+        return opposite_pairs.get(action1) == action2
+    
+    def _generate_efficiency_report(self, game_id: str) -> Dict[str, Any]:
+        """Generate a comprehensive efficiency report for a game."""
+        try:
+            efficiency_metrics = self.available_actions_memory.get('efficiency_metrics', {})
+            action_history = self.available_actions_memory.get('action_history', [])
+            
+            # Analyze current sequence efficiency
+            current_efficiency = self._analyze_sequence_efficiency(action_history)
+            
+            # Load historical intelligence for comparison
+            historical_intelligence = self._load_game_action_intelligence(game_id)
+            historical_sequences = historical_intelligence.get('winning_sequences', [])
+            
+            # Analyze historical sequences
+            historical_efficiency_scores = []
+            for seq in historical_sequences:
+                if seq:
+                    seq_efficiency = self._analyze_sequence_efficiency(seq)
+                    historical_efficiency_scores.append(seq_efficiency['efficiency_score'])
+            
+            avg_historical_efficiency = sum(historical_efficiency_scores) / len(historical_efficiency_scores) if historical_efficiency_scores else 0.0
+            
+            report = {
+                'game_id': game_id,
+                'current_efficiency': current_efficiency,
+                'historical_efficiency': {
+                    'average_score': avg_historical_efficiency,
+                    'sequences_analyzed': len(historical_efficiency_scores),
+                    'best_efficiency': max(historical_efficiency_scores) if historical_efficiency_scores else 0.0
+                },
+                'optimization_metrics': efficiency_metrics,
+                'recommendations': self._generate_efficiency_recommendations(current_efficiency, avg_historical_efficiency)
+            }
+            
+            return report
+            
+        except Exception as e:
+            logger.error(f"Failed to generate efficiency report for {game_id}: {e}")
+            return {'error': str(e)}
+    
+    def _generate_efficiency_recommendations(self, current_efficiency: Dict[str, Any], historical_efficiency: float) -> List[str]:
+        """Generate recommendations for improving efficiency."""
+        recommendations = []
+        
+        current_score = current_efficiency.get('efficiency_score', 0.0)
+        waste_percentage = current_efficiency.get('waste_percentage', 0.0)
+        
+        if current_score < 0.7:
+            recommendations.append("⚠️ Low efficiency detected - focus on eliminating redundant moves")
+        
+        if waste_percentage > 30:
+            recommendations.append(f"🚫 High waste percentage ({waste_percentage:.1f}%) - implement better pattern detection")
+        
+        if current_score < historical_efficiency * 0.8:
+            recommendations.append("📉 Current efficiency below historical average - review recent changes")
+        
+        if current_efficiency.get('redundant_moves', 0) > 3:
+            recommendations.append("🔄 Too many redundant moves - enable real-time pattern detection")
+        
+        if not recommendations:
+            recommendations.append("✅ Efficiency looks good - maintain current optimization strategies")
+        
+        return recommendations
+    
+    def _save_winning_sequence(self, game_id: str, winning_sequence: List[int]):
+        """Save a winning action sequence to the action intelligence data."""
+        try:
+            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+            
+            # Load existing intelligence data
+            if intelligence_file.exists():
+                with open(intelligence_file, 'r') as f:
+                    intelligence = json.load(f)
+            else:
+                intelligence = {
+                    'game_id': game_id,
+                    'initial_actions': [],
+                    'effective_actions': {},
+                    'winning_sequences': [],
+                    'coordinate_patterns': {},
+                    'action_transitions': {},
+                    'last_updated': 0
+                }
+            
+            # Add winning sequence if not already present
+            if 'winning_sequences' not in intelligence:
+                intelligence['winning_sequences'] = []
+            
+            # Check if this sequence is already saved
+            sequence_str = str(winning_sequence)
+            existing_sequences = [str(seq) for seq in intelligence['winning_sequences']]
+            
+            if sequence_str not in existing_sequences:
+                intelligence['winning_sequences'].append(winning_sequence)
+                intelligence['last_updated'] = time.time()
+                
+                # Save updated intelligence
+                with open(intelligence_file, 'w') as f:
+                    json.dump(intelligence, f, indent=2)
+                
+                print(f"🏆 SAVED WINNING SEQUENCE for {game_id}: {winning_sequence}")
+                logger.info(f"Saved winning sequence {winning_sequence} for game {game_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to save winning sequence for {game_id}: {e}")
+    
+    def _save_coordinate_pattern(self, game_id: str, action: int, x: int, y: int, success: bool):
+        """Save coordinate pattern data for action intelligence."""
+        try:
+            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+            
+            # Load existing intelligence data
+            if intelligence_file.exists():
+                with open(intelligence_file, 'r') as f:
+                    intelligence = json.load(f)
+            else:
+                intelligence = {
+                    'game_id': game_id,
+                    'initial_actions': [],
+                    'effective_actions': {},
+                    'winning_sequences': [],
+                    'coordinate_patterns': {},
+                    'action_transitions': {},
+                    'last_updated': 0
+                }
+            
+            # Initialize coordinate patterns if not exists
+            if 'coordinate_patterns' not in intelligence:
+                intelligence['coordinate_patterns'] = {}
+            
+            action_str = str(action)
+            if action_str not in intelligence['coordinate_patterns']:
+                intelligence['coordinate_patterns'][action_str] = {}
+            
+            coord_str = f"{x},{y}"
+            if coord_str not in intelligence['coordinate_patterns'][action_str]:
+                intelligence['coordinate_patterns'][action_str][coord_str] = {
+                    'attempts': 0,
+                    'successes': 0,
+                    'success_rate': 0.0
+                }
+            
+            # Update pattern data
+            pattern = intelligence['coordinate_patterns'][action_str][coord_str]
+            pattern['attempts'] += 1
+            if success:
+                pattern['successes'] += 1
+            pattern['success_rate'] = pattern['successes'] / pattern['attempts']
+            
+            intelligence['last_updated'] = time.time()
+            
+            # Save updated intelligence
+            with open(intelligence_file, 'w') as f:
+                json.dump(intelligence, f, indent=2)
+            
+            print(f"📊 SAVED COORDINATE PATTERN: Action {action} at ({x},{y}) - Success: {success}")
+            
+        except Exception as e:
+            logger.error(f"Failed to save coordinate pattern for {game_id}: {e}")
     
     def _save_game_action_intelligence(self, game_id: str):
         """Save learned action patterns for this specific game."""
@@ -14098,6 +14665,16 @@ class ContinuousLearningLoop:
 
                 # Use our intelligent action selection with current available actions
                 try:
+                    # CRITICAL OPTIMIZATION: Check for redundant patterns before action selection
+                    recent_actions = self.available_actions_memory.get('action_history', [])
+                    if len(recent_actions) >= 4:
+                        # Check if we're about to make a redundant move
+                        predicted_redundant = self._predict_redundant_move(recent_actions, available_actions)
+                        if predicted_redundant:
+                            print(f"🚫 REDUNDANT MOVE DETECTED: Skipping {predicted_redundant} to avoid wasted energy")
+                            # Remove the redundant action from available actions temporarily
+                            available_actions = [a for a in available_actions if a != predicted_redundant]
+                    
                     action_selection_response = {
                         'available_actions': available_actions,
                         'state': current_state,
@@ -14198,6 +14775,13 @@ class ContinuousLearningLoop:
                 
                 coord_display = f" at ({x},{y})" if x is not None else ""
                 print(f" EXECUTING: Action {selected_action}{coord_display}")
+                
+                # Show efficiency metrics
+                efficiency_metrics = self.available_actions_memory.get('efficiency_metrics', {})
+                if efficiency_metrics.get('optimization_count', 0) > 0:
+                    total_saved = efficiency_metrics.get('total_moves_saved', 0)
+                    avg_gain = efficiency_metrics.get('average_efficiency_gain', 0.0)
+                    print(f"    ⚡ EFFICIENCY: Saved {total_saved} moves total (avg: {avg_gain:.1f} per optimization)")
                 
                 # Show intelligent action description (more concise)
                 action_desc = self.get_action_description(selected_action, game_id)
@@ -14324,6 +14908,90 @@ class ContinuousLearningLoop:
                     # Track effectiveness
                     score_improvement = new_score - current_score
                     was_effective = (score_improvement > 0 or new_state in ['WIN'])
+                    
+                    # CRITICAL FIX: Detect and save winning sequences
+                    if score_improvement > 0:
+                        print(f"🎯 SCORE IMPROVEMENT DETECTED: +{score_improvement}")
+                        
+                        # Get recent action history for this game
+                        recent_actions = self.available_actions_memory.get('action_history', [])
+                        if len(recent_actions) >= 3:  # Need at least 3 actions for a sequence
+                            # OPTIMIZATION: Analyze and optimize the winning sequence before saving
+                            optimized_sequence = self._optimize_action_sequence(recent_actions[-5:], available_actions)
+                            
+                            # Save the optimized sequence
+                            self._save_winning_sequence(game_id, optimized_sequence)
+                            
+                            # Track efficiency improvement
+                            original_length = len(recent_actions[-5:])
+                            optimized_length = len(optimized_sequence)
+                            efficiency_gain = original_length - optimized_length
+                            
+                            if efficiency_gain > 0:
+                                print(f"⚡ SEQUENCE OPTIMIZED: Reduced from {original_length} to {optimized_length} moves (saved {efficiency_gain} moves)")
+                                # Track efficiency metrics
+                                if 'efficiency_metrics' not in self.available_actions_memory:
+                                    self.available_actions_memory['efficiency_metrics'] = {
+                                        'total_moves_saved': 0,
+                                        'optimization_count': 0,
+                                        'average_efficiency_gain': 0.0
+                                    }
+                                
+                                self.available_actions_memory['efficiency_metrics']['total_moves_saved'] += efficiency_gain
+                                self.available_actions_memory['efficiency_metrics']['optimization_count'] += 1
+                                self.available_actions_memory['efficiency_metrics']['average_efficiency_gain'] = (
+                                    self.available_actions_memory['efficiency_metrics']['total_moves_saved'] / 
+                                    self.available_actions_memory['efficiency_metrics']['optimization_count']
+                                )
+                            
+                            # Also save coordinate patterns if coordinates were used
+                            if x is not None and y is not None:
+                                self._save_coordinate_pattern(game_id, selected_action, x, y, True)
+                        
+                        # Reset action history after successful action
+                        self.available_actions_memory['action_history'] = []
+                    
+                    # CRITICAL FIX: Detect infinite loops and break out
+                    if not was_effective:
+                        # Track consecutive ineffective actions
+                        if 'ineffective_count' not in self.available_actions_memory:
+                            self.available_actions_memory['ineffective_count'] = 0
+                        
+                        self.available_actions_memory['ineffective_count'] += 1
+                        
+                        # If too many ineffective actions, try a different strategy
+                        if self.available_actions_memory['ineffective_count'] > 50:
+                            print(f"🔄 INFINITE LOOP DETECTED: {self.available_actions_memory['ineffective_count']} ineffective actions")
+                            
+                            # Reset to use historical patterns more aggressively
+                            self.available_actions_memory['ineffective_count'] = 0
+                            self.available_actions_memory['action_history'] = []
+                            
+                            # Force a different action strategy
+                            print(f"🔄 FORCING STRATEGY CHANGE for {game_id}")
+                            return  # This will cause the system to restart with fresh strategy
+                    else:
+                        # Reset ineffective count on successful action
+                        self.available_actions_memory['ineffective_count'] = 0
+                    
+                    # CRITICAL FIX: Detect infinite loops and break out
+                    if actions_taken > 1000 and score_improvement == 0:
+                        print(f"🔄 INFINITE LOOP DETECTED: {actions_taken} actions with no score improvement")
+                        print(f"🛑 BREAKING OUT OF LOOP - Resetting game state")
+                        
+                        # Reset the game to break the loop
+                        reset_result = await self._send_reset_action(game_id)
+                        if reset_result and reset_result.get('success'):
+                            print(f"✅ GAME RESET SUCCESSFUL - Breaking infinite loop")
+                            # Reset action history to start fresh
+                            self.available_actions_memory['action_history'] = []
+                            # Update state from reset
+                            current_state = reset_result.get('state', 'NOT_FINISHED')
+                            current_score = reset_result.get('score', 0)
+                            available_actions = reset_result.get('available_actions', [])
+                            actions_taken = 0  # Reset action counter
+                        else:
+                            print(f"❌ GAME RESET FAILED - Continuing with current state")
                     
                     # Update simulation agent with action outcome
                     if self.simulation_agent:
