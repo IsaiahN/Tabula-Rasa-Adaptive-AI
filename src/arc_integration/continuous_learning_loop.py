@@ -24,6 +24,14 @@ try:
 except ImportError:
     torch = None
 
+# Try to import OpenCV feature extractor
+try:
+    from arc_integration.opencv_feature_extractor import OpenCVFeatureExtractor
+    opencv_available = True
+except ImportError:
+    opencv_available = False
+    print("⚠️ OpenCV feature extractor not available - falling back to basic analysis")
+
 # Action & session trace logger (lightweight, append-only)
 try:
     from arc_integration.action_trace_logger import log_action_trace, write_session_trace
@@ -4076,6 +4084,73 @@ class ContinuousLearningLoop:
             
         except Exception as e:
             print(f"⚠️ Coordinate effectiveness tracking failed: {e}")
+    
+    def _generate_opencv_action_recommendations(self, opencv_features: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Generate action recommendations based on OpenCV feature analysis.
+        
+        This method uses computer vision insights to recommend intelligent actions
+        based on detected objects, patterns, and spatial relationships.
+        """
+        recommendations = []
+        
+        try:
+            objects = opencv_features.get('objects', [])
+            relationships = opencv_features.get('relationships', [])
+            patterns = opencv_features.get('patterns', [])
+            
+            # Recommendation 1: Object-based actions
+            if objects:
+                # Find the most prominent object (largest area)
+                largest_object = max(objects, key=lambda obj: obj.get('area', 0))
+                
+                if largest_object['type'] in ['circle', 'square', 'blob']:
+                    # Recommend ACTION6 to interact with the object
+                    recommendations.append({
+                        'action': 6,
+                        'coordinates': largest_object['centroid'],
+                        'reason': f"Interact with {largest_object['type']} at {largest_object['centroid']}",
+                        'confidence': 0.8,
+                        'priority': 'high'
+                    })
+            
+            # Recommendation 2: Relationship-based actions
+            for rel in relationships:
+                if rel['relationship_type'] == 'inside' and rel['confidence'] > 0.7:
+                    # Objects are nested - recommend moving the inner object
+                    recommendations.append({
+                        'action': 6,
+                        'coordinates': (rel['object1_id'], rel['object2_id']),
+                        'reason': f"Objects {rel['object1_id']} and {rel['object2_id']} are nested",
+                        'confidence': rel['confidence'],
+                        'priority': 'medium'
+                    })
+            
+            # Recommendation 3: Pattern-based actions
+            for pattern in patterns:
+                if pattern['pattern_type'] == 'uniform' and pattern['confidence'] > 0.8:
+                    # Uniform region detected - recommend exploring edges
+                    region = pattern['region']
+                    center_x = region[0] + region[2] // 2
+                    center_y = region[1] + region[3] // 2
+                    
+                    recommendations.append({
+                        'action': 6,
+                        'coordinates': (center_x, center_y),
+                        'reason': f"Explore uniform region at ({center_x}, {center_y})",
+                        'confidence': pattern['confidence'],
+                        'priority': 'low'
+                    })
+            
+            # Sort by priority and confidence
+            priority_order = {'high': 3, 'medium': 2, 'low': 1}
+            recommendations.sort(key=lambda x: (priority_order.get(x['priority'], 0), x['confidence']), reverse=True)
+            
+            return recommendations[:5]  # Return top 5 recommendations
+            
+        except Exception as e:
+            logger.error(f"OpenCV action recommendation generation failed: {e}")
+            return []
     
     def _analyze_action_patterns(self, game_id: str, available_actions: List[int], frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
         """
