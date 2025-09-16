@@ -6,6 +6,7 @@ Generates strategic inferences for the Architect and Governor systems.
 
 import numpy as np
 import cv2
+import logging
 from typing import Dict, List, Tuple, Optional, Any, Set
 from collections import deque, defaultdict
 from dataclasses import dataclass
@@ -81,6 +82,7 @@ class FrameDynamicsAnalyzer:
         self.physics_inferences: Dict[str, List[PhysicsInference]] = defaultdict(list)
         self.mechanic_inferences: Dict[str, List[GameMechanicInference]] = defaultdict(list)
         self.symbolic_references: Dict[str, str] = {}  # game_id -> symbolic description
+        self.logger = logging.getLogger(__name__)
         
         # Physics detection parameters
         self.movement_threshold = 0.1
@@ -162,9 +164,51 @@ class FrameDynamicsAnalyzer:
         }
     
     def _analyze_physics_patterns(self, sequence: FrameSequence) -> List[PhysicsInference]:
-        """Analyze frame sequence for physics patterns."""
+        """Analyze frame sequence for physics patterns with enhanced OpenCV analysis."""
         inferences = []
         frames = sequence.frames
+        
+        # Enhanced motion analysis using optical flow
+        for i in range(len(frames) - 1):
+            prev_frame = frames[i]
+            curr_frame = frames[i + 1]
+            
+            # Analyze optical flow for motion patterns
+            flow_analysis = self._analyze_optical_flow(prev_frame, curr_frame)
+            
+            if flow_analysis['motion_detected']:
+                # Create motion inference
+                motion_inference = PhysicsInference(
+                    inference_type="motion_detected",
+                    confidence=min(flow_analysis['motion_magnitude'] / 10.0, 1.0),
+                    description=f"Motion detected: magnitude={flow_analysis['motion_magnitude']:.2f}, direction={flow_analysis['motion_direction']:.2f}",
+                    spatial_region=(0, 0, frames[0].shape[1], frames[0].shape[0]),
+                    temporal_span=2,
+                    symbolic_reference="Motion Analysis"
+                )
+                inferences.append(motion_inference)
+                
+                # Analyze motion consistency for physics patterns
+                if flow_analysis['motion_consistency'] < 0.5:
+                    consistent_motion = PhysicsInference(
+                        inference_type="consistent_motion",
+                        confidence=0.8,
+                        description="Consistent directional motion detected",
+                        spatial_region=(0, 0, frames[0].shape[1], frames[0].shape[0]),
+                        temporal_span=2,
+                        symbolic_reference="Linear Motion"
+                    )
+                    inferences.append(consistent_motion)
+                else:
+                    chaotic_motion = PhysicsInference(
+                        inference_type="chaotic_motion",
+                        confidence=0.6,
+                        description="Chaotic or complex motion pattern detected",
+                        spatial_region=(0, 0, frames[0].shape[1], frames[0].shape[0]),
+                        temporal_span=2,
+                        symbolic_reference="Complex Motion"
+                    )
+                    inferences.append(chaotic_motion)
         
         # Detect gravity patterns
         gravity_inf = self._detect_gravity_patterns(frames)
@@ -620,24 +664,152 @@ class FrameDynamicsAnalyzer:
             return "gradual_changes"
     
     def _find_contours(self, frame: np.ndarray) -> List:
-        """Find contours in frame."""
+        """Find contours in frame with enhanced OpenCV analysis."""
         try:
-            # Convert to uint8 for OpenCV
-            frame_uint8 = (frame * 255).astype(np.uint8)
-            contours, _ = cv2.findContours(frame_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            return contours
-        except:
+            # Use proper format validation from OpenCV processor
+            from src.core.opencv_utils import opencv_processor
+            frame_processed = opencv_processor._ensure_proper_format(frame)
+            
+            # Ensure we have a 2D grayscale image
+            if len(frame_processed.shape) > 2:
+                frame_processed = cv2.cvtColor(frame_processed, cv2.COLOR_BGR2GRAY)
+            
+            # Apply Gaussian blur to reduce noise
+            blurred = cv2.GaussianBlur(frame_processed, (5, 5), 0)
+            
+            # Use adaptive thresholding for better contour detection
+            thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                         cv2.THRESH_BINARY, 11, 2)
+            
+            # Find contours with hierarchy for better object detection
+            contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            
+            # Filter contours by area and complexity
+            filtered_contours = []
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                if area > 10:  # Minimum area threshold
+                    # Calculate contour complexity
+                    perimeter = cv2.arcLength(contour, True)
+                    if perimeter > 0:
+                        circularity = 4 * np.pi * area / (perimeter * perimeter)
+                        if circularity > 0.1:  # Filter out very irregular shapes
+                            filtered_contours.append(contour)
+            
+            return filtered_contours
+        except Exception as e:
+            self.logger.warning(f"Contour detection failed: {e}")
             return []
     
     def _calculate_frame_complexity(self, frame: np.ndarray) -> float:
-        """Calculate complexity score for a frame."""
-        # Simple complexity based on unique colors and spatial variation
-        unique_colors = len(set(frame.flatten()))
-        spatial_variance = np.var(frame)
-        return unique_colors * spatial_variance
+        """Calculate complexity score for a frame using OpenCV."""
+        try:
+            # Use proper format validation from OpenCV processor
+            from src.core.opencv_utils import opencv_processor
+            frame_processed = opencv_processor._ensure_proper_format(frame)
+            
+            # Calculate edge density using Canny edge detection
+            edges = cv2.Canny(frame_processed, 50, 150)
+            edge_density = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
+            
+            # Calculate texture complexity using Laplacian variance
+            laplacian_var = cv2.Laplacian(frame_processed, cv2.CV_64F).var()
+            
+            # Calculate color complexity
+            unique_colors = len(set(frame.flatten()))
+            
+            # Combine metrics for comprehensive complexity score
+            complexity = (edge_density * 1000) + (laplacian_var * 0.1) + (unique_colors * 0.01)
+            return complexity
+        except Exception as e:
+            self.logger.warning(f"Frame complexity calculation failed: {e}")
+            return 0.0
+    
+    def _analyze_optical_flow(self, prev_frame: np.ndarray, curr_frame: np.ndarray) -> Dict[str, Any]:
+        """Analyze optical flow between consecutive frames using OpenCV."""
+        try:
+            # Use proper format validation
+            from src.core.opencv_utils import opencv_processor
+            prev_gray = opencv_processor._ensure_proper_format(prev_frame)
+            curr_gray = opencv_processor._ensure_proper_format(curr_frame)
+            
+            # Ensure we have 2D grayscale images
+            if len(prev_gray.shape) > 2:
+                prev_gray = cv2.cvtColor(prev_gray, cv2.COLOR_BGR2GRAY)
+            if len(curr_gray.shape) > 2:
+                curr_gray = cv2.cvtColor(curr_gray, cv2.COLOR_BGR2GRAY)
+            
+            # Detect feature points using corner detection
+            corners = cv2.goodFeaturesToTrack(prev_gray, maxCorners=100, qualityLevel=0.01, minDistance=10)
+            
+            if corners is not None and len(corners) > 0:
+                # Calculate optical flow using Lucas-Kanade method
+                flow = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, corners, None)
+                
+                # Calculate motion magnitude and direction
+                if flow[0] is not None and flow[1] is not None:
+                    good_old = flow[0]
+                    good_new = flow[1]
+                    
+                    if len(good_old) > 0 and len(good_new) > 0:
+                        # Calculate displacement vectors
+                        displacement = good_new - good_old
+                        motion_magnitude = np.linalg.norm(displacement, axis=1)
+                        avg_motion = np.mean(motion_magnitude)
+                        
+                        # Calculate motion direction
+                        motion_direction = np.arctan2(displacement[:, 1], displacement[:, 0])
+                        dominant_direction = np.median(motion_direction)
+                        
+                        return {
+                            'motion_detected': avg_motion > 1.0,
+                            'motion_magnitude': float(avg_motion),
+                            'motion_direction': float(dominant_direction),
+                            'motion_consistency': float(np.std(motion_direction)),
+                            'feature_points': len(good_old)
+                        }
+            
+            # Fallback: Use dense optical flow if no corners detected
+            try:
+                dense_flow = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, None, None)
+                if dense_flow[0] is not None and dense_flow[1] is not None:
+                    good_old = dense_flow[0]
+                    good_new = dense_flow[1]
+                    
+                    if len(good_old) > 0 and len(good_new) > 0:
+                        displacement = good_new - good_old
+                        motion_magnitude = np.linalg.norm(displacement, axis=1)
+                        avg_motion = np.mean(motion_magnitude)
+                        
+                        return {
+                            'motion_detected': avg_motion > 1.0,
+                            'motion_magnitude': float(avg_motion),
+                            'motion_direction': 0.0,
+                            'motion_consistency': 0.0,
+                            'feature_points': len(good_old)
+                        }
+            except:
+                pass
+            
+            return {
+                'motion_detected': False,
+                'motion_magnitude': 0.0,
+                'motion_direction': 0.0,
+                'motion_consistency': 0.0,
+                'feature_points': 0
+            }
+        except Exception as e:
+            self.logger.warning(f"Optical flow analysis failed: {e}")
+            return {
+                'motion_detected': False,
+                'motion_magnitude': 0.0,
+                'motion_direction': 0.0,
+                'motion_consistency': 0.0,
+                'feature_points': 0
+            }
     
     def _find_repeating_patterns(self, frames: List[np.ndarray]) -> List[Dict]:
-        """Find repeating patterns in frame sequence."""
+        """Find repeating patterns in frame sequence using OpenCV template matching."""
         patterns = []
         
         # Look for color pattern repetition

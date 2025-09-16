@@ -113,11 +113,14 @@ except ImportError:
             pass
         def calculate_success_probability(self, *args, **kwargs):
             return 0.5
-        
-        @classmethod
-        def get_scaled_max_actions(cls, efficiency: float) -> int:
-            scaled = int(cls.MAX_ACTIONS_SCALING_BASE * (1 + (1 - efficiency)))
-            return min(cls.MAX_ACTIONS_SCALING_MAX, scaled)
+
+# Import OpenCV utilities
+try:
+    from src.core.opencv_utils import opencv_processor
+    OPENCV_AVAILABLE = True
+except ImportError:
+    opencv_processor = None
+    OPENCV_AVAILABLE = False
 try:
     # Runtime instrumentation: print the file path when this module is imported so we can
     # confirm which copy of the module the Python process actually loaded at runtime.
@@ -3639,6 +3642,32 @@ class ContinuousLearningLoop:
                 # Convert frame to numpy array for dynamics analysis
                 frame_array = np.array(frame)
                 
+                # Enhanced OpenCV analysis
+                opencv_analysis = {}
+                if OPENCV_AVAILABLE and opencv_processor:
+                    try:
+                        # Calculate frame complexity
+                        complexity_metrics = opencv_processor.calculate_frame_complexity(frame_array)
+                        opencv_analysis['complexity'] = complexity_metrics
+                        
+                        # Detect objects
+                        objects = opencv_processor.detect_objects(frame_array)
+                        opencv_analysis['objects'] = objects
+                        
+                        # Detect lines
+                        lines = opencv_processor.detect_lines(frame_array)
+                        opencv_analysis['lines'] = lines
+                        
+                        # Detect edges
+                        edges = opencv_processor.detect_edges(frame_array)
+                        opencv_analysis['edge_density'] = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
+                        
+                        print(f"🔍 OPENCV: Detected {len(objects)} objects, {len(lines)} lines, complexity: {complexity_metrics['overall_complexity']:.2f}")
+                        
+                    except Exception as e:
+                        print(f"🔍 OPENCV: Analysis failed: {e}")
+                        opencv_analysis = {}
+                
                 # Get recent frame history for sequence analysis
                 if not hasattr(self, '_frame_history'):
                     self._frame_history = {}
@@ -3675,10 +3704,16 @@ class ContinuousLearningLoop:
                     if governor_guidance:
                         analysis_results['governor_guidance'] = governor_guidance
                         print(f"🧠 CONDUCTOR: Generated {len(governor_guidance)} governor guidance items")
+                
+                # Add OpenCV analysis to results
+                if opencv_analysis:
+                    analysis_results['opencv_analysis'] = opencv_analysis
                         
             except Exception as e:
                 print(f"🧠 CONDUCTOR: Frame dynamics analysis failed: {e}")
                 analysis_results['dynamics_analysis'] = {"error": str(e)}
+                if opencv_analysis:
+                    analysis_results['opencv_analysis'] = opencv_analysis
             
             # Extract useful information for action selection
             enhanced_analysis = {}
