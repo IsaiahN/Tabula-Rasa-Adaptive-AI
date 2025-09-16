@@ -17,6 +17,7 @@ from datetime import datetime
 
 class PhysicsType(Enum):
     """Types of physics behaviors detected in the game."""
+    MOTION = "motion"
     GRAVITY = "gravity"
     MOMENTUM = "momentum"
     COLLISION = "collision"
@@ -179,34 +180,37 @@ class FrameDynamicsAnalyzer:
             if flow_analysis['motion_detected']:
                 # Create motion inference
                 motion_inference = PhysicsInference(
-                    inference_type="motion_detected",
+                    physics_type=PhysicsType.MOTION,
                     confidence=min(flow_analysis['motion_magnitude'] / 10.0, 1.0),
-                    description=f"Motion detected: magnitude={flow_analysis['motion_magnitude']:.2f}, direction={flow_analysis['motion_direction']:.2f}",
+                    evidence=[f"Motion detected: magnitude={flow_analysis['motion_magnitude']:.2f}, direction={flow_analysis['motion_direction']:.2f}"],
                     spatial_region=(0, 0, frames[0].shape[1], frames[0].shape[0]),
                     temporal_span=2,
-                    symbolic_reference="Motion Analysis"
+                    symbolic_reference="Motion Analysis",
+                    strategic_implication="Motion patterns detected in frame sequence"
                 )
                 inferences.append(motion_inference)
                 
                 # Analyze motion consistency for physics patterns
                 if flow_analysis['motion_consistency'] < 0.5:
                     consistent_motion = PhysicsInference(
-                        inference_type="consistent_motion",
+                        physics_type=PhysicsType.MOTION,
                         confidence=0.8,
-                        description="Consistent directional motion detected",
+                        evidence=["Consistent directional motion detected"],
                         spatial_region=(0, 0, frames[0].shape[1], frames[0].shape[0]),
                         temporal_span=2,
-                        symbolic_reference="Linear Motion"
+                        symbolic_reference="Linear Motion",
+                        strategic_implication="Consistent motion patterns suggest predictable physics"
                     )
                     inferences.append(consistent_motion)
                 else:
                     chaotic_motion = PhysicsInference(
-                        inference_type="chaotic_motion",
+                        physics_type=PhysicsType.MOTION,
                         confidence=0.6,
-                        description="Chaotic or complex motion pattern detected",
+                        evidence=["Chaotic or complex motion pattern detected"],
                         spatial_region=(0, 0, frames[0].shape[1], frames[0].shape[0]),
                         temporal_span=2,
-                        symbolic_reference="Complex Motion"
+                        symbolic_reference="Complex Motion",
+                        strategic_implication="Chaotic motion suggests complex or random physics"
                     )
                     inferences.append(chaotic_motion)
         
