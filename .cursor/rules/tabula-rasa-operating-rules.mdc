@@ -17,12 +17,11 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
 
 **CRITICAL: COMMAND EXECUTION RULE**
 -   **When your strategy requires executing the training script, you MUST use the following command format:**
-    `./run_9hour_scaled_training.py`
--   **You are ABSOLUTELY FORBIDDEN from using the `python` command prefix for loading the training script (e.g., `python run_9hour...`).** The script is designed to be executed directly. Trying to use `python` often results in a truncation error with bash not being able to execute the command.
+before running any script excute: `alias ython=python`
 
-./run_9hour_scaled_training.py #run multiple instances of games for 9 hours
-./run_9hour_scaled_training.py #run one sequential game at a time for 9 hours
-./enhanced_scorecard_monitor.py #run scorecard monitor
+`./run_9hour_scaled_training.py` #run multiple instances of games for 9 hours
+`./run_9hour_simple_training.py` #run one sequential game at a time for 9 hours
+`./enhanced_scorecard_monitor.py` #run scorecard monitor
 
 
 -   **Verification:** 

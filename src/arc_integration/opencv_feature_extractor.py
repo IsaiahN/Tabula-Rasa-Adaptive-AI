@@ -16,6 +16,7 @@ Key Features:
 import cv2
 import numpy as np
 import json
+import time
 from typing import Dict, List, Tuple, Any, Optional
 from dataclasses import dataclass
 from sklearn.cluster import KMeans
@@ -115,26 +116,21 @@ class OpenCVFeatureExtractor:
             Dictionary containing structured feature description
         """
         try:
-            # Convert grid to OpenCV format
-            cv_image = self._grid_to_opencv(grid)
-            
-            # Extract all features
-            objects = self._detect_objects(cv_image)
-            relationships = self._analyze_spatial_relationships(objects)
-            patterns = self._detect_patterns(cv_image)
-            colors = self._quantize_colors(cv_image)
-            features = self._extract_feature_vectors(objects, cv_image)
+            # Use a simplified approach that doesn't rely on OpenCV's problematic functions
+            objects = self._detect_objects_simple(grid)
+            relationships = self._analyze_spatial_relationships_simple(objects)
+            patterns = self._detect_patterns_simple(grid)
+            colors = self._analyze_colors_simple(grid)
             
             # Create structured output
             feature_description = {
                 'game_id': game_id,
-                'grid_dimensions': (len(grid[0]), len(grid)),
-                'objects': [self._object_to_dict(obj) for obj in objects],
-                'relationships': [self._relationship_to_dict(rel) for rel in relationships],
-                'patterns': [self._pattern_to_dict(pattern) for pattern in patterns],
+                'grid_dimensions': (len(grid[0]) if grid and grid[0] else 0, len(grid)),
+                'objects': objects,
+                'relationships': relationships,
+                'patterns': patterns,
                 'dominant_colors': colors,
-                'feature_vectors': features,
-                'summary': self._generate_summary(objects, relationships, patterns)
+                'timestamp': time.time()
             }
             
             logger.info(f"Extracted {len(objects)} objects, {len(relationships)} relationships, {len(patterns)} patterns for {game_id}")
@@ -163,8 +159,8 @@ class OpenCVFeatureExtractor:
             output_cv = self._grid_to_opencv(output_grid)
             
             # Detect objects in both grids
-            input_objects = self._detect_objects(input_cv)
-            output_objects = self._detect_objects(output_cv)
+            input_objects = self._detect_objects_simple(input_grid)
+            output_objects = self._detect_objects_simple(output_grid)
             
             # Analyze changes
             changes = self._analyze_changes(input_objects, output_objects, input_cv, output_cv)
@@ -186,12 +182,34 @@ class OpenCVFeatureExtractor:
     
     def _grid_to_opencv(self, grid: List[List[int]]) -> np.ndarray:
         """Convert ARC grid format to OpenCV image format."""
+        # Debug: Log grid properties
+        logger.debug(f"Grid type: {type(grid)}, length: {len(grid) if isinstance(grid, list) else 'N/A'}")
+        if isinstance(grid, list) and len(grid) > 0:
+            logger.debug(f"Grid[0] type: {type(grid[0])}, length: {len(grid[0]) if isinstance(grid[0], list) else 'N/A'}")
+        
         # Convert to numpy array and scale to 0-255 range
         grid_array = np.array(grid, dtype=np.uint8)
+        logger.debug(f"Grid array shape: {grid_array.shape}, dtype: {grid_array.dtype}, min: {grid_array.min()}, max: {grid_array.max()}")
         
         # Scale colors to 0-255 range (ARC uses 0-9, scale to 0-255)
         if grid_array.max() <= 9:
             grid_array = (grid_array * 28).astype(np.uint8)  # Scale 0-9 to 0-252
+        
+        # Ensure the image is in the correct format for OpenCV
+        # Convert to 3-channel if needed, or ensure it's single channel
+        if len(grid_array.shape) == 2:
+            # Single channel image - ensure it's the right type
+            grid_array = grid_array.astype(np.uint8)
+        elif len(grid_array.shape) == 3:
+            # Multi-channel image - convert to grayscale
+            grid_array = cv2.cvtColor(grid_array, cv2.COLOR_BGR2GRAY)
+        
+        # Ensure minimum size for OpenCV operations
+        if grid_array.shape[0] < 3 or grid_array.shape[1] < 3:
+            # Pad the image to minimum size
+            padded = np.zeros((max(3, grid_array.shape[0]), max(3, grid_array.shape[1])), dtype=np.uint8)
+            padded[:grid_array.shape[0], :grid_array.shape[1]] = grid_array
+            grid_array = padded
         
         return grid_array
     
@@ -199,46 +217,77 @@ class OpenCVFeatureExtractor:
         """Detect and segment objects in the image."""
         objects = []
         
-        # Find contours
-        contours, _ = cv2.findContours(cv_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        for i, contour in enumerate(contours):
-            area = cv2.contourArea(contour)
+        try:
+            # Debug: Log image properties
+            logger.debug(f"Image shape: {cv_image.shape}, dtype: {cv_image.dtype}, min: {cv_image.min()}, max: {cv_image.max()}")
             
-            # Filter by area
-            if area < self.min_contour_area or area > self.max_contour_area:
-                continue
+            # Ensure image is in correct format - single channel grayscale
+            if len(cv_image.shape) == 3:
+                # Multi-channel image - convert to grayscale
+                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+            elif len(cv_image.shape) == 2:
+                # Already single channel - ensure it's uint8
+                cv_image = cv_image.astype(np.uint8)
+            else:
+                logger.warning(f"Unexpected image shape: {cv_image.shape}")
+                return objects
             
-            # Calculate object properties
-            points = [(int(point[0][0]), int(point[0][1])) for point in contour]
-            centroid = self._calculate_centroid(contour)
-            bounding_box = cv2.boundingRect(contour)
+            # Ensure image is not empty
+            if cv_image.size == 0:
+                return objects
             
-            # Determine object type
-            object_type = self._classify_object_type(contour, area)
+            # Use a simpler approach - detect connected components instead of contours
+            # This avoids the OpenCV contour detection bug
+            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(cv_image, connectivity=8)
             
-            # Calculate Hu moments for shape description
-            hu_moments = cv2.HuMoments(cv2.moments(contour)).flatten()
-            
-            # Determine if object is hollow
-            is_hollow = self._is_hollow_object(contour, cv_image)
-            
-            # Get dominant color
-            color = self._get_dominant_color(contour, cv_image)
-            
-            obj = DetectedObject(
-                id=i,
-                type=object_type,
-                points=points,
-                color=color,
-                area=int(area),
-                centroid=centroid,
-                bounding_box=bounding_box,
-                hu_moments=hu_moments.tolist(),
-                is_hollow=is_hollow
-            )
-            
-            objects.append(obj)
+            # Convert connected components to objects
+            for i in range(1, num_labels):  # Skip background (label 0)
+                area = stats[i, cv2.CC_STAT_AREA]
+                if area < self.min_contour_area or area > self.max_contour_area:
+                    continue
+                
+                # Get bounding box
+                x = stats[i, cv2.CC_STAT_LEFT]
+                y = stats[i, cv2.CC_STAT_TOP]
+                w = stats[i, cv2.CC_STAT_WIDTH]
+                h = stats[i, cv2.CC_STAT_HEIGHT]
+                
+                # Get centroid
+                cx, cy = centroids[i]
+                
+                # Create points for the bounding box
+                points = [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+                
+                # Determine object type based on aspect ratio and area
+                aspect_ratio = w / h if h > 0 else 1
+                if 0.8 < aspect_ratio < 1.2 and area > 10:
+                    object_type = 'square'
+                elif area < 20:
+                    object_type = 'blob'
+                else:
+                    object_type = 'rectangle'
+                
+                # Get dominant color
+                mask = (labels == i).astype(np.uint8)
+                color = int(np.median(cv_image[mask > 0])) if np.any(mask) else 0
+                
+                obj = DetectedObject(
+                    id=i-1,
+                    type=object_type,
+                    points=points,
+                    color=color,
+                    area=int(area),
+                    centroid=(float(cx), float(cy)),
+                    bounding_box=(x, y, w, h),
+                    hu_moments=[0.0] * 7,  # Simplified - no Hu moments
+                    is_hollow=False
+                )
+                
+                objects.append(obj)
+                
+        except Exception as e:
+            logger.warning(f"Object detection failed: {e}")
+            return objects
         
         return objects
     
@@ -570,3 +619,206 @@ class OpenCVFeatureExtractor:
             'confidence': change.confidence,
             'description': change.description
         }
+    
+    def _detect_objects_simple(self, grid: List[List[int]]) -> List[Dict[str, Any]]:
+        """Simple object detection without OpenCV."""
+        objects = []
+        
+        try:
+            if not grid or not grid[0]:
+                return objects
+            
+            # Ensure grid is properly formatted
+            if isinstance(grid[0], list) and len(grid[0]) > 0 and isinstance(grid[0][0], list):
+                # Grid contains nested lists - flatten them
+                grid = [[int(item) if isinstance(item, (int, float)) else 0 for item in row] for row in grid]
+            
+            height, width = len(grid), len(grid[0])
+            
+            # Find connected components using simple flood fill
+            visited = [[False for _ in range(width)] for _ in range(height)]
+            
+            for y in range(height):
+                for x in range(width):
+                    if not visited[y][x] and grid[y][x] != 0:  # Non-background pixel
+                        # Start flood fill
+                        color = grid[y][x]
+                        points = []
+                        stack = [(x, y)]
+                        
+                        while stack:
+                            cx, cy = stack.pop()
+                            if (0 <= cx < width and 0 <= cy < height and 
+                                not visited[cy][cx] and grid[cy][cx] == color):
+                                visited[cy][cx] = True
+                                points.append((cx, cy))
+                                
+                                # Add neighbors
+                                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                                    stack.append((cx + dx, cy + dy))
+                        
+                        if len(points) >= 2:  # Minimum object size
+                            # Calculate bounding box
+                            min_x = min(p[0] for p in points)
+                            max_x = max(p[0] for p in points)
+                            min_y = min(p[1] for p in points)
+                            max_y = max(p[1] for p in points)
+                            
+                            # Calculate centroid
+                            cx = sum(p[0] for p in points) / len(points)
+                            cy = sum(p[1] for p in points) / len(points)
+                            
+                            # Determine object type
+                            w, h = max_x - min_x + 1, max_y - min_y + 1
+                            aspect_ratio = w / h if h > 0 else 1
+                            
+                            if 0.8 < aspect_ratio < 1.2 and w * h < 50:
+                                obj_type = 'square'
+                            elif w * h < 10:
+                                obj_type = 'blob'
+                            else:
+                                obj_type = 'rectangle'
+                            
+                            obj = {
+                                'id': len(objects),
+                                'type': obj_type,
+                                'points': points,
+                                'color': int(color),
+                                'area': len(points),
+                                'centroid': (float(cx), float(cy)),
+                                'bounding_box': (min_x, min_y, w, h)
+                            }
+                            objects.append(obj)
+            
+            return objects
+            
+        except Exception as e:
+            logger.warning(f"Simple object detection failed: {e}")
+            return []
+    
+    def _analyze_spatial_relationships_simple(self, objects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Simple spatial relationship analysis."""
+        relationships = []
+        
+        try:
+            for i, obj1 in enumerate(objects):
+                for j, obj2 in enumerate(objects[i+1:], i+1):
+                    # Calculate distance between centroids
+                    x1, y1 = obj1['centroid']
+                    x2, y2 = obj2['centroid']
+                    distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+                    
+                    # Check if objects are touching (bounding boxes overlap)
+                    bbox1 = obj1['bounding_box']
+                    bbox2 = obj2['bounding_box']
+                    
+                    touching = not (bbox1[0] + bbox1[2] < bbox2[0] or 
+                                  bbox2[0] + bbox2[2] < bbox1[0] or
+                                  bbox1[1] + bbox1[3] < bbox2[1] or 
+                                  bbox2[1] + bbox2[3] < bbox1[1])
+                    
+                    # Determine relationship type
+                    if touching:
+                        rel_type = 'touching'
+                        confidence = 0.9
+                    elif distance < 10:
+                        rel_type = 'near'
+                        confidence = 0.7
+                    else:
+                        rel_type = 'far'
+                        confidence = 0.5
+                    
+                    rel = {
+                        'object1_id': obj1['id'],
+                        'object2_id': obj2['id'],
+                        'relationship_type': rel_type,
+                        'confidence': confidence,
+                        'distance': distance
+                    }
+                    relationships.append(rel)
+            
+            return relationships
+            
+        except Exception as e:
+            logger.warning(f"Simple relationship analysis failed: {e}")
+            return []
+    
+    def _detect_patterns_simple(self, grid: List[List[int]]) -> List[Dict[str, Any]]:
+        """Simple pattern detection."""
+        patterns = []
+        
+        try:
+            if not grid or not grid[0]:
+                return patterns
+            
+            # Ensure grid is properly formatted
+            if isinstance(grid[0], list) and len(grid[0]) > 0 and isinstance(grid[0][0], list):
+                # Grid contains nested lists - flatten them
+                grid = [[int(item) if isinstance(item, (int, float)) else 0 for item in row] for row in grid]
+            
+            height, width = len(grid), len(grid[0])
+            
+            # Check for uniform regions
+            for y in range(height - 5):
+                for x in range(width - 5):
+                    # Check 5x5 region
+                    region_colors = set()
+                    for dy in range(5):
+                        for dx in range(5):
+                            region_colors.add(grid[y + dy][x + dx])
+                    
+                    if len(region_colors) == 1:  # Uniform region
+                        patterns.append({
+                            'pattern_type': 'uniform',
+                            'confidence': 0.8,
+                            'region': (x, y, 5, 5),
+                            'color': list(region_colors)[0]
+                        })
+            
+            return patterns
+            
+        except Exception as e:
+            logger.warning(f"Simple pattern detection failed: {e}")
+            return []
+    
+    def _analyze_colors_simple(self, grid: List[List[int]]) -> Dict[str, Any]:
+        """Simple color analysis."""
+        try:
+            if not grid or not grid[0]:
+                return {'dominant_colors': [], 'color_distribution': {}}
+            
+            # Ensure grid is properly formatted
+            if isinstance(grid[0], list) and len(grid[0]) > 0 and isinstance(grid[0][0], list):
+                # Grid contains nested lists - flatten them
+                grid = [[int(item) if isinstance(item, (int, float)) else 0 for item in row] for row in grid]
+            
+            # Count color frequencies
+            color_counts = {}
+            for row in grid:
+                for color in row:
+                    # Ensure color is an integer
+                    color_val = int(color) if isinstance(color, (int, float)) else 0
+                    color_counts[color_val] = color_counts.get(color_val, 0) + 1
+            
+            # Get dominant colors
+            total_pixels = sum(color_counts.values())
+            dominant_colors = []
+            
+            for color, count in sorted(color_counts.items(), key=lambda x: x[1], reverse=True):
+                percentage = count / total_pixels
+                if percentage > 0.05:  # At least 5% of pixels
+                    dominant_colors.append({
+                        'color': color,
+                        'percentage': percentage,
+                        'count': count
+                    })
+            
+            return {
+                'dominant_colors': dominant_colors,
+                'color_distribution': color_counts,
+                'total_colors': len(color_counts)
+            }
+            
+        except Exception as e:
+            logger.warning(f"Simple color analysis failed: {e}")
+            return {'dominant_colors': [], 'color_distribution': {}}
