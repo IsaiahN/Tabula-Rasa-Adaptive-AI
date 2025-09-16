@@ -16,7 +16,7 @@ from arc_integration.scorecard_api import ScorecardAPIManager, get_api_key_from_
 def test_scorecard_api():
     """Test the scorecard API integration."""
     
-    print("🧪 CONDUCTOR: Testing Scorecard API Integration")
+    print("🧪 DIRECTOR: Testing Scorecard API Integration")
     print("=" * 60)
     
     # Get API key
@@ -93,7 +93,7 @@ def test_scorecard_api():
 def test_continuous_learning_integration():
     """Test integration with continuous learning loop."""
     
-    print("\n🧪 CONDUCTOR: Testing Continuous Learning Integration")
+    print("\n🧪 DIRECTOR: Testing Continuous Learning Integration")
     print("=" * 60)
     
     try:
@@ -130,7 +130,7 @@ def test_continuous_learning_integration():
 def main():
     """Main test function."""
     
-    print("🎯 CONDUCTOR: Scorecard Integration Test Suite")
+    print("🎯 DIRECTOR: Scorecard Integration Test Suite")
     print("=" * 60)
     
     # Test 1: Basic API functionality

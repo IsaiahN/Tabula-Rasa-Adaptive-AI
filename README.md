@@ -204,7 +204,7 @@ Autonomous evolution engine that enables:
 - **Performance-Driven Evolution**: Data-driven architectural improvements
 - **Elastic Weight Consolidation**: Prevents catastrophic forgetting during continuous learning
 
-### Conductor System
+### Director System
 Central executive that orchestrates:
 - **Meta-Cognitive Oversight**: High-level strategic decision making
 - **Extreme Learning Machines**: Fast single-hidden layer neural networks for rapid adaptation
@@ -216,7 +216,7 @@ Orchestrates the complete cycle:
 1. Governor monitors system performance and makes runtime decisions
 2. Governor reports session data to Architect
 3. Architect analyzes reports and generates evolutionary directives
-4. Conductor synthesizes meta-cognitive insights and strategic direction
+4. Director synthesizes meta-cognitive insights and strategic direction
 5. Governor implements directives and continues operation
 
 
@@ -254,7 +254,7 @@ python master_arc_trainer.py --memory-size 1024 --memory-read-heads 8
 
 This project explores novel approaches to AI architecture and meta-cognition. Contributions welcome in:
 
-- Meta-cognitive systems: Governor, Architect, and Conductor enhancements
+- Meta-cognitive systems: Governor, Architect, and Director enhancements
 - Memory management: 4-phase optimization algorithms
 - Simulation intelligence: Multi-step planning improvements
 - Cross-session learning: Persistent state management
@@ -269,8 +269,8 @@ Successfully integrated cutting-edge learning paradigms:
 
 - **Elastic Weight Consolidation (EWC)**: Prevents catastrophic forgetting in the Architect system during continuous learning
 - **Residual Learning**: Implements skip connections in the Governor system for improved gradient flow and deeper learning
-- **Extreme Learning Machines (ELMs)**: Fast single-hidden layer neural networks in the Conductor for rapid adaptation
-- **Meta-Cognitive Integration**: All learning paradigms work together through the central Conductor system
+- **Extreme Learning Machines (ELMs)**: Fast single-hidden layer neural networks in the Director for rapid adaptation
+- **Meta-Cognitive Integration**: All learning paradigms work together through the central Director system
 
 ### System Stability Improvements
 - **Error Elimination**: Resolved all governor-related errors and parameter mismatches
@@ -280,7 +280,7 @@ Successfully integrated cutting-edge learning paradigms:
 
 ## 📚 Future State
 
-The system now includes a Large Language Model as a "Conductor" that synthesizes the cognitive subsystems into a unified "self". 
+The system now includes a Large Language Model as a "Director" that synthesizes the cognitive subsystems into a unified "self". 
 
 This adds the missing pillars of simulated consciousness through specialized agent modules: 
 - a NarrativeEngine for internal monologue 

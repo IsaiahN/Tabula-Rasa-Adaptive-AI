@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Extreme Learning Machines (ELMs) for Tabula Rasa Conductor
+Extreme Learning Machines (ELMs) for Tabula Rasa Director
 Implements fast learning and decision-making for meta-cognitive processes.
 """
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class ExtremeLearningMachine:
     """
-    Extreme Learning Machine implementation for the Conductor's meta-cognitive system.
+    Extreme Learning Machine implementation for the Director's meta-cognitive system.
     Provides fast learning and decision-making capabilities.
     """
     
@@ -330,9 +330,9 @@ class ExtremeLearningMachine:
             return False
 
 
-class ConductorELMEnsemble:
+class DirectorELMEnsemble:
     """
-    Ensemble of ELMs for the Conductor's meta-cognitive decision-making.
+    Ensemble of ELMs for the Director's meta-cognitive decision-making.
     Each ELM handles different aspects of the decision-making process.
     """
     
@@ -356,7 +356,7 @@ class ConductorELMEnsemble:
             logger.warning(f"Could not load ELM ensemble config: {e}")
     
     def _initialize_ensemble(self):
-        """Initialize ensemble of ELMs for different Conductor tasks."""
+        """Initialize ensemble of ELMs for different Director tasks."""
         # Initialize ELMs for different meta-cognitive tasks
         self.elms = {
             'narrative_engine': ExtremeLearningMachine(),

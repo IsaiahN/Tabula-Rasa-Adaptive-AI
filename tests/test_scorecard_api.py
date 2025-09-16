@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Conductor Scorecard API Tester
+Director Scorecard API Tester
 Tests the ARC API to retrieve Tabula Rasa's actual scorecard data.
 """
 
@@ -11,7 +11,7 @@ from pathlib import Path
 def find_tabula_rasa_scorecards():
     """Find Tabula Rasa scorecard IDs from local data."""
     
-    print("🔍 CONDUCTOR: Finding Tabula Rasa Scorecard IDs")
+    print("🔍 DIRECTOR: Finding Tabula Rasa Scorecard IDs")
     print("=" * 60)
     
     scorecard_ids = []
@@ -66,7 +66,7 @@ def find_tabula_rasa_scorecards():
 def get_api_key():
     """Get API key from configuration."""
     
-    print(f"\n🔑 CONDUCTOR: Retrieving API Key")
+    print(f"\n🔑 DIRECTOR: Retrieving API Key")
     
     # Check config files
     config_files = [
@@ -105,7 +105,7 @@ def get_api_key():
 def test_scorecard_api(card_id, api_key):
     """Test the scorecard API with a specific card ID."""
     
-    print(f"\n📊 CONDUCTOR: Testing Scorecard API")
+    print(f"\n📊 DIRECTOR: Testing Scorecard API")
     print(f"   Card ID: {card_id}")
     
     url = f"https://three.arcprize.org/api/scorecard/{card_id}"
@@ -179,7 +179,7 @@ def test_scorecard_api(card_id, api_key):
 def main():
     """Main function to test the scorecard API."""
     
-    print("🎯 CONDUCTOR: Scorecard API Test")
+    print("🎯 DIRECTOR: Scorecard API Test")
     print("=" * 60)
     print("Testing ARC API to retrieve Tabula Rasa's scorecard data...")
     

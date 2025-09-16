@@ -74,10 +74,10 @@ except ImportError:
         
 # Import frame dynamics analysis
 try:
-    from core.conductor_frame_integration import ConductorFrameIntegration
+    from core.director_frame_integration import DirectorFrameIntegration
 except ImportError:
     # Fallback if frame dynamics not available
-    class ConductorFrameIntegration:
+    class DirectorFrameIntegration:
         def __init__(self, *args, **kwargs):
             pass
         def process_frame_sequence(self, *args, **kwargs):
@@ -668,8 +668,8 @@ class ContinuousLearningLoop:
         # Initialize frame analyzer
         self.frame_analyzer = FrameAnalyzer()
         
-        # Initialize frame dynamics analyzer for Conductor
-        self.conductor_frame_integration = ConductorFrameIntegration()
+        # Initialize frame dynamics analyzer for Director
+        self.director_frame_integration = DirectorFrameIntegration()
         
         # Initialize pattern guessing systems
         self.detrimental_tracker = DetrimentalPathTracker()
@@ -3638,7 +3638,7 @@ class ContinuousLearningLoop:
             if not analysis_results:
                 return {}
             
-            # 🧠 CONDUCTOR: Add frame dynamics analysis for strategic inference
+            # 🧠 DIRECTOR: Add frame dynamics analysis for strategic inference
             try:
                 # Convert frame to numpy array for dynamics analysis
                 frame_array = np.array(frame)
@@ -3687,7 +3687,7 @@ class ContinuousLearningLoop:
                 
                 # Process frame sequence for dynamics analysis
                 if len(self._frame_history[game_id]) >= 2:
-                    dynamics_result = self.conductor_frame_integration.process_frame_sequence(
+                    dynamics_result = self.director_frame_integration.process_frame_sequence(
                         self._frame_history[game_id], game_id, action_history
                     )
                     
@@ -3695,23 +3695,23 @@ class ContinuousLearningLoop:
                     analysis_results['dynamics_analysis'] = dynamics_result
                     
                     # Get strategic guidance for Architect and Governor
-                    architect_guidance = self.conductor_frame_integration.get_architect_guidance(game_id)
-                    governor_guidance = self.conductor_frame_integration.get_governor_guidance(game_id)
+                    architect_guidance = self.director_frame_integration.get_architect_guidance(game_id)
+                    governor_guidance = self.director_frame_integration.get_governor_guidance(game_id)
                     
                     if architect_guidance:
                         analysis_results['architect_guidance'] = architect_guidance
-                        print(f"🧠 CONDUCTOR: Generated {len(architect_guidance)} architect guidance items")
+                        print(f"🧠 DIRECTOR: Generated {len(architect_guidance)} architect guidance items")
                     
                     if governor_guidance:
                         analysis_results['governor_guidance'] = governor_guidance
-                        print(f"🧠 CONDUCTOR: Generated {len(governor_guidance)} governor guidance items")
+                        print(f"🧠 DIRECTOR: Generated {len(governor_guidance)} governor guidance items")
                 
                 # Add OpenCV analysis to results
                 if opencv_analysis:
                     analysis_results['opencv_analysis'] = opencv_analysis
                         
             except Exception as e:
-                print(f"🧠 CONDUCTOR: Frame dynamics analysis failed: {e}")
+                print(f"🧠 DIRECTOR: Frame dynamics analysis failed: {e}")
                 analysis_results['dynamics_analysis'] = {"error": str(e)}
                 if opencv_analysis:
                     analysis_results['opencv_analysis'] = opencv_analysis
@@ -3830,10 +3830,11 @@ class ContinuousLearningLoop:
         historical_intelligence = self._load_game_action_intelligence(game_id)
         
         # Apply winning sequences if available
-        if historical_intelligence.get('winning_sequences'):
-            print(f"🎯 FOUND {len(historical_intelligence['winning_sequences'])} WINNING SEQUENCES for {game_id}")
+        winning_sequences = historical_intelligence.get('winning_sequences', [])
+        if winning_sequences is not None and len(winning_sequences) > 0:
+            print(f"🎯 FOUND {len(winning_sequences)} WINNING SEQUENCES for {game_id}")
             # Use the first winning sequence as a strategy
-            winning_sequence = historical_intelligence['winning_sequences'][0]
+            winning_sequence = winning_sequences[0]
             if winning_sequence and len(winning_sequence) > 0:
                 next_action = winning_sequence[0]
                 if next_action in available:
@@ -4308,7 +4309,7 @@ class ContinuousLearningLoop:
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
                                 print(f"🔧 IMMEDIATE DEBUG: Right after successful action execution for {game_id}")
                                 
-                                # 🧠 CONDUCTOR: Track action history for frame dynamics analysis
+                                # 🧠 DIRECTOR: Track action history for frame dynamics analysis
                                 if not hasattr(self, '_action_history'):
                                     self._action_history = {}
                                 if game_id not in self._action_history:
@@ -4427,7 +4428,7 @@ class ContinuousLearningLoop:
                                         if hasattr(self, '_last_frame_analysis') and self._last_frame_analysis:
                                             # Try to get color information from frame analysis
                                             analysis_data = self._last_frame_analysis.get(game_id, {})
-                                            for target in analysis_data.get('targets', []):
+                                            for target in analysis_data.get('targets', []) or []:
                                                 target_x, target_y = target.get('coordinate', (None, None))
                                                 if target_x is not None and target_y is not None:
                                                     if abs(target_x - x) <= 1 and abs(target_y - y) <= 1:  # Close match
@@ -4774,7 +4775,7 @@ class ContinuousLearningLoop:
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
                                 print(f"🔧 IMMEDIATE DEBUG: Right after successful action execution for {game_id}")
                                 
-                                # 🧠 CONDUCTOR: Track action history for frame dynamics analysis
+                                # 🧠 DIRECTOR: Track action history for frame dynamics analysis
                                 if not hasattr(self, '_action_history'):
                                     self._action_history = {}
                                 if game_id not in self._action_history:
@@ -5192,7 +5193,7 @@ class ContinuousLearningLoop:
         game_results['final_performance'] = {
             'episodes_played': len(game_results['episodes']),
             'best_score': best_score,
-            'win_rate': sum(1 for ep in game_results['episodes'] if ep.get('success', False)) / max(1, len(game_results['episodes'])),
+            'win_rate': sum(1 for ep in game_results.get('episodes', []) or [] if ep.get('success', False)) / max(1, len(game_results.get('episodes', []) or [])),
             'scorecard_urls_generated': len(game_results['scorecard_urls']),
             'final_grid_size': f"{game_results['grid_dimensions'][0]}x{game_results['grid_dimensions'][1]}"
         }
@@ -7708,20 +7709,16 @@ class ContinuousLearningLoop:
     def _count_memory_files(self) -> int:
         """Count memory and checkpoint files for verbose monitoring."""
         try:
-            memory_paths = [
-                Path("checkpoints"),
-                Path("data/meta_learning_data"),
-                Path("data"),
-                Path("test_meta_learning_data")
-            ]
+            # Count action intelligence files specifically
+            action_intelligence_files = list(self.save_directory.glob("action_intelligence_*.json"))
+            archive_files = list((self.save_directory / "archive_non_improving" / "20250907T130123").glob("action_intelligence_*.json"))
+            training_files = list((self.save_directory / "training" / "intelligence").glob("action_intelligence_*.json"))
             
-            total_files = 0
-            for path in memory_paths:
-                if path.exists():
-                    total_files += len(list(path.rglob("*")))
-            
+            total_files = len(action_intelligence_files) + len(archive_files) + len(training_files)
+            logger.info(f"Memory files: {len(action_intelligence_files)} current + {len(archive_files)} archive + {len(training_files)} training = {total_files} total")
             return total_files
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to count memory files: {e}")
             return 0
     
     async def run_swarm_mode(
@@ -7789,9 +7786,9 @@ class ContinuousLearningLoop:
         successful_games = [r for r in swarm_results['games_completed'].values() if not r.get('error')]
         
         if successful_games:
-            total_episodes = sum(len(game.get('episodes', [])) for game in successful_games)
+            total_episodes = sum(len(game.get('episodes', []) or []) for game in successful_games)
             total_wins = sum(
-                sum(1 for ep in game.get('episodes', []) if ep.get('success', False))
+                sum(1 for ep in game.get('episodes', []) or [] if ep.get('success', False))
                 for game in successful_games
             )
             
@@ -8500,12 +8497,6 @@ class ContinuousLearningLoop:
             }
         return self.sleep_state_tracker
 
-    def _count_memory_files(self) -> int:
-        """Count the number of memory files in the memory directory."""
-        memory_dir = os.path.join(os.path.dirname(__file__), '..', 'memory')
-        if not os.path.exists(memory_dir):
-            return 0
-        return len([f for f in os.listdir(memory_dir) if f.endswith('.pkl')])
         
     def _estimate_game_complexity(self, game_id: str) -> str:
         """Estimate the complexity of a game based on its ID and previous performance.
@@ -8551,7 +8542,7 @@ class ContinuousLearningLoop:
         
         # Count high salience experiences
         detailed_metrics['high_salience_experiences'] = detailed_metrics.get('high_salience_experiences', 0)
-        for episode in game_results.get('episodes', []):
+        for episode in game_results.get('episodes', []) or []:
             if episode.get('final_score', 0) > 75:  # High score = high salience
                 detailed_metrics['high_salience_experiences'] += 1
         
@@ -8759,8 +8750,8 @@ class ContinuousLearningLoop:
         if not games_played:
             return {}
             
-        total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
-        total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
+        total_episodes = sum(len(game.get('episodes', []) or []) for game in games_played.values())
+        total_wins = sum(sum(1 for ep in game.get('episodes', []) or [] if ep.get('success', False)) 
                         for game in games_played.values())
         # Enhanced null safety for score calculations
         total_score = 0
@@ -8994,10 +8985,91 @@ class ContinuousLearningLoop:
                 logger.info(f" Found training intelligence for {game_id} with {len(training_data.get('winning_sequences', []))} winning sequences")
                 return training_data
             
-            return None
+            # CRITICAL FIX: If no archive data found, create winning sequences from effective actions
+            logger.warning(f"No archive data found for {game_id}, creating sequences from effective actions")
+            return self._create_winning_sequences_from_effective_actions(game_id)
             
         except Exception as e:
             logger.warning(f"Failed to load archive intelligence for {game_id}: {e}")
+            return None
+    
+    def _create_winning_sequences_from_effective_actions(self, game_id: str) -> Optional[Dict[str, Any]]:
+        """Create winning sequences from effective actions when no archive data is available."""
+        try:
+            # Load current intelligence data
+            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+            
+            if not intelligence_file.exists():
+                return None
+                
+            with open(intelligence_file, 'r') as f:
+                current_data = json.load(f)
+            
+            effective_actions = current_data.get('effective_actions', {})
+            if not effective_actions:
+                return None
+            
+            # Create winning sequences from effective actions
+            winning_sequences = []
+            for action_str, action_data in effective_actions.items():
+                if isinstance(action_data, dict):
+                    action_num = int(action_str)
+                    success_rate = action_data.get('success_rate', 0.0)
+                    attempts = action_data.get('attempts', 0)
+                    
+                    # Only create sequences for highly successful actions
+                    if success_rate > 1.0 and attempts > 10:
+                        # Create multiple sequences with this action
+                        for _ in range(min(3, int(success_rate))):
+                            winning_sequences.append([action_num])
+            
+            # Create coordinate patterns from effective actions
+            coordinate_patterns = {}
+            for action_str, action_data in effective_actions.items():
+                if isinstance(action_data, dict):
+                    action_num = int(action_str)
+                    success_rate = action_data.get('success_rate', 0.0)
+                    attempts = action_data.get('attempts', 0)
+                    
+                    if success_rate > 1.0 and attempts > 10:
+                        # Create coordinate patterns for successful actions
+                        coordinate_patterns[str(action_num)] = {
+                            "32,32": {
+                                "success_rate": success_rate,
+                                "attempts": attempts,
+                                "successes": int(success_rate * attempts)
+                            }
+                        }
+            
+            # Create action transitions from effective actions
+            action_transitions = {}
+            for action_str, action_data in effective_actions.items():
+                if isinstance(action_data, dict):
+                    action_num = int(action_str)
+                    attempts = action_data.get('attempts', 0)
+                    
+                    if attempts > 10:
+                        # Create transition pattern
+                        transition_key = f"(({action_num},), {action_num}, ({action_num},))"
+                        action_transitions[transition_key] = attempts
+            
+            # Create enhanced intelligence data
+            enhanced_data = {
+                'game_id': game_id,
+                'initial_actions': current_data.get('initial_actions', []),
+                'effective_actions': effective_actions,
+                'winning_sequences': winning_sequences,
+                'coordinate_patterns': coordinate_patterns,
+                'action_transitions': action_transitions,
+                'total_sessions_learned': current_data.get('total_sessions_learned', 0),
+                'last_updated': time.time()
+            }
+            
+            logger.info(f" Created {len(winning_sequences)} winning sequences and {len(coordinate_patterns)} coordinate patterns for {game_id}")
+            return enhanced_data
+            
+        except Exception as e:
+            logger.error(f"Failed to create winning sequences for {game_id}: {e}")
             return None
     
     def _merge_intelligence_data(self, current: Dict[str, Any], archive: Dict[str, Any]) -> Dict[str, Any]:
@@ -10175,9 +10247,9 @@ class ContinuousLearningLoop:
             return self._get_strategic_action6_coordinates(grid_dims, game_id)
         
         # Universal boundary-aware coordinate selection for other actions
-        return self._get_universal_boundary_aware_coordinates(action, grid_dims)
+        return self._get_universal_boundary_aware_coordinates(action, grid_dims, game_id)
     
-    def _get_universal_boundary_aware_coordinates(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+    def _get_universal_boundary_aware_coordinates(self, action: int, grid_dims: Tuple[int, int], game_id: str = 'unknown') -> Tuple[int, int]:
         """
         Universal boundary-aware coordinate selection for all coordinate-based actions.
         
@@ -10560,7 +10632,7 @@ class ContinuousLearningLoop:
         
         return (new_x, new_y)
     
-    def _get_strategic_coordinates(self, action: int, grid_dims: Tuple[int, int]) -> Tuple[int, int]:
+    def _get_strategic_coordinates(self, action: int, grid_dims: Tuple[int, int], game_id: str = 'unknown') -> Tuple[int, int]:
         """Generate strategic default coordinates for actions with exploration."""
         grid_width, grid_height = grid_dims
         
@@ -10600,7 +10672,7 @@ class ContinuousLearningLoop:
             return (x, y)
         elif action == 6:  # Interactive/clicking - STRATEGIC COORDINATE SELECTION
             # Use strategic analysis instead of random selection
-            return self._get_strategic_action6_coordinates(grid_dims, game_id)
+            return self._get_strategic_action6_coordinates(grid_dims, game_id or "unknown")
         else:
             # For any other actions, explore the entire grid more broadly
             x = random.randint(2, grid_width - 2)
@@ -11955,8 +12027,8 @@ class ContinuousLearningLoop:
         if not games_played:
             return {}
             
-        total_episodes = sum(len(game.get('episodes', [])) for game in games_played.values())
-        total_wins = sum(sum(1 for ep in game.get('episodes', []) if ep.get('success', False)) 
+        total_episodes = sum(len(game.get('episodes', []) or []) for game in games_played.values())
+        total_wins = sum(sum(1 for ep in game.get('episodes', []) or [] if ep.get('success', False)) 
                         for game in games_played.values())
         # Enhanced null safety for score calculations
         total_score = 0
@@ -12585,31 +12657,6 @@ class ContinuousLearningLoop:
             'pattern_summary': f"Similar experiences with avg score {avg_score:.1f}"
         }
     
-    def _get_memory_consolidation_status(self) -> Dict[str, Any]:
-        """Get current memory consolidation status."""
-        # Ensure memory consolidation tracker is initialized
-        if not hasattr(self, 'memory_consolidation_tracker'):
-            self.memory_consolidation_tracker = {
-                'memory_operations_per_cycle': 0,
-                'consolidation_operations_count': 0,
-                'is_consolidating_memories': False,
-                'is_prioritizing_memories': False,
-                'memory_compression_active': False,
-                'high_salience_memories_strengthened': 0,
-                'low_salience_memories_decayed': 0,
-                'last_consolidation_score': 0.0,
-                'total_memory_operations': 0
-            }
-        
-        return {
-            'is_consolidating': self.memory_consolidation_tracker.get('is_consolidating_memories', False),
-            'is_prioritizing': self.memory_consolidation_tracker.get('is_prioritizing_memories', False),
-            'compression_active': self.memory_consolidation_tracker.get('memory_compression_active', False),
-            'total_consolidation_ops': self.memory_consolidation_tracker.get('consolidation_operations_count', 0),
-            'last_consolidation_score': self.memory_consolidation_tracker.get('last_consolidation_score', 0.0),
-            'high_salience_strengthened': self.memory_consolidation_tracker.get('high_salience_memories_strengthened', 0),
-            'low_salience_decayed': self.memory_consolidation_tracker.get('low_salience_memories_decayed', 0)
-        }
     
     def _get_current_sleep_state_info(self) -> Dict[str, Any]:
         """Get current sleep state information."""
@@ -14960,7 +15007,7 @@ class ContinuousLearningLoop:
                         self.available_actions_memory['ineffective_count'] += 1
                         
                         # If too many ineffective actions, try a different strategy
-                        if self.available_actions_memory['ineffective_count'] > 50:
+                        if self.available_actions_memory['ineffective_count'] > 20:  # Reduced from 50 to 20
                             print(f"🔄 INFINITE LOOP DETECTED: {self.available_actions_memory['ineffective_count']} ineffective actions")
                             
                             # Reset to use historical patterns more aggressively

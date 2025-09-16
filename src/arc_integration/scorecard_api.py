@@ -194,7 +194,7 @@ class ScorecardAPIManager:
     def monitor_active_scorecards(self) -> Dict:
         """Monitor all active scorecards and return comprehensive statistics."""
         
-        logger.info("🔍 CONDUCTOR: Monitoring Active Scorecards")
+        logger.info("🔍 DIRECTOR: Monitoring Active Scorecards")
         
         all_stats = {
             'total_scorecards': len(self.active_scorecards),

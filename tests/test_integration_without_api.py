@@ -14,7 +14,7 @@ sys.path.append(str(Path(__file__).parent / "src"))
 def test_scorecard_module_import():
     """Test that the scorecard module can be imported."""
     
-    print("🧪 CONDUCTOR: Testing Scorecard Module Import")
+    print("🧪 DIRECTOR: Testing Scorecard Module Import")
     print("=" * 60)
     
     try:
@@ -28,7 +28,7 @@ def test_scorecard_module_import():
 def test_continuous_learning_integration():
     """Test that the continuous learning loop has scorecard integration."""
     
-    print("\n🧪 CONDUCTOR: Testing Continuous Learning Integration")
+    print("\n🧪 DIRECTOR: Testing Continuous Learning Integration")
     print("=" * 60)
     
     try:
@@ -84,7 +84,7 @@ def test_continuous_learning_integration():
 def test_configuration_loading():
     """Test that configuration files can be loaded."""
     
-    print("\n🧪 CONDUCTOR: Testing Configuration Loading")
+    print("\n🧪 DIRECTOR: Testing Configuration Loading")
     print("=" * 60)
     
     config_files = [
@@ -114,7 +114,7 @@ def test_configuration_loading():
 def main():
     """Main test function."""
     
-    print("🎯 CONDUCTOR: Integration Test Suite (Without API)")
+    print("🎯 DIRECTOR: Integration Test Suite (Without API)")
     print("=" * 60)
     
     # Test 1: Module import

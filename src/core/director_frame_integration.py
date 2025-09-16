@@ -1,6 +1,6 @@
 """
-Conductor Frame Integration System
-Integrates frame dynamics analysis with the Conductor's meta-cognitive capabilities.
+Director Frame Integration System
+Integrates frame dynamics analysis with the Director's meta-cognitive capabilities.
 Generates strategic inferences and communicates them to Architect and Governor.
 """
 
@@ -19,9 +19,9 @@ from .frame_dynamics_analyzer import (
     GameMechanic
 )
 
-class ConductorFrameIntegration:
+class DirectorFrameIntegration:
     """
-    Conductor's frame analysis integration system.
+    Director's frame analysis integration system.
     Uses frame dynamics analysis to generate strategic inferences for the Architect and Governor.
     """
     

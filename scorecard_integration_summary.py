@@ -10,7 +10,7 @@ from pathlib import Path
 def show_implementation_summary():
     """Show a summary of the scorecard integration implementation."""
     
-    print("🎯 CONDUCTOR: Scorecard Integration Implementation Summary")
+    print("🎯 DIRECTOR: Scorecard Integration Implementation Summary")
     print("=" * 70)
     
     print("\n📊 WHAT HAS BEEN IMPLEMENTED:")
@@ -145,7 +145,7 @@ def main():
     show_implementation_summary()
     show_file_structure()
     
-    print(f"\n🎉 CONDUCTOR: Scorecard Integration Complete!")
+    print(f"\n🎉 DIRECTOR: Scorecard Integration Complete!")
     print("=" * 70)
     print("Tabula Rasa now has proper level completion tracking!")
     print("The system will now focus on actual game/level completions")

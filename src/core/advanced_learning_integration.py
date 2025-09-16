@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Advanced Learning Integration for Tabula Rasa
-Integrates EWC, Residual Learning, and ELMs with existing Conductor, Architect, and Governor systems.
+Integrates EWC, Residual Learning, and ELMs with existing Director, Architect, and Governor systems.
 """
 
 import numpy as np
@@ -13,14 +13,14 @@ import logging
 
 from .elastic_weight_consolidation import ElasticWeightConsolidation
 from .residual_learning import ResidualLearningSystem
-from .extreme_learning_machines import ExtremeLearningMachine, ConductorELMEnsemble
+from .extreme_learning_machines import ExtremeLearningMachine, DirectorELMEnsemble
 
 logger = logging.getLogger(__name__)
 
 class AdvancedLearningIntegration:
     """
     Integrates advanced learning paradigms with Tabula Rasa's core systems.
-    Coordinates EWC, Residual Learning, and ELMs across Conductor, Architect, and Governor.
+    Coordinates EWC, Residual Learning, and ELMs across Director, Architect, and Governor.
     """
     
     def __init__(self, config_path: str = "data/config/advanced_learning_config.json"):
@@ -29,7 +29,7 @@ class AdvancedLearningIntegration:
         # Initialize advanced learning systems
         self.ewc_system = ElasticWeightConsolidation()
         self.residual_system = ResidualLearningSystem()
-        self.elm_ensemble = ConductorELMEnsemble()
+        self.elm_ensemble = DirectorELMEnsemble()
         
         # Integration state
         self.integration_active = True
@@ -54,16 +54,16 @@ class AdvancedLearningIntegration:
         logger.info("Initializing advanced learning integration...")
         
         # Set up cross-system communication
-        self._setup_conductor_elm_integration()
+        self._setup_director_elm_integration()
         self._setup_architect_ewc_integration()
         self._setup_governor_residual_integration()
         
         logger.info("Advanced learning integration initialized successfully")
     
-    def _setup_conductor_elm_integration(self):
-        """Set up ELM integration for the Conductor's meta-cognitive processes."""
-        # Configure ELM ensemble for different Conductor tasks
-        conductor_tasks = {
+    def _setup_director_elm_integration(self):
+        """Set up ELM integration for the Director's meta-cognitive processes."""
+        # Configure ELM ensemble for different Director tasks
+        director_tasks = {
             'narrative_engine': {
                 'input_size': 50,  # Context features
                 'hidden_size': 100,
@@ -90,8 +90,8 @@ class AdvancedLearningIntegration:
             }
         }
         
-        # Initialize ELMs for each Conductor task
-        for task_name, config in conductor_tasks.items():
+        # Initialize ELMs for each Director task
+        for task_name, config in director_tasks.items():
             if task_name in self.elm_ensemble.elms:
                 elm = self.elm_ensemble.elms[task_name]
                 elm.input_size = config['input_size']
@@ -100,7 +100,7 @@ class AdvancedLearningIntegration:
                 elm.activation_function = config['activation_function']
                 elm._initialize_elm()
         
-        logger.info("Conductor ELM integration configured")
+        logger.info("Director ELM integration configured")
     
     def _setup_architect_ewc_integration(self):
         """Set up EWC integration for the Architect's evolution system."""
@@ -158,10 +158,10 @@ class AdvancedLearningIntegration:
         
         logger.info("Governor Residual Learning integration configured")
     
-    def process_conductor_decision(self, context_features: np.ndarray, 
+    def process_director_decision(self, context_features: np.ndarray, 
                                  decision_type: str = 'strategy') -> Dict[str, Any]:
         """
-        Process a Conductor decision using ELM ensemble.
+        Process a Director decision using ELM ensemble.
         
         Args:
             context_features: Context features for decision making
@@ -198,7 +198,7 @@ class AdvancedLearningIntegration:
                 }
                 
         except Exception as e:
-            logger.error(f"Conductor decision processing failed: {e}")
+            logger.error(f"Director decision processing failed: {e}")
             return {'decision': None, 'confidence': 0.0, 'method': 'error', 'error': str(e)}
     
     def process_architect_evolution(self, current_parameters: Dict[str, np.ndarray],

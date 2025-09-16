@@ -47,7 +47,7 @@ def log_progress(hour, counters, monitor_output):
 
 def main():
     """Main monitoring loop."""
-    print("🔍 CONDUCTOR: Starting Continuous 9-Hour Monitoring")
+    print("🔍 DIRECTOR: Starting Continuous 9-Hour Monitoring")
     print("=" * 60)
     
     start_time = time.time()

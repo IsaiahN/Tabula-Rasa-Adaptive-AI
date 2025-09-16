@@ -3,7 +3,7 @@ OpenCV Utility Module for Tabula Rasa
 =====================================
 
 Centralized OpenCV utilities for consistent computer vision operations
-across all systems (Conductor, Architect, Governor).
+across all systems (Director, Architect, Governor).
 
 Features:
 - Frame preprocessing and enhancement

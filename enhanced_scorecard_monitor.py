@@ -20,7 +20,7 @@ from arc_integration.scorecard_api import ScorecardAPIManager, get_api_key_from_
 def extract_scorecard_ids_from_logs():
     """Extract scorecard IDs from recent training logs."""
     
-    print("🔍 CONDUCTOR: Extracting Scorecard IDs from Recent Logs")
+    print("🔍 DIRECTOR: Extracting Scorecard IDs from Recent Logs")
     print("=" * 60)
     
     # Look for scorecard IDs in various log patterns
@@ -116,7 +116,7 @@ def extract_scorecard_ids_from_logs():
 def check_active_training_sessions():
     """Check for active training sessions and their scorecards."""
     
-    print(f"\n🔍 CONDUCTOR: Checking Active Training Sessions")
+    print(f"\n🔍 DIRECTOR: Checking Active Training Sessions")
     print("=" * 60)
     
     # Look for active session indicators
@@ -173,7 +173,7 @@ def monitor_scorecards_by_id(scorecard_ids, api_key):
         print("📊 No scorecard IDs to monitor")
         return {}
     
-    print(f"\n📊 CONDUCTOR: Monitoring {len(scorecard_ids)} Scorecards")
+    print(f"\n📊 DIRECTOR: Monitoring {len(scorecard_ids)} Scorecards")
     print("=" * 60)
     
     manager = ScorecardAPIManager(api_key)
@@ -234,7 +234,7 @@ def monitor_scorecards_by_id(scorecard_ids, api_key):
 def main():
     """Main monitoring function."""
     
-    print("🎯 CONDUCTOR: Enhanced Scorecard Monitor")
+    print("🎯 DIRECTOR: Enhanced Scorecard Monitor")
     print("=" * 60)
     print("Extracting scorecard IDs from logs and monitoring progress...")
     

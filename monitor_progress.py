@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Conductor Progress Monitoring Script
+Director Progress Monitoring Script
 Monitors the optimized training progress and tracks improvements.
 """
 
@@ -12,7 +12,7 @@ from datetime import datetime
 def monitor_action_intelligence():
     """Monitor action intelligence files for progress updates."""
     
-    print("🎯 CONDUCTOR: Monitoring Action Intelligence Progress")
+    print("🎯 DIRECTOR: Monitoring Action Intelligence Progress")
     print("=" * 60)
     print(f"⏰ Monitoring started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
@@ -113,7 +113,7 @@ def check_recent_logs():
 def main():
     """Main monitoring function."""
     
-    print("🎯 CONDUCTOR AUTONOMOUS EVOLUTION MODE")
+    print("🎯 DIRECTOR AUTONOMOUS EVOLUTION MODE")
     print("=" * 60)
     print("Monitoring optimized training progress...")
     
