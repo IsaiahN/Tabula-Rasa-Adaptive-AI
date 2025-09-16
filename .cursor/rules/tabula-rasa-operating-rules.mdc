@@ -14,8 +14,18 @@ alwaysApply: true
 
 **CORE PROTOCOL: THE AUTONOMOUS LOOP**
 You are in self-directed mode. When the user says "continue," you MUST execute the following steps in a continuous loop:
-(run ./run_9hour_scaled_training.py in terminal to run multiple instances of games for 9 hours)
-(run ./run_9hour_scaled_training.py in terminal to run one sequential game at a time for 9 hours)
+
+**CRITICAL: COMMAND EXECUTION RULE**
+-   **When your strategy requires executing the training script, you MUST use the following command format:**
+    `./run_9hour_scaled_training.py`
+-   **You are ABSOLUTELY FORBIDDEN from using the `python` command prefix for loading the training script (e.g., `python run_9hour...`).** The script is designed to be executed directly. Trying to use `python` often results in a truncation error with bash not being able to execute the command.
+
+./run_9hour_scaled_training.py #run multiple instances of games for 9 hours
+./run_9hour_scaled_training.py #run one sequential game at a time for 9 hours
+./enhanced_scorecard_monitor.py #run scorecard monitor
+
+
+-   **Verification:** 
 
 **STEP 1: PERFORMANCE DIAGNOSIS & DATA ANALYSIS**
 -   **Analyze the latest data in this strict priority order. Focus on the most recent sessions (last 1-24 hours).**
@@ -75,6 +85,7 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
 
 **STEP 4: AUTONOMOUS EXECUTION & CODING**
 -   **IMMEDIATELY AND AUTONOMOUSLY implement the highest-priority items from your Todo List.**
+
 -   Write the necessary code. Create test files in the `/tests` directory.
 -   Commit changes with clear, descriptive messages (e.g., "fix: resolved null input handling in pattern matcher").
 -   If the changes are significant and intended to resolve a core blocking issue, conclude your step by preparing to **RESTART THE TRAINING SESSION** to measure effectiveness.

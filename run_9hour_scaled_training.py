@@ -113,21 +113,21 @@ def run_single_training_session(session_id: int, duration_minutes: int = 30) -> 
     env['PYTHONIOENCODING'] = 'utf-8'
     env['TRAINING_SESSION_ID'] = str(session_id)
     
-    # Build the command with OPTIMIZED INTELLIGENCE settings
+    # Build the command with OPTIMIZED ARC GAME EXECUTION settings
     cmd = [
         'python', 'master_arc_trainer.py',
         '--mode', 'maximum-intelligence',
         '--session-duration', str(duration_minutes),
-        '--max-actions', '5',         # Optimized action limit for better learning
-        '--max-cycles', '100',        # Reduced per session
-        '--target-score', '85.0',     # Target score
+        '--max-actions', '1000',      # Allow full action sequences for complex puzzles
+        '--max-cycles', '1000',       # Allow full exploration
+        '--target-score', '100.0',    # Target perfect score
         '--enable-detailed-monitoring',
-        '--salience-threshold', '0.4',  # Balanced learning
-        '--salience-decay', '0.95',
-        '--memory-size', '512',        # Smaller per session
-        '--memory-word-size', '64',
-        '--memory-read-heads', '4',
-        '--memory-write-heads', '1',
+        '--salience-threshold', '0.3',  # More aggressive learning
+        '--salience-decay', '0.98',
+        '--memory-size', '2048',       # Larger memory for complex games
+        '--memory-word-size', '128',
+        '--memory-read-heads', '8',
+        '--memory-write-heads', '2',
         '--dashboard', 'console',
         '--verbose'
     ]

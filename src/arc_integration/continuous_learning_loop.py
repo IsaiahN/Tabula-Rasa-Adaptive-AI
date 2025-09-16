@@ -3127,25 +3127,39 @@ class ContinuousLearningLoop:
                     stats[change_type] = 0
                 stats[change_type] += 1
                 
-                # Movement is a strong success indicator
+                # Track movement and significant changes separately
                 if movement_detected:
                     stats['movement_detected'] += 1
-                    stats['successes'] += 1  # Movement is a success indicator
                 
-                # Significant pixel changes are also positive
                 if num_pixels > 5 or change_percentage > 0.01:
                     if 'significant_changes' not in stats:
                         stats['significant_changes'] = 0
                     stats['significant_changes'] += 1
-                    stats['successes'] += 1  # Significant changes are success indicators
                 
                 # Learn from change patterns
                 if game_id:
                     self._learn_from_frame_changes(action_number, frame_changed, game_id)
             
-            # Count score changes as success
+            # Track score changes separately
             if score_change > 0:
                 stats['score_changes'] += 1
+            
+            # Determine if this action was successful (only count once per action)
+            # An action is successful if it caused movement, significant changes, OR score improvement
+            action_successful = False
+            if frame_changed and isinstance(frame_changed, dict):
+                movement_detected = frame_changed.get('movement_detected', False)
+                num_pixels = frame_changed.get('num_pixels_changed', 0)
+                change_percentage = frame_changed.get('change_percentage', 0.0)
+                
+                if movement_detected or (num_pixels > 5 or change_percentage > 0.01):
+                    action_successful = True
+            
+            if score_change > 0:
+                action_successful = True
+            
+            # Count success only once per action
+            if action_successful:
                 stats['successes'] += 1
             
             # Update success rate
@@ -3825,6 +3839,11 @@ class ContinuousLearningLoop:
             logger.warning(f"No available actions for game {game_id}")
             return None
         
+        # CRITICAL FIX: When only ACTION6 is available, treat coordinates as separate actions
+        if available == [6]:
+            print(f"🎯 COORDINATE-BASED ACTION SELECTION: Only ACTION6 available, treating coordinates as actions")
+            return self._select_coordinate_based_action(response_data, game_id)
+        
         # CRITICAL FIX: Load and apply historical intelligence data
         print(f"🧠 LOADING HISTORICAL INTELLIGENCE for {game_id}")
         historical_intelligence = self._load_game_action_intelligence(game_id)
@@ -3958,6 +3977,105 @@ class ContinuousLearningLoop:
         
         logger.debug(f" Selected action {selected_action} from available {available} for {game_id} (with frame analysis)")
         return selected_action
+    
+    def _select_coordinate_based_action(self, response_data: Dict[str, Any], game_id: str) -> int:
+        """
+        CRITICAL FIX: When only ACTION6 is available, treat coordinates as separate actions.
+        This method selects a coordinate to target with ACTION6, treating each coordinate as a distinct action choice.
+        """
+        print(f"🎯 COORDINATE-BASED ACTION SELECTION for {game_id}")
+        
+        # Get grid dimensions from frame data
+        frame = response_data.get('frame', [])
+        if not frame:
+            print("⚠️ No frame data available, using default grid size")
+            grid_width, grid_height = 64, 64
+        else:
+            grid_height = len(frame)
+            grid_width = len(frame[0]) if frame and len(frame) > 0 else 64
+        
+        print(f"🎯 Grid dimensions: {grid_width}x{grid_height}")
+        
+        # Get frame analysis for intelligent coordinate selection
+        frame_analysis = self._analyze_frame_for_action_selection(response_data, game_id)
+        
+        # Use enhanced coordinate selection with frame analysis
+        try:
+            x, y = self._enhance_coordinate_selection_with_frame_analysis(
+                6, (grid_width, grid_height), game_id, frame_analysis
+            )
+            print(f"🎯 SELECTED COORDINATE: ({x},{y}) for ACTION6")
+            
+            # Store the selected coordinates for execution
+            if not hasattr(self, '_selected_coordinates'):
+                self._selected_coordinates = {}
+            self._selected_coordinates[game_id] = (x, y)
+            
+            # Return ACTION6 (the system will use the stored coordinates)
+            return 6
+            
+        except Exception as e:
+            print(f"⚠️ Coordinate selection failed: {e}, using fallback")
+            # Fallback to systematic exploration
+            x, y = self._generate_exploration_coordinates((grid_width, grid_height), game_id)
+            print(f"🎯 FALLBACK COORDINATE: ({x},{y}) for ACTION6")
+            
+            # Store the fallback coordinates
+            if not hasattr(self, '_selected_coordinates'):
+                self._selected_coordinates = {}
+            self._selected_coordinates[game_id] = (x, y)
+            
+            return 6
+    
+    def _update_coordinate_effectiveness(self, coordinates: Tuple[int, int], response_data: Dict[str, Any], game_id: str, frame_analysis: Dict[str, Any]) -> None:
+        """
+        CRITICAL FIX: Track coordinate effectiveness separately from ACTION6.
+        This allows the system to learn which specific coordinates are effective.
+        """
+        try:
+            x, y = coordinates
+            coord_key = f"({x},{y})"
+            
+            # Initialize coordinate tracking if not exists
+            if not hasattr(self, '_coordinate_effectiveness'):
+                self._coordinate_effectiveness = {}
+            
+            if game_id not in self._coordinate_effectiveness:
+                self._coordinate_effectiveness[game_id] = {}
+            
+            if coord_key not in self._coordinate_effectiveness[game_id]:
+                self._coordinate_effectiveness[game_id][coord_key] = {
+                    'attempts': 0,
+                    'successes': 0,
+                    'success_rate': 0.0,
+                    'last_used': 0,
+                    'effectiveness_score': 0.0
+                }
+            
+            # Update coordinate stats
+            coord_stats = self._coordinate_effectiveness[game_id][coord_key]
+            coord_stats['attempts'] += 1
+            coord_stats['last_used'] = time.time()
+            
+            # Check for success indicators
+            score_change = response_data.get('score', 0) - getattr(self, '_last_score', 0)
+            frame_changed = response_data.get('frame_changed', False)
+            
+            if score_change > 0 or frame_changed:
+                coord_stats['successes'] += 1
+                coord_stats['success_rate'] = coord_stats['successes'] / coord_stats['attempts']
+                coord_stats['effectiveness_score'] = coord_stats['success_rate'] * (1 + score_change * 0.1)
+                print(f"🎯 COORDINATE SUCCESS: ({x},{y}) - Score: {score_change}, Success Rate: {coord_stats['success_rate']:.2f}")
+            else:
+                coord_stats['success_rate'] = coord_stats['successes'] / coord_stats['attempts']
+                coord_stats['effectiveness_score'] = coord_stats['success_rate']
+                print(f"🎯 COORDINATE ATTEMPT: ({x},{y}) - No immediate success, Success Rate: {coord_stats['success_rate']:.2f}")
+            
+            # Store last score for next comparison
+            self._last_score = response_data.get('score', 0)
+            
+        except Exception as e:
+            print(f"⚠️ Coordinate effectiveness tracking failed: {e}")
     
     def _analyze_action_patterns(self, game_id: str, available_actions: List[int], frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -4200,16 +4318,23 @@ class ContinuousLearningLoop:
         # Optimize coordinates for coordinate-based actions
         if action_number == 6:
             if x is None or y is None:
-                # Use enhanced coordinate optimization with frame analysis
-                if frame_analysis:
-                    x, y = self._enhance_coordinate_selection_with_frame_analysis(
-                        action_number, (grid_width, grid_height), game_id, frame_analysis
-                    )
-                    logger.info(f" Frame-enhanced coordinates for action {action_number}: ({x},{y})")
+                # CRITICAL FIX: Check if coordinates were pre-selected for coordinate-based action selection
+                if hasattr(self, '_selected_coordinates') and game_id in self._selected_coordinates:
+                    x, y = self._selected_coordinates[game_id]
+                    logger.info(f" Using pre-selected coordinates for ACTION6: ({x},{y})")
+                    # Clear the stored coordinates after use
+                    del self._selected_coordinates[game_id]
                 else:
-                    # Fallback to learned coordinate optimization
-                    x, y = self._optimize_coordinates_for_action(action_number, (grid_width, grid_height), game_id)
-                    logger.info(f" Optimized coordinates for action {action_number}: ({x},{y})")
+                    # Use enhanced coordinate optimization with frame analysis
+                    if frame_analysis:
+                        x, y = self._enhance_coordinate_selection_with_frame_analysis(
+                            action_number, (grid_width, grid_height), game_id, frame_analysis
+                        )
+                        logger.info(f" Frame-enhanced coordinates for action {action_number}: ({x},{y})")
+                    else:
+                        # Fallback to learned coordinate optimization
+                        x, y = self._optimize_coordinates_for_action(action_number, (grid_width, grid_height), game_id)
+                        logger.info(f" Optimized coordinates for action {action_number}: ({x},{y})")
             
             # Verify coordinates are within actual grid bounds
             if not self._verify_grid_bounds(x, y, grid_width, grid_height):
@@ -6283,7 +6408,17 @@ class ContinuousLearningLoop:
             for action in action_scores:
                 normalized_score = (action_scores[action] - min_score) / score_range
                 # CRITICAL: Every action gets at least 20% weight to ensure diversity
-                final_weight = 0.20 + (0.80 * normalized_score)
+                base_weight = 0.20 + (0.80 * normalized_score)
+                
+                # ANTI-ACTION6 BIAS: Heavily penalize ACTION6 to force diversity
+                if action == 6:
+                    # ACTION6 gets maximum 30% of its calculated weight
+                    final_weight = base_weight * 0.3
+                    print(f"🎯 ANTI-ACTION6 BIAS: Action 6 weight reduced from {base_weight:.3f} to {final_weight:.3f}")
+                else:
+                    # Other actions get their full weight plus a small bonus
+                    final_weight = base_weight * 1.1
+                
                 action_weights.append(final_weight)
             
             # Use weighted random selection with anti-bias protection
