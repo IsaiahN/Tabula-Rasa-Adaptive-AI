@@ -1011,7 +1011,7 @@
       "movement_bonus": 20.0
     }
   ],
-  "learning_phase": "balanced",
-  "last_adjustment": 373492,
-  "action_count": 374564
+  "learning_phase": "exploitation",
+  "last_adjustment": 378576,
+  "action_count": 379576
 }

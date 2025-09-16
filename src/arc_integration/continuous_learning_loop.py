@@ -71,7 +71,7 @@ except ImportError:
         @classmethod
         def get_max_actions_per_scorecard(cls) -> int:
             return cls.MAX_ACTIONS_PER_SCORECARD
-
+        
 # Import frame dynamics analysis
 try:
     from core.conductor_frame_integration import ConductorFrameIntegration
@@ -5339,27 +5339,30 @@ class ContinuousLearningLoop:
             
             tried_coords = self._tried_coordinates[game_id]
             
-            # Find first untried coordinate
-            for coord in valid_coords:
-                if coord not in tried_coords:
-                    tried_coords.add(coord)
-                    print(f"🧠 ROTATING COORDINATES: Using untried coordinate {coord} from {len(valid_coords)} available patterns")
-                    return coord
+            # Use round-robin selection to avoid getting stuck on same coordinates
+            if not hasattr(self, '_coordinate_index'):
+                self._coordinate_index = {}
             
-            # If all coordinates have been tried, reset and start over
-            print(f"🧠 COORDINATE RESET: All {len(valid_coords)} patterns tried, resetting for fresh attempt")
-            self._tried_coordinates[game_id] = set()
-            if valid_coords:
-                coord = valid_coords[0]
-                self._tried_coordinates[game_id].add(coord)
-                return coord
+            if game_id not in self._coordinate_index:
+                self._coordinate_index[game_id] = 0
+            
+            # Get next coordinate using round-robin
+            coord_index = self._coordinate_index[game_id] % len(valid_coords)
+            selected_coord = valid_coords[coord_index]
+            self._coordinate_index[game_id] = (coord_index + 1) % len(valid_coords)
+            
+            # Track tried coordinates for analysis
+            tried_coords.add(selected_coord)
+            
+            print(f"🧠 ROTATING COORDINATES: Using coordinate {selected_coord} from {len(valid_coords)} available patterns (index: {coord_index})")
+            return selected_coord
             
             return None, None
             
         except Exception as e:
             print(f"🧠 COORDINATE ROTATION ERROR: {e}")
             return None, None
-
+    
     def _generate_exploration_coordinates(self, grid_dimensions: Tuple[int, int], game_id: str) -> Tuple[int, int]:
         """ ENHANCED: Generate systematic exploration coordinates with stuck coordinate avoidance."""
         grid_width, grid_height = grid_dimensions

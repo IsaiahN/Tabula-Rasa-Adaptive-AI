@@ -60,9 +60,9 @@ class PathGenerator:
     """
     
     def __init__(self, 
-                 max_depth: int = 10,
-                 max_paths: int = 50,
-                 timeout: float = 2.0):
+                 max_depth: int = 5,
+                 max_paths: int = 20,
+                 timeout: float = 0.5):
         self.max_depth = max_depth
         self.max_paths = max_paths
         self.timeout = timeout
@@ -134,7 +134,14 @@ class PathGenerator:
                 
             except Exception as e:
                 logger.error(f"Path generation failed with method {method}: {e}")
+                # Add fallback simple paths
+                fallback_paths = self._generate_simple_fallback_paths(current_state, available_actions, 5)
+                all_paths.extend(fallback_paths)
                 continue
+        
+        # If no paths generated, create simple fallback paths
+        if not all_paths:
+            all_paths = self._generate_simple_fallback_paths(current_state, available_actions, 10)
         
         # Sort paths by success probability and confidence
         all_paths.sort(key=lambda p: (p.success_probability, p.confidence), reverse=True)
@@ -872,3 +879,44 @@ class PathGenerator:
                 'state_transitions': len(self.pattern_database['state_transitions'])
             }
         }
+    
+    def _generate_simple_fallback_paths(self, 
+                                      current_state: Dict[str, Any],
+                                      available_actions: List[int],
+                                      count: int) -> List[SearchPath]:
+        """Generate simple fallback paths when complex methods fail."""
+        paths = []
+        
+        for i in range(min(count, len(available_actions))):
+            action = available_actions[i % len(available_actions)]
+            coords = None
+            
+            if action == 6:  # Coordinate action
+                coords = (32, 32)  # Center coordinates
+            
+            # Create simple path with just one action
+            predicted_state = self._predict_next_state(current_state, action, coords)
+            
+            node = PathNode(
+                state=predicted_state,
+                action=action,
+                coordinates=coords,
+                parent=None,
+                depth=1,
+                path_cost=self._calculate_action_cost(action, coords),
+                success_probability=self._calculate_success_probability(predicted_state, action, coords),
+                confidence=self._calculate_confidence(predicted_state, action, coords)
+            )
+            
+            path = SearchPath(
+                nodes=[node],
+                total_cost=node.path_cost,
+                success_probability=node.success_probability,
+                confidence=node.confidence,
+                search_method=SearchMethod.BFS,
+                depth=1
+            )
+            
+            paths.append(path)
+        
+        return paths
