@@ -2048,6 +2048,7 @@ class ContinuousLearningLoop:
                 result['insights_generated'] = max(1, len(experiences) // 3)
                 
             print(f" Sleep consolidation complete: {result['experiences_processed']} experiences processed")
+            print(f" Energy restored: {self.current_energy:.1f} → {self.current_energy + (result.get('consolidation_score', 0) * 40):.1f}")
             return result
             
         except Exception as e:
@@ -4264,6 +4265,39 @@ class ContinuousLearningLoop:
                                 if len(self._action_history[game_id]) > 20:
                                     self._action_history[game_id] = self._action_history[game_id][-20:]
                                 
+                                # Track experiences for sleep consolidation
+                                if not hasattr(self, 'available_actions_memory'):
+                                    self.available_actions_memory = {}
+                                if 'recent_actions' not in self.available_actions_memory:
+                                    self.available_actions_memory['recent_actions'] = []
+                                
+                                # Initialize default values for experience tracking
+                                if 'current_score' not in locals():
+                                    current_score = 0
+                                if 'was_effective' not in locals():
+                                    was_effective = False
+                                if 'action_result' not in locals():
+                                    action_result = None
+                                if 'new_score' not in locals():
+                                    new_score = current_score
+                                if 'action_number' not in locals():
+                                    action_number = 6
+                                
+                                # Add current action to recent actions
+                                self.available_actions_memory['recent_actions'].append({
+                                    'action': action_number,
+                                    'coordinates': (x, y) if x is not None and y is not None else (32, 32),
+                                    'timestamp': time.time(),
+                                    'effectiveness': was_effective,
+                                    'score_change': new_score - current_score if action_result else 0,
+                                    'game_id': game_id,
+                                    'action_number': action_number
+                                })
+                                
+                                # Keep only last 50 actions to prevent memory bloat
+                                if len(self.available_actions_memory['recent_actions']) > 50:
+                                    self.available_actions_memory['recent_actions'] = self.available_actions_memory['recent_actions'][-50:]
+                                
                                 # CRITICAL FIX: Increment action counters
                                 try:
                                     print(f"🔧 DEBUG: About to increment scorecard action count for {game_id}")
@@ -4696,6 +4730,39 @@ class ContinuousLearningLoop:
                                 # Keep only recent actions (last 20)
                                 if len(self._action_history[game_id]) > 20:
                                     self._action_history[game_id] = self._action_history[game_id][-20:]
+                                
+                                # Track experiences for sleep consolidation
+                                if not hasattr(self, 'available_actions_memory'):
+                                    self.available_actions_memory = {}
+                                if 'recent_actions' not in self.available_actions_memory:
+                                    self.available_actions_memory['recent_actions'] = []
+                                
+                                # Initialize default values for experience tracking
+                                if 'current_score' not in locals():
+                                    current_score = 0
+                                if 'was_effective' not in locals():
+                                    was_effective = False
+                                if 'action_result' not in locals():
+                                    action_result = None
+                                if 'new_score' not in locals():
+                                    new_score = current_score
+                                if 'action_number' not in locals():
+                                    action_number = 6
+                                
+                                # Add current action to recent actions
+                                self.available_actions_memory['recent_actions'].append({
+                                    'action': action_number,
+                                    'coordinates': (x, y) if x is not None and y is not None else (32, 32),
+                                    'timestamp': time.time(),
+                                    'effectiveness': was_effective,
+                                    'score_change': new_score - current_score if action_result else 0,
+                                    'game_id': game_id,
+                                    'action_number': action_number
+                                })
+                                
+                                # Keep only last 50 actions to prevent memory bloat
+                                if len(self.available_actions_memory['recent_actions']) > 50:
+                                    self.available_actions_memory['recent_actions'] = self.available_actions_memory['recent_actions'][-50:]
                                 
                                 # CRITICAL FIX: Increment action counters
                                 try:
@@ -14452,14 +14519,82 @@ class ContinuousLearningLoop:
                     # Trigger sleep consolidation
                     if hasattr(self, 'sleep_system') and self.sleep_system:
                         try:
-                            # Create a mini sleep experience for rapid consolidation
-                            sleep_experiences = [{
-                                'action': selected_action,
+                            # Initialize default values for sleep consolidation
+                            if 'current_score' not in locals():
+                                current_score = 0
+                            if 'was_effective' not in locals():
+                                was_effective = False
+                            if 'action_result' not in locals():
+                                action_result = None
+                            if 'new_score' not in locals():
+                                new_score = current_score
+                            if 'action_number' not in locals():
+                                action_number = 6
+                            if 'x' not in locals():
+                                x, y = None, None
+                            
+                            # Create comprehensive sleep experiences for consolidation
+                            sleep_experiences = []
+                            
+                            # Add recent action experiences from memory
+                            if hasattr(self, 'available_actions_memory') and self.available_actions_memory:
+                                recent_actions = self.available_actions_memory.get('recent_actions', [])
+                                for recent_action in recent_actions[-10:]:  # Last 10 actions
+                                    sleep_experiences.append({
+                                        'action': recent_action.get('action', action_number),
+                                        'coordinates': recent_action.get('coordinates', (x, y) if x is not None else None),
+                                        'timestamp': recent_action.get('timestamp', time.time()),
+                                        'effectiveness': recent_action.get('effectiveness', was_effective),
+                                        'score_change': recent_action.get('score_change', new_score - current_score if action_result else 0),
+                                        'context': f"Recent action during {energy_params['learning_phase']} phase"
+                                    })
+                            
+                            # Add current action experience
+                            sleep_experiences.append({
+                                'action': action_number,
                                 'coordinates': (x, y) if x is not None else None,
+                                'timestamp': time.time(),
                                 'effectiveness': was_effective,
                                 'score_change': new_score - current_score if action_result else 0,
-                                'context': f"Action during {energy_params['learning_phase']} phase"
-                            }]
+                                'context': f"Current action during {energy_params['learning_phase']} phase"
+                            })
+                            
+                            # Add frame analysis experiences if available
+                            if hasattr(self, 'frame_history') and self.frame_history:
+                                for game_id, frame_data in list(self.frame_history.items())[-5:]:  # Last 5 frames
+                                    sleep_experiences.append({
+                                        'action': 'frame_analysis',
+                                        'coordinates': None,
+                                        'timestamp': frame_data.get('timestamp', time.time()),
+                                        'effectiveness': frame_data.get('complexity', 0) > 0.5,
+                                        'score_change': 0,
+                                        'context': f"Frame analysis for {game_id} during {energy_params['learning_phase']} phase",
+                                        'frame_data': frame_data
+                                    })
+                            
+                            # Add pattern learning experiences
+                            if hasattr(self, 'learned_patterns') and self.learned_patterns:
+                                for pattern_id, pattern_data in list(self.learned_patterns.items())[-5:]:  # Last 5 patterns
+                                    sleep_experiences.append({
+                                        'action': 'pattern_learning',
+                                        'coordinates': pattern_data.get('coordinates'),
+                                        'timestamp': pattern_data.get('timestamp', time.time()),
+                                        'effectiveness': pattern_data.get('success', False),
+                                        'score_change': pattern_data.get('score', 0),
+                                        'context': f"Pattern learning during {energy_params['learning_phase']} phase",
+                                        'pattern_data': pattern_data
+                                    })
+                            
+                            # Ensure we have at least some experiences
+                            if not sleep_experiences:
+                                sleep_experiences = [{
+                                    'action': action_number,
+                                    'coordinates': (x, y) if x is not None else None,
+                                    'timestamp': time.time(),
+                                    'effectiveness': was_effective,
+                                    'score_change': new_score - current_score if action_result else 0,
+                                    'context': f"Fallback action during {energy_params['learning_phase']} phase"
+                                }]
                             
                             sleep_result = self._enhanced_sleep_consolidation(
                                 experiences=sleep_experiences,

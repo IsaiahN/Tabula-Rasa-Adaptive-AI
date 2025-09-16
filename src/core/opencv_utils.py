@@ -44,6 +44,25 @@ class OpenCVProcessor:
                     padded[:len(frame)] = frame
                     frame = padded.reshape(size, size)
             
+            # CRITICAL FIX: Handle 3D arrays properly
+            if len(frame.shape) == 3:
+                # If it's (H, W, C) or (C, H, W), convert to 2D
+                if frame.shape[0] == 64 and frame.shape[1] == 64:
+                    # Likely (H, W, C) - take first channel or convert to grayscale
+                    if frame.shape[2] == 1:
+                        frame = frame[:, :, 0]
+                    else:
+                        # Convert to grayscale
+                        frame = np.mean(frame, axis=2)
+                elif frame.shape[2] == 64 and frame.shape[0] == 64:
+                    # Likely (C, H, W) - take first channel
+                    frame = frame[0, :, :]
+                else:
+                    # Squeeze and take first 2D slice
+                    frame = frame.squeeze()
+                    if len(frame.shape) > 2:
+                        frame = frame[:, :, 0] if frame.shape[2] > 0 else frame[:, :]
+            
             # Ensure 2D array
             if len(frame.shape) > 2:
                 frame = frame.squeeze()
@@ -55,9 +74,15 @@ class OpenCVProcessor:
                 else:
                     frame = frame.astype(np.uint8)
             
-            # Ensure it's 2D
+            # Final validation - ensure it's 2D
             if len(frame.shape) != 2:
-                frame = frame.reshape(-1, frame.shape[-1]) if len(frame.shape) > 2 else frame.squeeze()
+                self.logger.warning(f"Frame still not 2D after processing: {frame.shape}")
+                # Force 2D by taking first slice
+                if len(frame.shape) == 3:
+                    frame = frame[:, :, 0] if frame.shape[2] > 0 else frame[:, :]
+                else:
+                    # Create a default 64x64 frame
+                    frame = np.zeros((64, 64), dtype=np.uint8)
             
             return frame
         except Exception as e:
