@@ -376,6 +376,48 @@ class PathGenerator:
         
         return paths[:self.max_paths]
     
+    def _depth_first_search_from_node(self, 
+                                    start_node: PathNode,
+                                    available_actions: List[int],
+                                    context: Optional[Dict[str, Any]]) -> List[SearchPath]:
+        """Perform depth-first search starting from a specific node."""
+        
+        paths = []
+        stack = [start_node]
+        visited_states = set()
+        visited_states.add(self._hash_state(start_node.state))
+        
+        while stack and len(paths) < self.max_paths:
+            current_node = stack.pop()
+            
+            # If we've reached max depth, create a path
+            if current_node.depth >= self.max_depth:
+                path = self._create_path_from_node(current_node, SearchMethod.HYBRID)
+                paths.append(path)
+                continue
+            
+            # Generate children for this node
+            children = self._generate_children(current_node, available_actions, context)
+            
+            # Add children to stack in reverse order (for left-to-right exploration)
+            for child in reversed(children):
+                # Check for cycles
+                state_hash = self._hash_state(child.state)
+                if state_hash in visited_states:
+                    continue
+                
+                visited_states.add(state_hash)
+                current_node.children.append(child)
+                stack.append(child)
+        
+        # Create paths from leaf nodes
+        leaf_nodes = [node for node in self._get_all_nodes(start_node) if not node.children and node.depth > start_node.depth]
+        for node in leaf_nodes:
+            path = self._create_path_from_node(node, SearchMethod.HYBRID)
+            paths.append(path)
+        
+        return paths[:self.max_paths]
+    
     def _generate_children(self, 
                           parent_node: PathNode,
                           available_actions: List[int],

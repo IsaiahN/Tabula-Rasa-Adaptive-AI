@@ -5,9 +5,9 @@
   ],
   "effective_actions": {
     "6": {
-      "success_rate": 2.0,
-      "attempts": 10,
-      "successes": 20
+      "success_rate": 1.537190082644628,
+      "attempts": 121,
+      "successes": 186
     }
   },
   "winning_sequences": [],
@@ -15,6 +15,6 @@
     "6": {}
   },
   "action_transitions": {},
-  "total_sessions_learned": 1,
-  "last_updated": 1757970528.5153868
+  "total_sessions_learned": 203,
+  "last_updated": 1757978782.6839309
 }

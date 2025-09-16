@@ -71,6 +71,48 @@ except ImportError:
         @classmethod
         def get_max_actions_per_scorecard(cls) -> int:
             return cls.MAX_ACTIONS_PER_SCORECARD
+
+# Import frame dynamics analysis
+try:
+    from core.conductor_frame_integration import ConductorFrameIntegration
+except ImportError:
+    # Fallback if frame dynamics not available
+    class ConductorFrameIntegration:
+        def __init__(self, *args, **kwargs):
+            pass
+        def process_frame_sequence(self, *args, **kwargs):
+            return {"error": "Frame dynamics analysis not available"}
+        def get_architect_guidance(self, game_id):
+            return []
+        def get_governor_guidance(self, game_id):
+            return []
+
+# Import pattern guessing systems
+try:
+    from src.core.detrimental_path_tracker import DetrimentalPathTracker, FailureType
+    from src.core.path_generator import PathGenerator
+    from src.core.bayesian_success_scorer import BayesianSuccessScorer
+except ImportError:
+    # Fallback if pattern guessing not available
+    class DetrimentalPathTracker:
+        def __init__(self, *args, **kwargs):
+            pass
+        def record_failure(self, *args, **kwargs):
+            return "fallback_pattern_id"
+        def should_avoid_sequence(self, *args, **kwargs):
+            return False, 0.0, "Pattern guessing not available"
+    
+    class PathGenerator:
+        def __init__(self, *args, **kwargs):
+            pass
+        def generate_paths(self, *args, **kwargs):
+            return []
+    
+    class BayesianSuccessScorer:
+        def __init__(self, *args, **kwargs):
+            pass
+        def calculate_success_probability(self, *args, **kwargs):
+            return 0.5
         
         @classmethod
         def get_scaled_max_actions(cls, efficiency: float) -> int:
@@ -622,6 +664,17 @@ class ContinuousLearningLoop:
         
         # Initialize frame analyzer
         self.frame_analyzer = FrameAnalyzer()
+        
+        # Initialize frame dynamics analyzer for Conductor
+        self.conductor_frame_integration = ConductorFrameIntegration()
+        
+        # Initialize pattern guessing systems
+        self.detrimental_tracker = DetrimentalPathTracker()
+        self.path_generator = PathGenerator()
+        self.bayesian_scorer = BayesianSuccessScorer()
+        
+        # Initialize action history for pattern analysis
+        self._action_history = {}
         
         # Initialize Governor and Architect (optional components)
         self.governor = None
@@ -3564,8 +3617,10 @@ class ContinuousLearningLoop:
         
         Returns analysis data that can inform action selection decisions.
         """
+        print(f"🔧 FRAME ANALYSIS DEBUG: Starting frame analysis for {game_id}")
         frame = response_data.get('frame', [])
         if not frame or not isinstance(frame, list) or len(frame) == 0:
+            print(f"🔧 FRAME ANALYSIS DEBUG: No frame data for {game_id}")
             return {}
         
         try:
@@ -3578,6 +3633,52 @@ class ContinuousLearningLoop:
             
             if not analysis_results:
                 return {}
+            
+            # 🧠 CONDUCTOR: Add frame dynamics analysis for strategic inference
+            try:
+                # Convert frame to numpy array for dynamics analysis
+                frame_array = np.array(frame)
+                
+                # Get recent frame history for sequence analysis
+                if not hasattr(self, '_frame_history'):
+                    self._frame_history = {}
+                if game_id not in self._frame_history:
+                    self._frame_history[game_id] = []
+                
+                # Add current frame to history
+                self._frame_history[game_id].append(frame_array)
+                
+                # Keep only recent frames (last 10)
+                if len(self._frame_history[game_id]) > 10:
+                    self._frame_history[game_id] = self._frame_history[game_id][-10:]
+                
+                # Get action history for this game
+                action_history = getattr(self, '_action_history', {}).get(game_id, [])
+                
+                # Process frame sequence for dynamics analysis
+                if len(self._frame_history[game_id]) >= 2:
+                    dynamics_result = self.conductor_frame_integration.process_frame_sequence(
+                        self._frame_history[game_id], game_id, action_history
+                    )
+                    
+                    # Add dynamics analysis to results
+                    analysis_results['dynamics_analysis'] = dynamics_result
+                    
+                    # Get strategic guidance for Architect and Governor
+                    architect_guidance = self.conductor_frame_integration.get_architect_guidance(game_id)
+                    governor_guidance = self.conductor_frame_integration.get_governor_guidance(game_id)
+                    
+                    if architect_guidance:
+                        analysis_results['architect_guidance'] = architect_guidance
+                        print(f"🧠 CONDUCTOR: Generated {len(architect_guidance)} architect guidance items")
+                    
+                    if governor_guidance:
+                        analysis_results['governor_guidance'] = governor_guidance
+                        print(f"🧠 CONDUCTOR: Generated {len(governor_guidance)} governor guidance items")
+                        
+            except Exception as e:
+                print(f"🧠 CONDUCTOR: Frame dynamics analysis failed: {e}")
+                analysis_results['dynamics_analysis'] = {"error": str(e)}
             
             # Extract useful information for action selection
             enhanced_analysis = {}
@@ -3679,6 +3780,7 @@ class ContinuousLearningLoop:
             return {}
     def _select_next_action(self, response_data: Dict[str, Any], game_id: str) -> Optional[int]:
         """Select appropriate action based on learned intelligence, available_actions from API response, and visual frame analysis."""
+        print(f"🔧 _SELECT_NEXT_ACTION CALLED for {game_id}")
         # Ensure memory is properly initialized
         self._ensure_available_actions_memory()
         available = response_data.get('available_actions', [])
@@ -3688,7 +3790,14 @@ class ContinuousLearningLoop:
             return None
         
         # Perform frame analysis for visual intelligence
+        print(f"🔧 ACTION SELECTION DEBUG: About to call frame analysis for {game_id}")
         frame_analysis = self._analyze_frame_for_action_selection(response_data, game_id)
+        print(f"🔧 ACTION SELECTION DEBUG: Frame analysis completed for {game_id}")
+        
+        # Pattern guessing integration
+        print(f"🧠 PATTERN GUESSING: Analyzing action patterns for {game_id}")
+        pattern_analysis = self._analyze_action_patterns(game_id, available, frame_analysis)
+        print(f"🧠 PATTERN GUESSING: Pattern analysis completed for {game_id}")
         
         # Update available actions tracking
         self._update_available_actions(response_data, game_id)
@@ -3756,6 +3865,185 @@ class ContinuousLearningLoop:
         
         logger.debug(f" Selected action {selected_action} from available {available} for {game_id} (with frame analysis)")
         return selected_action
+    
+    def _analyze_action_patterns(self, game_id: str, available_actions: List[int], frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze action patterns using detrimental path tracking, path generation, and Bayesian scoring.
+        
+        Args:
+            game_id: Current game identifier
+            available_actions: List of available actions
+            frame_analysis: Results from frame dynamics analysis
+            
+        Returns:
+            Dictionary containing pattern analysis results
+        """
+        try:
+            # Get current action history for this game
+            action_history = self._action_history.get(game_id, [])
+            
+            # 1. Check for detrimental patterns
+            detrimental_analysis = self._check_detrimental_patterns(game_id, action_history, available_actions)
+            
+            # 2. Generate probable paths
+            probable_paths = self._generate_probable_paths(game_id, available_actions, frame_analysis)
+            
+            # 3. Calculate success probabilities
+            success_probabilities = self._calculate_success_probabilities(game_id, available_actions, frame_analysis)
+            
+            # 4. Combine analysis results
+            pattern_analysis = {
+                "detrimental_patterns": detrimental_analysis,
+                "probable_paths": probable_paths,
+                "success_probabilities": success_probabilities,
+                "recommended_actions": self._get_recommended_actions(available_actions, detrimental_analysis, success_probabilities),
+                "avoidance_strategies": self._get_avoidance_strategies(detrimental_analysis)
+            }
+            
+            print(f"🧠 PATTERN ANALYSIS: Found {len(detrimental_analysis.get('patterns_to_avoid', []))} detrimental patterns, {len(probable_paths)} probable paths")
+            
+            return pattern_analysis
+            
+        except Exception as e:
+            logger.error(f"Pattern analysis failed for {game_id}: {e}")
+            return {
+                "detrimental_patterns": {"patterns_to_avoid": [], "confidence": 0.0},
+                "probable_paths": [],
+                "success_probabilities": {},
+                "recommended_actions": available_actions,
+                "avoidance_strategies": []
+            }
+    
+    def _check_detrimental_patterns(self, game_id: str, action_history: List, available_actions: List[int]) -> Dict[str, Any]:
+        """Check for detrimental patterns in current action history."""
+        try:
+            # Convert action history to format expected by detrimental tracker
+            action_sequence = []
+            for action_data in action_history[-10:]:  # Last 10 actions
+                if isinstance(action_data, tuple) and len(action_data) >= 2:
+                    action, coords = action_data[0], action_data[1] if len(action_data) > 1 else None
+                    action_sequence.append((action, coords))
+            
+            # Check if current sequence should be avoided
+            should_avoid, confidence, reason = self.detrimental_tracker.should_avoid_sequence(
+                action_sequence, {"game_id": game_id, "available_actions": available_actions}
+            )
+            
+            # Get patterns to avoid
+            patterns_to_avoid = []
+            if should_avoid:
+                patterns_to_avoid.append({
+                    "pattern": action_sequence,
+                    "reason": reason,
+                    "confidence": confidence
+                })
+            
+            return {
+                "patterns_to_avoid": patterns_to_avoid,
+                "confidence": confidence,
+                "should_avoid_current": should_avoid
+            }
+            
+        except Exception as e:
+            logger.error(f"Detrimental pattern check failed: {e}")
+            return {"patterns_to_avoid": [], "confidence": 0.0, "should_avoid_current": False}
+    
+    def _generate_probable_paths(self, game_id: str, available_actions: List[int], frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate probable future action paths."""
+        try:
+            # Use path generator to create probable paths
+            paths = self.path_generator.generate_paths(
+                current_state={"game_id": game_id, "energy": 100.0, "action_count": 0},
+                available_actions=available_actions,
+                context={"game_id": game_id, "frame_analysis": frame_analysis}
+            )
+            
+            return paths
+            
+        except Exception as e:
+            logger.error(f"Path generation failed: {e}")
+            return []
+    
+    def _calculate_success_probabilities(self, game_id: str, available_actions: List[int], frame_analysis: Dict[str, Any]) -> Dict[int, float]:
+        """Calculate success probabilities for each available action."""
+        try:
+            probabilities = {}
+            
+            for action in available_actions:
+                # Use Bayesian scorer to calculate success probability
+                # Create a simple path for scoring
+                from src.core.path_generator import PathNode, SearchPath
+                node = PathNode(
+                    state={"game_id": game_id, "energy": 100.0, "action_count": 0},
+                    action=action,
+                    coordinates=None,
+                    depth=0,
+                    path_cost=0.0,
+                    success_probability=0.5,
+                    confidence=0.5
+                )
+                path = SearchPath(
+                    nodes=[node],
+                    total_cost=0.0,
+                    success_probability=0.5,
+                    confidence=0.5,
+                    search_method=None,
+                    depth=0
+                )
+                probability = self.bayesian_scorer.score_path_success_probability(
+                    path=path,
+                    context={"game_id": game_id, "frame_analysis": frame_analysis}
+                )
+                probabilities[action] = probability
+            
+            return probabilities
+            
+        except Exception as e:
+            logger.error(f"Success probability calculation failed: {e}")
+            return {action: 0.5 for action in available_actions}  # Default to 50% probability
+    
+    def _get_recommended_actions(self, available_actions: List[int], detrimental_analysis: Dict[str, Any], success_probabilities: Dict[int, float]) -> List[int]:
+        """Get recommended actions based on pattern analysis."""
+        try:
+            # Filter out actions from detrimental patterns
+            patterns_to_avoid = detrimental_analysis.get("patterns_to_avoid", [])
+            avoided_actions = set()
+            
+            for pattern in patterns_to_avoid:
+                for action, _ in pattern.get("pattern", []):
+                    avoided_actions.add(action)
+            
+            # Get actions with highest success probabilities
+            recommended = []
+            for action in available_actions:
+                if action not in avoided_actions:
+                    probability = success_probabilities.get(action, 0.5)
+                    recommended.append((action, probability))
+            
+            # Sort by probability (highest first)
+            recommended.sort(key=lambda x: x[1], reverse=True)
+            
+            return [action for action, _ in recommended]
+            
+        except Exception as e:
+            logger.error(f"Action recommendation failed: {e}")
+            return available_actions
+    
+    def _get_avoidance_strategies(self, detrimental_analysis: Dict[str, Any]) -> List[str]:
+        """Get strategies for avoiding detrimental patterns."""
+        try:
+            strategies = []
+            patterns_to_avoid = detrimental_analysis.get("patterns_to_avoid", [])
+            
+            for pattern in patterns_to_avoid:
+                reason = pattern.get("reason", "Unknown pattern")
+                strategies.append(f"Avoid pattern: {reason}")
+            
+            return strategies
+            
+        except Exception as e:
+            logger.error(f"Avoidance strategy generation failed: {e}")
+            return []
     
     async def _send_enhanced_action(
         self,
@@ -3926,10 +4214,32 @@ class ContinuousLearningLoop:
                                 
                                 # Log successful action execution
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
+                                print(f"🔧 IMMEDIATE DEBUG: Right after successful action execution for {game_id}")
+                                
+                                # 🧠 CONDUCTOR: Track action history for frame dynamics analysis
+                                if not hasattr(self, '_action_history'):
+                                    self._action_history = {}
+                                if game_id not in self._action_history:
+                                    self._action_history[game_id] = []
+                                
+                                # Add action to history
+                                self._action_history[game_id].append((action_number, (x, y) if x is not None and y is not None else (32, 32)))
+                                
+                                # Keep only recent actions (last 20)
+                                if len(self._action_history[game_id]) > 20:
+                                    self._action_history[game_id] = self._action_history[game_id][-20:]
                                 
                                 # CRITICAL FIX: Increment action counters
-                                self._increment_scorecard_action_count()
-                                self.global_counters['total_actions'] = self.global_counters.get('total_actions', 0) + 1
+                                try:
+                                    print(f"🔧 DEBUG: About to increment scorecard action count for {game_id}")
+                                    self._increment_scorecard_action_count()
+                                    print(f"🔧 DEBUG: Scorecard action count incremented to {self._scorecard_action_count}")
+                                    self.global_counters['total_actions'] = self.global_counters.get('total_actions', 0) + 1
+                                    print(f"🔧 DEBUG: Global action count incremented to {self.global_counters.get('total_actions', 0)}")
+                                except Exception as e:
+                                    print(f"🚨 ERROR: Failed to increment scorecard action count: {e}")
+                                    import traceback
+                                    traceback.print_exc()
                                 
                                 # Also increment session-level counter
                                 if hasattr(self, 'available_actions_memory') and 'total_actions_taken' in self.available_actions_memory:
@@ -4337,10 +4647,32 @@ class ContinuousLearningLoop:
                                 
                                 # Log successful action execution
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
+                                print(f"🔧 IMMEDIATE DEBUG: Right after successful action execution for {game_id}")
+                                
+                                # 🧠 CONDUCTOR: Track action history for frame dynamics analysis
+                                if not hasattr(self, '_action_history'):
+                                    self._action_history = {}
+                                if game_id not in self._action_history:
+                                    self._action_history[game_id] = []
+                                
+                                # Add action to history
+                                self._action_history[game_id].append((action_number, (x, y) if x is not None and y is not None else (32, 32)))
+                                
+                                # Keep only recent actions (last 20)
+                                if len(self._action_history[game_id]) > 20:
+                                    self._action_history[game_id] = self._action_history[game_id][-20:]
                                 
                                 # CRITICAL FIX: Increment action counters
-                                self._increment_scorecard_action_count()
-                                self.global_counters['total_actions'] = self.global_counters.get('total_actions', 0) + 1
+                                try:
+                                    print(f"🔧 DEBUG: About to increment scorecard action count for {game_id}")
+                                    self._increment_scorecard_action_count()
+                                    print(f"🔧 DEBUG: Scorecard action count incremented to {self._scorecard_action_count}")
+                                    self.global_counters['total_actions'] = self.global_counters.get('total_actions', 0) + 1
+                                    print(f"🔧 DEBUG: Global action count incremented to {self.global_counters.get('total_actions', 0)}")
+                                except Exception as e:
+                                    print(f"🚨 ERROR: Failed to increment scorecard action count: {e}")
+                                    import traceback
+                                    traceback.print_exc()
                                 
                                 # Also increment session-level counter
                                 if hasattr(self, 'available_actions_memory') and 'total_actions_taken' in self.available_actions_memory:
@@ -14594,27 +14926,6 @@ class ContinuousLearningLoop:
             logger.warning("Could not import required classes for replay buffer creation")
             return []
     
-    def _analyze_action_patterns(self, action_history: List[Dict]) -> Dict[str, Any]:
-        """Analyze patterns in action history for sleep system integration."""
-        if not action_history:
-            return {'pattern_type': 'no_data'}
-        
-        recent_actions = [action.get('action') for action in action_history[-20:]]
-        
-        # Detect loops and repetitive patterns
-        action_frequency = {}
-        for action in recent_actions:
-            action_frequency[action] = action_frequency.get(action, 0) + 1
-        
-        most_frequent = max(action_frequency.items(), key=lambda x: x[1]) if action_frequency else (None, 0)
-        
-        return {
-            'pattern_type': 'repetitive_loop' if most_frequent[1] > len(recent_actions) * 0.6 else 'diverse_exploration',                 
-            'dominant_action': most_frequent[0],
-            'dominance_ratio': most_frequent[1] / max(1, len(recent_actions)),                                                            
-            'action_diversity': len(set(recent_actions)),
-            'total_actions_analyzed': len(recent_actions)
-        }
 
 
 # ===== Compatibility shim =====
