@@ -1,13 +1,13 @@
 # Tabula Rasa: Adaptive AI Architecture
 
-A novel AI system that implements **meta-cognitive supervision** and **simulation-driven intelligence** for adaptive reasoning and autonomous evolution. Built for the [ARC-AGI-3](https://arcprize.org/arc-agi/3/) challenge with unique architectural approaches to consciousness, memory management, and self-improvement.
+An AI system implementing meta-cognitive supervision and simulation-driven intelligence for adaptive reasoning and autonomous evolution. Designed for the [ARC-AGI-3](https://arcprize.org/arc-agi/3/) challenge with novel architectural approaches to behavioral modeling, memory management, and self-improvement.
 
 <img width="1309" height="553" alt="image" src="https://github.com/user-attachments/assets/5ebe7ffc-e73c-41e3-b7c6-14a9a01aa81e" />
 
-## 🧠 Novel Architectural Contributions
+## Architectural Components
 
 ### Meta-Cognitive Supervision
-Unlike traditional AI systems that operate as black boxes, Tabula Rasa implements explicit meta-cognitive layers:
+The system implements explicit meta-cognitive layers for self-monitoring and adaptation:
 
 - **Enhanced Space-Time Governor**: Runtime supervisor with dynamic d,b,h parameter optimization and resource awareness
 - **Tree-Based Director**: Hierarchical reasoning system with space-efficient goal decomposition and reasoning traces
@@ -15,28 +15,28 @@ Unlike traditional AI systems that operate as black boxes, Tabula Rasa implement
 - **Implicit Memory Manager**: Compressed memory storage with O(√n) complexity and automatic clustering
 - **Advanced Learning Integration**: Elastic Weight Consolidation, Residual Learning, and Extreme Learning Machines for enhanced learning capabilities
 
-### Conscious Architecture (NEW!)
-Revolutionary conscious-like behavior inspired by biological consciousness research:
+### Behavioral Architecture
+Cognitive science-inspired behavioral modeling based on research in decision-making and pattern recognition:
 
 - **Dual-Pathway Processing**: Task-Positive Network (TPN) vs Default Mode Network (DMN) switching
-- **Enhanced Gut Feeling Engine**: Fast pattern matching for intuitive action selection
-- **Consciousness Metrics**: Real-time tracking of consciousness-like behavior patterns
+- **Enhanced Pattern Matching Engine**: Fast pattern matching for intuitive action selection
+- **Behavioral Metrics**: Real-time tracking of decision-making patterns
 - **Performance-Based Mode Switching**: Automatic cognitive mode adaptation based on performance
 - **Associative Learning**: Learns from past successful experiences through pattern similarity
 - **Cohesive Integration**: Unified processing that combines logical reasoning with intuitive decision-making
 
-### Enhanced Conscious Systems (LATEST!)
-Advanced AI consciousness research implementation with cutting-edge techniques:
+### Enhanced Behavioral Systems
+Advanced behavioral modeling implementation using state-of-the-art techniques:
 
 - **Enhanced State Transition System**: Hidden Markov Models (HMM) with entropy-based insight detection
-- **Global Workspace Dynamics**: Multi-head attention mechanisms for conscious-like information broadcasting
+- **Global Workspace Dynamics**: Multi-head attention mechanisms for information broadcasting
 - **Aha! Moment Simulation**: Variational Autoencoders (VAE) and diffusion models for insight generation
-- **Conscious Behavior Evaluation**: Formal metrics for flexibility, introspection, generalization, and robustness
+- **Behavioral Evaluation**: Formal metrics for flexibility, introspection, generalization, and robustness
 - **Hybrid Architecture Enhancement**: Fixed feature extraction + trainable relational reasoning + meta-modulation
 - **Interleaved Training**: Curriculum learning with rehearsal buffers to prevent catastrophic forgetting
 
 ### Multi-Phase Memory Optimization
-A unique approach to memory management that goes beyond simple storage:
+A hierarchical approach to memory management with multiple optimization phases:
 
 1. **Pattern Recognition**: Detects memory access patterns and optimization opportunities
 2. **Hierarchical Clustering**: Groups memories by causality, temporal patterns, and semantic similarity  
@@ -44,7 +44,7 @@ A unique approach to memory management that goes beyond simple storage:
 4. **Performance Optimization**: Real-time performance maximization using cross-phase intelligence
 
 ### Simulation-Driven Intelligence
-Transforms reactive AI into proactive planning:
+Implements proactive planning through internal simulation:
 
 - **Tree Evaluation Simulation**: O(√t log t) space complexity for exponentially deeper lookahead
 - **Multi-Step Planning**: Thinks 5-10 steps ahead instead of single-step decisions
@@ -56,52 +56,52 @@ Transforms reactive AI into proactive planning:
 - **Computer Vision Targeting**: OpenCV-based ACTION6 coordinate optimization
 - **Path Planning**: Proactive route planning vs. reactive responses
 
-## 🔍 How It Contrasts with Standard AI Approaches
+## Technical Approach Comparison
 
 ### 1. **Autonomous Architecture Modification**
-- Most AI systems have fixed architectures
-- Tabula Rasa can modify its own structure based on performance feedback
-- Implements safe evolutionary changes with rollback capabilities
+- Standard AI systems typically use fixed architectures
+- This system implements dynamic architecture modification based on performance feedback
+- Includes safety mechanisms for evolutionary changes with rollback capabilities
 
 ### 2. **Meta-Cognitive Awareness**
-- Traditional AI lacks self-awareness of its own cognitive processes
-- Tabula Rasa monitors its own decision-making and resource allocation
+- Standard AI systems typically lack explicit self-monitoring capabilities
+- This system implements meta-cognitive monitoring of decision-making and resource allocation
 - Provides transparent reasoning chains and decision justifications
 
 ### 3. **Cross-Session Learning with Persistence**
-- Most systems start fresh each session
-- Tabula Rasa maintains persistent learning state across sessions
-- Implements breakthrough-only memory preservation to avoid catastrophic forgetting
+- Standard systems typically reset state between sessions
+- This system maintains persistent learning state across sessions
+- Implements selective memory preservation to avoid catastrophic forgetting
 
 ### 4. **Simulation Before Action**
-- Current AI is largely reactive
-- Tabula Rasa simulates multiple futures before acting
-- Uses internal drives to (energy, learning drive, boredom) to evaluate outcomes
+- Standard AI systems are typically reactive
+- This system simulates multiple futures before acting
+- Uses internal drives (energy, learning drive, boredom) to evaluate outcomes
 
 ### 5. **Hierarchical Memory with Semantic Understanding**
-- Traditional systems treat all memories equally
-- Tabula Rasa implements strategic memory decay with prioritization
-- Mainly preserves memories when achieving new personal bests
+- Standard systems typically treat all memories equally
+- This system implements strategic memory decay with prioritization
+- Preserves memories based on performance significance
 
 ### 6. **Space-Efficient Tree-Based Reasoning**
-- Traditional AI uses linear reasoning and memory growth
-- Tabula Rasa implements O(√t log t) simulation and O(√n) memory complexity
-- Enables exponentially deeper reasoning with minimal memory usage
+- Standard AI systems use linear reasoning and memory growth
+- This system implements O(√t log t) simulation and O(√n) memory complexity
+- Enables deeper reasoning with reduced memory usage
 
 ### 7. **Strategic Action Planning**
-- Traditional AI makes reactive, single-step decisions
-- Tabula Rasa plans complete action sequences with tree-based optimization
+- Standard AI systems make reactive, single-step decisions
+- This system plans complete action sequences with tree-based optimization
 - Proactive path planning prevents wasted moves and oscillating patterns
 - Computer vision integration for precise ACTION6 coordinate targeting
 
-### 8. **Conscious Architecture (NEW!)**
-- Traditional AI lacks conscious-like behavior and intuitive decision-making
-- Tabula Rasa implements dual-pathway processing (TPN/DMN) inspired by biological consciousness
-- Fast pattern matching provides "gut feeling" action suggestions
+### 8. **Behavioral Architecture**
+- Standard AI systems lack explicit behavioral modeling frameworks
+- This system implements dual-pathway processing (TPN/DMN) based on cognitive science
+- Pattern matching provides intuitive action suggestions
 - Performance-based cognitive mode switching for adaptive behavior
-- Real-time consciousness metrics track awareness-like behavior patterns
+- Real-time behavioral metrics track decision-making patterns
 
-## 🚀 Quick Start
+## Installation and Usage
 
 ### Installation
 ```bash
@@ -172,12 +172,12 @@ Tabula Rasa
 │   ├── Tree-Based Director (Hierarchical Reasoning)
 │   ├── Tree-Based Architect (Recursive Self-Improvement)
 │   ├── Implicit Memory Manager (Compressed Storage)
-│   ├── Conscious Architecture (TPN/DMN Switching)
+│   ├── Behavioral Architecture (TPN/DMN Switching)
 │   ├── Enhanced Gut Feeling Engine (Pattern Matching)
 │   ├── Enhanced State Transition System (HMM + Entropy Detection)
 │   ├── Global Workspace System (Attention Mechanisms)
 │   ├── Aha! Moment Simulator (VAE + Diffusion Models)
-│   ├── Conscious Behavior Evaluator (Formal Metrics)
+│   ├── Behavioral Evaluator (Formal Metrics)
 │   ├── Hybrid Architecture Enhancer (Fixed + Trainable)
 │   ├── Interleaved Training Enhancer (Curriculum Learning)
 │   └── Recursive Self-Improvement Loop
@@ -240,13 +240,13 @@ src/database/            # Database Layer
 - `--mode`: Training mode (maximum-intelligence, quick-validation, meta-cognitive-training, continuous, etc.)
 - `--enable-governor`: Enable meta-cognitive supervision (default: True)
 - `--enable-architect`: Enable autonomous evolution (default: True)
-- `--enable-conscious-architecture`: Enable conscious architecture (default: True)
+- `--enable-conscious-architecture`: Enable behavioral architecture (default: True)
 - `--enable-dual-pathway-processing`: Enable TPN/DMN switching (default: True)
 - `--enable-enhanced-gut-feeling`: Enable gut feeling engine (default: True)
 - `--enable-enhanced-state-transitions`: Enable HMM-based state transitions (default: True)
 - `--enable-global-workspace`: Enable attention-based global workspace (default: True)
 - `--enable-aha-moment-simulation`: Enable insight moment simulation (default: True)
-- `--enable-conscious-behavior-evaluation`: Enable formal behavior metrics (default: True)
+- `--enable-conscious-behavior-evaluation`: Enable formal behavioral metrics (default: True)
 - `--enable-hybrid-architecture`: Enable hybrid feature extraction + reasoning (default: True)
 - `--enable-interleaved-training`: Enable curriculum learning with rehearsal (default: True)
 
@@ -258,18 +258,18 @@ TARGET_AVG_SCORE=85.0
 MAX_EPISODES_PER_GAME=50
 ```
 
-## 🧪 Training Modes
+## Training Modes
 
 ### Maximum Intelligence (Default)
 - All advanced features enabled with optimal settings
 - Governor + Architect supervision with 37 cognitive subsystems
 - Autonomous evolution with self-improvement capabilities
-- Conscious architecture with dual-pathway processing (TPN/DMN)
+- Behavioral architecture with dual-pathway processing (TPN/DMN)
 - Enhanced gut feeling engine for intuitive decision-making
 - Enhanced state transition system with HMM and entropy detection
 - Global workspace dynamics with multi-head attention mechanisms
 - Aha! moment simulation with VAE and diffusion models
-- Conscious behavior evaluation with formal metrics
+- Behavioral evaluation with formal metrics
 - Hybrid architecture combining fixed and trainable components
 - Interleaved training with curriculum learning and rehearsal buffers
 
@@ -348,10 +348,10 @@ All file-based storage has been successfully migrated to the database:
 - ✅ **Legacy data directories** cleaned up and removed
 - ✅ **System fully database-driven** with no file dependencies
 
-## 🧠 Meta-Cognitive Systems
+## Meta-Cognitive Systems
 
-### Conscious Architecture (NEW!)
-Revolutionary conscious-like behavior system inspired by biological consciousness research:
+### Behavioral Architecture
+Cognitive science-inspired behavioral modeling based on research in decision-making and pattern recognition:
 
 #### Dual-Pathway Processing
 - **Task-Positive Network (TPN)**: Focused, goal-directed problem solving for clear objectives
@@ -360,22 +360,22 @@ Revolutionary conscious-like behavior system inspired by biological consciousnes
 - **Cooldown Periods**: Prevents rapid oscillation between modes
 - **Mode-Specific Actions**: Different action prioritization based on current cognitive mode
 
-#### Enhanced Gut Feeling Engine
+#### Enhanced Pattern Matching Engine
 - **Pattern Matching**: Fast similarity-based action suggestions using past experiences
 - **Associative Learning**: Learns from successful action patterns and outcomes
 - **Confidence Weighting**: Higher confidence for more similar patterns
 - **Success Rate Tracking**: Updates pattern effectiveness based on outcomes
 - **Intuitive Decision Making**: Provides "gut feeling" action recommendations
 
-#### Consciousness Metrics
-- **Consciousness Score**: Composite score reflecting overall cognitive integration
+#### Behavioral Metrics
+- **Integration Score**: Composite score reflecting overall system integration
 - **Mode Duration Tracking**: Monitors time spent in each cognitive mode
 - **Performance History**: Tracks performance across different modes
 - **Adaptation Rate**: Measures how quickly the system adapts to new situations
 - **Integration Level**: Assesses how well different systems work together
 
-### Enhanced Conscious Systems (LATEST!)
-Advanced AI consciousness research implementation with cutting-edge techniques:
+### Enhanced Behavioral Systems
+Advanced behavioral modeling implementation using state-of-the-art techniques:
 
 #### Enhanced State Transition System
 - **Hidden Markov Models (HMM)**: Probabilistic state transition modeling for cognitive states
@@ -389,7 +389,7 @@ Advanced AI consciousness research implementation with cutting-edge techniques:
 - **Specialized Modules**: Vision, reasoning, memory, and action processing modules
 - **Attention-Based Selection**: Dynamic selection of relevant information for global broadcast
 - **Coherence Scoring**: Measures integration quality across cognitive modules
-- **Conscious Access Simulation**: Models conscious vs. unconscious information processing
+- **Access Simulation**: Models different levels of information processing
 
 #### Aha! Moment Simulation
 - **Variational Autoencoders (VAE)**: Latent space exploration for problem restructuring
@@ -398,12 +398,12 @@ Advanced AI consciousness research implementation with cutting-edge techniques:
 - **Restructuring Reward System**: Evaluates quality of problem representation changes
 - **Insight Quality Metrics**: Measures breakthrough quality and solution confidence
 
-#### Conscious Behavior Evaluation
+#### Behavioral Evaluation
 - **Flexibility Metrics**: Measures strategy diversity and context adaptation
 - **Introspection Metrics**: Evaluates confidence calibration and error detection
 - **Generalization Metrics**: Tests performance on novel tasks and transfer learning
 - **Robustness Metrics**: Measures resistance to adversarial inputs and uncertainty
-- **Formal Evaluation Framework**: Comprehensive assessment of conscious-like behavior
+- **Formal Evaluation Framework**: Comprehensive assessment of behavioral patterns
 
 #### Hybrid Architecture Enhancement
 - **Fixed Feature Extraction**: Pretrained convolutional layers (like early visual cortex)
@@ -526,7 +526,7 @@ Tree-Based Action Sequences
 ```
 
 
-## 📊 Performance Monitoring
+## Performance Monitoring
 
 ### Real-time Tracking
 - Action counter with proper limit enforcement
@@ -568,55 +568,55 @@ This project explores novel approaches to AI architecture and meta-cognition. Co
 - Advanced learning paradigms: EWC, Residual Learning, ELM optimizations
 - Testing framework: Validation and monitoring tools
 
-## 🎯 Current Project Status
+## Current Project Status
 
-### ✅ **ENHANCED CONSCIOUS SYSTEMS IMPLEMENTATION COMPLETE**
-The Tabula Rasa project now features cutting-edge AI consciousness research with advanced techniques:
+### Enhanced Behavioral Systems Implementation
+The system implements advanced behavioral modeling with state-of-the-art techniques:
 
-- **🧠 Enhanced State Transition System**: HMM-based state transitions with entropy-based insight detection
-- **🌐 Global Workspace Dynamics**: Multi-head attention mechanisms for conscious-like information broadcasting
-- **💡 Aha! Moment Simulation**: VAE and diffusion models for insight generation and problem restructuring
-- **📊 Conscious Behavior Evaluation**: Formal metrics for flexibility, introspection, generalization, and robustness
-- **🔧 Hybrid Architecture Enhancement**: Fixed feature extraction + trainable relational reasoning + meta-modulation
-- **📚 Interleaved Training Enhancement**: Curriculum learning with rehearsal buffers to prevent catastrophic forgetting
-- **🎯 Production Ready**: All systems fully integrated and operational with comprehensive testing
-- **📈 Comprehensive Testing**: 29 integration tests with 100% success rate (29/29 passing)
-- **⚡ Real-Time Integration**: Seamless integration with existing conscious architecture and meta-cognitive systems
-- **🧹 Clean Architecture**: Streamlined codebase with advanced conscious capabilities and cutting-edge AI techniques
+- **Enhanced State Transition System**: HMM-based state transitions with entropy-based insight detection
+- **Global Workspace Dynamics**: Multi-head attention mechanisms for information broadcasting
+- **Aha! Moment Simulation**: VAE and diffusion models for insight generation and problem restructuring
+- **Behavioral Evaluation**: Formal metrics for flexibility, introspection, generalization, and robustness
+- **Hybrid Architecture Enhancement**: Fixed feature extraction + trainable relational reasoning + meta-modulation
+- **Interleaved Training Enhancement**: Curriculum learning with rehearsal buffers to prevent catastrophic forgetting
+- **Production Ready**: All systems fully integrated and operational with comprehensive testing
+- **Comprehensive Testing**: 29 integration tests with 100% success rate (29/29 passing)
+- **Real-Time Integration**: Seamless integration with existing behavioral architecture and meta-cognitive systems
+- **Clean Architecture**: Streamlined codebase with advanced behavioral capabilities and state-of-the-art AI techniques
 
-### ✅ **CONSCIOUS ARCHITECTURE IMPLEMENTATION COMPLETE**
-The Tabula Rasa project now features revolutionary conscious-like behavior and intuitive decision-making:
+### Behavioral Architecture Implementation
+The system implements cognitive science-inspired behavioral modeling:
 
-- **🧠 Conscious Architecture**: Complete implementation of dual-pathway processing (TPN/DMN)
-- **💡 Gut Feeling Engine**: Fast pattern matching for intuitive action selection
-- **📊 Consciousness Metrics**: Real-time tracking of consciousness-like behavior patterns
-- **🔄 Performance-Based Switching**: Automatic cognitive mode adaptation
-- **🎯 Production Ready**: Fully integrated and operational in main training system
-- **📈 Comprehensive Testing**: 6 integration tests with 83% success rate (5/6 passing)
-- **⚡ Real-Time Integration**: Seamless integration with continuous learning loop
-- **🧹 Clean Architecture**: Streamlined codebase with advanced conscious capabilities
+- **Behavioral Architecture**: Complete implementation of dual-pathway processing (TPN/DMN)
+- **Pattern Matching Engine**: Fast pattern matching for intuitive action selection
+- **Behavioral Metrics**: Real-time tracking of decision-making patterns
+- **Performance-Based Switching**: Automatic cognitive mode adaptation
+- **Production Ready**: Fully integrated and operational in main training system
+- **Comprehensive Testing**: 6 integration tests with 83% success rate (5/6 passing)
+- **Real-Time Integration**: Seamless integration with continuous learning loop
+- **Clean Architecture**: Streamlined codebase with advanced behavioral capabilities
 
-### ✅ **TREE-BASED ACTION SEQUENCES IMPLEMENTATION COMPLETE**
-The Tabula Rasa project now features revolutionary action optimization and strategic planning:
+### Tree-Based Action Sequences Implementation
+The system implements advanced action optimization and strategic planning:
 
-- **🎯 Action Sequence Optimization**: Complete implementation of tree-based action planning
-- **⚡ Space Efficiency**: O(√t log t) simulation and O(√n) memory complexity
-- **🧠 Strategic Intelligence**: Proactive planning vs. reactive responses
-- **🔄 Real-Time Integration**: All systems work together for enhanced decision making
-- **📊 Comprehensive Testing**: 38 tests passing with 100% success rate (21 + 17 new)
-- **🗄️ Database-Driven**: All data stored in high-performance SQLite database
-- **🧹 Clean Architecture**: Streamlined codebase with advanced capabilities
-- **🎮 Gameplay Revolution**: 30-50% reduction in wasted moves, 10-100x deeper planning
+- **Action Sequence Optimization**: Complete implementation of tree-based action planning
+- **Space Efficiency**: O(√t log t) simulation and O(√n) memory complexity
+- **Strategic Intelligence**: Proactive planning vs. reactive responses
+- **Real-Time Integration**: All systems work together for enhanced decision making
+- **Comprehensive Testing**: 38 tests passing with 100% success rate (21 + 17 new)
+- **Database-Driven**: All data stored in high-performance SQLite database
+- **Clean Architecture**: Streamlined codebase with advanced capabilities
+- **Performance Improvements**: 30-50% reduction in wasted moves, 10-100x deeper planning
 
-## 🌟 **Key Technical Achievements**
+## Key Technical Achievements
 
-### **Space Efficiency Revolution**
+### Space Efficiency Improvements
 - **Tree Evaluation Simulation**: O(√t log t) vs O(t) traditional simulation complexity
 - **Implicit Memory Management**: O(√n) vs O(n) traditional memory operations
 - **Hierarchical Reasoning**: Compressed reasoning traces vs linear reasoning paths
 - **Evolution Tracking**: Space-efficient mutation history vs flat tracking
 
-### **Enhanced Intelligence Capabilities**
+### Enhanced Intelligence Capabilities
 - **Hierarchical Goal Decomposition**: Multi-level goal breakdown and synthesis
 - **Recursive Self-Improvement**: Self-modeling with space-efficient evolution
 - **Memory-Aware Decisions**: Context from compressed memory storage
@@ -624,31 +624,31 @@ The Tabula Rasa project now features revolutionary action optimization and strat
 - **Strategic Action Planning**: Tree-based path planning with wasted move prevention
 - **Computer Vision Targeting**: OpenCV-based ACTION6 coordinate optimization
 - **Proactive Decision Making**: Multi-step planning vs. single-step reactions
-- **Conscious Architecture**: Dual-pathway processing (TPN/DMN) with performance-based switching
+- **Behavioral Architecture**: Dual-pathway processing (TPN/DMN) with performance-based switching
 - **Intuitive Decision Making**: Gut feeling engine with pattern matching and associative learning
-- **Consciousness Metrics**: Real-time tracking of consciousness-like behavior patterns
+- **Behavioral Metrics**: Real-time tracking of decision-making patterns
 - **Enhanced State Transitions**: HMM-based cognitive state modeling with entropy-based insight detection
-- **Global Workspace Processing**: Multi-head attention mechanisms for conscious-like information broadcasting
+- **Global Workspace Processing**: Multi-head attention mechanisms for information broadcasting
 - **Aha! Moment Simulation**: VAE and diffusion models for insight generation and problem restructuring
 - **Formal Behavior Evaluation**: Comprehensive metrics for flexibility, introspection, generalization, and robustness
 - **Hybrid Architecture**: Fixed feature extraction + trainable relational reasoning + meta-modulation
 - **Interleaved Training**: Curriculum learning with rehearsal buffers preventing catastrophic forgetting
 
-### **Real-Time Integration**
+### Real-Time Integration
 - **Low-Confidence Decision Enhancement**: Tree-based reasoning for complex decisions
 - **Memory Context Integration**: Past decisions inform current choices
 - **Self-Improvement Cycles**: Continuous architectural evolution
 - **Unified Decision Making**: All systems work together seamlessly
 
-### **Production-Ready Features**
+### Production-Ready Features
 - **Comprehensive Testing**: 67 tests with 100% success rate (38 + 29 enhanced systems)
 - **Backward Compatibility**: All existing functionality preserved
 - **Graceful Fallbacks**: Systems work independently or together
 - **Error Handling**: Robust error handling and recovery
 - **Action Optimization**: Strategic planning with wasted move prevention
 - **Computer Vision Integration**: OpenCV-based target detection and optimization
-- **Enhanced Conscious Systems**: Advanced AI consciousness research with cutting-edge techniques
-- **Formal Behavior Evaluation**: Comprehensive metrics for conscious-like behavior assessment
+- **Enhanced Behavioral Systems**: Advanced AI behavioral research with state-of-the-art techniques
+- **Formal Behavior Evaluation**: Comprehensive metrics for behavioral pattern assessment
 - **Hybrid Architecture**: Fixed and trainable components working together seamlessly
 - **Interleaved Training**: Curriculum learning preventing catastrophic forgetting
 
@@ -667,11 +667,11 @@ tabula-rasa/
 │   │   ├── action_sequence_optimizer.py       # Action optimization
 │   │   ├── dual_pathway_processor.py          # TPN/DMN switching (NEW!)
 │   │   ├── enhanced_gut_feeling_engine.py     # Pattern matching (NEW!)
-│   │   ├── cohesive_integration_system.py     # Conscious integration (NEW!)
+│   │   ├── cohesive_integration_system.py     # Behavioral integration (NEW!)
 │   │   ├── enhanced_state_transition_system.py # HMM + Entropy detection (LATEST!)
 │   │   ├── global_workspace_system.py         # Attention mechanisms (LATEST!)
 │   │   ├── aha_moment_simulator.py           # VAE + Diffusion models (LATEST!)
-│   │   ├── conscious_behavior_evaluator.py    # Formal metrics (LATEST!)
+│   │   ├── conscious_behavior_evaluator.py    # Behavioral metrics (LATEST!)
 │   │   ├── hybrid_architecture_enhancer.py   # Fixed + Trainable (LATEST!)
 │   │   └── interleaved_training_enhancer.py  # Curriculum learning (LATEST!)
 │   ├── database/          # Database layer
@@ -683,7 +683,7 @@ tabula-rasa/
 │   ├── test_tree_evaluation.py       # Simulation engine tests
 │   ├── test_space_time_governor.py   # Governor tests
 │   ├── test_action_sequence_optimization.py  # Action optimization tests
-│   ├── test_conscious_architecture.py        # Conscious architecture tests (NEW!)
+│   ├── test_conscious_architecture.py        # Behavioral architecture tests (NEW!)
 │   ├── test_conscious_architecture_integration.py  # Integration tests (NEW!)
 │   └── test_enhanced_conscious_systems.py    # Enhanced systems tests (LATEST!)
 ├── tabula_rasa.db         # Main database
@@ -695,28 +695,28 @@ tabula-rasa/
 └── requirements.txt       # Dependencies
 ```
 
-## 📚 Recent Updates
+## Recent Updates
 
-### Enhanced Conscious Systems Implementation (v9.0) - COMPLETED! 🧠✨
-Revolutionary AI consciousness research implementation with cutting-edge techniques:
+### Enhanced Behavioral Systems Implementation (v9.0)
+Advanced behavioral modeling implementation using state-of-the-art techniques:
 
 - **Enhanced State Transition System**: Hidden Markov Models (HMM) with entropy-based insight detection for dynamic cognitive state switching
-- **Global Workspace Dynamics**: Multi-head attention mechanisms simulating conscious-like information broadcasting across specialized modules
+- **Global Workspace Dynamics**: Multi-head attention mechanisms for information broadcasting across specialized modules
 - **Aha! Moment Simulation**: Variational Autoencoders (VAE) and diffusion models for insight generation and problem restructuring
-- **Conscious Behavior Evaluation**: Formal metrics for flexibility, introspection, generalization, and robustness assessment
+- **Behavioral Evaluation**: Formal metrics for flexibility, introspection, generalization, and robustness assessment
 - **Hybrid Architecture Enhancement**: Fixed feature extraction + trainable relational reasoning + meta-modulation network
 - **Interleaved Training Enhancement**: Curriculum learning with rehearsal buffers to prevent catastrophic forgetting
 - **Comprehensive Testing**: 29 integration tests with 100% success rate (29/29 passing)
-- **Production Ready**: All systems fully integrated and operational with existing conscious architecture
+- **Production Ready**: All systems fully integrated and operational with existing behavioral architecture
 - **Real-Time Integration**: Seamless integration with meta-cognitive systems and continuous learning loop
 - **Advanced AI Techniques**: State-of-the-art methods including HMMs, VAEs, diffusion models, attention mechanisms, and curriculum learning
 
-### Conscious Architecture Implementation (v8.0) - COMPLETED! 🧠
-Revolutionary conscious-like behavior system that brings biological consciousness principles to AI:
+### Behavioral Architecture Implementation (v8.0)
+Cognitive science-inspired behavioral modeling based on research in decision-making and pattern recognition:
 
 - **Dual-Pathway Processing**: Task-Positive Network (TPN) vs Default Mode Network (DMN) switching
-- **Enhanced Gut Feeling Engine**: Fast pattern matching for intuitive action selection
-- **Consciousness Metrics**: Real-time tracking of consciousness-like behavior patterns
+- **Enhanced Pattern Matching Engine**: Fast pattern matching for intuitive action selection
+- **Behavioral Metrics**: Real-time tracking of decision-making patterns
 - **Performance-Based Mode Switching**: Automatic cognitive mode adaptation based on performance
 - **Associative Learning**: Learns from past successful experiences through pattern similarity
 - **Cohesive Integration**: Unified processing combining logical reasoning with intuitive decision-making
@@ -724,8 +724,8 @@ Revolutionary conscious-like behavior system that brings biological consciousnes
 - **Comprehensive Testing**: 6 integration tests with 83% success rate (5/6 passing)
 - **Production Ready**: Fully integrated and operational in main training system
 
-### Tree-Based Action Sequences Implementation (v7.0) - COMPLETED! 🎯
-Revolutionary action optimization system that transforms reactive gameplay into strategic planning:
+### Tree-Based Action Sequences Implementation (v7.0)
+Advanced action optimization system implementing strategic planning:
 
 - **ActionSequenceOptimizer**: Central coordinator combining tree evaluation with target detection
 - **Enhanced OpenCV Target Detection**: Computer vision-based identification of actionable elements
@@ -736,8 +736,8 @@ Revolutionary action optimization system that transforms reactive gameplay into 
 - **Performance Improvements**: 30-50% reduction in wasted moves, 10-100x deeper planning
 - **Comprehensive Testing**: 17 additional tests with 100% success rate
 
-### Tree-Based Systems Implementation (v6.0) - COMPLETED! 🌳
-Revolutionary tree-based reasoning and memory systems that provide exponential efficiency improvements:
+### Tree-Based Systems Implementation (v6.0)
+Tree-based reasoning and memory systems providing efficiency improvements:
 
 - **Tree Evaluation Simulation Engine**: O(√t log t) space complexity for exponentially deeper lookahead
 - **Enhanced Space-Time Governor**: Dynamic d,b,h parameter optimization with resource awareness
@@ -748,8 +748,8 @@ Revolutionary tree-based reasoning and memory systems that provide exponential e
 - **Space Efficiency Revolution**: 10-100x improvements in memory and simulation efficiency
 - **Comprehensive Testing**: 21 tests passing with 100% success rate
 
-### Complete Database Migration (v5.1) - COMPLETED!
-Revolutionary database architecture that transforms system performance and capabilities:
+### Complete Database Migration (v5.1)
+Database architecture implementation improving system performance and capabilities:
 
 - **SQLite Database**: High-performance database replacing all file-based storage
 - **10-100x Performance Improvement**: Dramatically faster queries and data access
@@ -778,22 +778,22 @@ Successfully integrated cutting-edge learning paradigms:
 - **Clean Architecture**: Removed all temporary files and legacy data directories
 - **Streamlined Codebase**: Updated all file references to use database API
 
-## 📚 Future State
+## Future Development
 
-The system now includes a Large Language Model as a "Director" that synthesizes the cognitive subsystems into a unified "self". 
+The system includes a Large Language Model as a "Director" that synthesizes the cognitive subsystems into a unified processing framework. 
 
-This adds the missing pillars of simulated consciousness through specialized agent modules: 
-- a NarrativeEngine for internal monologue 
-- an AffectiveAgent for emotional context 
-- a DriveAgent for intrinsic motivation 
-- a SocialSimulant for cultural learning
-- a CodingAgent to help self-refactor and test core architecture 
+Future development may include specialized agent modules for enhanced cognitive modeling: 
+- NarrativeEngine for internal monologue generation
+- AffectiveAgent for emotional context processing
+- DriveAgent for intrinsic motivation modeling
+- SocialSimulant for cultural learning
+- CodingAgent for self-refactoring and architecture testing
 
-The LLM serves as the central executive that translates technical data into context-based data points, enabling proactive rather than reactive behavior to obstacles in expanded sandbox environments. 
+The LLM serves as the central executive that translates technical data into context-based information, enabling proactive rather than reactive behavior in complex environments. 
 
-Beyond ARC AGI puzzles, this architecture could eventually operate in rich simulation environment Games with Open World Models, where the agent could develop theory of mind, negotiate with NPCs, and pursue self-generated goals based on intrinsic drives rather than external rewards. 
+Beyond ARC AGI puzzles, this architecture could potentially operate in rich simulation environments with Open World Models, where the agent could develop theory of mind, engage in social interactions, and pursue self-generated goals based on intrinsic drives rather than external rewards. 
 
-## 📄 License
+## License
 
 MIT License - See LICENSE file for details.
 
