@@ -891,7 +891,7 @@ class ContinuousLearningLoop:
         
         # Load global counters from file
         try:
-            counter_file = self.save_directory / "global_counters.json"
+            counter_file = self.save_directory / "global_counters.json"  # DEPRECATED: Use database instead
             if counter_file.exists():
                 with open(counter_file, 'r') as f:
                     self.global_counters = json.load(f)
@@ -923,7 +923,7 @@ class ContinuousLearningLoop:
     def _load_global_counters(self):
         """Load global counters from file."""
         try:
-            counter_file = self.save_directory / "global_counters.json"
+            counter_file = self.save_directory / "global_counters.json"  # DEPRECATED: Use database instead
             if counter_file.exists():
                 with open(counter_file, 'r') as f:
                     return json.load(f)
@@ -1007,11 +1007,11 @@ class ContinuousLearningLoop:
         print("✅ Base meta-learning system initialized")
 
         # Update any logic that creates adaptive learning evaluation results to use the new continuous_learning_data directory
-        self.adaptive_learning_eval_path = self.adaptive_learning_eval_dir / "research_results.json"
+        self.adaptive_learning_eval_path = self.adaptive_learning_eval_dir / "research_results.json"  # DEPRECATED: Use database instead
         # Update any logic that creates architect evolution data to use the new continuous_learning_data directory
-        self.architectural_insights_path = self.architect_evolution_data_dir / "architectural_insights.json"
-        self.evolution_history_path = self.architect_evolution_data_dir / "evolution_history.json"
-        self.evolution_strategies_path = self.architect_evolution_data_dir / "evolution_strategies.json"
+        self.architectural_insights_path = self.architect_evolution_data_dir / "architectural_insights.json"  # DEPRECATED: Use database instead
+        self.evolution_history_path = self.architect_evolution_data_dir / "evolution_history.json"  # DEPRECATED: Use database instead
+        self.evolution_strategies_path = self.architect_evolution_data_dir / "evolution_strategies.json"  # DEPRECATED: Use database instead
 
         print("🎯 Initializing ARC meta-learning system...")
         self.arc_meta_learning = ARCMetaLearningSystem(
@@ -1493,7 +1493,7 @@ class ContinuousLearningLoop:
         """Load global counters that persist across sessions."""
         try:
             import json
-            counter_file = self.save_directory / "global_counters.json"
+            counter_file = self.save_directory / "global_counters.json"  # DEPRECATED: Use database instead
             if counter_file.exists():
                 with open(counter_file, 'r') as f:
                     return json.load(f)
@@ -5763,10 +5763,26 @@ class ContinuousLearningLoop:
         
         try:
             # Load action intelligence data for this game
-            intelligence_file = f"data/action_intelligence_{game_id}.json"
-            if os.path.exists(intelligence_file):
-                with open(intelligence_file, 'r') as f:
-                    intelligence_data = json.load(f)
+            # Load action intelligence from database instead of file
+            try:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                intelligence_data = await integration.get_action_intelligence(game_id=game_id)
+                if not intelligence_data:
+                    intelligence_data = {
+                        'winning_sequences': [],
+                        'coordinate_patterns': {},
+                        'action_transitions': {},
+                        'last_updated': 0
+                    }
+            except Exception as e:
+                print(f"Failed to load intelligence from database: {e}")
+                intelligence_data = {
+                    'winning_sequences': [],
+                    'coordinate_patterns': {},
+                    'action_transitions': {},
+                    'last_updated': 0
+                }
                 
                 # Look for coordinate patterns that have been successful
                 coordinate_patterns = intelligence_data.get('coordinate_patterns', {})
@@ -5820,12 +5836,26 @@ class ContinuousLearningLoop:
         Update coordinate intelligence data to improve future coordinate selection.
         """
         try:
-            intelligence_file = f"data/action_intelligence_{game_id}.json"
-            
-            # Load existing intelligence data
-            if os.path.exists(intelligence_file):
-                with open(intelligence_file, 'r') as f:
-                    intelligence_data = json.load(f)
+            # Load action intelligence from database instead of file
+            try:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                intelligence_data = await integration.get_action_intelligence(game_id=game_id)
+                if not intelligence_data:
+                    intelligence_data = {
+                        'winning_sequences': [],
+                        'coordinate_patterns': {},
+                        'action_transitions': {},
+                        'last_updated': 0
+                    }
+            except Exception as e:
+                print(f"Failed to load intelligence from database: {e}")
+                intelligence_data = {
+                    'winning_sequences': [],
+                    'coordinate_patterns': {},
+                    'action_transitions': {},
+                    'last_updated': 0
+                }
             else:
                 intelligence_data = {
                     'game_id': game_id,
@@ -5853,9 +5883,22 @@ class ContinuousLearningLoop:
             intelligence_data['last_updated'] = time.time()
             intelligence_data['total_sessions_learned'] = intelligence_data.get('total_sessions_learned', 0) + 1
             
-            # Save updated intelligence data
-            with open(intelligence_file, 'w') as f:
-                json.dump(intelligence_data, f, indent=2)
+            # Save updated intelligence data to database
+            try:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                
+                # Save coordinate intelligence to database
+                await integration.update_coordinate_intelligence(
+                    game_id=game_id,
+                    x=x,
+                    y=y,
+                    success=success,
+                    attempts=coord_data['attempts'],
+                    successes=coord_data['successes']
+                )
+            except Exception as e:
+                print(f"Failed to save coordinate intelligence to database: {e}")
             
             print(f"🧠 COORDINATE INTELLIGENCE: Updated ({x},{y}) - {coord_data['successes']}/{coord_data['attempts']} success rate: {coord_data['success_rate']:.2f}")
             
@@ -9425,7 +9468,7 @@ class ContinuousLearningLoop:
 
     def _load_game_action_intelligence(self, game_id: str) -> Dict[str, Any]:
         """Load learned action patterns for this specific game with comprehensive fallback."""
-        intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+        intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"  # DEPRECATED: Use database instead
         
         # Try to load current intelligence file
         if intelligence_file.exists():
@@ -9506,7 +9549,7 @@ class ContinuousLearningLoop:
         """Create winning sequences from effective actions when no archive data is available."""
         try:
             # Load current intelligence data
-            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"  # DEPRECATED: Use database instead
             
             if not intelligence_file.exists():
                 return None
@@ -9945,7 +9988,7 @@ class ContinuousLearningLoop:
     def _save_winning_sequence(self, game_id: str, winning_sequence: List[int]):
         """Save a winning action sequence to the action intelligence data."""
         try:
-            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"  # DEPRECATED: Use database instead
             
             # Load existing intelligence data
             if intelligence_file.exists():
@@ -9974,9 +10017,21 @@ class ContinuousLearningLoop:
                 intelligence['winning_sequences'].append(winning_sequence)
                 intelligence['last_updated'] = time.time()
                 
-                # Save updated intelligence
-                with open(intelligence_file, 'w') as f:
-                    json.dump(intelligence, f, indent=2)
+                # Save updated intelligence to database
+            try:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                
+                # Save winning sequence to database
+                await integration.save_learned_pattern(
+                    pattern_type='winning_sequence',
+                    pattern_data=winning_sequence,
+                    game_id=game_id,
+                    confidence=1.0,
+                    success_rate=1.0
+                )
+            except Exception as e:
+                print(f"Failed to save winning sequence to database: {e}")
                 
                 print(f"🏆 SAVED WINNING SEQUENCE for {game_id}: {winning_sequence}")
                 logger.info(f"Saved winning sequence {winning_sequence} for game {game_id}")
@@ -9987,7 +10042,7 @@ class ContinuousLearningLoop:
     def _save_coordinate_pattern(self, game_id: str, action: int, x: int, y: int, success: bool):
         """Save coordinate pattern data for action intelligence."""
         try:
-            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"
+            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"  # DEPRECATED: Use database instead
             
             # Load existing intelligence data
             if intelligence_file.exists():
@@ -10029,9 +10084,21 @@ class ContinuousLearningLoop:
             
             intelligence['last_updated'] = time.time()
             
-            # Save updated intelligence
-            with open(intelligence_file, 'w') as f:
-                json.dump(intelligence, f, indent=2)
+            # Save updated intelligence to database
+            try:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                
+                # Save winning sequence to database
+                await integration.save_learned_pattern(
+                    pattern_type='winning_sequence',
+                    pattern_data=winning_sequence,
+                    game_id=game_id,
+                    confidence=1.0,
+                    success_rate=1.0
+                )
+            except Exception as e:
+                print(f"Failed to save winning sequence to database: {e}")
             
             print(f"📊 SAVED COORDINATE PATTERN: Action {action} at ({x},{y}) - Success: {success}")
             

@@ -28,6 +28,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Any
 import json
 
+# Add src to path for database access
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+from database.system_integration import get_system_integration
+from database.db_initializer import ensure_database_ready
+
 def analyze_system_resources() -> Dict[str, Any]:
     """Analyze system resources and determine optimal concurrent session count."""
     print("🔍 Analyzing system resources...")
@@ -217,7 +222,7 @@ def run_parallel_training_sessions(num_sessions: int = 20, session_duration: int
     
     return results
 
-def main():
+async def main():
     """Main function for scaled 9-hour training."""
     print("=" * 80)
     print("TABULA RASA - INTELLIGENT SCALED 9 HOUR CONTINUOUS TRAINING")
@@ -227,6 +232,16 @@ def main():
     print("⏱️ Duration: 9 hours (540 minutes)")
     print("🎮 Mode: Intelligent parallel with dynamic resource optimization")
     print("🧠 Features: RAM-aware scaling, CPU optimization, adaptive learning")
+    print("💾 Database: Enabled (no more JSON files)")
+    
+    # Ensure database is ready before starting training
+    print("🔍 Checking database initialization...")
+    if not ensure_database_ready():
+        print("❌ Database initialization failed. Training cannot proceed.")
+        return
+    
+    # Initialize database integration
+    integration = get_system_integration()
     
     # Analyze system resources and determine optimal configuration
     resource_analysis = analyze_system_resources()
@@ -378,27 +393,56 @@ def main():
         print(f"   🚀 Concurrent games per round: {sessions_per_round}")
         print(f"   🔄 Total rounds: {round_count}")
         
-        # Save results to file
-        results_file = f"scaled_training_results_{int(time.time())}.json"
-        with open(results_file, 'w') as f:
-            json.dump({
-                'summary': {
-                    'total_sessions': len(all_results),
-                    'successful_sessions': successful_sessions,
-                    'failed_sessions': failed_sessions,
-                    'success_rate': successful_sessions/len(all_results)*100,
-                    'total_duration_hours': total_duration/3600,
-                    'average_duration_seconds': avg_duration,
-                    'concurrent_games_per_round': sessions_per_round,
-                    'total_rounds': round_count
-                },
-                'detailed_results': all_results
-            }, f, indent=2)
+        # Save results to database
+        print(f"\n💾 Saving results to database...")
         
-        print(f"\n💾 Detailed results saved to: {results_file}")
+        # Save each session result to database
+        for i, result in enumerate(all_results):
+            session_db_id = f"scaled_training_{int(time.time())}_{i+1}"
+            session_metrics = {
+                'session_id': session_db_id,
+                'start_time': start_time,
+                'mode': 'scaled_training',
+                'status': 'completed' if result['success'] else 'failed',
+                'total_actions': 0,  # Not available in scaled training
+                'total_wins': 1 if result['success'] else 0,
+                'total_games': 1,
+                'win_rate': 1.0 if result['success'] else 0.0,
+                'avg_score': 0.0,  # Not available in scaled training
+                'energy_level': 100.0,
+                'memory_operations': 0,
+                'sleep_cycles': 0,
+                'duration_seconds': result['duration'],
+                'return_code': result.get('return_code', 0),
+                'concurrent_games_per_round': sessions_per_round,
+                'round_number': result.get('round', 0)
+            }
+            
+            await integration.update_session_metrics(session_db_id, session_metrics)
+        
+        # Log final summary to database
+        await integration.log_system_event(
+            level="INFO",
+            component="scaled_training",
+            message=f"Scaled training completed: {len(all_results)} sessions, {successful_sessions/len(all_results)*100:.1f}% success rate",
+            data={
+                'total_sessions': len(all_results),
+                'successful_sessions': successful_sessions,
+                'failed_sessions': failed_sessions,
+                'success_rate': successful_sessions/len(all_results)*100,
+                'total_duration_hours': total_duration/3600,
+                'average_duration_seconds': avg_duration,
+                'concurrent_games_per_round': sessions_per_round,
+                'total_rounds': round_count
+            },
+            session_id=f"scaled_training_summary_{int(time.time())}"
+        )
+        
+        print(f"✅ All {len(all_results)} sessions saved to database")
+        print(f"📊 Summary logged to system_logs")
     
     print(f"\nTraining session ended at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+    asyncio.run(main())

@@ -41,7 +41,7 @@ class EnhancedScorecardMonitor:
         self.game_success_patterns = {}
         self.level_completion_tracking = {}
         
-    def analyze_all_scorecards(self) -> Dict[str, Any]:
+    async def analyze_all_scorecards(self) -> Dict[str, Any]:
         """Analyze all available scorecards for comprehensive performance tracking."""
         try:
             scorecard_files = [f for f in os.listdir(self.scorecard_dir) if f.endswith('.json')]
@@ -85,7 +85,7 @@ class EnhancedScorecardMonitor:
             analysis.update(all_analysis)
             
             # Save analysis results
-            self._save_analysis_results(analysis)
+            await self._save_analysis_results(analysis)
             
             return analysis
             
@@ -385,20 +385,24 @@ class EnhancedScorecardMonitor:
             'game_breakdown': {}
         }
     
-    def _save_analysis_results(self, analysis: Dict[str, Any]):
-        """Save analysis results to file."""
+    async def _save_analysis_results(self, analysis: Dict[str, Any]):
+        """Save analysis results to database."""
         try:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"scorecard_analysis_{timestamp}.json"
-            filepath = os.path.join(self.data_dir, filename)
+            integration = get_system_integration()
             
-            with open(filepath, 'w') as f:
-                json.dump(analysis, f, indent=2)
+            # Log analysis to database
+            await integration.log_system_event(
+                level="INFO",
+                component="scorecard_monitor",
+                message="Scorecard analysis completed",
+                data=analysis,
+                session_id=f"scorecard_analysis_{int(time.time())}"
+            )
             
-            logger.info(f"Analysis results saved to {filepath}")
+            logger.info("Analysis results saved to database")
             
         except Exception as e:
-            logger.error(f"Error saving analysis results: {e}")
+            logger.error(f"Error saving analysis results to database: {e}")
     
     def print_analysis_summary(self, analysis: Dict[str, Any]):
         """Print a human-readable summary of the analysis."""

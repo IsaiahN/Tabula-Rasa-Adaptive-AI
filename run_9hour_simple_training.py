@@ -28,6 +28,7 @@ import json
 # Add src to path for database access
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from database.system_integration import get_system_integration
+from database.db_initializer import ensure_database_ready
 
 def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[str, Any]:
     """Run a single training session with specific parameters."""
@@ -93,6 +94,13 @@ def main():
     print("⏱️ Duration: 9 hours (540 minutes)")
     print("🎮 Mode: Sequential with multiple games per hour")
     print("🧠 Features: Enhanced learning, stable execution, graceful shutdown")
+    print("💾 Database: Enabled (no more JSON files)")
+    
+    # Ensure database is ready before starting training
+    print("🔍 Checking database initialization...")
+    if not ensure_database_ready():
+        print("❌ Database initialization failed. Training cannot proceed.")
+        return
     
     # Record start time
     start_time = datetime.now()

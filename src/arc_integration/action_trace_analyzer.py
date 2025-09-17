@@ -77,7 +77,7 @@ class ActionTraceAnalyzer:
             analysis['recommendations'] = recommendations
             
             # Save analysis
-            self._save_analysis(analysis)
+            await self._save_analysis(analysis)
             
             return analysis
             
@@ -377,20 +377,24 @@ class ActionTraceAnalyzer:
             'recommendations': ['No action traces available for analysis']
         }
     
-    def _save_analysis(self, analysis: Dict[str, Any]):
-        """Save analysis results to file."""
+    async def _save_analysis(self, analysis: Dict[str, Any]):
+        """Save analysis results to database."""
         try:
-            timestamp = time.strftime('%Y%m%d_%H%M%S')
-            filename = f"action_trace_analysis_{timestamp}.json"
-            filepath = os.path.join(self.data_dir, filename)
+            integration = get_system_integration()
             
-            with open(filepath, 'w') as f:
-                json.dump(analysis, f, indent=2)
+            # Log analysis to database
+            await integration.log_system_event(
+                level="INFO",
+                component="action_trace_analyzer",
+                message="Action trace analysis completed",
+                data=analysis,
+                session_id=f"trace_analysis_{int(time.time())}"
+            )
             
-            logger.info(f"Action trace analysis saved to {filepath}")
+            logger.info("Action trace analysis saved to database")
             
         except Exception as e:
-            logger.error(f"Error saving analysis: {e}")
+            logger.error(f"Error saving analysis to database: {e}")
     
     def print_analysis_summary(self, analysis: Dict[str, Any]):
         """Print a human-readable summary of the analysis."""

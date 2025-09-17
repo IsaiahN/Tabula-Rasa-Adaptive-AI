@@ -164,31 +164,31 @@ class ScorecardAPIManager:
             'per_game_breakdown': per_game_breakdown
         }
     
-    def save_scorecard_data(self, card_id: str, scorecard_data: Dict, analysis: Dict):
-        """Save scorecard data and analysis to local storage."""
-        
-        timestamp = int(time.time())
-        filename = f"scorecard_{card_id}_{timestamp}.json"
-        filepath = Path("data/scorecards") / filename
-        
-        # Ensure directory exists
-        filepath.parent.mkdir(parents=True, exist_ok=True)
-        
-        data_to_save = {
-            'card_id': card_id,
-            'timestamp': timestamp,
-            'scorecard_data': scorecard_data,
-            'analysis': analysis,
-            'retrieved_at': datetime.now().isoformat()
-        }
+    async def save_scorecard_data(self, card_id: str, scorecard_data: Dict, analysis: Dict):
+        """Save scorecard data and analysis to database."""
         
         try:
-            with open(filepath, 'w') as f:
-                json.dump(data_to_save, f, indent=2)
-            logger.info(f"✅ Saved scorecard data to {filepath}")
-            return filepath
+            integration = get_system_integration()
+            
+            # Log scorecard data to database
+            await integration.log_system_event(
+                level="INFO",
+                component="scorecard",
+                message=f"Scorecard data for {card_id}",
+                data={
+                    'card_id': card_id,
+                    'scorecard_data': scorecard_data,
+                    'analysis': analysis,
+                    'timestamp': int(time.time())
+                },
+                session_id=f"scorecard_{card_id}"
+            )
+            
+            logger.info(f"✅ Saved scorecard data to database for {card_id}")
+            return True
+            
         except Exception as e:
-            logger.error(f"❌ Error saving scorecard data: {e}")
+            logger.error(f"❌ Error saving scorecard data to database: {e}")
             return None
     
     def monitor_active_scorecards(self) -> Dict:
@@ -269,8 +269,8 @@ def get_api_key_from_config() -> Optional[str]:
     
     # Check other config files
     config_files = [
-        "data/optimized_config.json",
-        "data/training/results/unified_trainer_results.json",
+        "data/optimized_config.json"  # DEPRECATED: Use database instead,
+        "data/training/results/unified_trainer_results.json"  # DEPRECATED: Use database instead,
         "config.json",
         "settings.json"
     ]

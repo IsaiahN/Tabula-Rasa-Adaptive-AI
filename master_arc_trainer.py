@@ -53,6 +53,14 @@ from datetime import datetime
 from src.core.salience_system import SalienceMode
 from src.core.logging_setup import setup_logging
 
+# Database imports
+try:
+    from src.database.db_initializer import ensure_database_ready
+    DATABASE_AVAILABLE = True
+except ImportError as e:
+    DATABASE_AVAILABLE = False
+    print(f"WARNING: Database initialization not available: {e}")
+
 # Meta-cognitive imports
 try:
     from src.core.meta_cognitive_governor import MetaCognitiveGovernor
@@ -1841,6 +1849,15 @@ async def main():
     
     # Set up enhanced logging first
     setup_windows_logging()
+    
+    # Ensure database is ready before starting training
+    if DATABASE_AVAILABLE:
+        print("🔍 Checking database initialization...")
+        if not ensure_database_ready():
+            print("❌ Database initialization failed. Training cannot proceed.")
+            return
+    else:
+        print("⚠️ Database initialization not available, proceeding without database check...")
     
     # Get API key from args or environment
     api_key = args.api_key or os.getenv('ARC_API_KEY')
