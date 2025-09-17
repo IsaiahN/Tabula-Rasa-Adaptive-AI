@@ -204,6 +204,19 @@ except ImportError as e:
     ImplicitMemoryManager = None
     create_implicit_memory_manager = None
 
+# Import Action Sequence Optimization
+try:
+    from src.core.action_sequence_optimizer import ActionSequenceOptimizer, OptimizationConfig
+    from src.core.tree_evaluation_simulation import TreeEvaluationSimulationEngine, TreeEvaluationConfig
+    ACTION_SEQUENCE_OPTIMIZATION_AVAILABLE = True
+except ImportError as e:
+    ACTION_SEQUENCE_OPTIMIZATION_AVAILABLE = False
+    print(f"WARNING: Action sequence optimization not available: {e}")
+    ActionSequenceOptimizer = None
+    OptimizationConfig = None
+    TreeEvaluationSimulationEngine = None
+    TreeEvaluationConfig = None
+
 # Import Enhanced Simulation Agent
 try:
     from src.core.enhanced_simulation_agent import EnhancedSimulationAgent
@@ -776,6 +789,10 @@ class ContinuousLearningLoop:
         self.tree_architect = None
         self.implicit_memory = None
         
+        # Initialize Action Sequence Optimization (optional components)
+        self.action_sequence_optimizer = None
+        self.tree_evaluation_engine = None
+        
         # Try to initialize Governor and Architect
         try:
             if ENHANCED_GOVERNOR_AVAILABLE:
@@ -1186,6 +1203,47 @@ class ContinuousLearningLoop:
                         self.implicit_memory = None
                 else:
                     print("⚠️ Tree-Based Systems not available, skipping initialization")
+                
+                # Initialize Action Sequence Optimization
+                if ACTION_SEQUENCE_OPTIMIZATION_AVAILABLE:
+                    print("🎯 Initializing Action Sequence Optimization...")
+                    
+                    try:
+                        # Initialize Tree Evaluation Engine
+                        tree_config = TreeEvaluationConfig(
+                            max_depth=15,
+                            branching_factor=6,
+                            state_representation_bits=128,
+                            memory_limit_mb=50.0,
+                            timeout_seconds=10.0,
+                            confidence_threshold=0.7,
+                            pruning_threshold=0.1
+                        )
+                        self.tree_evaluation_engine = TreeEvaluationSimulationEngine(tree_config)
+                        print("✅ Tree Evaluation Engine initialized")
+                        
+                        # Initialize Action Sequence Optimizer
+                        opt_config = OptimizationConfig(
+                            max_sequence_length=20,
+                            max_evaluation_time=5.0,
+                            confidence_threshold=0.7,
+                            wasted_move_penalty=0.1,
+                            strategic_action_bonus=0.2,
+                            target_priority_weight=0.4
+                        )
+                        self.action_sequence_optimizer = ActionSequenceOptimizer(
+                            tree_engine=self.tree_evaluation_engine,
+                            opencv_extractor=self.opencv_extractor if hasattr(self, 'opencv_extractor') else None,
+                            config=opt_config
+                        )
+                        print("✅ Action Sequence Optimizer initialized")
+                        
+                    except Exception as e:
+                        print(f"⚠️ Action Sequence Optimization initialization failed: {e}")
+                        self.action_sequence_optimizer = None
+                        self.tree_evaluation_engine = None
+                else:
+                    print("⚠️ Action Sequence Optimization not available, skipping initialization")
                 
             except Exception as e:
                 print(f"❌ Failed to initialize meta-cognitive systems: {e}")
@@ -4178,13 +4236,68 @@ class ContinuousLearningLoop:
             'frame': response_data.get('frame') if response_data else None
         }
         
-        # Use simulation-driven action selection if available, otherwise fallback to intelligent selection
-        if self.simulation_agent and hasattr(self, 'simulation_agent') and self.simulation_agent is not None:
+        # Use action sequence optimization if available, otherwise fallback to simulation or intelligent selection
+        if (self.action_sequence_optimizer and 
+            hasattr(self, 'action_sequence_optimizer') and 
+            self.action_sequence_optimizer is not None):
             try:
+                # Use action sequence optimization for strategic action selection
+                grid = response_data.get('grid', [])
+                if grid:
+                    # Get optimized action sequence
+                    result = self.action_sequence_optimizer.optimize_action_sequence(
+                        current_state=context,
+                        available_actions=available,
+                        grid=grid,
+                        game_id=game_id
+                    )
+                    
+                    # Use the first action from the optimized sequence
+                    if result.optimal_sequence:
+                        selected_action = result.optimal_sequence[0]
+                        coordinates = result.target_coordinates
+                        
+                        # Store coordinates for later use
+                        if coordinates:
+                            self._last_coordinates = coordinates
+                        
+                        logger.info(f"🎯 Action sequence optimization: {selected_action} {coordinates} - {result.reasoning}")
+                        logger.info(f"🎯 Sequence value: {result.sequence_value:.3f}, "
+                                  f"wasted moves avoided: {result.wasted_moves_avoided}")
+                    else:
+                        # Fallback to simulation if no sequence found
+                        selected_action = self._fallback_to_simulation(available, context, frame_analysis)
+                        coordinates = None
+                else:
+                    # No grid available, fallback to simulation
+                    selected_action = self._fallback_to_simulation(available, context, frame_analysis)
+                    coordinates = None
+                
+            except Exception as e:
+                logger.warning(f"Action sequence optimization failed: {e}, falling back to simulation")
+                selected_action = self._fallback_to_simulation(available, context, frame_analysis)
+                coordinates = None
+        else:
+            # Fallback to simulation or intelligent selection
+            selected_action = self._fallback_to_simulation(available, context, frame_analysis)
+            coordinates = None
+        
+        # Add to action history
+        if 'action_history' not in self.available_actions_memory:
+            self.available_actions_memory['action_history'] = []
+        self.available_actions_memory['action_history'].append(selected_action)
+        
+        logger.debug(f" Selected action {selected_action} from available {available} for {game_id} (with frame analysis)")
+        return selected_action
+    
+    def _fallback_to_simulation(self, available_actions: List[int], context: Dict[str, Any], frame_analysis: Dict[str, Any]) -> int:
+        """Fallback to simulation-driven action selection."""
+        try:
+            if self.simulation_agent and hasattr(self, 'simulation_agent') and self.simulation_agent is not None:
                 # Use enhanced simulation intelligence for action selection
                 selected_action, coordinates, reasoning = self.simulation_agent.generate_action_plan(
                     current_state=context,
-                    available_actions=available,
+                    available_actions=available_actions,
                     frame_analysis=frame_analysis,
                     memory_patterns=None  # Would need to be passed from caller
                 )
@@ -4194,22 +4307,14 @@ class ContinuousLearningLoop:
                     self._last_coordinates = coordinates
                 
                 logger.info(f"🧠 Simulation-driven action selection: {selected_action} {coordinates} - {reasoning}")
+                return selected_action
+            else:
+                # Fallback to intelligent action selection
+                return self._select_intelligent_action_with_relevance(available_actions, context)
                 
-            except Exception as e:
-                logger.warning(f"Simulation-driven action selection failed: {e}, falling back to intelligent selection")
-                # Fallback to original intelligent action selection
-                selected_action = self._select_intelligent_action_with_relevance(available, context)
-        else:
-            # Use intelligent action selection with frame analysis context
-            selected_action = self._select_intelligent_action_with_relevance(available, context)
-        
-        # Add to action history
-        if 'action_history' not in self.available_actions_memory:
-            self.available_actions_memory['action_history'] = []
-        self.available_actions_memory['action_history'].append(selected_action)
-        
-        logger.debug(f" Selected action {selected_action} from available {available} for {game_id} (with frame analysis)")
-        return selected_action
+        except Exception as e:
+            logger.warning(f"Simulation fallback failed: {e}, using intelligent selection")
+            return self._select_intelligent_action_with_relevance(available_actions, context)
     
     def _select_coordinate_based_action(self, response_data: Dict[str, Any], game_id: str) -> int:
         """

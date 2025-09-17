@@ -12,6 +12,8 @@ from typing import Dict, List, Tuple, Any, Optional
 import logging
 import time
 import numpy as np
+from dataclasses import dataclass
+from enum import Enum
 
 # Fix relative imports by using absolute imports within the package
 from memory.dnc import DNCMemory
@@ -24,6 +26,32 @@ from .simulation_models import (
 
 logger = logging.getLogger(__name__)
 
+class UncertaintyType(Enum):
+    """Types of uncertainty in predictions."""
+    ALEATORIC = "aleatoric"  # Data uncertainty
+    EPISTEMIC = "epistemic"  # Model uncertainty
+    TOTAL = "total"          # Combined uncertainty
+
+@dataclass
+class PredictionUncertainty:
+    """Represents uncertainty in a prediction."""
+    aleatoric: float
+    epistemic: float
+    total: float
+    confidence: float
+    uncertainty_type: UncertaintyType
+    timestamp: float
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            'aleatoric': self.aleatoric,
+            'epistemic': self.epistemic,
+            'total': self.total,
+            'confidence': self.confidence,
+            'uncertainty_type': self.uncertainty_type.value,
+            'timestamp': self.timestamp
+        }
 
 class PredictiveCore(nn.Module):
     """
@@ -748,4 +776,93 @@ class PredictiveCore(nn.Module):
             'learning_efficiency': learning_efficiency,
             'action_diversity': action_diversity,
             'confidence_avg': confidence_avg
+        }
+    
+    def compute_prediction_uncertainty(self, 
+                                     predictions: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+                                     actual: SensoryInput,
+                                     num_samples: int = 10) -> PredictionUncertainty:
+        """
+        Compute prediction uncertainty using Monte Carlo dropout.
+        
+        Args:
+            predictions: (visual_pred, proprio_pred, energy_pred)
+            actual: Actual sensory input
+            num_samples: Number of Monte Carlo samples
+            
+        Returns:
+            PredictionUncertainty object
+        """
+        visual_pred, proprio_pred, energy_pred = predictions
+        
+        # Enable dropout for uncertainty estimation
+        self.train()  # Enable dropout
+        
+        # Collect multiple predictions with dropout
+        mc_predictions = []
+        for _ in range(num_samples):
+            with torch.no_grad():
+                # Forward pass with dropout enabled
+                pred_visual, pred_proprio, pred_energy, _, _ = self.forward(actual)
+                mc_predictions.append((pred_visual, pred_proprio, pred_energy))
+        
+        # Disable dropout
+        self.eval()
+        
+        # Calculate epistemic uncertainty (model uncertainty)
+        visual_vars = torch.var(torch.stack([p[0] for p in mc_predictions]), dim=0)
+        proprio_vars = torch.var(torch.stack([p[1] for p in mc_predictions]), dim=0)
+        energy_vars = torch.var(torch.stack([p[2] for p in mc_predictions]), dim=0)
+        
+        epistemic_uncertainty = (
+            0.5 * torch.mean(visual_vars) + 
+            0.3 * torch.mean(proprio_vars) + 
+            0.2 * torch.mean(energy_vars)
+        ).item()
+        
+        # Calculate aleatoric uncertainty (data uncertainty)
+        prediction_errors = self.compute_prediction_error(predictions, actual)
+        aleatoric_uncertainty = torch.mean(prediction_errors['total']).item()
+        
+        # Total uncertainty
+        total_uncertainty = epistemic_uncertainty + aleatoric_uncertainty
+        
+        # Confidence (inverse of uncertainty)
+        confidence = 1.0 / (1.0 + total_uncertainty)
+        
+        return PredictionUncertainty(
+            aleatoric=aleatoric_uncertainty,
+            epistemic=epistemic_uncertainty,
+            total=total_uncertainty,
+            confidence=confidence,
+            uncertainty_type=UncertaintyType.TOTAL,
+            timestamp=time.time()
+        )
+    
+    def adaptive_learning_rate(self, prediction_error: float) -> float:
+        """
+        Dynamically adjust learning rate based on prediction error and uncertainty.
+        
+        Args:
+            prediction_error: Current prediction error
+            
+        Returns:
+            Adaptive learning rate
+        """
+        base_lr = 0.001  # Base learning rate
+        
+        if prediction_error > 0.5:  # High error - increase learning
+            return base_lr * 1.5
+        elif prediction_error < 0.1:  # Low error - decrease learning
+            return base_lr * 0.8
+        else:
+            return base_lr
+    
+    def get_uncertainty_stats(self) -> Dict[str, Any]:
+        """Get uncertainty statistics for monitoring."""
+        return {
+            'uncertainty_tracking_enabled': True,
+            'monte_carlo_samples': 10,
+            'uncertainty_types': [ut.value for ut in UncertaintyType],
+            'confidence_threshold': 0.7
         }
