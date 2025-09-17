@@ -111,7 +111,7 @@ class SystemIntegration:
     async def get_game_results(self, session_id: str = None, game_id: str = None) -> List[Dict[str, Any]]:
         """Get game results."""
         results = await self.db.get_game_results(session_id, game_id)
-        return [asdict(result) for result in results]
+        return results  # Return GameResult objects directly
     
     # ============================================================================
     # ACTION INTELLIGENCE INTEGRATION

@@ -3331,7 +3331,7 @@ class ContinuousLearningLoop:
             recommended_actions = available_actions.copy()
             
             # Switch if too many consecutive actions with no frame changes
-            if consecutive_no_change >= 5:
+            if consecutive_no_change >= 3:  # More aggressive - switch after 3 consecutive failures
                 should_switch = True
                 reason = f"No frame changes for {consecutive_no_change} consecutive actions"
                 
@@ -3358,21 +3358,31 @@ class ContinuousLearningLoop:
                         recommended_actions = available_actions[::-1]  # Reverse order
             
             # Switch if same action repeated too many times
-            elif len(stagnant_actions) >= 3:
-                last_three = stagnant_actions[-3:]
-                if len(set(last_three)) == 1:  # Same action repeated 3 times
+            elif len(stagnant_actions) >= 2:  # More aggressive - switch after 2 repetitions
+                last_two = stagnant_actions[-2:]
+                if len(set(last_two)) == 1:  # Same action repeated 2 times
                     should_switch = True
-                    reason = f"Action {last_three[0]} repeated 3 times with no frame changes"
+                    reason = f"Action {last_two[0]} repeated 2 times with no frame changes"
                     
                     # Exclude the repeated action, but ensure we don't empty the list
-                    repeated_action = last_three[0]
+                    repeated_action = last_two[0]
                     recommended_actions = [a for a in available_actions if a != repeated_action]
                     
                     # CRITICAL FIX: If excluding the repeated action leaves us with no options,
-                    # keep the original action but mark it as a forced choice
+                    # try a different approach - cycle through other actions
                     if not recommended_actions:
-                        recommended_actions = available_actions.copy()
-                        reason += " (forced to continue with same action - no alternatives)"
+                        # If only one action available, we're stuck - but try to break the pattern
+                        if len(available_actions) == 1:
+                            # Force a reset by returning a special signal
+                            should_switch = True
+                            reason += " (only one action available - forcing pattern break)"
+                            recommended_actions = available_actions.copy()
+                        else:
+                            # Try all other actions except the repeated one
+                            recommended_actions = [a for a in available_actions if a != repeated_action]
+                            if not recommended_actions:
+                                recommended_actions = available_actions.copy()
+                                reason += " (forced to continue with same action - no alternatives)"
             
             return {
                 'should_switch': should_switch,
@@ -3898,6 +3908,13 @@ class ContinuousLearningLoop:
     def _select_next_action(self, response_data: Dict[str, Any], game_id: str) -> Optional[int]:
         """Select appropriate action based on learned intelligence, available_actions from API response, and visual frame analysis."""
         print(f"🔧 _SELECT_NEXT_ACTION CALLED for {game_id}")
+        print(f"🔧 AVAILABLE ACTIONS: {response_data.get('available_actions', [])}")
+        logger.info(f"🔧 _SELECT_NEXT_ACTION CALLED for {game_id}")
+        logger.info(f"🔧 AVAILABLE ACTIONS: {response_data.get('available_actions', [])}")
+        
+        # Force flush to ensure messages appear in logs
+        import sys
+        sys.stdout.flush()
         # Ensure memory is properly initialized
         self._ensure_available_actions_memory()
         available = response_data.get('available_actions', [])
@@ -4066,33 +4083,143 @@ class ContinuousLearningLoop:
         # Get frame analysis for intelligent coordinate selection
         frame_analysis = self._analyze_frame_for_action_selection(response_data, game_id)
         
-        # Use enhanced coordinate selection with frame analysis
+        # Check for coordinate stagnation - if same coordinate used too many times with no success
+        coordinate_stagnation = self._check_coordinate_stagnation(game_id, (grid_width, grid_height))
+        if coordinate_stagnation['should_switch']:
+            print(f"🔄 COORDINATE STAGNATION DETECTED: {coordinate_stagnation['reason']}")
+            print(f"🔄 SWITCHING FROM: {coordinate_stagnation['stagnant_coordinates']} TO: {coordinate_stagnation['recommended_coordinates']}")
+            # Use recommended coordinates instead of normal selection
+            if coordinate_stagnation['recommended_coordinates']:
+                x, y = coordinate_stagnation['recommended_coordinates'][0]
+                print(f"🎯 STAGNATION SWITCH COORDINATE: ({x},{y}) for ACTION6")
+            else:
+                # Fallback to normal selection
+                x, y = self._enhance_coordinate_selection_with_frame_analysis(
+                    6, (grid_width, grid_height), game_id, frame_analysis
+                )
+                print(f"🎯 SELECTED COORDINATE: ({x},{y}) for ACTION6")
+        else:
+            # Use enhanced coordinate selection with frame analysis
+            try:
+                x, y = self._enhance_coordinate_selection_with_frame_analysis(
+                    6, (grid_width, grid_height), game_id, frame_analysis
+                )
+                print(f"🎯 SELECTED COORDINATE: ({x},{y}) for ACTION6")
+            except Exception as e:
+                print(f"⚠️ Coordinate selection failed: {e}, using fallback")
+                # Fallback to systematic exploration
+                x, y = self._generate_exploration_coordinates((grid_width, grid_height), game_id)
+                print(f"🎯 FALLBACK COORDINATE: ({x},{y}) for ACTION6")
+        
+        # Store the selected coordinates for execution
+        if not hasattr(self, '_selected_coordinates'):
+            self._selected_coordinates = {}
+        self._selected_coordinates[game_id] = (x, y)
+        
+        # Return ACTION6 (the system will use the stored coordinates)
+        return 6
+    
+    def _check_coordinate_stagnation(self, game_id: str, grid_dimensions: Tuple[int, int]) -> Dict[str, Any]:
+        """Check for coordinate stagnation and recommend switching to different coordinates."""
         try:
-            x, y = self._enhance_coordinate_selection_with_frame_analysis(
-                6, (grid_width, grid_height), game_id, frame_analysis
-            )
-            print(f"🎯 SELECTED COORDINATE: ({x},{y}) for ACTION6")
+            if not hasattr(self, 'available_actions_memory'):
+                return {'should_switch': False, 'reason': 'No memory system available'}
             
-            # Store the selected coordinates for execution
-            if not hasattr(self, '_selected_coordinates'):
-                self._selected_coordinates = {}
-            self._selected_coordinates[game_id] = (x, y)
+            # Initialize coordinate tracking if not exists
+            if 'coordinate_stagnation' not in self.available_actions_memory:
+                self.available_actions_memory['coordinate_stagnation'] = {}
             
-            # Return ACTION6 (the system will use the stored coordinates)
-            return 6
+            if game_id not in self.available_actions_memory['coordinate_stagnation']:
+                self.available_actions_memory['coordinate_stagnation'][game_id] = {
+                    'recent_coordinates': [],
+                    'coordinate_failures': {},
+                    'last_successful_coordinate': None
+                }
+            
+            stagnation = self.available_actions_memory['coordinate_stagnation'][game_id]
+            recent_coords = stagnation.get('recent_coordinates', [])
+            coord_failures = stagnation.get('coordinate_failures', {})
+            
+            # Check if same coordinate used too many times with no success
+            should_switch = False
+            reason = ""
+            recommended_coordinates = []
+            
+            if len(recent_coords) >= 3:
+                last_three = recent_coords[-3:]
+                if len(set(last_three)) == 1:  # Same coordinate repeated 3 times
+                    should_switch = True
+                    reason = f"Coordinate {last_three[0]} repeated 3 times with no success"
+                    
+                    # Generate alternative coordinates
+                    grid_width, grid_height = grid_dimensions
+                    stagnant_coord = last_three[0]
+                    
+                    # Try coordinates in different areas of the grid
+                    alternatives = []
+                    for x in range(0, grid_width, 8):  # Every 8th pixel
+                        for y in range(0, grid_height, 8):
+                            if (x, y) != stagnant_coord:
+                                alternatives.append((x, y))
+                    
+                    # Filter out recently failed coordinates
+                    untried_coords = [coord for coord in alternatives if coord not in coord_failures]
+                    if untried_coords:
+                        recommended_coordinates = untried_coords[:5]  # Top 5 alternatives
+                    else:
+                        # If all coordinates have been tried, use random selection
+                        import random
+                        recommended_coordinates = random.sample(alternatives, min(5, len(alternatives)))
+            
+            return {
+                'should_switch': should_switch,
+                'reason': reason,
+                'stagnant_coordinates': recent_coords[-3:] if len(recent_coords) >= 3 else [],
+                'recommended_coordinates': recommended_coordinates
+            }
             
         except Exception as e:
-            print(f"⚠️ Coordinate selection failed: {e}, using fallback")
-            # Fallback to systematic exploration
-            x, y = self._generate_exploration_coordinates((grid_width, grid_height), game_id)
-            print(f"🎯 FALLBACK COORDINATE: ({x},{y}) for ACTION6")
+            logger.error(f"Error checking coordinate stagnation: {e}")
+            return {'should_switch': False, 'reason': f'Error: {e}'}
+    
+    def _update_coordinate_stagnation(self, game_id: str, coordinates: Tuple[int, int], success: bool) -> None:
+        """Update coordinate stagnation tracking."""
+        try:
+            if not hasattr(self, 'available_actions_memory'):
+                return
             
-            # Store the fallback coordinates
-            if not hasattr(self, '_selected_coordinates'):
-                self._selected_coordinates = {}
-            self._selected_coordinates[game_id] = (x, y)
+            if 'coordinate_stagnation' not in self.available_actions_memory:
+                self.available_actions_memory['coordinate_stagnation'] = {}
             
-            return 6
+            if game_id not in self.available_actions_memory['coordinate_stagnation']:
+                self.available_actions_memory['coordinate_stagnation'][game_id] = {
+                    'recent_coordinates': [],
+                    'coordinate_failures': {},
+                    'last_successful_coordinate': None
+                }
+            
+            stagnation = self.available_actions_memory['coordinate_stagnation'][game_id]
+            
+            # Add coordinate to recent history
+            stagnation['recent_coordinates'].append(coordinates)
+            
+            # Keep only last 10 coordinates
+            if len(stagnation['recent_coordinates']) > 10:
+                stagnation['recent_coordinates'] = stagnation['recent_coordinates'][-10:]
+            
+            # Track failures
+            if not success:
+                coord_key = f"{coordinates[0]},{coordinates[1]}"
+                stagnation['coordinate_failures'][coord_key] = stagnation['coordinate_failures'].get(coord_key, 0) + 1
+            else:
+                # Reset failure count on success
+                coord_key = f"{coordinates[0]},{coordinates[1]}"
+                if coord_key in stagnation['coordinate_failures']:
+                    del stagnation['coordinate_failures'][coord_key]
+                stagnation['last_successful_coordinate'] = coordinates
+                
+        except Exception as e:
+            logger.error(f"Error updating coordinate stagnation: {e}")
     
     def _update_coordinate_effectiveness(self, coordinates: Tuple[int, int], response_data: Dict[str, Any], game_id: str, frame_analysis: Dict[str, Any]) -> None:
         """
@@ -4635,6 +4762,18 @@ class ContinuousLearningLoop:
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
                                 print(f"🔧 IMMEDIATE DEBUG: Right after successful action execution for {game_id}")
                                 
+                                # Update coordinate stagnation tracking for ACTION6
+                                if action_number == 6 and x is not None and y is not None:
+                                    # Check if this was a successful action (frame changed or score improved)
+                                    frame_changed = data.get('frame_changed', False)
+                                    score_improved = data.get('score', 0) > 0
+                                    success = frame_changed or score_improved
+                                    self._update_coordinate_stagnation(game_id, (x, y), success)
+                                    if success:
+                                        print(f"✅ COORDINATE SUCCESS: ({x},{y}) - frame_changed={frame_changed}, score_improved={score_improved}")
+                                    else:
+                                        print(f"❌ COORDINATE FAILURE: ({x},{y}) - no progress detected")
+                                
                                 # 🎯 OPENCV INTEGRATION: Extract features from current frame
                                 try:
                                     # Initialize OpenCV extractor if not already done
@@ -4649,6 +4788,16 @@ class ContinuousLearningLoop:
                                     if hasattr(self, 'opencv_extractor') and self.opencv_extractor:
                                         frame = data.get('frame', [])
                                         if frame:
+                                            # Debug: Log frame structure
+                                            print(f"🔍 FRAME DEBUG: Type={type(frame)}, Length={len(frame) if isinstance(frame, list) else 'N/A'}")
+                                            if isinstance(frame, list) and len(frame) > 0:
+                                                print(f"🔍 FRAME[0] DEBUG: Type={type(frame[0])}, Length={len(frame[0]) if isinstance(frame[0], list) else 'N/A'}")
+                                                if isinstance(frame[0], list) and len(frame[0]) > 0:
+                                                    print(f"🔍 FRAME[0][0] DEBUG: Type={type(frame[0][0])}, Value={frame[0][0]}")
+                                                    # Check for non-zero values
+                                                    non_zero_count = sum(1 for row in frame for cell in row if cell != 0)
+                                                    print(f"🔍 NON-ZERO PIXELS: {non_zero_count} out of {len(frame) * len(frame[0])}")
+                                            
                                             opencv_features = self.opencv_extractor.extract_features(frame, game_id)
                                             print(f"🎯 OPENCV FEATURES: {len(opencv_features.get('objects', []))} objects detected for {game_id}")
                                             
@@ -5134,6 +5283,18 @@ class ContinuousLearningLoop:
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
                                 print(f"🔧 IMMEDIATE DEBUG: Right after successful action execution for {game_id}")
                                 
+                                # Update coordinate stagnation tracking for ACTION6
+                                if action_number == 6 and x is not None and y is not None:
+                                    # Check if this was a successful action (frame changed or score improved)
+                                    frame_changed = data.get('frame_changed', False)
+                                    score_improved = data.get('score', 0) > 0
+                                    success = frame_changed or score_improved
+                                    self._update_coordinate_stagnation(game_id, (x, y), success)
+                                    if success:
+                                        print(f"✅ COORDINATE SUCCESS: ({x},{y}) - frame_changed={frame_changed}, score_improved={score_improved}")
+                                    else:
+                                        print(f"❌ COORDINATE FAILURE: ({x},{y}) - no progress detected")
+                                
                                 # 🎯 OPENCV INTEGRATION: Extract features from current frame
                                 try:
                                     # Initialize OpenCV extractor if not already done
@@ -5148,6 +5309,16 @@ class ContinuousLearningLoop:
                                     if hasattr(self, 'opencv_extractor') and self.opencv_extractor:
                                         frame = data.get('frame', [])
                                         if frame:
+                                            # Debug: Log frame structure
+                                            print(f"🔍 FRAME DEBUG: Type={type(frame)}, Length={len(frame) if isinstance(frame, list) else 'N/A'}")
+                                            if isinstance(frame, list) and len(frame) > 0:
+                                                print(f"🔍 FRAME[0] DEBUG: Type={type(frame[0])}, Length={len(frame[0]) if isinstance(frame[0], list) else 'N/A'}")
+                                                if isinstance(frame[0], list) and len(frame[0]) > 0:
+                                                    print(f"🔍 FRAME[0][0] DEBUG: Type={type(frame[0][0])}, Value={frame[0][0]}")
+                                                    # Check for non-zero values
+                                                    non_zero_count = sum(1 for row in frame for cell in row if cell != 0)
+                                                    print(f"🔍 NON-ZERO PIXELS: {non_zero_count} out of {len(frame) * len(frame[0])}")
+                                            
                                             opencv_features = self.opencv_extractor.extract_features(frame, game_id)
                                             print(f"🎯 OPENCV FEATURES: {len(opencv_features.get('objects', []))} objects detected for {game_id}")
                                             

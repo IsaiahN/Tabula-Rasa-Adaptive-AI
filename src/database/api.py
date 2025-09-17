@@ -269,7 +269,10 @@ class TabulaRasaDatabase:
     
     async def get_game_results(self, session_id: str = None, game_id: str = None) -> List[GameResult]:
         """Get game results with optional filtering."""
-        query = "SELECT * FROM game_results WHERE 1=1"
+        query = """SELECT game_id, session_id, start_time, end_time, status, final_score, 
+                   total_actions, actions_taken, win_detected, level_completions, 
+                   frame_changes, coordinate_attempts, coordinate_successes 
+                   FROM game_results WHERE 1=1"""
         params = []
         
         if session_id:
@@ -489,7 +492,7 @@ class TabulaRasaDatabase:
             cursor = conn.execute("""
                 SELECT pattern_data, success_rate, frequency
                 FROM learned_patterns
-                WHERE pattern_type = 'winning_sequence' AND (game_id = ? OR ? IS NULL)
+                WHERE pattern_type = 'winning_sequence' AND (game_context = ? OR ? IS NULL)
                 ORDER BY success_rate DESC, frequency DESC
                 LIMIT 10
             """, (game_id, game_id))
