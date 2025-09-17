@@ -156,15 +156,53 @@ from core.salience_system import SalienceCalculator, SalienceMode, SalienceWeigh
 from arc_integration.scorecard_api import ScorecardAPIManager, get_api_key_from_config
 
 # Import Governor and Architect
+# Import Architect (optional component)
 try:
-    from src.core.meta_cognitive_governor import MetaCognitiveGovernor
     from src.core.architect import Architect
-    META_COGNITIVE_AVAILABLE = True
+    ARCHITECT_AVAILABLE = True
 except ImportError as e:
-    META_COGNITIVE_AVAILABLE = False
-    print(f"WARNING: Meta-cognitive systems not available: {e}")
-    MetaCognitiveGovernor = None
+    ARCHITECT_AVAILABLE = False
+    print(f"WARNING: Architect not available: {e}")
     Architect = None
+
+# Import Enhanced Space-Time Aware Governor (ONLY)
+try:
+    from src.core.enhanced_space_time_governor import EnhancedSpaceTimeGovernor, create_enhanced_space_time_governor
+    ENHANCED_GOVERNOR_AVAILABLE = True
+except ImportError as e:
+    ENHANCED_GOVERNOR_AVAILABLE = False
+    print(f"ERROR: Enhanced space-time aware governor is required but not available: {e}")
+    EnhancedSpaceTimeGovernor = None
+    create_enhanced_space_time_governor = None
+
+# Import Tree-Based System Components
+try:
+    from src.core.tree_based_director import GoalPriority, ReasoningNodeType
+    from src.core.implicit_memory_manager import MemoryType, MemoryPriority
+    TREE_COMPONENTS_AVAILABLE = True
+except ImportError as e:
+    TREE_COMPONENTS_AVAILABLE = False
+    print(f"WARNING: Tree-based components not available: {e}")
+    GoalPriority = None
+    ReasoningNodeType = None
+    MemoryType = None
+    MemoryPriority = None
+
+# Import Tree-Based Systems
+try:
+    from src.core.tree_based_director import TreeBasedDirector, create_tree_based_director
+    from src.core.tree_based_architect import TreeBasedArchitect, create_tree_based_architect
+    from src.core.implicit_memory_manager import ImplicitMemoryManager, create_implicit_memory_manager
+    TREE_BASED_SYSTEMS_AVAILABLE = True
+except ImportError as e:
+    TREE_BASED_SYSTEMS_AVAILABLE = False
+    print(f"WARNING: Tree-based systems not available: {e}")
+    TreeBasedDirector = None
+    create_tree_based_director = None
+    TreeBasedArchitect = None
+    create_tree_based_architect = None
+    ImplicitMemoryManager = None
+    create_implicit_memory_manager = None
 
 # Import Enhanced Simulation Agent
 try:
@@ -179,6 +217,18 @@ except ImportError as e:
     EnhancedSimulationAgent = None
     PredictiveCore = None
     EnhancedSimulationConfig = None
+
+# Import Tree Evaluation Enhanced Simulation
+try:
+    from src.core.tree_evaluation_integration import TreeEvaluationEnhancedSimulationAgent, create_tree_evaluation_enhanced_agent
+    from src.core.tree_evaluation_simulation import TreeEvaluationConfig
+    TREE_EVALUATION_AVAILABLE = True
+except ImportError as e:
+    TREE_EVALUATION_AVAILABLE = False
+    print(f"WARNING: Tree evaluation simulation not available: {e}")
+    TreeEvaluationEnhancedSimulationAgent = None
+    create_tree_evaluation_enhanced_agent = None
+    TreeEvaluationConfig = None
 # Import FrameAnalyzer
 try:
     from vision.frame_analyzer import FrameAnalyzer
@@ -225,10 +275,7 @@ except ImportError:
         def __init__(self, config):
             pass
 # Fallback comparator if salience comparator module unavailable
-try:
-    from salience_mode_comparison import SalienceModeComparator
-except Exception:
-    class SalienceModeComparator:
+class SalienceModeComparator:
         @staticmethod
         def compare_modes(*args, **kwargs):
             return {'comparison_available': False}
@@ -724,14 +771,25 @@ class ContinuousLearningLoop:
         self.architect = None
         self.learning_session_id = None  # Track current learning session
         
+        # Initialize Tree-Based Systems (optional components)
+        self.tree_director = None
+        self.tree_architect = None
+        self.implicit_memory = None
+        
         # Try to initialize Governor and Architect
         try:
-            if MetaCognitiveGovernor is not None:
-                self.governor = MetaCognitiveGovernor(
-                    persistence_dir=self.save_directory  # Enable pattern learning - pass Path object directly
+            if ENHANCED_GOVERNOR_AVAILABLE:
+                self.governor = create_enhanced_space_time_governor(
+                    memory_capacity=1000,
+                    decision_threshold=0.5,
+                    adaptation_rate=0.1,
+                    persistence_dir=self.save_directory
                 )
-                print(f"✅ Governor initialized with learning manager: {hasattr(self.governor, 'learning_manager')}")
-            if Architect is not None:
+                print("✅ Enhanced Space-Time Aware Governor initialized with all functionality")
+            else:
+                raise ImportError("Enhanced Space-Time Aware Governor is required but not available")
+            
+            if ARCHITECT_AVAILABLE and Architect is not None:
                 self.architect = Architect(
                     base_path=str(self.save_directory),
                     repo_path="."  # Use main project directory for Git operations
@@ -750,14 +808,33 @@ class ContinuousLearningLoop:
                 from core.predictive_core import PredictiveCore
                 # Create a basic predictive core first
                 predictive_core = PredictiveCore()
-                # Create enhanced simulation config
-                simulation_config = EnhancedSimulationConfig(learning_mode=LearningMode.BALANCED)
-                self.simulation_agent = EnhancedSimulationAgent(
-                    predictive_core=predictive_core,
-                    config=simulation_config,
-                    persistence_dir=str(self.save_directory / "enhanced_simulation_agent")
-                )
-                print("✅ Enhanced simulation agent initialized successfully")
+                
+                # Use Tree Evaluation Enhanced Simulation Agent if available
+                if TREE_EVALUATION_AVAILABLE:
+                    # Create tree evaluation config for enhanced simulation
+                    tree_config = TreeEvaluationConfig(
+                        max_depth=12,  # Deeper simulation with tree evaluation
+                        branching_factor=6,  # More branching options
+                        memory_limit_mb=150.0,  # Higher memory limit for better simulation
+                        state_representation_bits=128  # More detailed state representation
+                    )
+                    
+                    self.simulation_agent = create_tree_evaluation_enhanced_agent(
+                        predictive_core=predictive_core,
+                        max_depth=tree_config.max_depth,
+                        branching_factor=tree_config.branching_factor,
+                        memory_limit_mb=tree_config.memory_limit_mb
+                    )
+                    print("✅ Tree Evaluation Enhanced simulation agent initialized successfully")
+                else:
+                    # Fallback to original enhanced simulation agent
+                    simulation_config = EnhancedSimulationConfig(learning_mode=LearningMode.BALANCED)
+                    self.simulation_agent = EnhancedSimulationAgent(
+                        predictive_core=predictive_core,
+                        config=simulation_config,
+                        persistence_dir=str(self.save_directory / "enhanced_simulation_agent")
+                    )
+                    print("✅ Enhanced simulation agent initialized successfully (fallback)")
             else:
                 print("⚠️  Enhanced simulation agent initialization skipped - dependencies not available")
         except Exception as e:
@@ -1035,30 +1112,80 @@ class ContinuousLearningLoop:
         self.governor = None
         self.architect = None
         self.learning_session_id = None  # Track current learning session
-        if META_COGNITIVE_AVAILABLE:
+        if ENHANCED_GOVERNOR_AVAILABLE:
             try:
                 # Initialize Governor (Third Brain) with persistence directory for pattern learning
                 print("🎯 Initializing Governor...")
-                self.governor = MetaCognitiveGovernor(
+                
+                self.governor = create_enhanced_space_time_governor(
                     memory_capacity=1000,
-                    decision_threshold=0.5,  # REDUCED - Less strict decision threshold
+                    decision_threshold=0.5,
                     adaptation_rate=0.1,
-                    persistence_dir=self.save_directory  # Enable pattern learning - pass Path object directly
+                    persistence_dir=self.save_directory
                 )
+                print("✅ Enhanced Space-Time Aware Governor initialized with all functionality")
                 print("✅ Governor initialized")
                 logger.info("🧠 Meta-Cognitive Governor initialized (Third Brain) with pattern learning")
                 
                 # Initialize Architect (Zeroth Brain)
-                print("🏗️ Initializing Architect...")
-                self.architect = Architect(
-                    evolution_rate=0.05,
-                    innovation_threshold=0.8,
-                    memory_capacity=500,
-                    base_path=str(self.save_directory),
-                    repo_path="."  # Use main project directory for Git operations
-                )
-                print("✅ Architect initialized")
-                logger.info("🏗️ Architect initialized (Zeroth Brain)")
+                if ARCHITECT_AVAILABLE and Architect is not None:
+                    print("🏗️ Initializing Architect...")
+                    self.architect = Architect(
+                        evolution_rate=0.05,
+                        innovation_threshold=0.8,
+                        memory_capacity=500,
+                        base_path=str(self.save_directory),
+                        repo_path="."  # Use main project directory for Git operations
+                    )
+                    print("✅ Architect initialized")
+                    logger.info("🏗️ Architect initialized (Zeroth Brain)")
+                else:
+                    print("⚠️ Architect not available, skipping initialization")
+                
+                # Initialize Tree-Based Systems
+                if TREE_BASED_SYSTEMS_AVAILABLE:
+                    print("🌳 Initializing Tree-Based Systems...")
+                    
+                    # Initialize Tree-Based Director
+                    try:
+                        self.tree_director = create_tree_based_director(
+                            max_reasoning_depth=8,
+                            max_nodes_per_trace=100,
+                            memory_limit_mb=50.0,
+                            persistence_dir=self.save_directory
+                        )
+                        print("✅ Tree-Based Director initialized")
+                    except Exception as e:
+                        print(f"⚠️ Tree-Based Director initialization failed: {e}")
+                        self.tree_director = None
+                    
+                    # Initialize Tree-Based Architect
+                    try:
+                        self.tree_architect = create_tree_based_architect(
+                            max_evolution_depth=6,
+                            max_nodes_per_trace=50,
+                            memory_limit_mb=30.0,
+                            persistence_dir=self.save_directory
+                        )
+                        print("✅ Tree-Based Architect initialized")
+                    except Exception as e:
+                        print(f"⚠️ Tree-Based Architect initialization failed: {e}")
+                        self.tree_architect = None
+                    
+                    # Initialize Implicit Memory Manager
+                    try:
+                        self.implicit_memory = create_implicit_memory_manager(
+                            max_memory_mb=100.0,
+                            compression_threshold=0.7,
+                            cluster_size=10,
+                            persistence_dir=self.save_directory
+                        )
+                        print("✅ Implicit Memory Manager initialized")
+                    except Exception as e:
+                        print(f"⚠️ Implicit Memory Manager initialization failed: {e}")
+                        self.implicit_memory = None
+                else:
+                    print("⚠️ Tree-Based Systems not available, skipping initialization")
                 
             except Exception as e:
                 print(f"❌ Failed to initialize meta-cognitive systems: {e}")
@@ -1090,15 +1217,32 @@ class ContinuousLearningLoop:
                         }
                     )
                     
-                    # Initialize simulation configuration
-                    simulation_config = EnhancedSimulationConfig(learning_mode=LearningMode.BALANCED)
-                    
-                    # Initialize Enhanced Simulation Agent
-                    self.simulation_agent = EnhancedSimulationAgent(
-                        predictive_core=predictive_core,
-                        config=simulation_config,
-                        persistence_dir=str(self.save_directory / "simulation_agent")
-                    )
+                    # Use Tree Evaluation Enhanced Simulation Agent if available
+                    if TREE_EVALUATION_AVAILABLE:
+                        # Create tree evaluation config for enhanced simulation
+                        tree_config = TreeEvaluationConfig(
+                            max_depth=12,  # Deeper simulation with tree evaluation
+                            branching_factor=6,  # More branching options
+                            memory_limit_mb=150.0,  # Higher memory limit for better simulation
+                            state_representation_bits=128  # More detailed state representation
+                        )
+                        
+                        self.simulation_agent = create_tree_evaluation_enhanced_agent(
+                            predictive_core=predictive_core,
+                            max_depth=tree_config.max_depth,
+                            branching_factor=tree_config.branching_factor,
+                            memory_limit_mb=tree_config.memory_limit_mb
+                        )
+                        print("✅ Tree Evaluation Enhanced simulation agent initialized successfully")
+                    else:
+                        # Fallback to original enhanced simulation agent
+                        simulation_config = EnhancedSimulationConfig(learning_mode=LearningMode.BALANCED)
+                        self.simulation_agent = EnhancedSimulationAgent(
+                            predictive_core=predictive_core,
+                            config=simulation_config,
+                            persistence_dir=str(self.save_directory / "simulation_agent")
+                        )
+                        print("✅ Enhanced simulation agent initialized successfully (fallback)")
                     
                     logger.info("🧠 Simulation-Driven Intelligence initialized - Multi-step planning enabled")
                     
@@ -6598,12 +6742,83 @@ class ContinuousLearningLoop:
         # 🧠 META-COGNITIVE GOVERNOR INTEGRATION (Third Brain)
         if hasattr(self, 'governor') and self.governor:
             try:
-                governor_decision = self.governor.make_decision(
-                    available_actions=available_actions,
-                    context=context,
-                    performance_history=getattr(self, 'performance_history', []),
-                    current_energy=getattr(self, 'current_energy', 1.0)
-                )
+                # Use enhanced decision making with space-time awareness
+                if hasattr(self.governor, 'make_decision_with_space_time_awareness'):
+                    governor_decision = self.governor.make_decision_with_space_time_awareness(
+                        available_actions=available_actions,
+                        context=context,
+                        performance_history=getattr(self, 'performance_history', []),
+                        current_energy=getattr(self, 'current_energy', 1.0)
+                    )
+                else:
+                    # Use standard enhanced decision making
+                    governor_decision = self.governor.make_decision(
+                        available_actions=available_actions,
+                        context=context,
+                        performance_history=getattr(self, 'performance_history', []),
+                        current_energy=getattr(self, 'current_energy', 1.0)
+                    )
+                
+                # 🌳 TREE-BASED DIRECTOR INTEGRATION (Enhanced Reasoning)
+                if hasattr(self, 'tree_director') and self.tree_director and TREE_COMPONENTS_AVAILABLE:
+                    try:
+                        # Create reasoning trace for complex decisions
+                        if governor_decision.get('confidence', 0) < 0.7:  # Low confidence decisions
+                            trace_id = self.tree_director.create_reasoning_trace(
+                                root_goal=f"Make decision for action {governor_decision.get('recommended_action', 'unknown')}",
+                                context=context,
+                                priority=GoalPriority.HIGH
+                            )
+                            
+                            # Decompose the decision goal
+                            decomposition = self.tree_director.decompose_goal(trace_id, f"Choose best action from {available_actions}")
+                            
+                            # Add reasoning steps based on context
+                            if 'frame_analysis' in context:
+                                self.tree_director.add_reasoning_step(
+                                    trace_id, ReasoningNodeType.STRATEGY,
+                                    f"Analyze frame data: {context['frame_analysis']}"
+                                )
+                            
+                            # Synthesize enhanced reasoning
+                            synthesis = self.tree_director.synthesize_reasoning(trace_id)
+                            
+                            # Enhance governor decision with tree-based reasoning
+                            if synthesis.get('overall_confidence', 0) > governor_decision.get('confidence', 0):
+                                governor_decision['tree_reasoning'] = synthesis
+                                governor_decision['reasoning'] = f"{governor_decision.get('reasoning', '')} | Tree-based analysis: {synthesis.get('key_strategies', [])}"
+                                governor_decision['confidence'] = max(governor_decision.get('confidence', 0), synthesis.get('overall_confidence', 0))
+                            
+                            # Complete the trace
+                            self.tree_director.complete_trace(trace_id, success=True)
+                            
+                    except Exception as e:
+                        logger.debug(f"Tree-based director integration failed: {e}")
+                
+                # 🧠 IMPLICIT MEMORY INTEGRATION (Memory-Aware Decisions)
+                if hasattr(self, 'implicit_memory') and self.implicit_memory and TREE_COMPONENTS_AVAILABLE:
+                    try:
+                        # Store current decision context in memory
+                        decision_memory_id = self.implicit_memory.store_memory(
+                            content=f"Decision context: {context}",
+                            memory_type=MemoryType.META_COGNITIVE,
+                            priority=MemoryPriority.MEDIUM
+                        )
+                        
+                        # Search for relevant past decisions
+                        relevant_memories = self.implicit_memory.search_memories(
+                            query=f"action {governor_decision.get('recommended_action', 'unknown')}",
+                            limit=3
+                        )
+                        
+                        # Enhance decision with memory insights
+                        if relevant_memories:
+                            memory_insights = [mem['content'] for mem in relevant_memories]
+                            governor_decision['memory_insights'] = memory_insights
+                            governor_decision['reasoning'] = f"{governor_decision.get('reasoning', '')} | Memory insights: {len(memory_insights)} relevant patterns found"
+                            
+                    except Exception as e:
+                        logger.debug(f"Implicit memory integration failed: {e}")
                 if governor_decision and 'recommended_action' in governor_decision:
                     print(f"🧠 GOVERNOR DECISION: {governor_decision['reasoning']}")
                     print(f"🧠 GOVERNOR RECOMMENDATION: Action {governor_decision['recommended_action']}")
@@ -7649,12 +7864,21 @@ class ContinuousLearningLoop:
             }
             
             # Ask Governor for reset approval
-            governor_decision = self.governor.make_decision(
-                available_actions=[],  # No actions available for reset decision
-                context=context,
-                performance_history=self.performance_history,
-                current_energy=agent_state.get('energy', 100.0)
-            )
+            if hasattr(self.governor, 'make_decision_with_space_time_awareness'):
+                governor_decision = self.governor.make_decision_with_space_time_awareness(
+                    available_actions=[],  # No actions available for reset decision
+                    context=context,
+                    performance_history=self.performance_history,
+                    current_energy=agent_state.get('energy', 100.0)
+                )
+            else:
+                # Use standard enhanced decision making
+                governor_decision = self.governor.make_decision(
+                    available_actions=[],  # No actions available for reset decision
+                    context=context,
+                    performance_history=self.performance_history,
+                    current_energy=agent_state.get('energy', 100.0)
+                )
             
             if governor_decision and governor_decision.get('confidence', 0) > 0.8:
                 approval.update({

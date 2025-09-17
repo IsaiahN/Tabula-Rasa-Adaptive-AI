@@ -392,7 +392,7 @@ class DataMigrator:
         self.logger.info("Migrating architecture evolution...")
         
         # Look for architecture evolution files
-        arch_files = list(self.data_dir.glob("architecture/evolution/*.json"))
+        arch_files = list(self.data_dir.glob("data/architect_evolution/*.json"))
         
         for arch_file in arch_files:
             try:

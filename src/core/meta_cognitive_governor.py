@@ -280,7 +280,7 @@ class MetaCognitiveGovernor:
             from src.core.architect_evolution_engine import ArchitectEvolutionEngine
             self.architect_engine = ArchitectEvolutionEngine(
                 persistence_dir=persistence_dir or ".",
-                evolution_data_dir="architecture/evolution",  # Relative to persistence_dir
+                evolution_data_dir="data/architect_evolution",  # Use data directory instead
                 enable_autonomous_evolution=True
             )
             self.logger.info("Architect Evolution Engine enabled - Phase 3 autonomous evolution")

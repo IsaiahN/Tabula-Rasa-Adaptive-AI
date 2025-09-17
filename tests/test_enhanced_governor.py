@@ -1,101 +1,80 @@
 #!/usr/bin/env python3
 """
-Test script for enhanced Governor algorithms
+Tests for Enhanced Space-Time Aware Governor
+
+Tests the consolidated governor functionality that combines space-time awareness
+with all legacy governor capabilities.
 """
 
+import pytest
 import sys
-import json
 from pathlib import Path
 
-# Add the src directory to the Python path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add the project root to the path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.core.meta_cognitive_governor import MetaCognitiveGovernor, GovernorRecommendationType
+from src.core.enhanced_space_time_governor import (
+    EnhancedSpaceTimeGovernor,
+    create_enhanced_space_time_governor,
+    CognitiveCost,
+    CognitiveBenefit,
+    GovernorRecommendationType,
+    GovernorRecommendation,
+    ArchitectRequest
+)
 
-def test_enhanced_governor():
-    """Test the enhanced Governor recommendation algorithms."""
-    print("🧠 Testing Enhanced Governor Algorithms...")
+
+class TestEnhancedSpaceTimeGovernor:
+    """Test the enhanced space-time aware governor functionality."""
     
-    # Initialize Governor
-    governor = MetaCognitiveGovernor()
-    
-    # Test scenario 1: Low efficiency should trigger diverse parameter adjustments
-    print("\n📊 Test 1: Parameter Adjustment Diversity")
-    system_analysis = {
-        'average_efficiency': 0.6,
-        'win_rate': 0.3
-    }
-    
-    # Make multiple recommendations to see diversity
-    recommendations = []
-    for i in range(5):
-        rec = governor._evaluate_parameter_adjustments(system_analysis)
-        if rec:
-            recommendations.append({
-                'iteration': i + 1,
-                'config': rec.configuration_changes,
-                'confidence': rec.confidence,
-                'rationale': rec.rationale
-            })
-            
-            # Simulate adding to decision history
-            governor.decision_history.append({
-                'recommendation_type': GovernorRecommendationType.PARAMETER_ADJUSTMENT.value,
-                'configuration_changes': rec.configuration_changes,
-                'outcome_metrics': {'win_rate_change': 0.05, 'efficiency_change': 0.1}  # Simulate success
-            })
-    
-    for rec in recommendations:
-        print(f"   Iteration {rec['iteration']}: {rec['config']} (confidence: {rec['confidence']:.2f})")
-        print(f"   Rationale: {rec['rationale']}")
-        print()
-    
-    # Test scenario 2: Mode switching with different win rates
-    print("🔄 Test 2: Adaptive Mode Switching")
-    test_cases = [
-        {'win_rate': 0.05, 'puzzle_type': 'transformation'},
-        {'win_rate': 0.15, 'puzzle_type': 'pattern'},
-        {'win_rate': 0.25, 'puzzle_type': 'spatial'},
-    ]
-    
-    for case in test_cases:
-        performance = {
-            'current_win_rate': case['win_rate'],
-            'average_score': 8.0 if case['win_rate'] > 0.2 else 3.0
-        }
+    def test_governor_initialization(self):
+        """Test governor initialization."""
+        governor = create_enhanced_space_time_governor()
         
-        rec = governor._evaluate_mode_switching(case['puzzle_type'], performance)
-        if rec:
-            print(f"   Win Rate {case['win_rate']:.2f}: {rec.configuration_changes}")
-            print(f"   Strategy: {rec.rationale}")
-            print(f"   Confidence: {rec.confidence:.2f}, Urgency: {rec.urgency:.1f}")
-            print()
+        assert governor is not None
+        assert hasattr(governor, 'space_time_governor')
+        assert hasattr(governor, 'action_limits')
+        assert hasattr(governor, 'decision_history')
+        assert hasattr(governor, 'performance_history')
     
-    # Test scenario 3: Adaptive confidence calculation
-    print("🎯 Test 3: Adaptive Confidence Calculation")
-    
-    # Test with successful history
-    successful_adjustments = [
-        {'outcome_metrics': {'win_rate_change': 0.1, 'efficiency_change': 0.05}},
-        {'outcome_metrics': {'win_rate_change': 0.08, 'efficiency_change': 0.03}},
-    ]
-    success_rate = governor._calculate_adjustment_success_rate(successful_adjustments)
-    print(f"   Successful history success rate: {success_rate:.2f}")
-    
-    # Test with failed history  
-    failed_adjustments = [
-        {'outcome_metrics': {'win_rate_change': -0.02, 'efficiency_change': 0.0}},
-        {'outcome_metrics': {'win_rate_change': 0.0, 'efficiency_change': -0.01}},
-    ]
-    fail_rate = governor._calculate_adjustment_success_rate(failed_adjustments)
-    print(f"   Failed history success rate: {fail_rate:.2f}")
-    
-    print("\n✅ Enhanced Governor algorithm tests completed!")
-    print("🔍 Key improvements:")
-    print("   • Parameter adjustment diversity based on history")
-    print("   • Adaptive confidence scoring based on past success")
-    print("   • Context-aware mode switching strategies")
-    print("   • Prevention of repetitive recommendations")
+    def test_decision_making(self):
+        """Test decision making functionality."""
+        governor = create_enhanced_space_time_governor()
+        
+        available_actions = [1, 2, 3, 4]
+        context = {
+            'game_id': 'test_game',
+            'frame_analysis': {'object_count': 5},
+            'available_actions': available_actions
+        }
+        performance_history = [
+            {'confidence': 0.6, 'evaluation_depth': 4, 'memory_usage_mb': 30.0}
+        ]
+        current_energy = 80.0
+        
+        decision = governor.make_decision(
+            available_actions=available_actions,
+            context=context,
+            performance_history=performance_history,
+            current_energy=current_energy
+        )
+        
+        # Verify decision structure
+        assert 'recommended_action' in decision
+        assert 'confidence' in decision
+        assert 'reasoning' in decision
+        assert 'space_time_parameters' in decision
+        assert 'resource_profile' in decision
+        assert 'cognitive_cost' in decision
+        assert 'efficiency_ratio' in decision
+        
+        # Verify space-time parameters
+        params = decision['space_time_parameters']
+        assert 'branching_factor' in params
+        assert 'state_bits' in params
+        assert 'max_depth' in params
+        assert 'memory_limit_mb' in params
+
 
 if __name__ == "__main__":
-    test_enhanced_governor()
+    pytest.main([__file__, "-v"])
