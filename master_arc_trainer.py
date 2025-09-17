@@ -505,13 +505,12 @@ class MasterARCTrainer:
             logging.INFO if self.config.verbose else logging.WARNING
         )
         
-        # Configure the root logger
+        # Configure the root logger (console only - database handles persistent logging)
         logging.basicConfig(
             level=log_level,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.StreamHandler(),
-                logging.FileHandler('training.log')
+                logging.StreamHandler()
             ]
         )
         

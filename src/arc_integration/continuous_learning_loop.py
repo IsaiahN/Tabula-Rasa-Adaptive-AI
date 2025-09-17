@@ -3260,6 +3260,9 @@ class ContinuousLearningLoop:
     
     def _enforce_action_diversity(self, available_actions: List[int], game_id: str) -> Optional[int]:
         """Enforce action diversity by tracking usage and selecting underused actions."""
+        if not available_actions:
+            return None
+            
         if not hasattr(self, '_action_usage_tracker'):
             self._action_usage_tracker = {}
 
@@ -5765,9 +5768,10 @@ class ContinuousLearningLoop:
             # Load action intelligence data for this game
             # Load action intelligence from database instead of file
             try:
+                import asyncio
                 from src.database.system_integration import get_system_integration
                 integration = get_system_integration()
-                intelligence_data = await integration.get_action_intelligence(game_id=game_id)
+                intelligence_data = asyncio.run(integration.load_action_intelligence(game_id=game_id))
                 if not intelligence_data:
                     intelligence_data = {
                         'winning_sequences': [],
@@ -5838,9 +5842,10 @@ class ContinuousLearningLoop:
         try:
             # Load action intelligence from database instead of file
             try:
+                import asyncio
                 from src.database.system_integration import get_system_integration
                 integration = get_system_integration()
-                intelligence_data = await integration.get_action_intelligence(game_id=game_id)
+                intelligence_data = asyncio.run(integration.load_action_intelligence(game_id=game_id))
                 if not intelligence_data:
                     intelligence_data = {
                         'winning_sequences': [],
@@ -5889,14 +5894,15 @@ class ContinuousLearningLoop:
                 integration = get_system_integration()
                 
                 # Save coordinate intelligence to database
-                await integration.update_coordinate_intelligence(
+                import asyncio
+                asyncio.run(integration.update_coordinate_intelligence(
                     game_id=game_id,
                     x=x,
                     y=y,
                     success=success,
                     attempts=coord_data['attempts'],
                     successes=coord_data['successes']
-                )
+                ))
             except Exception as e:
                 print(f"Failed to save coordinate intelligence to database: {e}")
             
@@ -6050,8 +6056,6 @@ class ContinuousLearningLoop:
             
             print(f"🧠 ROTATING COORDINATES: Using coordinate {selected_coord} from {len(valid_coords)} available patterns (index: {coord_index})")
             return selected_coord
-            
-            return None, None
             
         except Exception as e:
             print(f"🧠 COORDINATE ROTATION ERROR: {e}")
@@ -6330,6 +6334,10 @@ class ContinuousLearningLoop:
 
     def _select_intelligent_action_with_relevance(self, available_actions: List[int], context: Dict[str, Any]) -> int:
         """Select action using intelligent relevance scoring with comprehensive fallbacks."""
+        # Safety check for None available_actions
+        if not available_actions:
+            return 6  # Default fallback action
+        
         # Ensure memory is properly initialized
         self._ensure_available_actions_memory()
         """
@@ -9828,7 +9836,7 @@ class ContinuousLearningLoop:
     
     def _predict_redundant_move(self, recent_actions: List[int], available_actions: List[int]) -> Optional[int]:
         """Predict if the next likely action would be redundant based on recent patterns."""
-        if len(recent_actions) < 2:
+        if len(recent_actions) < 2 or not available_actions:
             return None
         
         try:
@@ -10023,13 +10031,14 @@ class ContinuousLearningLoop:
                 integration = get_system_integration()
                 
                 # Save winning sequence to database
-                await integration.save_learned_pattern(
+                import asyncio
+                asyncio.run(integration.save_learned_pattern(
                     pattern_type='winning_sequence',
                     pattern_data=winning_sequence,
                     game_id=game_id,
                     confidence=1.0,
                     success_rate=1.0
-                )
+                ))
             except Exception as e:
                 print(f"Failed to save winning sequence to database: {e}")
                 
@@ -10089,16 +10098,17 @@ class ContinuousLearningLoop:
                 from src.database.system_integration import get_system_integration
                 integration = get_system_integration()
                 
-                # Save winning sequence to database
-                await integration.save_learned_pattern(
-                    pattern_type='winning_sequence',
-                    pattern_data=winning_sequence,
+                # Save coordinate pattern to database
+                import asyncio
+                asyncio.run(integration.save_coordinate_pattern(
                     game_id=game_id,
-                    confidence=1.0,
-                    success_rate=1.0
-                )
+                    action=action,
+                    x=x,
+                    y=y,
+                    success=success
+                ))
             except Exception as e:
-                print(f"Failed to save winning sequence to database: {e}")
+                print(f"Failed to save coordinate pattern to database: {e}")
             
             print(f"📊 SAVED COORDINATE PATTERN: Action {action} at ({x},{y}) - Success: {success}")
             
@@ -15265,6 +15275,11 @@ class ContinuousLearningLoop:
                     except Exception as e:
                         print(f"  Recovery failed: {e} - stopping game loop")
                         break
+                
+                # Safety check: ensure available_actions is not None
+                if available_actions is None:
+                    print("  Available actions is None - stopping game loop")
+                    break
                     
                 print(f" Available: {available_actions}")
                 
@@ -15306,7 +15321,7 @@ class ContinuousLearningLoop:
                     if len(recent_actions) >= 4:
                         # Check if we're about to make a redundant move
                         predicted_redundant = self._predict_redundant_move(recent_actions, available_actions)
-                        if predicted_redundant:
+                        if predicted_redundant and available_actions:
                             print(f"🚫 REDUNDANT MOVE DETECTED: Skipping {predicted_redundant} to avoid wasted energy")
                             # Remove the redundant action from available actions temporarily
                             available_actions = [a for a in available_actions if a != predicted_redundant]
@@ -15391,7 +15406,11 @@ class ContinuousLearningLoop:
                     
                     # If no previous patterns or they don't fit, use normal coordinate selection
                     if x is None or y is None:
-                        if current_frame_analysis:
+                        # Check if coordinates were already selected during action selection (for ACTION6)
+                        if selected_action == 6 and hasattr(self, '_selected_coordinates') and game_id in self._selected_coordinates:
+                            x, y = self._selected_coordinates[game_id]
+                            print(f"🎯 REUSING COORDINATES: Using previously selected ({x},{y}) for ACTION6")
+                        elif current_frame_analysis:
                             x, y = self._enhance_coordinate_selection_with_frame_analysis(
                                 selected_action, actual_grid_dims, game_id, current_frame_analysis
                             )
