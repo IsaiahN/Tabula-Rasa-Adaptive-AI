@@ -1,7 +1,0 @@
-2025-09-06 00:09:34,379 - INFO - arc_integration.arc_meta_learning - ARC Meta-Learning System initialized
-2025-09-06 00:09:34,379 - ERROR - __main__ - ❌ System initialization failed: name 'FrameAnalyzer' is not defined
-2025-09-06 00:09:34,381 - ERROR - ContinuousTrainingRunner - Session 5 failed: name 'FrameAnalyzer' is not defined
-2025-09-06 00:09:56,778 - INFO - src.core.meta_cognitive_dashboard.Dashboard - Dashboard monitoring stopped
-2025-09-06 00:09:56,785 - INFO - src.core.meta_cognitive_dashboard.Dashboard - Session data exported to continuous_session_1757135396.json
-2025-09-06 00:09:56,788 - INFO - ContinuousTrainingRunner - Session data exported to continuous_session_1757135396.json
-2025-09-06 00:09:56,791 - INFO - ContinuousTrainingRunner - Training completed: 5 sessions, 8.5 minutes

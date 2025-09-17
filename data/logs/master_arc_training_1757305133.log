@@ -1,1 +1,0 @@
-2025-09-07 23:18:55,491 - ERROR - __main__ - ❌ System initialization failed: 'ContinuousLearningLoop' object has no attribute '_load_global_counters'

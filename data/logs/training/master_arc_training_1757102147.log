@@ -1,2 +1,0 @@
-2025-09-05 14:57:22,941 - src.core.architect.Architect - WARNING - ⏰ Training test timed out, terminating process
-2025-09-05 14:58:24,737 - src.arc_integration.continuous_learning_loop - WARNING - Failed to log ACTION6 interaction in frame analyzer: reentrant call inside <_io.BufferedWriter name='<stdout>'>

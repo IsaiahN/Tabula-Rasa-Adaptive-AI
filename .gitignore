@@ -66,3 +66,10 @@ data/scorecards/scorecard_*.json
 data/sessions/session_*.json
 data/sessions/continuous_session_*.json
 data/sessions/master_training_results_*.json
+
+# Database files
+tabula_rasa.db
+*.db
+
+# Training results files (now in database)
+simple_training_results_*.json

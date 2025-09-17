@@ -1,3 +1,0 @@
-2025-09-06 00:01:28,058 - INFO - arc_integration.arc_meta_learning - ARC Meta-Learning System initialized
-2025-09-06 00:01:28,059 - ERROR - __main__ - ❌ System initialization failed: name 'FrameAnalyzer' is not defined
-2025-09-06 00:01:28,060 - ERROR - ContinuousTrainingRunner - Session 1 failed: name 'FrameAnalyzer' is not defined

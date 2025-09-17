@@ -1,6 +1,0 @@
-2025-09-05 04:22:30,943 - arc_integration.arc_meta_learning - INFO - ARC Meta-Learning System initialized
-2025-09-05 04:22:30,946 - src.arc_integration.continuous_learning_loop - INFO - ✅ Enhanced sleep system initialized for memory consolidation
-2025-09-05 04:22:30,972 - core.adaptive_energy_system - INFO - AdaptiveEnergySystem initialized with config: EnergyConfig(max_energy=100.0, base_depletion_rate=0.08, action_based_depletion=0.25, sleep_trigger_threshold=60.0, min_sleep_threshold=20.0, max_sleep_threshold=60.0, time_based_sleep_interval=3.0, min_time_interval=1.0, max_time_interval=8.0, success_rate_multiplier=0.8, failure_rate_multiplier=1.2)
-2025-09-05 04:22:31,041 - src.arc_integration.continuous_learning_loop - INFO - ✅ Adaptive energy system initialized for win rate-based sleep scheduling
-2025-09-05 04:22:31,089 - goals.goal_system - INFO - Goal system initialized in survival phase
-2025-09-05 04:22:31,131 - __main__ - ERROR - ❌ System initialization failed: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>

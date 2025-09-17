@@ -1,3 +1,0 @@
-2025-09-07 23:58:24,255 - ERROR - src.core.architect.Architect - ❌ Training process failed with code 1
-2025-09-07 23:58:24,255 - ERROR - src.core.architect.Architect - STDERR: 
-2025-09-07 23:58:24,619 - ERROR - __main__ - ❌ Continuous learning failed: 'ContinuousLearningLoop' object has no attribute 'start_training_session'

@@ -1,6 +1,0 @@
-2025-09-08 16:25:27,491 - WARNING - src.arc_integration.continuous_learning_loop - Game ls20-fa137e247ce6 had 5 consecutive failures at episode 1
-2025-09-08 16:25:27,492 - WARNING - src.arc_integration.continuous_learning_loop - Game sp80-0605ab9e5b2a had 5 consecutive failures at episode 1
-2025-09-08 16:25:27,492 - WARNING - src.arc_integration.continuous_learning_loop - Game vc33-58ec4396715d had 5 consecutive failures at episode 1
-2025-09-08 16:25:28,005 - WARNING - src.arc_integration.continuous_learning_loop - Game ft09-f340c8e5138e had 5 consecutive failures at episode 1
-2025-09-08 16:25:28,008 - WARNING - src.arc_integration.continuous_learning_loop - Game lp85-2e205bbe3622 had 5 consecutive failures at episode 1
-2025-09-08 16:25:28,008 - WARNING - src.arc_integration.continuous_learning_loop - Game as66-821a4dcad9c2 had 5 consecutive failures at episode 1

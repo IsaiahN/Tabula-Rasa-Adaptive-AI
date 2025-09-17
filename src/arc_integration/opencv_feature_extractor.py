@@ -628,12 +628,21 @@ class OpenCVFeatureExtractor:
             if not grid or not grid[0]:
                 return objects
             
+            # Debug: Log grid structure
+            logger.debug(f"Grid structure: {type(grid)}, length: {len(grid) if isinstance(grid, list) else 'N/A'}")
+            if isinstance(grid, list) and len(grid) > 0:
+                logger.debug(f"Grid[0] structure: {type(grid[0])}, length: {len(grid[0]) if isinstance(grid[0], list) else 'N/A'}")
+                if isinstance(grid[0], list) and len(grid[0]) > 0:
+                    logger.debug(f"Grid[0][0] structure: {type(grid[0][0])}, value: {grid[0][0]}")
+            
             # Ensure grid is properly formatted
             if isinstance(grid[0], list) and len(grid[0]) > 0 and isinstance(grid[0][0], list):
                 # Grid contains nested lists - flatten them
                 grid = [[int(item) if isinstance(item, (int, float)) else 0 for item in row] for row in grid]
+                logger.debug(f"Flattened grid sample: {grid[0][:5] if grid and grid[0] else 'empty'}")
             
             height, width = len(grid), len(grid[0])
+            logger.debug(f"Grid dimensions: {width}x{height}")
             
             # Find connected components using simple flood fill
             visited = [[False for _ in range(width)] for _ in range(height)]
@@ -657,7 +666,7 @@ class OpenCVFeatureExtractor:
                                 for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                                     stack.append((cx + dx, cy + dy))
                         
-                        if len(points) >= 2:  # Minimum object size
+                        if len(points) >= 1:  # Minimum object size - lowered threshold
                             # Calculate bounding box
                             min_x = min(p[0] for p in points)
                             max_x = max(p[0] for p in points)

@@ -20,9 +20,14 @@ import os
 import sys
 import subprocess
 import time
+import asyncio
 from datetime import datetime
 from typing import Dict, List, Any
 import json
+
+# Add src to path for database access
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+from database.system_integration import get_system_integration
 
 def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[str, Any]:
     """Run a single training session with specific parameters."""

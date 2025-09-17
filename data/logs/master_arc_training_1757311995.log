@@ -1,8 +1,0 @@
-2025-09-08 01:14:23,501 - WARNING - src.arc_integration.continuous_learning_loop - Game as66-821a4dcad9c2 had 5 consecutive failures at episode 1
-2025-09-08 01:14:23,501 - WARNING - src.arc_integration.continuous_learning_loop - Game sp80-5f3511b239b8 had 5 consecutive failures at episode 1
-2025-09-08 01:14:23,502 - WARNING - src.arc_integration.continuous_learning_loop - Game ls20-fa137e247ce6 had 5 consecutive failures at episode 1
-2025-09-08 01:14:31,542 - WARNING - src.arc_integration.continuous_learning_loop - Game lp85-2e205bbe3622 had 5 consecutive failures at episode 1
-2025-09-08 01:14:31,544 - WARNING - src.arc_integration.continuous_learning_loop - Game vc33-58ec4396715d had 5 consecutive failures at episode 1
-2025-09-08 01:14:31,545 - WARNING - src.arc_integration.continuous_learning_loop - Game ft09-f340c8e5138e had 5 consecutive failures at episode 1
-2025-09-08 01:14:31,546 - ERROR - src.arc_integration.continuous_learning_loop - Error in continuous learning session: 'ContinuousLearningLoop' object has no attribute '_display_memory_hierarchy_status'
-2025-09-08 01:14:31,548 - ERROR - __main__ - Could not save results: Object of type set is not JSON serializable
