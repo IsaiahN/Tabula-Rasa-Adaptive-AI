@@ -493,8 +493,52 @@ def get_system_integration() -> SystemIntegration:
     return _integration_instance
 
 # ============================================================================
-# CONVENIENCE FUNCTIONS
+# DIRECTOR SELF-MODEL PERSISTENCE
 # ============================================================================
+
+async def add_self_model_entry(type: str, content: str, session_id: int = None, 
+                             importance: int = 1, metadata: dict = None) -> bool:
+    """Add a new entry to the Director's self-model."""
+    integration = get_system_integration()
+    async with integration.db.get_connection() as conn:
+        try:
+            conn.execute("""
+                INSERT INTO director_self_model (type, content, session_id, importance, metadata)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                type,
+                content,
+                session_id,
+                importance,
+                json.dumps(metadata) if metadata else '{}'
+            ))
+            conn.commit()  # Ensure the transaction is committed
+            return True
+        except Exception as e:
+            print(f"Database error: {e}")
+            return False
+
+async def get_self_model_entries(limit: int = 100, type: str = None) -> List[Dict[str, Any]]:
+    """Retrieve Director self-model entries."""
+    integration = get_system_integration()
+    async with integration.db.get_connection() as conn:
+        try:
+            if type:
+                query = "SELECT * FROM director_self_model WHERE type = ? ORDER BY created_at DESC LIMIT ?"
+                cursor = conn.execute(query, (type, limit))
+            else:
+                query = "SELECT * FROM director_self_model ORDER BY created_at DESC LIMIT ?"
+                cursor = conn.execute(query, (limit,))
+            
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        except Exception as e:
+            print(f"Database error: {e}")
+            return []
+
+# ============================================================================       
+# CONVENIENCE FUNCTIONS
+# ============================================================================       
 
 async def log_event(level: str, component: str, message: str, **kwargs):
     """Quick log event function."""

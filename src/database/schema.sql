@@ -322,3 +322,34 @@ FROM training_sessions ts
 WHERE ts.start_time >= datetime('now', '-7 days')
 GROUP BY DATE(ts.start_time)
 ORDER BY date DESC;
+
+-- Director Self-Model Persistence
+CREATE TABLE IF NOT EXISTS director_self_model (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    type TEXT NOT NULL CHECK (type IN ('identity', 'trait', 'memory', 'reflection')),
+    content TEXT NOT NULL,
+    session_id INTEGER,
+    importance INTEGER DEFAULT 1 CHECK (importance >= 1 AND importance <= 5),
+    metadata TEXT DEFAULT '{}',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for director_self_model
+CREATE INDEX IF NOT EXISTS idx_director_self_model_type ON director_self_model(type);
+CREATE INDEX IF NOT EXISTS idx_director_self_model_session ON director_self_model(session_id);
+CREATE INDEX IF NOT EXISTS idx_director_self_model_importance ON director_self_model(importance);
+CREATE INDEX IF NOT EXISTS idx_director_self_model_created ON director_self_model(created_at);
+
+-- View for recent self-model entries
+CREATE VIEW IF NOT EXISTS recent_self_model AS
+SELECT 
+    type,
+    content,
+    importance,
+    session_id,
+    created_at,
+    json_extract(metadata, '$.insight_type') as insight_type
+FROM director_self_model
+WHERE created_at >= datetime('now', '-7 days')
+ORDER BY created_at DESC, importance DESC;
