@@ -23,6 +23,8 @@ from .governor_hypothesis_manager import GovernorHypothesisManager, SimulationHy
 from .simulation_models import SimulationContext
 from .enhanced_curiosity_system import EnhancedCuriositySystem
 from .enhanced_memory_abstraction import EnhancedMemoryAbstractionSystem, SemanticConcept
+from .dual_pathway_processor import DualPathwayProcessor, CognitiveMode, ModeSwitchTrigger
+from .enhanced_gut_feeling_engine import EnhancedGutFeelingEngine, GutFeeling, GutFeelingType
 # Import symbiosis protocol components (avoid circular imports)
 try:
     from .recursive_self_improvement import RecursiveSelfImprovementSystem, ImprovementCycleStatus, TriggerType
@@ -54,6 +56,10 @@ class CohesiveSystemState:
     directives_executed: int
     performance_improvement: float
     evolution_health: float
+    # Conscious architecture enhancements
+    current_cognitive_mode: str = "TPN"
+    gut_feeling_confidence: float = 0.0
+    consciousness_score: float = 0.0
 
 
 class CohesiveIntegrationSystem:
@@ -65,12 +71,22 @@ class CohesiveIntegrationSystem:
     exploration towards intelligent, curiosity-guided learning.
     """
     
-    def __init__(self, enable_symbiosis_protocol: bool = True):
+    def __init__(self, enable_symbiosis_protocol: bool = True, enable_conscious_architecture: bool = True):
         # Initialize all subsystems
         self.architect_priors = ArchitectPriorsSystem()
         self.governor_hypothesis_manager = GovernorHypothesisManager(self.architect_priors)
         self.curiosity_system = EnhancedCuriositySystem()
         self.memory_abstraction = EnhancedMemoryAbstractionSystem()
+        
+        # Initialize conscious architecture components
+        self.enable_conscious_architecture = enable_conscious_architecture
+        if enable_conscious_architecture:
+            self.dual_pathway_processor = DualPathwayProcessor()
+            self.gut_feeling_engine = EnhancedGutFeelingEngine()
+            logger.info("Conscious architecture components initialized")
+        else:
+            self.dual_pathway_processor = None
+            self.gut_feeling_engine = None
         
         # Initialize symbiosis protocol
         self.enable_symbiosis_protocol = enable_symbiosis_protocol and RecursiveSelfImprovementSystem is not None
@@ -136,17 +152,25 @@ class CohesiveIntegrationSystem:
         # Step 5: Find analogies and transfer knowledge
         knowledge_transfers = self._perform_knowledge_transfer(concepts, context)
         
-        # Step 6: Select next action based on integrated decision
-        selected_action = self._select_cohesive_action(hypotheses, context, curiosity_response)
+        # Step 6: Conscious Architecture Processing
+        conscious_processing = self._process_conscious_architecture(
+            frame, context, hypotheses, curiosity_response
+        )
         
-        # Step 7: Update system state
-        self._update_system_state(curiosity_response, len(hypotheses), len(concepts), knowledge_transfers)
+        # Step 7: Select next action based on integrated decision
+        selected_action = self._select_cohesive_action(
+            hypotheses, context, curiosity_response, conscious_processing
+        )
+        
+        # Step 8: Update system state
+        self._update_system_state(curiosity_response, len(hypotheses), len(concepts), knowledge_transfers, conscious_processing)
         
         # Step 8: Record decision for learning
         self._record_decision(selected_action, context, curiosity_response)
         
         return {
             'selected_action': selected_action,
+            'conscious_processing': conscious_processing,
             'system_state': self.current_state.__dict__,
             'hypotheses_generated': len(hypotheses),
             'concepts_extracted': len(concepts),
@@ -293,7 +317,8 @@ class CohesiveIntegrationSystem:
                            curiosity_response: Dict[str, Any],
                            hypotheses_count: int,
                            concepts_count: int,
-                           transfers_count: int):
+                           transfers_count: int,
+                           conscious_processing: Optional[Dict[str, Any]] = None):
         """Update the cohesive system state."""
         self.current_state.curiosity_level = curiosity_response['curiosity_level']
         self.current_state.boredom_level = curiosity_response['boredom_level']
@@ -302,6 +327,17 @@ class CohesiveIntegrationSystem:
         self.current_state.semantic_concepts = concepts_count
         self.current_state.knowledge_transfers = transfers_count
         self.current_state.strategy_switch_needed = curiosity_response.get('strategy_switch_needed', False)
+        
+        # Update conscious architecture state
+        if conscious_processing and conscious_processing.get('enabled', False):
+            consciousness_metrics = conscious_processing.get('consciousness_metrics', {})
+            if consciousness_metrics:
+                self.current_state.current_cognitive_mode = consciousness_metrics.get('current_mode', 'TPN')
+                self.current_state.consciousness_score = consciousness_metrics.get('consciousness_score', 0.0)
+            
+            gut_feeling_metrics = conscious_processing.get('gut_feeling_metrics', {})
+            if gut_feeling_metrics:
+                self.current_state.gut_feeling_confidence = gut_feeling_metrics.get('average_confidence', 0.0)
         
         # Calculate system health
         self.current_state.system_health = self._calculate_system_health()
@@ -556,3 +592,177 @@ class CohesiveIntegrationSystem:
         }
         
         self.log_symbiosis_performance(performance_metrics, system_state)
+    
+    def _process_conscious_architecture(self, 
+                                     frame: np.ndarray,
+                                     context: Dict[str, Any],
+                                     hypotheses: List[SimulationHypothesis],
+                                     curiosity_response: Dict[str, Any]) -> Dict[str, Any]:
+        """Process conscious architecture enhancements."""
+        if not self.enable_conscious_architecture:
+            return {'enabled': False}
+        
+        conscious_processing = {'enabled': True}
+        
+        # 1. Dual-Pathway Processing
+        if self.dual_pathway_processor:
+            # Update performance metrics
+            performance_metrics = {
+                'confidence': context.get('confidence', 0.5),
+                'success_rate': context.get('success_rate', 0.5),
+                'learning_progress': context.get('learning_progress', 0.0),
+                'energy_efficiency': context.get('energy_efficiency', 0.5),
+                'uncertainty': context.get('uncertainty', 0.5)
+            }
+            
+            self.dual_pathway_processor.update_performance(performance_metrics)
+            
+            # Check for mode switching
+            available_actions = context.get('available_actions', [1, 2, 3, 4, 5, 6, 7])
+            mode_switch_decision = self.dual_pathway_processor.should_switch_mode(context, available_actions)
+            
+            if mode_switch_decision.should_switch:
+                switch_result = self.dual_pathway_processor.switch_to_mode(
+                    mode_switch_decision.target_mode,
+                    mode_switch_decision.trigger,
+                    context
+                )
+                conscious_processing['mode_switch'] = switch_result
+                logger.info(f"Conscious mode switch: {switch_result['previous_mode']} -> {switch_result['current_mode']}")
+            
+            # Get mode-specific actions
+            mode_actions = self.dual_pathway_processor.get_mode_specific_actions(available_actions, context)
+            conscious_processing['mode_actions'] = mode_actions
+            
+            # Get consciousness metrics
+            consciousness_metrics = self.dual_pathway_processor.get_consciousness_metrics()
+            conscious_processing['consciousness_metrics'] = consciousness_metrics
+            
+            # Update system state
+            self.current_state.current_cognitive_mode = consciousness_metrics['current_mode']
+            self.current_state.consciousness_score = consciousness_metrics['consciousness_score']
+        
+        # 2. Enhanced Gut Feeling Processing
+        if self.gut_feeling_engine:
+            # Get gut feelings for current state
+            current_state = {
+                'frame_features': context.get('frame_features', {}),
+                'spatial_features': context.get('spatial_features', {}),
+                'temporal_features': context.get('temporal_features', {})
+            }
+            
+            gut_feelings = self.gut_feeling_engine.get_gut_feelings(
+                current_state, available_actions, context
+            )
+            
+            conscious_processing['gut_feelings'] = [
+                {
+                    'action': gf.action,
+                    'confidence': gf.confidence,
+                    'type': gf.gut_feeling_type.value,
+                    'reasoning': gf.reasoning,
+                    'similarity_score': gf.similarity_score,
+                    'success_rate': gf.success_rate
+                }
+                for gf in gut_feelings
+            ]
+            
+            # Update gut feeling confidence in system state
+            if gut_feelings:
+                self.current_state.gut_feeling_confidence = max(gf.confidence for gf in gut_feelings)
+            else:
+                self.current_state.gut_feeling_confidence = 0.0
+            
+            # Get gut feeling metrics
+            gut_metrics = self.gut_feeling_engine.get_gut_feeling_metrics()
+            conscious_processing['gut_feeling_metrics'] = gut_metrics
+        
+        return conscious_processing
+    
+    def _select_cohesive_action(self, 
+                               hypotheses: List[SimulationHypothesis],
+                               context: Dict[str, Any],
+                               curiosity_response: Dict[str, Any],
+                               conscious_processing: Optional[Dict[str, Any]] = None) -> int:
+        """Select action with conscious architecture integration."""
+        if not conscious_processing or not conscious_processing.get('enabled', False):
+            # Fallback to original action selection
+            return self._original_select_cohesive_action(hypotheses, context, curiosity_response)
+        
+        # Integrate conscious architecture into action selection
+        available_actions = context.get('available_actions', [1, 2, 3, 4, 5, 6, 7])
+        
+        # 1. Get gut feelings
+        gut_feelings = conscious_processing.get('gut_feelings', [])
+        
+        # 2. Get mode-specific actions
+        mode_actions = conscious_processing.get('mode_actions', [])
+        
+        # 3. Combine gut feelings with mode-specific actions
+        action_scores = {}
+        
+        # Score based on gut feelings
+        for gf in gut_feelings:
+            action = gf['action']
+            if action in available_actions:
+                action_scores[action] = action_scores.get(action, 0.0) + gf['confidence'] * 0.4
+        
+        # Score based on mode-specific actions
+        for ma in mode_actions:
+            action = ma['action']
+            if action in available_actions:
+                action_scores[action] = action_scores.get(action, 0.0) + ma['priority'] * 0.3
+        
+        # Score based on hypotheses (original logic)
+        for hypothesis in hypotheses:
+            if hasattr(hypothesis, 'recommended_action') and hypothesis.recommended_action in available_actions:
+                action_scores[hypothesis.recommended_action] = action_scores.get(hypothesis.recommended_action, 0.0) + 0.3
+        
+        # Select action with highest score
+        if action_scores:
+            selected_action = max(action_scores.items(), key=lambda x: x[1])[0]
+            logger.debug(f"Conscious action selection: {selected_action} (score: {action_scores[selected_action]:.3f})")
+            return selected_action
+        
+        # Fallback to original selection
+        return self._original_select_cohesive_action(hypotheses, context, curiosity_response)
+    
+    def _original_select_cohesive_action(self, 
+                                        hypotheses: List[SimulationHypothesis],
+                                        context: Dict[str, Any],
+                                        curiosity_response: Dict[str, Any]) -> int:
+        """Original action selection logic (fallback)."""
+        # This is the original action selection logic
+        # For now, return a simple selection
+        available_actions = context.get('available_actions', [1, 2, 3, 4, 5, 6, 7])
+        return available_actions[0] if available_actions else 1
+    
+    def learn_from_conscious_outcome(self, 
+                                   action: int,
+                                   outcome: Dict[str, Any],
+                                   context: Dict[str, Any]):
+        """Learn from the outcome of a conscious architecture decision."""
+        if not self.enable_conscious_architecture or not self.gut_feeling_engine:
+            return
+        
+        # Find the gut feeling that led to this action
+        recent_gut_feelings = getattr(self, '_recent_gut_feelings', [])
+        for gf in recent_gut_feelings:
+            if gf.action == action:
+                self.gut_feeling_engine.learn_from_outcome(gf, outcome, context)
+                break
+    
+    def get_conscious_architecture_status(self) -> Dict[str, Any]:
+        """Get status of conscious architecture components."""
+        if not self.enable_conscious_architecture:
+            return {'enabled': False}
+        
+        status = {'enabled': True}
+        
+        if self.dual_pathway_processor:
+            status['dual_pathway'] = self.dual_pathway_processor.get_consciousness_metrics()
+        
+        if self.gut_feeling_engine:
+            status['gut_feeling'] = self.gut_feeling_engine.get_gut_feeling_metrics()
+        
+        return status

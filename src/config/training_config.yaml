@@ -1,0 +1,65 @@
+# Tabula Rasa Training Configuration
+# This file contains configuration settings for the training system
+
+# Core Training Settings
+mode: "maximum-intelligence"
+max_actions: 5
+max_cycles: 150
+target_score: 85.0
+session_duration: 60
+
+# Memory Settings
+memory_size: 512
+memory_word_size: 64
+memory_read_heads: 4
+memory_write_heads: 1
+
+# Salience System
+salience_mode: "decay_compression"
+salience_threshold: 0.6
+salience_decay: 0.95
+
+# Energy System
+sleep_trigger_energy: 40.0
+sleep_duration: 50
+
+# Feature Flags
+enable_swarm: true
+enable_coordinates: true
+enable_energy_system: true
+enable_sleep_cycles: true
+enable_dnc_memory: true
+enable_meta_learning: true
+enable_salience_system: true
+enable_contrarian_strategy: true
+enable_frame_analysis: true
+enable_boundary_detection: true
+enable_memory_consolidation: true
+enable_action_intelligence: true
+enable_knowledge_transfer: true
+enable_pattern_recognition: true
+enable_predictive_coordinates: true
+enable_action_experimentation: true
+enable_exploration_strategies: true
+enable_stagnation_detection: true
+enable_meta_cognitive_governor: true
+enable_architect_evolution: true
+
+# Conscious Architecture Enhancements
+enable_conscious_architecture: true
+enable_dual_pathway_processing: true
+enable_enhanced_gut_feeling: true
+consciousness_monitoring: true
+
+# Meta-cognitive Monitoring
+enable_detailed_monitoring: false
+enable_colored_output: true
+save_meta_cognitive_logs: true
+
+# Database Settings
+database_path: "tabula_rasa.db"
+enable_database_integration: true
+
+# Logging Settings
+log_level: "INFO"
+log_file: "data/logs/master_arc_trainer.log"

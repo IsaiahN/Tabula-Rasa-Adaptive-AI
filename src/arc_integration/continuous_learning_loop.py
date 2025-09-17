@@ -1007,6 +1007,20 @@ class ContinuousLearningLoop:
                 'recent_consecutive_failures': 0
             }
         
+        # Initialize Conscious Architecture (Cohesive Integration System)
+        self.cohesive_system = None
+        print("🧠 Initializing conscious architecture...")
+        try:
+            from src.core.cohesive_integration_system import CohesiveIntegrationSystem
+            self.cohesive_system = CohesiveIntegrationSystem(
+                enable_symbiosis_protocol=True,
+                enable_conscious_architecture=True
+            )
+            print("✅ Conscious Architecture (Cohesive Integration System) initialized")
+        except Exception as e:
+            print(f"⚠️ Conscious Architecture initialization failed: {e}")
+            self.cohesive_system = None
+        
         print("✅ All complex attributes initialized")
 
     def _init_demo_agent(self):
@@ -6844,6 +6858,27 @@ class ContinuousLearningLoop:
         # Store pattern recommendations for use in scoring
         self._current_pattern_recommendations = pattern_recommendations
         
+        # 🧠 CONSCIOUS ARCHITECTURE INTEGRATION (Enhanced Decision Making)
+        conscious_processing = None
+        if hasattr(self, 'cohesive_system') and self.cohesive_system:
+            try:
+                # Process with conscious architecture
+                frame = context.get('frame', np.zeros((10, 10, 3), dtype=np.uint8))
+                conscious_processing = self.cohesive_system.process_environment_update(frame, context)
+                
+                if conscious_processing and conscious_processing.get('conscious_processing', {}).get('enabled', False):
+                    print(f"🧠 CONSCIOUS ARCHITECTURE: Mode={conscious_processing['conscious_processing'].get('consciousness_metrics', {}).get('current_mode', 'Unknown')}")
+                    print(f"🧠 GUT FEELINGS: {len(conscious_processing['conscious_processing'].get('gut_feelings', []))} intuitive suggestions")
+                    
+                    # Use conscious action selection if available
+                    if 'selected_action' in conscious_processing:
+                        selected_action = conscious_processing['selected_action']
+                        print(f"🧠 CONSCIOUS ACTION SELECTION: {selected_action}")
+                        return selected_action
+            except Exception as e:
+                print(f"⚠️ CONSCIOUS ARCHITECTURE ERROR: {e}")
+                conscious_processing = None
+        
         # 🧠 META-COGNITIVE GOVERNOR INTEGRATION (Third Brain)
         if hasattr(self, 'governor') and self.governor:
             try:
@@ -7132,7 +7167,7 @@ class ContinuousLearningLoop:
             
             # Store current frame for visual analysis
             current_frame = context.get('frame')
-            if current_frame:
+            if current_frame is not None:
                 setattr(self, 'current_frame_data', current_frame)
                 print(f" Frame data stored for visual targeting analysis")
             
@@ -9020,6 +9055,18 @@ class ContinuousLearningLoop:
                 success_rate=1.0 if success else 0.0,
                 persistence_level=persistence_level
             )
+            
+            # Learn from conscious architecture outcome
+            if hasattr(self, 'cohesive_system') and self.cohesive_system:
+                try:
+                    outcome = {
+                        'success': success,
+                        'performance_score': score_change / 10.0 if score_change > 0 else 0.0,
+                        'game_state': game_state
+                    }
+                    self.cohesive_system.learn_from_conscious_outcome(action_number, outcome, context)
+                except Exception as e:
+                    print(f"⚠️ Conscious architecture learning error: {e}")
             
             if pattern_id:
                 print(f"🧠 LEARNED PATTERN: {pattern_id} for ACTION{action_number} (success: {success}, score: {1.0 if success else 0.0:.2f})")

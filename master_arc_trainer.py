@@ -397,10 +397,20 @@ class MasterTrainingConfig:
     enable_meta_cognitive_governor: bool = True
     enable_architect_evolution: bool = True
     
+    # Conscious Architecture Enhancements
+    enable_conscious_architecture: bool = True
+    enable_dual_pathway_processing: bool = True
+    enable_enhanced_gut_feeling: bool = True
+    consciousness_monitoring: bool = True
+    
     # Meta-cognitive monitoring
     enable_detailed_monitoring: bool = False
     enable_colored_output: bool = True
     save_meta_cognitive_logs: bool = True
+    
+    # Database integration
+    database_path: str = "tabula_rasa.db"
+    enable_database_integration: bool = True
     
     # Logging and monitoring
     verbose: bool = False
