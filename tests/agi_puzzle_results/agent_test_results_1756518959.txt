@@ -1,8 +1,0 @@
-AGI Puzzle Test Results
-==============================
-
-Hidden Cause (Baby Physics): ERROR - 'AdaptiveLearningAgent' object has no attribute 'reset'
-Object Permanence (Peekaboo): ERROR - 'AdaptiveLearningAgent' object has no attribute 'reset'
-Cooperation & Deception (Food Game): ERROR - 'AdaptiveLearningAgent' object has no attribute 'reset'
-Tool Use (The Stick): ERROR - 'AdaptiveLearningAgent' object has no attribute 'reset'
-Deferred Gratification (Marshmallow): ERROR - 'AdaptiveLearningAgent' object has no attribute 'reset'

@@ -180,7 +180,6 @@ class MetaCognitiveMemoryManager:
             self.base_path / "data" / "experiments" / "research",
             self.base_path / "data" / "memory" / "backups",
             self.base_path / "data", 
-            self.base_path / "checkpoints",
             self.base_path  # Root level files
         ]
         

@@ -6,6 +6,7 @@ Comprehensive Python API for Director/LLM, Architect, and Governor integration
 import sqlite3
 import json
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple, Union
 from pathlib import Path
@@ -98,8 +99,25 @@ class TabulaRasaDatabase:
     """
     
     def __init__(self, db_path: str = "tabula_rasa.db"):
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Ensure database is always created in project root, not relative to current working directory
+        if not os.path.isabs(db_path):
+            # Find project root by looking for common project files
+            current_dir = Path(__file__).parent
+            project_root = current_dir
+            while project_root.parent != project_root:
+                if (project_root / "README.md").exists() or (project_root / "requirements.txt").exists():
+                    break
+                project_root = project_root.parent
+            
+            # Use absolute path to project root
+            self.db_path = project_root / db_path
+        else:
+            self.db_path = Path(db_path)
+        
+        # Only create parent directory if it's not the current directory
+        if self.db_path.parent.name:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        
         self._lock = threading.RLock()
         self._initialize_database()
         self.logger = logging.getLogger(__name__)

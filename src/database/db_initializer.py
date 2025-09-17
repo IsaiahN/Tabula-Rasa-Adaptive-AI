@@ -17,8 +17,16 @@ def initialize_database() -> bool:
     Returns:
         bool: True if database is ready, False if initialization failed
     """
-    main_db = "tabula_rasa.db"
-    template_db = "tabula_rasa_template.db"
+    # Ensure we're looking in the project root, not relative to current working directory
+    current_dir = Path(__file__).parent
+    project_root = current_dir
+    while project_root.parent != project_root:
+        if (project_root / "README.md").exists() or (project_root / "requirements.txt").exists():
+            break
+        project_root = project_root.parent
+    
+    main_db = project_root / "tabula_rasa.db"
+    template_db = project_root / "tabula_rasa_template.db"
     
     # Check if main database exists
     if os.path.exists(main_db):
@@ -66,7 +74,15 @@ def check_database_ready() -> bool:
     Returns:
         bool: True if database is ready, False otherwise
     """
-    main_db = "tabula_rasa.db"
+    # Ensure we're looking in the project root, not relative to current working directory
+    current_dir = Path(__file__).parent
+    project_root = current_dir
+    while project_root.parent != project_root:
+        if (project_root / "README.md").exists() or (project_root / "requirements.txt").exists():
+            break
+        project_root = project_root.parent
+    
+    main_db = project_root / "tabula_rasa.db"
     
     if os.path.exists(main_db):
         # Check if database is accessible

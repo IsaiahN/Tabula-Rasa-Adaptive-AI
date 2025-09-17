@@ -1,8 +1,0 @@
-AGI Puzzle Test Results
-==============================
-
-Hidden Cause (Baby Physics): ERROR - mat1 and mat2 shapes cannot be multiplied (1x12294 and 12301x512)
-Object Permanence (Peekaboo): ERROR - mat1 and mat2 shapes cannot be multiplied (1x12294 and 12301x512)
-Cooperation & Deception (Food Game): ERROR - mat1 and mat2 shapes cannot be multiplied (1x12295 and 12301x512)
-Tool Use (The Stick): ERROR - mat1 and mat2 shapes cannot be multiplied (1x12295 and 12301x512)
-Deferred Gratification (Marshmallow): ERROR - mat1 and mat2 shapes cannot be multiplied (1x12295 and 12301x512)
