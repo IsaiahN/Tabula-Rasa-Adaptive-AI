@@ -56,10 +56,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # Import centralized action limits configuration
 try:
-    from src.config.centralized_config import action_limits as ActionLimits
-    from src.arc_integration.memory_leak_fixes import BoundedList, BoundedDict, apply_memory_leak_fixes
-    from src.database.memory_safe_operations import get_data_manager
-    from src.arc_integration.database_bounded_list import DatabaseBoundedList, DatabaseBoundedDict
+    from action_limits_config import ActionLimits
 except ImportError:
     # Fallback configuration if the config file is not available
     class ActionLimits:
@@ -464,8 +461,6 @@ class ContinuousLearningLoop:
         self._setup_graceful_shutdown()
         
         # Initialize only the most basic attributes needed immediately
-                # Apply memory leak fixes
-        apply_memory_leak_fixes(self)
         self._initialized = False
         self._active_sessions = []
         
@@ -654,9 +649,9 @@ class ContinuousLearningLoop:
         self.current_scorecard_id = None
         self._created_new_scorecard = False
         
-        # Initialize performance tracking with database storage
-        self.performance_history = DatabaseBoundedList(max_size=100, table_name="performance_history")
-        self.session_history = DatabaseBoundedList(max_size=100, table_name="session_history")
+        # Initialize performance tracking
+        self.performance_history = []
+        self.session_history = []
         
         # Initialize memory protection stats
         self.memory_protection_stats = {
@@ -1170,8 +1165,8 @@ class ContinuousLearningLoop:
         
         # Training state
         self.current_session: Optional[TrainingSession] = None
-        self.session_history: DatabaseBoundedList = DatabaseBoundedList(max_size=100, table_name="session_history")
-        self.performance_history: DatabaseBoundedList = DatabaseBoundedList(max_size=100, table_name="performance_history")  # Add performance history for Governor/Architect
+        self.session_history: List[Dict[str, Any]] = []
+        self.performance_history: List[Dict[str, Any]] = []  # Add performance history for Governor/Architect
         self.global_training_sessions = {
             'total_games_played': 0,
             'total_episodes': 0,
@@ -6091,7 +6086,7 @@ class ContinuousLearningLoop:
         """Track coordinate selections for learning and optimization."""
         try:
             if not hasattr(self, '_coordinate_tracking'):
-                self._coordinate_tracking = DatabaseBoundedDict(max_size=500, table_name="coordinate_tracking", game_id=game_id)
+                self._coordinate_tracking = {}
             
             if game_id not in self._coordinate_tracking:
                 self._coordinate_tracking[game_id] = {
@@ -6457,7 +6452,7 @@ class ContinuousLearningLoop:
         """
         # Check if we have enough data to make a decision
         if not hasattr(self, 'frame_stagnation_tracker'):
-            self.frame_stagnation_tracker = DatabaseBoundedDict(max_size=100, table_name="frame_tracking", game_id=game_id)
+            self.frame_stagnation_tracker = {}
         
         if game_id not in self.frame_stagnation_tracker:
             self.frame_stagnation_tracker[game_id] = {

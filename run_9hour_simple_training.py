@@ -45,7 +45,7 @@ def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[st
         'python', 'master_arc_trainer.py',
         '--mode', 'maximum-intelligence',
         '--session-duration', str(duration_minutes),
-        '--max-actions', '5',         # Optimized action limit for better learning
+        '--max-actions', '500',         # Optimized action limit for better learning
         '--max-cycles', '100',        # Moderate cycles
         '--target-score', '85.0',     # Target score
         '--enable-detailed-monitoring',

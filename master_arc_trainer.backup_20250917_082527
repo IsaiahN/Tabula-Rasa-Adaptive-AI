@@ -40,8 +40,7 @@ from dataclasses import dataclass
 
 # Import ActionLimits from configuration file
 try:
-    from src.config.centralized_config import action_limits as ActionLimits
-    from src.arc_integration.memory_leak_fixes import BoundedList, BoundedDict, apply_memory_leak_fixes
+    from action_limits_config import ActionLimits
 except ImportError:
     # Fallback if import fails
     class ActionLimits:
@@ -434,13 +433,13 @@ class MasterARCTrainer:
         self.governor = None
         self.architect = None
         self.session_results = {}
-        self.performance_history = BoundedList(max_size=100)
+        self.performance_history = []
         self.arc_client = None
         self.initialized = False
         
         # Meta-cognitive monitoring data
-        self.governor_decisions = BoundedList(max_size=100)
-        self.architect_evolutions = BoundedList(max_size=100)
+        self.governor_decisions = []
+        self.architect_evolutions = []
         self.session_id = f"master_training_{int(time.time())}"
         
         # Setup logging
@@ -571,8 +570,6 @@ class MasterARCTrainer:
             raise
     
     async def run_training(self):
-        # Apply memory leak fixes
-        apply_memory_leak_fixes(self)
         """Main training execution based on mode with enhanced client handling."""
         try:
             # Initialize the API client for all modes except those that don't need it
@@ -2086,8 +2083,6 @@ class UnifiedTrainer:
         print()
     
     async def run_training(self):
-        # Apply memory leak fixes
-        apply_memory_leak_fixes(self)
         """Run training using the master trainer."""
         return await self._master_trainer._run_sequential_training()
     
