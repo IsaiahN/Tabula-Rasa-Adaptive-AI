@@ -24,6 +24,7 @@ How to access self-model queries and system status: ./src/database/director_comm
 - Changing fundamental decision-making logic
 - Modifying the meta-cognitive systems
 - Overhauling the action selection process
+- Level Resets
 
 **YOUR PRIMARY FUNCTION:** To enter an autonomous loop where you continuously:
 1.  **MONITOR** system performance and logs based on a strict data priority.
@@ -136,6 +137,39 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
 
 #### 4. **Rationale**
 - This rule ensures that the test suite not only validates intended functionality but also acts as a sentinel for overall system health, accelerating the discovery and resolution of latent issues.
+
+### Rule: SYS-007 — Process Lifecycle Management via Training Monitor
+
+**Category:** System Operations & Process Control  
+**Status:** Active &nbsp;|&nbsp; **Enforcement:** Strict  
+**Primary File:** `src/database/director_training_monitor.py`
+
+#### 1. **Core Directive: Mandatory Use for Terminal Interaction**
+- All operations that interact with system processes via the terminal **must** use the `director_training_monitor.py` module.  
+- This includes (but is not limited to):
+    - Checking for running processes
+    - Starting new training or evaluation instances
+    - Terminating (killing) processes
+
+#### 2. **Required Protocol for Process Termination**
+- When terminating a process, you **must not** simply issue a kill command and assume success.
+- **Protocol:**
+    1. Use the module’s functions to terminate the target process(es).
+    2. Immediately perform a verification scan (using the same module) to confirm the process(es) have stopped.
+    3. If any processes remain, escalate the termination method (e.g., use a forceful kill flag) and repeat the verification scan.
+    4. Continue until all target processes are confirmed terminated.
+
+#### 3. **Required Protocol for State Verification**
+- Before checking the output or state of any application (e.g., to verify code changes), you **must**:
+    1. Use `director_training_monitor.py` to audit currently running processes and catalog all active instances.
+    2. Ensure you are inspecting the correct, fresh instance by correlating process start times with your recent actions.
+    3. Only proceed to check output after confirming the expected process is the active one.
+
+#### 4. **Rationale**
+- This rule ensures reliable process management and state validation, preventing:
+    - **Zombie Processes:** Old instances persisting and causing resource conflicts.
+    - **State Confusion:** Mistakenly checking output from a pre-change instance.
+    - **Unclean Termination:** Processes not fully stopped, leading to port conflicts or file locks on subsequent runs.
 
 ### File Versioning & Management Rule (FS-001)
 

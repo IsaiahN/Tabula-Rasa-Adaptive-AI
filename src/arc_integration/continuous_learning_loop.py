@@ -19,6 +19,14 @@ import traceback
 from datetime import datetime
 import numpy as np
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ Environment variables loaded from .env file in continuous_learning_loop")
+except ImportError:
+    print("⚠️ python-dotenv not available in continuous_learning_loop, using system environment variables")
+
 # Try to import torch, but don't fail if it's not available
 try:
     import torch
@@ -987,14 +995,13 @@ class ContinuousLearningLoop:
         # Load state from previous sessions
         self._load_state()
         
-        # Load global counters from file
+        # Load global counters from database
         try:
-            counter_file = self.save_directory / "global_counters.json"  # DEPRECATED: Use database instead
-            if counter_file.exists():
-                with open(counter_file, 'r') as f:
-                    self.global_counters = json.load(f)
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            self.global_counters = integration.get_global_counters()
         except Exception as e:
-            print(f"⚠️  Failed to load global counters: {e}")
+            print(f"⚠️  Failed to load global counters from database: {e}")
             self.global_counters = {
                 'total_memory_operations': 0,
                 'total_sleep_cycles': 0,
@@ -1033,14 +1040,13 @@ class ContinuousLearningLoop:
         pass
 
     def _load_global_counters(self):
-        """Load global counters from file."""
+        """Load global counters from database."""
         try:
-            counter_file = self.save_directory / "global_counters.json"  # DEPRECATED: Use database instead
-            if counter_file.exists():
-                with open(counter_file, 'r') as f:
-                    return json.load(f)
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            return integration.get_global_counters()
         except Exception as e:
-            print(f"⚠️  Failed to load global counters: {e}")
+            print(f"⚠️  Failed to load global counters from database: {e}")
         
         return {
             'total_memory_operations': 0,
@@ -1706,18 +1712,9 @@ class ContinuousLearningLoop:
         print(f"Games: {getattr(self, 'games', 'N/A')}")
         print("===============================================================\n")
 
-    def _load_global_counters(self) -> Dict[str, int]:
-        """Load global counters that persist across sessions."""
-        try:
-            import json
-            counter_file = self.save_directory / "global_counters.json"  # DEPRECATED: Use database instead
-            if counter_file.exists():
-                with open(counter_file, 'r') as f:
-                    return json.load(f)
-        except Exception as e:
-            print(f"Could not load global counters: {e}")
-        
-        # Default counters
+    def _load_global_counters_legacy(self) -> Dict[str, int]:
+        """Load global counters that persist across sessions (legacy method - use database instead)."""
+        # This method is deprecated - use database instead
         return {
             'total_sleep_cycles': 0,
             'total_memory_operations': 0,
@@ -3707,14 +3704,14 @@ class ContinuousLearningLoop:
             return self.save_directory
 
     def _append_reset_debug_log(self, game_id: str, status: int, headers: Dict[str, Any], body: str) -> None:
-        """Append a JSON record of a RESET non-200 response to an append-only NDJSON file.
+        """Log a RESET non-200 response to the database.
 
         This is best-effort and must never raise.
         """
         try:
-            log_dir = self._ensure_reset_debug_dir()
-            timestamp = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
-            fname = log_dir / f"reset_debug_{timestamp}.ndjson"
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            
             record = {
                 'ts': time.time(),
                 'iso_ts': datetime.utcnow().isoformat() + 'Z',
@@ -3723,11 +3720,16 @@ class ContinuousLearningLoop:
                 'headers': headers,
                 'body': body[:20000]  # cap body to avoid enormous writes
             }
-            with open(fname, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(record, default=str) + "\n")
+            
+            # Log to database instead of file
+            integration.log_system_event(
+                event_type="reset_debug",
+                message=f"RESET debug for {game_id}: status {status}",
+                metadata=record
+            )
         except Exception:
             try:
-                logger.debug("Failed to write reset debug log to disk")
+                logger.debug("Failed to write reset debug log to database")
             except Exception:
                 pass
 
@@ -3743,6 +3745,92 @@ class ContinuousLearningLoop:
             return cx, cy
         except Exception:
             return 32, 32
+    
+    async def get_unfinished_games(self) -> List[Dict[str, Any]]:
+        """
+        Get list of games that are in NOT_FINISHED state and can be resumed.
+        
+        Returns:
+            List of game dictionaries with game_id, state, score, and other metadata
+        """
+        try:
+            # Check if we have an API client
+            if not hasattr(self, 'api_client') or not self.api_client:
+                logger.warning("No API client available for checking unfinished games")
+                return []
+            
+            # Get current game state to check if it's unfinished
+            current_game_state = await self.api_client.get_game_state()
+            if not current_game_state.get('success'):
+                logger.warning("Failed to get current game state")
+                return []
+            
+            game_state = current_game_state.get('game_state', {})
+            state = game_state.get('state', 'UNKNOWN')
+            
+            unfinished_games = []
+            if state == 'NOT_FINISHED':
+                unfinished_games.append({
+                    'game_id': game_state.get('game_id'),
+                    'state': state,
+                    'score': game_state.get('score', 0),
+                    'win_score': game_state.get('win_score', 0),
+                    'available_actions': game_state.get('available_actions', []),
+                    'frame': game_state.get('frame', 0),
+                    'guid': game_state.get('guid'),
+                    'can_resume': True
+                })
+                logger.info(f"Found unfinished game: {game_state.get('game_id')} (score: {game_state.get('score', 0)})")
+            
+            return unfinished_games
+            
+        except Exception as e:
+            logger.error(f"Error getting unfinished games: {e}")
+            return []
+    
+    async def resume_game(self, game_id: str, max_actions: int = 100) -> Dict[str, Any]:
+        """
+        Resume a game that is in NOT_FINISHED state.
+        
+        Args:
+            game_id: ID of the game to resume
+            max_actions: Maximum number of actions to take
+            
+        Returns:
+            Dictionary with resume results
+        """
+        try:
+            logger.info(f"Attempting to resume game: {game_id}")
+            
+            # Check if we have an API client
+            if not hasattr(self, 'api_client') or not self.api_client:
+                return {'error': 'No API client available', 'success': False}
+            
+            # Get current game state
+            current_game_state = await self.api_client.get_game_state()
+            if not current_game_state.get('success'):
+                return {'error': 'Failed to get game state', 'success': False}
+            
+            game_state = current_game_state.get('game_state', {})
+            if game_state.get('game_id') != game_id:
+                return {'error': f'Game ID mismatch: expected {game_id}, got {game_state.get("game_id")}', 'success': False}
+            
+            state = game_state.get('state', 'UNKNOWN')
+            if state != 'NOT_FINISHED':
+                return {'error': f'Game is not in NOT_FINISHED state: {state}', 'success': False}
+            
+            logger.info(f"Resuming game {game_id} from state {state} with score {game_state.get('score', 0)}")
+            
+            # Continue the game from where it left off
+            return await self.start_training_with_direct_control(
+                game_id=game_id,
+                max_actions_per_game=max_actions,
+                session_count=0
+            )
+            
+        except Exception as e:
+            logger.error(f"Error resuming game {game_id}: {e}")
+            return {'error': str(e), 'success': False}
     
     def _extract_game_state_from_output(self, stdout: str, stderr: str) -> str:
         """Extract game state from command output."""
@@ -4963,6 +5051,7 @@ class ContinuousLearningLoop:
                 payload = {
                     "game_id": str(game_id),  # Ensure string type
                     "guid": str(guid),        # Ensure string type
+                    "action_number": int(action_number),  # CRITICAL FIX: Add action_number to payload
                     "scorecard_id": str(self.current_scorecard_id) if self.current_scorecard_id else None,  # CRITICAL FIX: Link actions to scorecard
                     "metadata": {
                         "action_timestamp": time.time(),
@@ -5240,11 +5329,13 @@ class ContinuousLearningLoop:
                                         
                                         # ENHANCED: Check for frame changes and movement
                                         frame_changed = self._check_frame_changes(before_state, after_state)
+                                        
+                                        # CRITICAL FIX: Always update action effectiveness regardless of frame changes
+                                        # This ensures all actions are tracked for learning, even failed ones
+                                        self._update_action_effectiveness(action_number, frame_changed, score_change, game_id)
+                                        
                                         if frame_changed:
                                             logger.info(f"🎯 FRAME CHANGE DETECTED: {frame_changed['change_type']} - {frame_changed['description']}")
-                                            
-                                            # Update action effectiveness based on frame changes
-                                            self._update_action_effectiveness(action_number, frame_changed, score_change, game_id)
                                             
                                             # Update coordinate intelligence for successful ACTION6
                                             if action_number == 6 and hasattr(self, '_last_coordinates') and self._last_coordinates:
@@ -6514,10 +6605,27 @@ class ContinuousLearningLoop:
             if game_id not in self._coordinate_index:
                 self._coordinate_index[game_id] = 0
             
-            # Get next coordinate using round-robin
-            coord_index = self._coordinate_index[game_id] % len(valid_coords)
-            selected_coord = valid_coords[coord_index]
-            self._coordinate_index[game_id] = (coord_index + 1) % len(valid_coords)
+            # Get next coordinate using round-robin, but avoid stuck coordinates
+            attempts = 0
+            max_attempts = len(valid_coords) * 2  # Prevent infinite loop
+            
+            while attempts < max_attempts:
+                coord_index = self._coordinate_index[game_id] % len(valid_coords)
+                selected_coord = valid_coords[coord_index]
+                self._coordinate_index[game_id] = (coord_index + 1) % len(valid_coords)
+                
+                # Check if this coordinate is stuck (avoid it)
+                if hasattr(self, 'frame_analyzer') and self.frame_analyzer:
+                    if not self.frame_analyzer.should_avoid_coordinate(selected_coord[0], selected_coord[1]):
+                        break
+                    else:
+                        print(f"🚫 AVOIDING STUCK COORDINATE: ({selected_coord[0]},{selected_coord[1]})")
+                
+                attempts += 1
+            
+            if attempts >= max_attempts:
+                print(f"⚠️ ALL COORDINATES STUCK: No non-stuck coordinates available")
+                return None, None
             
             # Track tried coordinates for analysis
             tried_coords.add(selected_coord)
@@ -6890,7 +6998,7 @@ class ContinuousLearningLoop:
                 if action in available_actions:
                     print(f"   Action {action}: +{boost:.2f} pattern boost")
         else:
-            print(f"🧠 NO PATTERN RECOMMENDATIONS: No learned patterns found for game {game_id}")
+            print(f"🧠 NO PATTERN RECOMMENDATIONS: No learned patterns found for game {game_id} (checking prefix patterns)")
         
         # Store pattern recommendations for use in scoring
         self._current_pattern_recommendations = pattern_recommendations
@@ -8735,11 +8843,57 @@ class ContinuousLearningLoop:
                 logger.info(f" Action Intelligence for {game_id}: "
                         f"{intel_summary.get('effective_actions', 0)}/{intel_summary.get('total_actions_learned', 0)} effective actions, "
                         f"{intel_summary.get('coordinate_patterns_learned', 0)} coordinate patterns learned")
+            
+            # CRITICAL FIX: Save game result to database
+            await self._save_game_result_to_database(game_id, result, session_count)
                 
             return result
             
         except Exception as e:
             return {'success': False, 'final_score': 0, 'error': str(e), 'game_id': game_id}
+    
+    async def _save_game_result_to_database(self, game_id: str, result: Dict[str, Any], session_count: int):
+        """Save game result to database for Director tracking."""
+        try:
+            from src.database.system_integration import get_system_integration
+            from datetime import datetime
+            
+            integration = get_system_integration()
+            
+            # Extract data from result
+            final_score = result.get('final_score', 0)
+            total_actions = result.get('actions_taken', 0)
+            win_detected = result.get('success', False)
+            final_state = result.get('game_state', 'UNKNOWN')
+            
+            # Get session ID (use current session or create one)
+            session_id = getattr(self, 'session_id', f'director_session_{int(datetime.now().timestamp())}')
+            
+            # Prepare game result data
+            game_result_data = {
+                'start_time': datetime.now(),
+                'end_time': datetime.now(),
+                'status': final_state,
+                'final_score': final_score,
+                'total_actions': total_actions,
+                'actions_taken': result.get('effective_actions', []),
+                'win_detected': win_detected,
+                'level_completions': 1 if win_detected else 0,
+                'frame_changes': result.get('actions_taken', 0),  # Use actions as proxy for frame changes
+                'coordinate_attempts': len([a for a in result.get('effective_actions', []) if a.get('action_number') == 6]),
+                'coordinate_successes': len([a for a in result.get('effective_actions', []) if a.get('action_number') == 6 and a.get('success', False)])
+            }
+            
+            # Save to database
+            success = await integration.log_game_result(game_id, session_id, game_result_data)
+            
+            if success:
+                logger.info(f"✅ Game result saved to database: {game_id} - Score: {final_score}, Actions: {total_actions}, Win: {win_detected}")
+            else:
+                logger.warning(f"⚠️ Failed to save game result to database: {game_id}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error saving game result to database: {e}")
     
     def _count_memory_files(self) -> int:
         """Count memory and checkpoint files for verbose monitoring."""
@@ -9989,35 +10143,64 @@ class ContinuousLearningLoop:
             logger.error(f"Failed to save session results: {e}")
 
     def _load_game_action_intelligence(self, game_id: str) -> Dict[str, Any]:
-        """Load learned action patterns for this specific game with comprehensive fallback."""
-        intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"  # DEPRECATED: Use database instead
-        
-        # Try to load current intelligence file
-        if intelligence_file.exists():
-            try:
-                with open(intelligence_file, 'r') as f:
-                    intelligence = json.load(f)
-                logger.info(f" Loaded action intelligence for {game_id}: {len(intelligence.get('effective_actions', {}))} effective actions")
+        """Load learned action patterns for this specific game from database."""
+        try:
+            # DATABASE MIGRATION: Load intelligence from database instead of files
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            
+            # Extract game prefix for database lookup
+            game_prefix = game_id.split('-')[0] if '-' in game_id else game_id
+            
+            # Get action effectiveness data for this prefix
+            action_data = integration.get_action_effectiveness_by_prefix(game_prefix)
+            
+            if action_data:
+                # Convert database data to intelligence format
+                effective_actions = {}
+                winning_sequences = []
+                coordinate_patterns = {}
                 
-                # If current file has no winning sequences, try to load from archives
-                if not intelligence.get('winning_sequences') or len(intelligence.get('winning_sequences', [])) == 0:
-                    logger.warning(f"No winning sequences found in current file for {game_id}, checking archives...")
-                    archive_intelligence = self._load_archive_intelligence(game_id)
-                    if archive_intelligence:
-                        # Merge archive data with current data
-                        intelligence = self._merge_intelligence_data(intelligence, archive_intelligence)
-                        logger.info(f" Merged archive intelligence for {game_id}: {len(intelligence.get('winning_sequences', []))} winning sequences")
+                for action_info in action_data:
+                    action_num = action_info.get('action_number', 0)
+                    success_rate = action_info.get('success_rate', 0.0)
+                    attempts = action_info.get('attempts', 0)
+                    successes = action_info.get('successes', 0)
+                    
+                    if success_rate > 0.1:  # Include actions with any success
+                        effective_actions[action_num] = {
+                            'success_rate': success_rate,
+                            'attempts': attempts,
+                            'successes': successes
+                        }
+                        
+                        # Create winning sequence for high-success actions
+                        if success_rate > 0.7:
+                            winning_sequences.append([action_num])
                 
+                intelligence = {
+                    'game_id': game_id,
+                    'game_prefix': game_prefix,
+                    'effective_actions': effective_actions,
+                    'winning_sequences': winning_sequences,
+                    'coordinate_patterns': coordinate_patterns,
+                    'learned_patterns': {},
+                    'last_updated': int(time.time())
+                }
+                
+                logger.info(f" Loaded database intelligence for {game_id}: {len(effective_actions)} effective actions, {len(winning_sequences)} winning sequences")
                 return intelligence
-            except Exception as e:
-                logger.warning(f"Failed to load action intelligence for {game_id}: {e}")
-        
-        # Try to load from archives if current file doesn't exist
-        archive_intelligence = self._load_archive_intelligence(game_id)
-        if archive_intelligence:
-            logger.info(f" Loaded archive intelligence for {game_id}: {len(archive_intelligence.get('winning_sequences', []))} winning sequences")
-            return archive_intelligence
+            
+            # Fallback: try archive intelligence
+            archive_intelligence = self._load_archive_intelligence(game_id)
+            if archive_intelligence:
+                logger.info(f" Loaded archive intelligence for {game_id}: {len(archive_intelligence.get('winning_sequences', []))} winning sequences")
+                return archive_intelligence
                 
+        except Exception as e:
+            logger.warning(f"Failed to load database intelligence for {game_id}: {e}")
+        
+        # Return empty intelligence if no data found
         return {
             'game_id': game_id,
             'initial_actions': [],
@@ -10029,57 +10212,94 @@ class ContinuousLearningLoop:
         }
     
     def _load_archive_intelligence(self, game_id: str) -> Optional[Dict[str, Any]]:
-        """Load intelligence data from archive files."""
+        """Load intelligence data from database (migrated from file-based archives)."""
         try:
-            # Extract game prefix (e.g., 'ls20' from 'ls20-fa137e247ce6')
+            # Extract game prefix (e.g., 'sp80' from 'sp80-0605ab9e5b2a')
             game_prefix = game_id.split('-')[0] if '-' in game_id else game_id
             
-            # Check archive directory
-            archive_dir = self.save_directory / "archive_non_improving" / "20250907T130123"
-            archive_file = archive_dir / f"action_intelligence_{game_prefix}-*.json"
+            # DATABASE MIGRATION: Load intelligence from database instead of files
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
             
-            import glob
-            matching_files = glob.glob(str(archive_file))
+            # Get action effectiveness data for this prefix
+            import time
+            action_data = integration.get_action_effectiveness_by_prefix(game_prefix)
             
-            if matching_files:
-                with open(matching_files[0], 'r') as f:
-                    archive_data = json.load(f)
-                logger.info(f" Found archive intelligence for {game_id} with {len(archive_data.get('winning_sequences', []))} winning sequences")
+            if action_data:
+                # Convert database data to archive format
+                winning_sequences = []
+                effective_actions = {}
+                coordinate_patterns = {}
+                
+                for action_info in action_data:
+                    action_num = action_info.get('action_number', 0)
+                    success_rate = action_info.get('success_rate', 0.0)
+                    attempts = action_info.get('attempts', 0)
+                    successes = action_info.get('successes', 0)
+                    
+                    if success_rate > 0.5:  # Only include actions with >50% success rate
+                        effective_actions[action_num] = {
+                            'success_rate': success_rate,
+                            'attempts': attempts,
+                            'successes': successes
+                        }
+                        
+                        # Create winning sequence for high-success actions
+                        if success_rate > 0.7:
+                            winning_sequences.append([action_num])
+                
+                archive_data = {
+                    'game_id': game_id,
+                    'game_prefix': game_prefix,
+                    'effective_actions': effective_actions,
+                    'winning_sequences': winning_sequences,
+                    'coordinate_patterns': coordinate_patterns,
+                    'learned_patterns': {},
+                    'last_updated': int(time.time())
+                }
+                
+                logger.info(f" Found database intelligence for {game_id} with {len(winning_sequences)} winning sequences and {len(effective_actions)} effective actions")
                 return archive_data
             
-            # Check training intelligence directory
-            training_dir = self.save_directory / "training" / "intelligence"
-            training_file = training_dir / f"action_intelligence_{game_prefix}-*.json"
-            
-            matching_files = glob.glob(str(training_file))
-            
-            if matching_files:
-                with open(matching_files[0], 'r') as f:
-                    training_data = json.load(f)
-                logger.info(f" Found training intelligence for {game_id} with {len(training_data.get('winning_sequences', []))} winning sequences")
-                return training_data
-            
-            # CRITICAL FIX: If no archive data found, create winning sequences from effective actions
-            logger.warning(f"No archive data found for {game_id}, creating sequences from effective actions")
+            # CRITICAL FIX: If no database data found for prefix, create sequences from effective actions
+            logger.warning(f"No database intelligence found for prefix {game_prefix} (game: {game_id}), creating sequences from effective actions")
             return self._create_winning_sequences_from_effective_actions(game_id)
             
         except Exception as e:
-            logger.warning(f"Failed to load archive intelligence for {game_id}: {e}")
+            logger.warning(f"Failed to load database intelligence for {game_id}: {e}")
             return None
     
     def _create_winning_sequences_from_effective_actions(self, game_id: str) -> Optional[Dict[str, Any]]:
         """Create winning sequences from effective actions when no archive data is available."""
         try:
-            # Load current intelligence data
-            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"  # DEPRECATED: Use database instead
+            # Load current intelligence data from database
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
             
-            if not intelligence_file.exists():
+            # Extract game prefix for database lookup
+            game_prefix = game_id.split('-')[0] if '-' in game_id else game_id
+            
+            # Get action effectiveness data for this prefix
+            action_data = integration.get_action_effectiveness_by_prefix(game_prefix)
+            
+            if not action_data:
                 return None
-                
-            with open(intelligence_file, 'r') as f:
-                current_data = json.load(f)
             
-            effective_actions = current_data.get('effective_actions', {})
+            # Convert database data to effective actions format
+            effective_actions = {}
+            for action_info in action_data:
+                action_num = action_info.get('action_number', 0)
+                success_rate = action_info.get('success_rate', 0.0)
+                attempts = action_info.get('attempts', 0)
+                successes = action_info.get('successes', 0)
+                
+                if success_rate > 0.1:  # Include actions with any success
+                    effective_actions[str(action_num)] = {
+                        'success_rate': success_rate,
+                        'attempts': attempts,
+                        'successes': successes
+                    }
+            
             if not effective_actions:
                 return None
             
@@ -10130,12 +10350,12 @@ class ContinuousLearningLoop:
             # Create enhanced intelligence data
             enhanced_data = {
                 'game_id': game_id,
-                'initial_actions': current_data.get('initial_actions', []),
+                'initial_actions': [],
                 'effective_actions': effective_actions,
                 'winning_sequences': winning_sequences,
                 'coordinate_patterns': coordinate_patterns,
                 'learned_patterns': learned_patterns,
-                'total_sessions_learned': current_data.get('total_sessions_learned', 0),
+                'total_sessions_learned': 1,
                 'last_updated': time.time()
             }
             
@@ -10508,15 +10728,15 @@ class ContinuousLearningLoop:
         return recommendations
     
     def _save_winning_sequence(self, game_id: str, winning_sequence: List[int]):
-        """Save a winning action sequence to the action intelligence data."""
+        """Save a winning action sequence to the database."""
         try:
-            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"  # DEPRECATED: Use database instead
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
             
-            # Load existing intelligence data
-            if intelligence_file.exists():
-                with open(intelligence_file, 'r') as f:
-                    intelligence = json.load(f)
-            else:
+            # Load existing intelligence data from database
+            intelligence = self._load_game_action_intelligence(game_id)
+            
+            if not intelligence:
                 intelligence = {
                     'game_id': game_id,
                     'initial_actions': [],
@@ -10573,15 +10793,15 @@ class ContinuousLearningLoop:
             logger.error(f"Failed to save winning sequence for {game_id}: {e}")
     
     def _save_coordinate_pattern(self, game_id: str, action: int, x: int, y: int, success: bool):
-        """Save coordinate pattern data for action intelligence."""
+        """Save coordinate pattern data to the database."""
         try:
-            intelligence_file = self.save_directory / f"action_intelligence_{game_id}.json"  # DEPRECATED: Use database instead
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
             
-            # Load existing intelligence data
-            if intelligence_file.exists():
-                with open(intelligence_file, 'r') as f:
-                    intelligence = json.load(f)
-            else:
+            # Load existing intelligence data from database
+            intelligence = self._load_game_action_intelligence(game_id)
+            
+            if not intelligence:
                 intelligence = {
                     'game_id': game_id,
                     'initial_actions': [],
@@ -12477,17 +12697,30 @@ class ContinuousLearningLoop:
                 logger.error(f"Failed to load state: {e}")
 
     def _load_state(self):
-        """Load previous training state if available."""
-        state_file = self.save_directory / "continuous_learning_state.json"
-        if state_file.exists():
-            try:
-                with open(state_file, 'r') as f:
-                    state = json.load(f)
-                    self.session_history = state.get('session_history', [])
-                    self.global_training_sessions = state.get('global_training_sessions', self.global_training_sessions)
-                    logger.info(f" Loaded previous state: {len(self.session_history)} sessions")
-            except Exception as e:
-                logger.warning(f"Failed to load previous state: {e}")
+        """Load previous training state from database."""
+        try:
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            
+            # Load session history from database
+            sessions = integration.get_session_status()
+            self.session_history = [session for session in sessions if session.get('status') == 'completed']
+            
+            # Load global training sessions from database
+            self.global_training_sessions = integration.get_global_counters()
+            
+            logger.info(f" Loaded previous state from database: {len(self.session_history)} sessions")
+        except Exception as e:
+            logger.warning(f"Failed to load previous state from database: {e}")
+            self.session_history = []
+            self.global_training_sessions = {
+                'total_games_played': 0,
+                'total_episodes': 0,
+                'average_score': 0.0,
+                'win_rate': 0.0,
+                'total_actions': 0,
+                'total_wins': 0
+            }
 
     def _save_state(self):
         """Save current training state to database."""

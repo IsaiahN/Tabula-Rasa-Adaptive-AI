@@ -859,10 +859,11 @@ class OpenCVFeatureExtractor:
     
     def identify_actionable_targets(self, grid: List[List[int]], game_id: str = "unknown") -> List[ActionableTarget]:
         """
-        Identify actionable targets (buttons, portals, interactive elements) for ACTION6 commands.
+        ENHANCED ACTION6 TOUCHSCREEN TARGETING SYSTEM.
         
-        This method analyzes the grid to find elements that can be interacted with
-        using ACTION6 coordinate-based actions.
+        Action 6 is like a touchscreen - when you tap a pixel/coordinate, it might trigger
+        an object to act like a button. This combines OpenCV object detection with coordinate
+        data for cause-and-effect analysis.
         
         Args:
             grid: 2D list representing the puzzle grid
@@ -883,28 +884,439 @@ class OpenCVFeatureExtractor:
             height, width = len(grid), len(grid[0])
             actionable_targets = []
             
-            # Detect objects first
+            # 1. DETECT OBJECTS - Find visual elements that could be interactive
             objects = self._detect_objects_simple(grid)
             
-            # Classify objects as actionable targets
+            # 2. ANALYZE OBJECT INTERACTIVITY - Determine which objects are likely buttons/triggers
             for obj in objects:
                 target = self._classify_as_actionable_target(obj, grid)
                 if target:
+                    # Enhance with touchscreen-specific analysis
+                    target = self._enhance_touchscreen_target(target, grid)
                     actionable_targets.append(target)
             
-            # Look for specific actionable patterns
-            pattern_targets = self._detect_actionable_patterns(grid)
-            actionable_targets.extend(pattern_targets)
+            # 3. DETECT COORDINATE-BASED INTERACTIONS - Find areas that respond to touch
+            coordinate_targets = self._detect_coordinate_interactions(grid)
+            actionable_targets.extend(coordinate_targets)
             
-            # Sort by priority (highest first)
+            # 4. LOOK FOR CAUSE-AND-EFFECT PATTERNS - Find objects that might trigger changes
+            cause_effect_targets = self._detect_cause_effect_patterns(grid)
+            actionable_targets.extend(cause_effect_targets)
+            
+            # 5. SORT BY INTERACTION LIKELIHOOD - Prioritize most likely interactive elements
             actionable_targets.sort(key=lambda t: t.priority, reverse=True)
             
-            logger.info(f"Identified {len(actionable_targets)} actionable targets for {game_id}")
+            logger.info(f"Identified {len(actionable_targets)} touchscreen targets for {game_id}")
             return actionable_targets
             
         except Exception as e:
             logger.error(f"Actionable target identification failed for {game_id}: {e}")
             return []
+    
+    def _enhance_touchscreen_target(self, target: ActionableTarget, grid: List[List[int]]) -> ActionableTarget:
+        """
+        Enhance a target with touchscreen-specific analysis.
+        
+        Args:
+            target: The target to enhance
+            grid: The game grid
+            
+        Returns:
+            Enhanced target with touchscreen-specific properties
+        """
+        try:
+            # Analyze the area around the target for interactive patterns
+            x, y = target.coordinates
+            height, width = len(grid), len(grid[0])
+            
+            # Check for button-like patterns (rectangular shapes, distinct colors)
+            button_score = self._analyze_button_likelihood(target, grid)
+            target.priority = min(1.0, target.priority + button_score * 0.3)
+            
+            # Check for portal-like patterns (circular shapes, special colors)
+            portal_score = self._analyze_portal_likelihood(target, grid)
+            target.priority = min(1.0, target.priority + portal_score * 0.2)
+            
+            # Check for interactive element patterns (contrasting colors, edges)
+            interactive_score = self._analyze_interactive_likelihood(target, grid)
+            target.priority = min(1.0, target.priority + interactive_score * 0.25)
+            
+            # Update description with touchscreen context
+            target.description = f"Touchscreen target: {target.description} (button: {button_score:.2f}, portal: {portal_score:.2f}, interactive: {interactive_score:.2f})"
+            
+            return target
+            
+        except Exception as e:
+            logger.warning(f"Touchscreen enhancement failed: {e}")
+            return target
+    
+    def _detect_coordinate_interactions(self, grid: List[List[int]]) -> List[ActionableTarget]:
+        """
+        Detect areas that might respond to coordinate-based touch interactions.
+        
+        Args:
+            grid: The game grid
+            
+        Returns:
+            List of coordinate-based interaction targets
+        """
+        targets = []
+        height, width = len(grid), len(grid[0])
+        
+        try:
+            # Look for areas with high color contrast (likely interactive)
+            for y in range(0, height, 4):  # Sample every 4 pixels
+                for x in range(0, width, 4):
+                    if self._is_high_contrast_area(grid, x, y):
+                        target = ActionableTarget(
+                            id=len(targets) + 1000,  # Use high ID to distinguish from object targets
+                            coordinates=(x, y),
+                            object_type="coordinate_interaction",
+                            action_type="touch",
+                            priority=0.6,  # Medium priority for coordinate-based interactions
+                            confidence=0.7,
+                            description=f"High contrast area at ({x},{y}) - likely interactive",
+                            bounding_box=(x-2, y-2, 4, 4),
+                            color=grid[y][x] if y < height and x < width else 0,
+                            area=16
+                        )
+                        targets.append(target)
+            
+            # Look for edge patterns (often interactive boundaries)
+            edge_targets = self._detect_edge_interactions(grid)
+            targets.extend(edge_targets)
+            
+        except Exception as e:
+            logger.warning(f"Coordinate interaction detection failed: {e}")
+        
+        return targets
+    
+    def _detect_cause_effect_patterns(self, grid: List[List[int]]) -> List[ActionableTarget]:
+        """
+        Detect objects that might trigger cause-and-effect changes when touched.
+        
+        Args:
+            grid: The game grid
+            
+        Returns:
+            List of cause-and-effect targets
+        """
+        targets = []
+        
+        try:
+            # Look for objects that are positioned near other objects (potential triggers)
+            objects = self._detect_objects_simple(grid)
+            
+            for i, obj1 in enumerate(objects):
+                for j, obj2 in enumerate(objects):
+                    if i != j:
+                        # Check if objects are close enough to be related
+                        distance = ((obj1['center'][0] - obj2['center'][0])**2 + 
+                                  (obj1['center'][1] - obj2['center'][1])**2)**0.5
+                        
+                        if distance < 20:  # Close objects might be related
+                            # Create a target between the objects
+                            mid_x = (obj1['center'][0] + obj2['center'][0]) // 2
+                            mid_y = (obj1['center'][1] + obj2['center'][1]) // 2
+                            
+                            target = ActionableTarget(
+                                id=len(targets) + 2000,  # Use high ID for cause-effect targets
+                                coordinates=(mid_x, mid_y),
+                                object_type="cause_effect_trigger",
+                                action_type="activate",
+                                priority=0.8,  # High priority for cause-effect patterns
+                                confidence=0.8,
+                                description=f"Cause-effect trigger between objects at ({mid_x},{mid_y})",
+                                bounding_box=(mid_x-3, mid_y-3, 6, 6),
+                                color=grid[mid_y][mid_x] if mid_y < len(grid) and mid_x < len(grid[0]) else 0,
+                                area=36
+                            )
+                            targets.append(target)
+            
+        except Exception as e:
+            logger.warning(f"Cause-effect pattern detection failed: {e}")
+        
+        return targets
+    
+    def _analyze_button_likelihood(self, target: ActionableTarget, grid: List[List[int]]) -> float:
+        """Analyze how likely a target is to be a button-like interactive element."""
+        try:
+            x, y = target.coordinates
+            height, width = len(grid), len(grid[0])
+            
+            if x >= width or y >= height:
+                return 0.0
+            
+            # Check for rectangular patterns
+            rect_score = self._check_rectangular_pattern(grid, x, y)
+            
+            # Check for distinct color (not background)
+            color_score = 0.0
+            if grid[y][x] != 0:  # Not background color
+                color_score = 0.5
+            
+            # Check for edges/borders
+            edge_score = self._check_edge_pattern(grid, x, y)
+            
+            return (rect_score + color_score + edge_score) / 3.0
+            
+        except Exception:
+            return 0.0
+    
+    def _analyze_portal_likelihood(self, target: ActionableTarget, grid: List[List[int]]) -> float:
+        """Analyze how likely a target is to be a portal-like interactive element."""
+        try:
+            x, y = target.coordinates
+            height, width = len(grid), len(grid[0])
+            
+            if x >= width or y >= height:
+                return 0.0
+            
+            # Check for circular patterns
+            circle_score = self._check_circular_pattern(grid, x, y)
+            
+            # Check for special colors (often portals have unique colors)
+            special_color_score = 0.0
+            color = grid[y][x]
+            if color in [1, 2, 3, 4, 5]:  # Common portal colors
+                special_color_score = 0.7
+            
+            return (circle_score + special_color_score) / 2.0
+            
+        except Exception:
+            return 0.0
+    
+    def _analyze_interactive_likelihood(self, target: ActionableTarget, grid: List[List[int]]) -> float:
+        """Analyze how likely a target is to be an interactive element."""
+        try:
+            x, y = target.coordinates
+            height, width = len(grid), len(grid[0])
+            
+            if x >= width or y >= height:
+                return 0.0
+            
+            # Check for color contrast with surroundings
+            contrast_score = self._check_color_contrast(grid, x, y)
+            
+            # Check for position (center areas often more interactive)
+            position_score = self._check_interactive_position(x, y, width, height)
+            
+            return (contrast_score + position_score) / 2.0
+            
+        except Exception:
+            return 0.0
+    
+    def _is_high_contrast_area(self, grid: List[List[int]], x: int, y: int) -> bool:
+        """Check if an area has high color contrast (likely interactive)."""
+        try:
+            height, width = len(grid), len(grid[0])
+            if x >= width or y >= height:
+                return False
+            
+            center_color = grid[y][x]
+            if center_color == 0:  # Background color
+                return False
+            
+            # Check surrounding pixels for contrast
+            contrast_count = 0
+            for dy in [-1, 0, 1]:
+                for dx in [-1, 0, 1]:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        if grid[ny][nx] != center_color:
+                            contrast_count += 1
+            
+            return contrast_count >= 3  # At least 3 contrasting neighbors
+            
+        except Exception:
+            return False
+    
+    def _detect_edge_interactions(self, grid: List[List[int]]) -> List[ActionableTarget]:
+        """Detect interactive elements at grid edges."""
+        targets = []
+        height, width = len(grid), len(grid[0])
+        
+        try:
+            # Check top and bottom edges
+            for x in range(0, width, 8):
+                if grid[0][x] != 0:  # Top edge
+                    targets.append(ActionableTarget(
+                        id=len(targets) + 3000,
+                        coordinates=(x, 0),
+                        object_type="edge_interaction",
+                        action_type="touch",
+                        priority=0.5,
+                        confidence=0.6,
+                        description=f"Edge interaction at top ({x},0)",
+                        bounding_box=(x-2, 0, 4, 4),
+                        color=grid[0][x],
+                        area=16
+                    ))
+                
+                if grid[height-1][x] != 0:  # Bottom edge
+                    targets.append(ActionableTarget(
+                        id=len(targets) + 3000,
+                        coordinates=(x, height-1),
+                        object_type="edge_interaction",
+                        action_type="touch",
+                        priority=0.5,
+                        confidence=0.6,
+                        description=f"Edge interaction at bottom ({x},{height-1})",
+                        bounding_box=(x-2, height-5, 4, 4),
+                        color=grid[height-1][x],
+                        area=16
+                    ))
+            
+            # Check left and right edges
+            for y in range(0, height, 8):
+                if grid[y][0] != 0:  # Left edge
+                    targets.append(ActionableTarget(
+                        id=len(targets) + 3000,
+                        coordinates=(0, y),
+                        object_type="edge_interaction",
+                        action_type="touch",
+                        priority=0.5,
+                        confidence=0.6,
+                        description=f"Edge interaction at left (0,{y})",
+                        bounding_box=(0, y-2, 4, 4),
+                        color=grid[y][0],
+                        area=16
+                    ))
+                
+                if grid[y][width-1] != 0:  # Right edge
+                    targets.append(ActionableTarget(
+                        id=len(targets) + 3000,
+                        coordinates=(width-1, y),
+                        object_type="edge_interaction",
+                        action_type="touch",
+                        priority=0.5,
+                        confidence=0.6,
+                        description=f"Edge interaction at right ({width-1},{y})",
+                        bounding_box=(width-5, y-2, 4, 4),
+                        color=grid[y][width-1],
+                        area=16
+                    ))
+            
+        except Exception as e:
+            logger.warning(f"Edge interaction detection failed: {e}")
+        
+        return targets
+    
+    def _check_rectangular_pattern(self, grid: List[List[int]], x: int, y: int) -> float:
+        """Check if area around coordinates forms a rectangular pattern."""
+        try:
+            height, width = len(grid), len(grid[0])
+            if x >= width or y >= height:
+                return 0.0
+            
+            center_color = grid[y][x]
+            if center_color == 0:
+                return 0.0
+            
+            # Check for rectangular shape
+            rect_pixels = 0
+            total_pixels = 0
+            
+            for dy in range(-2, 3):
+                for dx in range(-2, 3):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        total_pixels += 1
+                        if grid[ny][nx] == center_color:
+                            rect_pixels += 1
+            
+            return rect_pixels / max(total_pixels, 1)
+            
+        except Exception:
+            return 0.0
+    
+    def _check_circular_pattern(self, grid: List[List[int]], x: int, y: int) -> float:
+        """Check if area around coordinates forms a circular pattern."""
+        try:
+            height, width = len(grid), len(grid[0])
+            if x >= width or y >= height:
+                return 0.0
+            
+            center_color = grid[y][x]
+            if center_color == 0:
+                return 0.0
+            
+            # Check for circular shape
+            circle_pixels = 0
+            total_pixels = 0
+            
+            for dy in range(-2, 3):
+                for dx in range(-2, 3):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        total_pixels += 1
+                        # Check if pixel is within circular radius
+                        distance = (dx**2 + dy**2)**0.5
+                        if distance <= 2.5 and grid[ny][nx] == center_color:
+                            circle_pixels += 1
+            
+            return circle_pixels / max(total_pixels, 1)
+            
+        except Exception:
+            return 0.0
+    
+    def _check_edge_pattern(self, grid: List[List[int]], x: int, y: int) -> float:
+        """Check if coordinates are at an edge or border."""
+        try:
+            height, width = len(grid), len(grid[0])
+            if x >= width or y >= height:
+                return 0.0
+            
+            # Check if near edges
+            edge_distance = min(x, y, width - x - 1, height - y - 1)
+            if edge_distance <= 2:
+                return 0.7
+            elif edge_distance <= 5:
+                return 0.3
+            else:
+                return 0.0
+                
+        except Exception:
+            return 0.0
+    
+    def _check_color_contrast(self, grid: List[List[int]], x: int, y: int) -> float:
+        """Check color contrast with surrounding pixels."""
+        try:
+            height, width = len(grid), len(grid[0])
+            if x >= width or y >= height:
+                return 0.0
+            
+            center_color = grid[y][x]
+            if center_color == 0:
+                return 0.0
+            
+            # Count different colors in surrounding area
+            different_colors = set()
+            for dy in range(-1, 2):
+                for dx in range(-1, 2):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        different_colors.add(grid[ny][nx])
+            
+            # More different colors = higher contrast
+            return min(1.0, len(different_colors) / 5.0)
+            
+        except Exception:
+            return 0.0
+    
+    def _check_interactive_position(self, x: int, y: int, width: int, height: int) -> float:
+        """Check if position is likely to be interactive (center areas)."""
+        try:
+            # Center areas are often more interactive
+            center_x, center_y = width // 2, height // 2
+            distance_from_center = ((x - center_x)**2 + (y - center_y)**2)**0.5
+            max_distance = ((width//2)**2 + (height//2)**2)**0.5
+            
+            # Closer to center = higher score
+            return max(0.0, 1.0 - (distance_from_center / max_distance))
+            
+        except Exception:
+            return 0.0
     
     def _classify_as_actionable_target(self, obj: Dict[str, Any], grid: List[List[int]]) -> Optional[ActionableTarget]:
         """Classify a detected object as an actionable target."""

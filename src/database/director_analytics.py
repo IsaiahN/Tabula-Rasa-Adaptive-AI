@@ -201,7 +201,7 @@ class DirectorAnalytics:
                         "successes": action.successes,
                         "success_rate": round(action.success_rate * 100, 2),
                         "avg_score_impact": action.avg_score_impact,
-                        "last_used": action.last_used.isoformat() if action.last_used else None
+                        "last_used": action.last_used.isoformat() if hasattr(action.last_used, 'isoformat') else str(action.last_used) if action.last_used else None
                     }
                     for action in action_data
                 ],
@@ -263,7 +263,7 @@ class DirectorAnalytics:
                         "successes": coord.successes,
                         "success_rate": round(coord.success_rate * 100, 2),
                         "frame_changes": coord.frame_changes,
-                        "last_used": coord.last_used.isoformat() if coord.last_used else None
+                        "last_used": coord.last_used.isoformat() if hasattr(coord.last_used, 'isoformat') else str(coord.last_used) if coord.last_used else None
                     }
                     for coord in coord_data
                 ],

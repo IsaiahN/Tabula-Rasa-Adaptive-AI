@@ -2183,8 +2183,8 @@ class FrameAnalyzer:
         base_avoidance = 0.0
         
         if result.get('is_stuck_coordinate', False):
-            # Stuck coordinates start high but decay over time
-            base_avoidance = 0.9
+            # Stuck coordinates are permanently avoided - no decay
+            return 1.0  # Maximum avoidance score
         else:
             # Progressive avoidance based on zero progress streak
             streak_penalty = min(result['zero_progress_streak'] * 0.1, 0.6)

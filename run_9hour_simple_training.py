@@ -25,6 +25,14 @@ from datetime import datetime
 from typing import Dict, List, Any
 import json
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ Environment variables loaded from .env file")
+except ImportError:
+    print("⚠️ python-dotenv not available, using system environment variables")
+
 # Add src to path for database access
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from database.system_integration import get_system_integration
@@ -32,13 +40,26 @@ from database.db_initializer import ensure_database_ready
 
 def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[str, Any]:
     """Run a single training session with specific parameters."""
-    print(f"🚀 Starting training session #{session_id}")
+    print(f"Starting training session #{session_id}")
     
     # Set environment variables for optimal performance
     env = os.environ.copy()
     env['PYTHONUNBUFFERED'] = '1'
     env['PYTHONIOENCODING'] = 'utf-8'
     env['TRAINING_SESSION_ID'] = str(session_id)
+    
+    # Ensure API key is available
+    if 'ARC_API_KEY' not in env:
+        print("❌ ARC_API_KEY not found in environment variables")
+        return {
+            'session_id': session_id,
+            'return_code': -1,
+            'duration': 0,
+            'success': False,
+            'error': 'ARC_API_KEY not found in environment variables'
+        }
+    else:
+        print(f"✅ ARC_API_KEY found: {env['ARC_API_KEY'][:10]}...")
     
     # Build the command with OPTIMIZED INTELLIGENCE settings
     cmd = [
@@ -91,11 +112,11 @@ def main():
     print("TABULA RASA - SIMPLE 9 HOUR CONTINUOUS TRAINING")
     print("=" * 80)
     print()
-    print("🚀 Starting simple sequential training session...")
-    print("⏱️ Duration: 9 hours (540 minutes)")
-    print("🎮 Mode: Sequential with multiple games per hour")
-    print("🧠 Features: Enhanced learning, stable execution, graceful shutdown")
-    print("💾 Database: Enabled (no more JSON files)")
+    print("Starting simple sequential training session...")
+    print("Duration: 9 hours (540 minutes)")
+    print("Mode: Sequential with multiple games per hour")
+    print("Features: Enhanced learning, stable execution, graceful shutdown")
+    print("Database: Enabled (no more JSON files)")
     
     # Ensure database is ready before starting training
     print("🔍 Checking database initialization...")

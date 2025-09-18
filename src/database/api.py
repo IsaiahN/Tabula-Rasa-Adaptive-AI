@@ -205,7 +205,7 @@ class TabulaRasaDatabase:
             """, (session_id,))
             row = cursor.fetchone()
             if row:
-                return TrainingSession(**{k: v for k, v in dict(row).items()})
+                return TrainingSession(**{k: v for k, v in dict(row).items() if k not in ['game_id', 'created_at', 'updated_at']})
             return None
     
     async def get_active_sessions(self) -> List[TrainingSession]:
@@ -216,7 +216,7 @@ class TabulaRasaDatabase:
                 WHERE status = 'running'
                 ORDER BY start_time DESC
             """)
-            return [TrainingSession(**dict(row)) for row in cursor.fetchall()]
+            return [TrainingSession(**{k: v for k, v in dict(row).items() if k not in ['game_id', 'created_at', 'updated_at']}) for row in cursor.fetchall()]
     
     # ============================================================================
     # GAME RESULTS MANAGEMENT

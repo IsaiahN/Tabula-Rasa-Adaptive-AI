@@ -38,6 +38,14 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ Environment variables loaded from .env file in master_arc_trainer")
+except ImportError:
+    print("⚠️ python-dotenv not available in master_arc_trainer, using system environment variables")
+
 # Import ActionLimits from configuration file
 try:
     from src.config.centralized_config import action_limits as ActionLimits

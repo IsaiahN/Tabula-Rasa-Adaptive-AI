@@ -10,6 +10,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from .api import get_database, log_director_decision, get_director_status, get_director_insights
+from .director_training_monitor import get_training_status, detect_training_issues, get_training_recommendations
 
 # ============================================================================
 # DIRECTOR COMMAND INTERFACE
@@ -300,6 +301,43 @@ class DirectorCommands:
         
         await log_director_decision("learning_progress", f"Analyzed learning progress for {game_id or 'all games'}", 0.8)
         return progress
+    
+    # ============================================================================
+    # TRAINING MONITORING COMMANDS
+    # ============================================================================
+    
+    async def get_training_status(self) -> Dict[str, Any]:
+        """
+        Get comprehensive training process status.
+        
+        Returns:
+            Training process status and monitoring data
+        """
+        status = await get_training_status()
+        
+        await log_director_decision("training_status", f"Retrieved training status: {status['total_processes']} processes", 1.0)
+        return status
+    
+    async def detect_training_issues(self) -> Dict[str, Any]:
+        """
+        Detect issues with training processes.
+        
+        Returns:
+            Training issues and recommendations
+        """
+        issues = await detect_training_issues()
+        recommendations = await get_training_recommendations()
+        
+        analysis = {
+            "issues": issues,
+            "recommendations": recommendations,
+            "total_issues": len(issues),
+            "total_recommendations": len(recommendations),
+            "analysis_timestamp": datetime.now().isoformat()
+        }
+        
+        await log_director_decision("training_issues", f"Detected {len(issues)} issues, {len(recommendations)} recommendations", 0.9)
+        return analysis
     
     # ============================================================================
     # HELPER METHODS

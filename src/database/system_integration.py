@@ -155,6 +155,38 @@ class SystemIntegration:
         sorted_actions = sorted(effectiveness, key=lambda x: x.success_rate, reverse=True)
         return [asdict(action) for action in sorted_actions[:limit]]
     
+    def get_action_effectiveness_by_prefix(self, game_prefix: str) -> List[Dict[str, Any]]:
+        """Get action effectiveness data for all games with the given prefix."""
+        try:
+            import sqlite3
+            conn = sqlite3.connect(self.db.db_path)
+            cursor = conn.execute("""
+                SELECT game_id, action_number, attempts, successes, success_rate, 
+                       avg_score_impact, last_used, created_at, updated_at
+                FROM action_effectiveness 
+                WHERE game_id LIKE ?
+                ORDER BY success_rate DESC
+            """, (f"{game_prefix}-%",))
+            
+            results = []
+            for row in cursor.fetchall():
+                results.append({
+                    'game_id': row[0],
+                    'action_number': row[1],
+                    'attempts': row[2],
+                    'successes': row[3],
+                    'success_rate': row[4],
+                    'avg_score_impact': row[5],
+                    'last_used': row[6],
+                    'created_at': row[7],
+                    'updated_at': row[8]
+                })
+            conn.close()
+            return results
+        except Exception as e:
+            self.logger.error(f"Failed to get action effectiveness by prefix {game_prefix}: {e}")
+            return []
+    
     # ============================================================================
     # COORDINATE INTELLIGENCE INTEGRATION
     # ============================================================================

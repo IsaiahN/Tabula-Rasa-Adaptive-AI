@@ -11,6 +11,14 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass
 from pathlib import Path
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ Environment variables loaded from .env file in centralized_config")
+except ImportError:
+    print("⚠️ python-dotenv not available in centralized_config, using system environment variables")
+
 
 @dataclass
 class ActionLimits:

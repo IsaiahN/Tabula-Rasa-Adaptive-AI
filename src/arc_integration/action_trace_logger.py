@@ -56,7 +56,7 @@ def log_action_trace(record: dict) -> None:
                     record.get('frame_after', None),
                     record.get('frame_changed', False),
                     record.get('score_before', 0),
-                    record.get('score_after', 0),
+                    record.get('score_after', record.get('response_score', 0)),  # FIXED: Map response_score to score_after
                     record.get('response_data', None)
                 ))
             else:
@@ -70,7 +70,7 @@ def log_action_trace(record: dict) -> None:
                     record.get('frame_after', None),
                     record.get('frame_changed', False),
                     record.get('score_before', 0),
-                    record.get('score_after', 0),
+                    record.get('score_after', record.get('response_score', 0)),  # FIXED: Map response_score to score_after
                     record.get('response_data', None)
                 ))
         except RuntimeError:
@@ -86,7 +86,7 @@ def log_action_trace(record: dict) -> None:
                     record.get('frame_after', None),
                     record.get('frame_changed', False),
                     record.get('score_before', 0),
-                    record.get('score_after', 0),
+                    record.get('score_after', record.get('response_score', 0)),  # FIXED: Map response_score to score_after
                     record.get('response_data', None)
                 ))
             threading.Thread(target=run_in_thread, daemon=True).start()

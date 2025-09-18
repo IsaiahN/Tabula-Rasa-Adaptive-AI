@@ -98,9 +98,23 @@ class TreeEvaluationSimulationEngine:
                    f"max_depth={self.config.max_depth}, "
                    f"branching_factor={self.config.branching_factor}")
     
+    def _make_json_serializable(self, obj: Any) -> Any:
+        """Convert numpy types and other non-JSON-serializable objects to native Python types."""
+        if isinstance(obj, dict):
+            return {str(k): self._make_json_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._make_json_serializable(item) for item in obj]
+        elif hasattr(obj, 'item'):  # numpy scalar
+            return obj.item()
+        elif hasattr(obj, 'tolist'):  # numpy array
+            return obj.tolist()
+        else:
+            return obj
+    
     def _generate_node_id(self, state: Dict[str, Any], action: Optional[int] = None) -> str:
         """Generate a unique node ID based on state and action."""
-        state_str = json.dumps(state, sort_keys=True)
+        serializable_state = self._make_json_serializable(state)
+        state_str = json.dumps(serializable_state, sort_keys=True)
         action_str = str(action) if action is not None else "root"
         content = f"{state_str}:{action_str}"
         return hashlib.md5(content.encode()).hexdigest()[:16]
@@ -108,7 +122,8 @@ class TreeEvaluationSimulationEngine:
     def _compress_state(self, state: Dict[str, Any]) -> bytes:
         """Compress state representation to b bits."""
         # Convert state to compact representation
-        state_str = json.dumps(state, sort_keys=True)
+        serializable_state = self._make_json_serializable(state)
+        state_str = json.dumps(serializable_state, sort_keys=True)
         compressed = state_str.encode('utf-8')
         
         # Only truncate if absolutely necessary, and preserve JSON structure
@@ -185,7 +200,9 @@ class TreeEvaluationSimulationEngine:
             child_id = self._generate_node_id(new_state, action)
             
             # Check if we already have this node (deduplication)
-            state_hash = hashlib.md5(json.dumps(new_state, sort_keys=True).encode()).hexdigest()
+            # Convert numpy types to native Python types for JSON serialization
+            serializable_state = self._make_json_serializable(new_state)
+            state_hash = hashlib.md5(json.dumps(serializable_state, sort_keys=True).encode()).hexdigest()
             if state_hash in self.node_hashes:
                 existing_id = self.node_hashes[state_hash]
                 if existing_id in self.active_nodes:
