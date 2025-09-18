@@ -5514,6 +5514,7 @@ class ContinuousLearningLoop:
                     try:
                         trace = {
                             'ts': time.time(),
+                            'session_id': self.session_id,
                             'game_id': game_id,
                             'guid': guid,
                             'action_number': action_number,
@@ -6428,7 +6429,8 @@ class ContinuousLearningLoop:
             
             # Look for archived action intelligence files for this game type
             import glob
-            pattern_files = glob.glob(f"data/archive_non_improving/*/action_intelligence_{game_prefix}-*.json")
+            # Database-only mode: Skip file-based pattern loading
+            pattern_files = []
             
             successful_coords = []
             for file_path in pattern_files:
@@ -8945,11 +8947,9 @@ class ContinuousLearningLoop:
             persistence_level = PersistenceLevel.PERMANENT if success and score_change > 5 else PersistenceLevel.SESSION
             
             pattern_id = self.governor.learning_manager.learn_pattern(
-                KnowledgeType.ACTION_PATTERN,
-                pattern_data,
-                context,
-                success_rate=1.0 if success else 0.0,
-                persistence_level=persistence_level
+                pattern_data=pattern_data,
+                context=context,
+                confidence=1.0 if success else 0.0
             )
             
             # Learn from conscious architecture outcome
@@ -8984,11 +8984,9 @@ class ContinuousLearningLoop:
                     }
                     
                     coord_pattern_id = self.governor.learning_manager.learn_pattern(
-                        KnowledgeType.SPATIAL_PATTERN,
-                        coord_pattern_data,
-                        context,
-                        success_rate=1.0 if success else 0.0,
-                        persistence_level=persistence_level
+                        pattern_data=coord_pattern_data,
+                        context=context,
+                        confidence=1.0 if success else 0.0
                     )
                     
                     if coord_pattern_id:
@@ -12394,19 +12392,34 @@ class ContinuousLearningLoop:
                 logger.warning(f"Failed to load previous state: {e}")
 
     def _save_state(self):
-        """Save current training state."""
+        """Save current training state to database."""
         state = {
             'session_history': self.session_history[-50:],  # Keep last 50 sessions
             'global_training_sessions': self.global_training_sessions,
             'last_updated': time.time()
         }
         
-        state_file = self.save_directory / "continuous_learning_state.json"
         try:
-            with open(state_file, 'w') as f:
-                json.dump(state, f, indent=2)
+            # Save to database instead of file
+            import asyncio
+            from src.database.system_integration import get_system_integration
+            
+            async def save_to_database():
+                integration = get_system_integration()
+                await integration.log_system_event(
+                    level="INFO",
+                    component="continuous_learning_state",
+                    message="Continuous learning state backup",
+                    data=state,
+                    session_id=getattr(self, 'session_id', 'continuous_learning')
+                )
+                return True
+            
+            # Run the async function
+            asyncio.run(save_to_database())
+            logger.debug("Continuous learning state saved to database")
         except Exception as e:
-            logger.error(f"Failed to save state: {e}")
+            logger.error(f"Failed to save state to database: {e}")
 
     def _should_stop_training(self, game_results: Dict[str, Any], target_performance: Dict[str, float]) -> bool:
         """Check if we should stop training on this game based on target performance."""
@@ -13980,7 +13993,7 @@ class ContinuousLearningLoop:
                 else:
                     effectiveness = 0.1  # Minimal effectiveness for single attempts
                 
-                effective_actions.append({
+                result['effective_actions'].append({
                     'action_number': int(action_num),
                     'action_type': f'ACTION{action_num}',
                     'score_achieved': result['final_score'],
@@ -14000,12 +14013,12 @@ class ContinuousLearningLoop:
                 if score > 0 and action_key not in seen_actions:  # This action had a positive effect
                     seen_actions.add(action_key)
                     # Update existing action or add new high-effectiveness action
-                    existing_action = next((a for a in effective_actions if a['action_number'] == int(action_num)), None)
+                    existing_action = next((a for a in result['effective_actions'] if a['action_number'] == int(action_num)), None)
                     if existing_action:
                         existing_action['effectiveness'] = min(1.0, score / 20.0)  # More lenient effectiveness scoring
                         existing_action['score_achieved'] = score
                     else:
-                        effective_actions.append({
+                        result['effective_actions'].append({
                             'action_number': int(action_num),
                             'action_type': f'ACTION{action_num}',
                             'score_achieved': score,
@@ -14260,11 +14273,8 @@ class ContinuousLearningLoop:
             memories = []
             
             # Look for memory files in the continuous learning data directory
-            memory_dirs = [
-                Path("data"),
-                Path("data/meta_learning_data"), 
-                Path("test_meta_learning_data")
-            ]
+            # Database-only mode: Skip file-based memory directory checks
+            memory_dirs = []
             
             for memory_dir in memory_dirs:
                 if memory_dir.exists():
@@ -14304,11 +14314,8 @@ class ContinuousLearningLoop:
             deleted_count = 0
             current_time = time.time()
             
-            memory_dirs = [
-                Path("data"),
-                Path("data/meta_learning_data"),
-                Path("test_meta_learning_data") 
-            ]
+            # Database-only mode: Skip file-based memory directory checks
+            memory_dirs = []
             
             for memory_dir in memory_dirs:
                 if memory_dir.exists():
@@ -14360,8 +14367,9 @@ class ContinuousLearningLoop:
             memory_clusters = defaultdict(list)
             
             # Group memories by similarity patterns
-            memory_dir = Path("data")
-            if memory_dir.exists():
+            # Database-only mode: Skip file-based memory processing
+            memory_dir = None
+            if memory_dir and memory_dir.exists():
                 for memory_file in memory_dir.glob("*.json"):
                     try:
                         with open(memory_file, 'r') as f:
@@ -14584,48 +14592,31 @@ class ContinuousLearningLoop:
     def _update_task_performance(self, game_id: str, final_score: int, actions_taken: int, success: bool):
         """Update task performance metrics for the specific game."""
         try:
-            # File generation removed - data stored in database
+            # Store performance data in database instead of file
+            import asyncio
+            from src.database.system_integration import get_system_integration
             
-            # Load existing performance data
-            if os.path.exists(task_perf_file):
-                with open(task_perf_file, 'r') as f:
-                    task_performance = json.load(f)
-            else:
-                task_performance = {}
-            
-            # Update or create entry for this game
-            if game_id not in task_performance:
-                task_performance[game_id] = {
-                    'win_rate': 0.0,
-                    'avg_score': 0.0,
-                    'episodes': 0,
-                    'last_updated': 0
+            async def save_performance():
+                integration = get_system_integration()
+                performance_data = {
+                    'game_id': game_id,
+                    'final_score': final_score,
+                    'actions_taken': actions_taken,
+                    'success': success,
+                    'timestamp': time.time()
                 }
+                await integration.log_system_event(
+                    level="INFO",
+                    component="task_performance",
+                    message=f"Task performance update for {game_id}",
+                    data=performance_data,
+                    session_id=getattr(self, 'session_id', 'continuous_learning')
+                )
+                return True
             
-            # Update metrics
-            game_data = task_performance[game_id]
-            game_data['episodes'] += 1
-            
-            # Update win rate
-            if success:
-                current_wins = game_data['win_rate'] * (game_data['episodes'] - 1)
-                game_data['win_rate'] = (current_wins + 1) / game_data['episodes']
-            else:
-                current_wins = game_data['win_rate'] * (game_data['episodes'] - 1)
-                game_data['win_rate'] = current_wins / game_data['episodes']
-            
-            # Update average score
-            current_avg = game_data['avg_score'] * (game_data['episodes'] - 1)
-            game_data['avg_score'] = (current_avg + final_score) / game_data['episodes']
-            
-            # Update timestamp
-            game_data['last_updated'] = time.time()
-            
-            # Save updated data
-            with open(task_perf_file, 'w') as f:
-                json.dump(task_performance, f, indent=2)
-                
-            print(f"📊 TASK PERFORMANCE: Game {game_id} - Win rate: {game_data['win_rate']:.2f}, Avg score: {game_data['avg_score']:.1f}, Episodes: {game_data['episodes']}")
+            # Run the async function
+            asyncio.run(save_performance())
+            print(f"📊 TASK PERFORMANCE: Game {game_id} - Score: {final_score}, Actions: {actions_taken}, Success: {success}")
             
         except Exception as e:
             print(f"📊 ERROR updating task performance: {e}")
@@ -14633,92 +14624,31 @@ class ContinuousLearningLoop:
     def _track_score_progression(self, game_id: str, final_score: int, actions_taken: int, effective_actions: List[int]):
         """Track score progression and learning patterns for analysis."""
         try:
-            # File generation removed - data stored in database
+            # Store progression data in database instead of file
+            import asyncio
+            from src.database.system_integration import get_system_integration
             
-            # Load existing progression data
-            if os.path.exists(progression_file):
-                with open(progression_file, 'r') as f:
-                    progression_data = json.load(f)
-            else:
-                progression_data = {}
-            
-            # Update or create entry for this game
-            if game_id not in progression_data:
-                progression_data[game_id] = {
-                    'sessions': [],
-                    'best_score': 0,
-                    'avg_score': 0.0,
-                    'learning_curve': [],
-                    'effectiveness_trend': [],
-                    'last_updated': 0
+            async def save_progression():
+                integration = get_system_integration()
+                progression_data = {
+                    'game_id': game_id,
+                    'final_score': final_score,
+                    'actions_taken': actions_taken,
+                    'effective_actions': len(effective_actions),
+                    'timestamp': time.time()
                 }
+                await integration.log_system_event(
+                    level="INFO",
+                    component="score_progression",
+                    message=f"Score progression update for {game_id}",
+                    data=progression_data,
+                    session_id=getattr(self, 'session_id', 'continuous_learning')
+                )
+                return True
             
-            game_data = progression_data[game_id]
-            
-            # Record this session
-            session_record = {
-                'score': final_score,
-                'actions_taken': actions_taken,
-                'effective_actions': len(effective_actions),
-                'effectiveness_rate': len(effective_actions) / max(1, actions_taken),
-                'timestamp': time.time()
-            }
-            
-            game_data['sessions'].append(session_record)
-            
-            # Keep only recent sessions (last 100)
-            if len(game_data['sessions']) > 100:
-                game_data['sessions'] = game_data['sessions'][-100:]
-            
-            # Update best score
-            if final_score > game_data['best_score']:
-                game_data['best_score'] = final_score
-                print(f"📈 NEW BEST SCORE: {final_score} for game {game_id}")
-            
-            # Calculate learning curve (score progression over time)
-            recent_scores = [s['score'] for s in game_data['sessions'][-10:]]  # Last 10 sessions
-            if len(recent_scores) >= 3:
-                # Calculate trend
-                score_trend = self._calculate_trend(recent_scores)
-                game_data['learning_curve'].append({
-                    'trend': score_trend,
-                    'avg_recent_score': sum(recent_scores) / len(recent_scores),
-                    'timestamp': time.time()
-                })
-                
-                # Keep only recent trend data
-                if len(game_data['learning_curve']) > 50:
-                    game_data['learning_curve'] = game_data['learning_curve'][-50:]
-            
-            # Calculate effectiveness trend
-            recent_effectiveness = [s['effectiveness_rate'] for s in game_data['sessions'][-10:]]
-            if len(recent_effectiveness) >= 3:
-                effectiveness_trend = self._calculate_trend(recent_effectiveness)
-                game_data['effectiveness_trend'].append({
-                    'trend': effectiveness_trend,
-                    'avg_recent_effectiveness': sum(recent_effectiveness) / len(recent_effectiveness),
-                    'timestamp': time.time()
-                })
-                
-                # Keep only recent effectiveness data
-                if len(game_data['effectiveness_trend']) > 50:
-                    game_data['effectiveness_trend'] = game_data['effectiveness_trend'][-50:]
-            
-            # Update average score
-            all_scores = [s['score'] for s in game_data['sessions']]
-            game_data['avg_score'] = sum(all_scores) / len(all_scores) if all_scores else 0.0
-            
-            # Update timestamp
-            game_data['last_updated'] = time.time()
-            
-            # Save updated data
-            with open(progression_file, 'w') as f:
-                json.dump(progression_data, f, indent=2)
-            
-            # Print learning insights
-            if len(game_data['sessions']) >= 5:
-                recent_avg = sum(recent_scores) / len(recent_scores)
-                print(f"📈 SCORE PROGRESSION: Game {game_id} - Recent avg: {recent_avg:.1f}, Best: {game_data['best_score']}, Trend: {score_trend:.2f}")
+            # Run the async function
+            asyncio.run(save_progression())
+            print(f"📈 SCORE PROGRESSION: Game {game_id} - Score: {final_score}, Actions: {actions_taken}, Effective: {len(effective_actions)}")
             
         except Exception as e:
             print(f"📈 ERROR tracking score progression: {e}")
@@ -15754,7 +15684,6 @@ class ContinuousLearningLoop:
                 if self.governor:
                     try:
                         governor_recommendation = self.governor.analyze_performance_and_recommend(
-                            game_id=game_id,
                             recent_actions=actions_taken
                         )
                         if governor_recommendation:
@@ -16123,11 +16052,11 @@ class ContinuousLearningLoop:
                     if self.governor:
                         try:
                             self.governor.record_action_result(
-                                action_id=selected_action,
-                                game_id=game_id,
-                                result={
-                                    'success': was_effective,
-                                    'score_improvement': score_improvement,
+                                action=selected_action,
+                                success=was_effective,
+                                score_change=score_improvement,
+                                context={
+                                    'game_id': game_id,
                                     'action_result': action_result,
                                     'actions_taken': actions_taken,
                                     'current_state': new_state,

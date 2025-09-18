@@ -59,39 +59,11 @@ class MetaCognitiveMemoryManager:
         
         # Memory classification patterns
         self.classification_patterns = {
-            MemoryClassification.CRITICAL_LOSSLESS: [
-                "data/logs/governor_decisions_*.log",
-                "data/architect_evolution_*.json",
-                "data/meta_cognitive_results_*.json",
-                "data/backups/persistent_learning_state.json",
-                "data/unified_trainer_results.json",
-                "data/cross_session_*.json",
-                "data/outcome_tracking_*.json",
-                "data/critical_breakthroughs_*.json"
-            ],
-            MemoryClassification.IMPORTANT_DECAY: [
-                "data/meta_learning_session_*.json",
-                "data/meta_learning_sessions/meta_learning_*.json",
-                "data/session_session_*.json",
-                "data/sessions/session_*.json",
-                "data/action_intelligence_*.json",
-                "data/combined_score_*.json",
-                "data/memory_hierarchy_*.json",
-                "data/salience_patterns_*.json"
-            ],
-            MemoryClassification.REGULAR_DECAY: [
-                "data/sessions/continuous_session_*.json",
-                "data/training_episode_*.json",
-                "data/performance_metrics_*.json",
-                "data/coordination_logs_*.json"
-            ],
-            MemoryClassification.TEMPORARY_PURGE: [
-                "data/temp_*.json",
-                "data/debug_*.log",
-                "data/sandbox_*.json",
-                "data/mutations/mutation_exploratory_temp_*.json",
-                "data/test_temp_*.json"
-            ]
+            # Database-only mode: All data stored in database
+            MemoryClassification.CRITICAL_LOSSLESS: [],
+            MemoryClassification.IMPORTANT_DECAY: [],
+            MemoryClassification.REGULAR_DECAY: [],
+            MemoryClassification.TEMPORARY_PURGE: []
         }
         
         # Decay parameters by classification

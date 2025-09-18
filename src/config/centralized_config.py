@@ -163,20 +163,15 @@ class LoggingConfig:
         
         # Create TeeHandler for simultaneous file and console output
         try:
-            from master_arc_trainer import TeeHandler
-            tee_handler = TeeHandler(
-                file_path='data/logs/master_arc_trainer_output.log',
-                console_handler=console_handler
-            )
-            tee_handler.setLevel(logging.INFO)
-            tee_handler.setFormatter(SafeFormatter(log_format) if 'SafeFormatter' in locals() else logging.Formatter(log_format))
-            handlers.append(tee_handler)
+            # Use database logging instead of file logging
+            from src.database.database_logging_handler import DatabaseLoggingHandler
+            db_handler = DatabaseLoggingHandler()
+            db_handler.setLevel(logging.INFO)
+            db_handler.setFormatter(SafeFormatter(log_format) if 'SafeFormatter' in locals() else logging.Formatter(log_format))
+            handlers.append(db_handler)
             
-            # Also add separate file handler for detailed logs
-            file_handler = logging.FileHandler('data/logs/master_arc_trainer.log', encoding='utf-8')
-            file_handler.setLevel(logging.DEBUG)
-            file_handler.setFormatter(logging.Formatter(log_format))
-            handlers.append(file_handler)
+            # Keep console handler for immediate feedback
+            handlers.append(console_handler)
             
         except Exception as e:
             # Fallback to console-only

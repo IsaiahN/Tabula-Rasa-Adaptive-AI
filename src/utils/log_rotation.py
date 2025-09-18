@@ -60,6 +60,10 @@ class LogRotator:
             True if rotation was successful, False otherwise
         """
         try:
+            # Database-only mode: Skip file-based log rotation
+            if log_path is None or backup_path is None:
+                return True
+                
             if not os.path.exists(log_path):
                 self.logger.warning(f"Log file {log_path} does not exist, skipping rotation")
                 return True
@@ -219,9 +223,11 @@ class LogRotator:
             True if cleanup was successful, False otherwise
         """
         try:
-            log_dir = Path("data/logs")
-            if not log_dir.exists():
-                return True
+            # Database-only mode: Skip file-based log rotation
+            # log_dir = Path("data/logs")
+            # if not log_dir.exists():
+            #     return True
+            return True
             
             cutoff_time = datetime.now().timestamp() - (days_to_keep * 24 * 3600)
             cleaned_count = 0

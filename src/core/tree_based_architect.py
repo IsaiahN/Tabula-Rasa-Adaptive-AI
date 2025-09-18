@@ -119,8 +119,8 @@ class TreeBasedArchitect:
         self.max_evolution_depth = max_evolution_depth
         self.max_nodes_per_trace = max_nodes_per_trace
         self.memory_limit_mb = memory_limit_mb
-        self.persistence_dir = persistence_dir or Path("data/tree_architect")
-        self.persistence_dir.mkdir(parents=True, exist_ok=True)
+        self.persistence_dir = None  # Database-only mode
+        # No directory creation needed for database-only mode
         
         # Evolution state
         self.active_traces: Dict[str, EvolutionTrace] = {}

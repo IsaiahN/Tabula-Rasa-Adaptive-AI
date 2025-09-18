@@ -117,8 +117,8 @@ class ImplicitMemoryManager:
         self.max_memory_mb = max_memory_mb
         self.compression_threshold = compression_threshold
         self.cluster_size = cluster_size
-        self.persistence_dir = persistence_dir or Path("data/implicit_memory")
-        self.persistence_dir.mkdir(parents=True, exist_ok=True)
+        self.persistence_dir = None  # Database-only mode
+        # No directory creation needed for database-only mode
         
         # Memory storage
         self.memories: Dict[str, MemoryNode] = {}

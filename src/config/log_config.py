@@ -9,16 +9,16 @@ class LogConfig:
     MAX_LOG_LINES = 100000  # Maximum lines per log file before rotation
     BACKUP_LOG_LINES = 50000  # Lines to keep in backup when rotating
     
-    # Log file paths
-    MASTER_ARC_TRAINER_LOG = "data/logs/master_arc_trainer.log"
-    MASTER_ARC_TRAINER_OUTPUT_LOG = "data/logs/master_arc_trainer_output.log"
+    # Database-only mode: No file-based logging
+    MASTER_ARC_TRAINER_LOG = None
+    MASTER_ARC_TRAINER_OUTPUT_LOG = None
     
     # Backup file paths
-    MASTER_ARC_TRAINER_BACKUP = "data/logs/master_arc_trainer_backup.log"
-    MASTER_ARC_TRAINER_OUTPUT_BACKUP = "data/logs/master_arc_trainer_output_backup.log"
+    MASTER_ARC_TRAINER_BACKUP = None
+    MASTER_ARC_TRAINER_OUTPUT_BACKUP = None
     
     # Archive directory for old logs
-    LOG_ARCHIVE_DIR = "data/logs/archive"
+    LOG_ARCHIVE_DIR = None
     
     @classmethod
     def get_max_lines(cls) -> int:

@@ -29,7 +29,7 @@ class SimulationDrivenARCAgent:
     def __init__(self, 
                  predictive_core: PredictiveCore,
                  config: Optional[SimulationConfig] = None,
-                 persistence_dir: str = "data/simulation_arc_agent"):
+                 persistence_dir: str = None):  # Database-only mode
         
         self.simulation_agent = SimulationAgent(
             predictive_core=predictive_core,

@@ -280,7 +280,7 @@ class MetaCognitiveGovernor:
             from src.core.architect_evolution_engine import ArchitectEvolutionEngine
             self.architect_engine = ArchitectEvolutionEngine(
                 persistence_dir=persistence_dir or ".",
-                evolution_data_dir="data/architect_evolution",  # Use data directory instead
+                evolution_data_dir=None,  # Database-only mode
                 enable_autonomous_evolution=True
             )
             self.logger.info("Architect Evolution Engine enabled - Phase 3 autonomous evolution")
@@ -851,7 +851,7 @@ class MetaCognitiveGovernor:
     
     def cleanup_archive_non_improving(self, max_archive_days: int = 30, keep_recent: int = 5) -> Dict[str, Any]:
         """
-        Clean up old archives in data/archive_non_improving using git.
+        Database-only mode: Skip file-based archive cleanup.
         
         Args:
             max_archive_days: Maximum age of archives to keep (in days)
@@ -868,13 +868,12 @@ class MetaCognitiveGovernor:
         }
         
         try:
-            archive_dir = Path("data/archive_non_improving")
-            if not archive_dir.exists():
-                return cleanup_results
+            # Database-only mode: Skip file-based archive cleanup
+            return cleanup_results
             
-            # Get all archive directories (timestamp-based)
-            archive_dirs = [d for d in archive_dir.iterdir() if d.is_dir() and d.name.startswith('20')]
-            cleanup_results['archives_checked'] = len(archive_dirs)
+            # # Get all archive directories (timestamp-based)
+            # archive_dirs = [d for d in archive_dir.iterdir() if d.is_dir() and d.name.startswith('20')]
+            # cleanup_results['archives_checked'] = len(archive_dirs)
             
             if len(archive_dirs) <= keep_recent:
                 return cleanup_results
@@ -1002,9 +1001,9 @@ class MetaCognitiveGovernor:
             current_time = time.time()
             max_age_seconds = max_age_days * 24 * 60 * 60
             
-            # 1. Clean up sessions with no score benefit
-            sessions_dir = Path("data/sessions")
-            if sessions_dir.exists():
+            # Database-only mode: Skip file-based session cleanup
+            # sessions_dir = Path("data/sessions")
+            # if sessions_dir.exists():
                 session_files = list(sessions_dir.glob("*.json"))
                 cleanup_results['files_checked'] += len(session_files)
                 
@@ -1048,9 +1047,9 @@ class MetaCognitiveGovernor:
                         cleanup_results['errors'].append(error_msg)
                         self.logger.error(error_msg)
             
-            # 2. Clean up meta-learning data with no insights
-            meta_learning_dir = Path("data/meta_learning_data")
-            if meta_learning_dir.exists():
+            # Database-only mode: Skip file-based meta-learning cleanup
+            # meta_learning_dir = Path("data/meta_learning_data")
+            # if meta_learning_dir.exists():
                 meta_files = list(meta_learning_dir.glob("*.json"))
                 cleanup_results['files_checked'] += len(meta_files)
                 
@@ -1097,9 +1096,9 @@ class MetaCognitiveGovernor:
                         cleanup_results['errors'].append(error_msg)
                         self.logger.error(error_msg)
             
-            # 3. Clean up task performance entries with no wins
-            task_performance_file = Path("data/task_performance.json")
-            if task_performance_file.exists():
+            # Database-only mode: Skip file-based task performance cleanup
+            # task_performance_file = Path("data/task_performance.json")
+            # if task_performance_file.exists():
                 try:
                     with open(task_performance_file, 'r') as f:
                         task_performance = json.load(f)
@@ -1249,9 +1248,9 @@ class MetaCognitiveGovernor:
             # Find all log files matching our patterns
             log_files = []
             for pattern in self.log_cleanup_patterns:
-                # Search in data/logs directory
-                log_dir = Path("data/logs")
-                if log_dir.exists():
+                # Database-only mode: Skip file-based log cleanup
+                # log_dir = Path("data/logs")
+                # if log_dir.exists():
                     log_files.extend(log_dir.glob(pattern))
                 
                 # Also search in current directory
@@ -3901,10 +3900,11 @@ def check_previous_game_wins(game_id: str) -> Dict[str, Any]:
         # Extract game prefix (e.g., 'sp80' from 'sp80-0605ab9e5b2a')
         game_prefix = game_id.split('-')[0] if '-' in game_id else game_id
         
-        # Check action intelligence data for this game
-        action_intel_file = f"data/action_intelligence_{game_prefix}-*.json"
-        import glob
-        matching_files = glob.glob(action_intel_file)
+        # Database-only mode: Skip file-based action intelligence lookup
+        # action_intel_file = f"data/action_intelligence_{game_prefix}-*.json"
+        # import glob
+        # matching_files = glob.glob(action_intel_file)
+        matching_files = []
         
         if matching_files:
             with open(matching_files[0], 'r') as f:
@@ -3957,9 +3957,9 @@ def compare_frames_with_previous_wins(current_state: Dict[str, Any], previous_wi
 def get_game_memory_insights(game_id: str) -> Dict[str, Any]:
     """Get memory insights specific to this game."""
     try:
-        # Check if we have learned patterns for this game
-        patterns_file = "data/learned_patterns.pkl"
-        if os.path.exists(patterns_file):
+        # Database-only mode: Skip file-based pattern lookup
+        # patterns_file = "data/learned_patterns.pkl"
+        # if os.path.exists(patterns_file):
             import pickle
             with open(patterns_file, 'rb') as f:
                 patterns = pickle.load(f)

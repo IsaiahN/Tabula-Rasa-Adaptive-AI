@@ -134,19 +134,17 @@ def setup_windows_logging():
     
     # Create TeeHandler for simultaneous file and console output
     try:
-        tee_handler = TeeHandler(
-            file_path='data/logs/master_arc_trainer_output.log',
-            console_handler=console_handler
-        )
+        # Database-only mode: Skip file-based logging
+        tee_handler = console_handler
         tee_handler.setLevel(logging.INFO)
         tee_handler.setFormatter(SafeFormatter(log_format) if 'SafeFormatter' in locals() else logging.Formatter(log_format))
         handlers.append(tee_handler)
         
-        # Also add separate file handler for detailed logs
-        file_handler = logging.FileHandler('data/logs/master_arc_trainer.log', encoding='utf-8')
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(logging.Formatter(log_format))
-        handlers.append(file_handler)
+        # Database-only mode: Skip file-based logging
+        # file_handler = logging.FileHandler('data/logs/master_arc_trainer.log', encoding='utf-8')
+        # file_handler.setLevel(logging.DEBUG)
+        # file_handler.setFormatter(logging.Formatter(log_format))
+        # handlers.append(file_handler)
         
     except Exception as e:
         # Fallback to console-only
@@ -204,20 +202,20 @@ class TeeHandler(logging.Handler):
 def safe_print(text: str, use_color: bool = True, log_to_file: bool = True):
     """Print text safely to both terminal and log file, handling Unicode encoding issues on Windows."""
     try:
-        # Always log to the master output file if requested
+        # Database-only mode: Skip file-based logging
         if log_to_file:
-            log_path = 'data/logs/master_arc_trainer_output.log'
-            try:
-                os.makedirs(os.path.dirname(log_path), exist_ok=True)
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    # Strip ANSI codes for file logging
-                    import re
-                    clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-                    f.write(clean_text + '\r\n')
-                    f.flush()
-            except Exception as e:
-                # Don't let file logging errors prevent console output
-                pass
+            # log_path = 'data/logs/master_arc_trainer_output.log'
+            # try:
+            #     os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            #     with open(log_path, 'a', encoding='utf-8') as f:
+            #         # Strip ANSI codes for file logging
+            #         import re
+            #         clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+            #         f.write(clean_text + '\r\n')
+            pass
+            # except Exception as e:
+            #     # Don't let file logging errors prevent console output
+            #     pass
         
         # On Windows, handle encoding issues more gracefully
         if os.name == 'nt':  # Windows
@@ -264,26 +262,30 @@ def signal_handler(signum, frame):
         print("🛑 Continuous training loop stopped")
     
     try:
-        # Use proper DataPaths constant and ensure directory exists
-        from src.config.data_paths import DataPaths
-        state_file = DataPaths.TRAINING_STATE_BACKUP
-        state_file.parent.mkdir(parents=True, exist_ok=True)
+        # Save training state to database using synchronous approach for signal handler
+        import sqlite3
+        import json
+        from datetime import datetime
         
-        with open(state_file, 'w') as f:
-            json.dump(training_state, f, indent=2)
-        print(f"✅ Training state saved to: {state_file}")
+        # Direct database insert to avoid asyncio issues in signal handler
+        conn = sqlite3.connect('tabula_rasa.db')
+        cursor = conn.execute('''
+            INSERT INTO system_logs (log_level, component, message, data, session_id, timestamp, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            'INFO',
+            'training_state',
+            'Training state backup',
+            json.dumps(training_state),
+            'system_backup',
+            datetime.now().isoformat(),
+            datetime.now().isoformat()
+        ))
+        conn.commit()
+        conn.close()
+        print(f"✅ Training state saved to database")
     except Exception as e:
-        print(f"⚠️ Could not save training state: {e}")
-        # Fallback to creating backups directory if DataPaths fails
-        try:
-            backup_dir = Path("data/backups")
-            backup_dir.mkdir(parents=True, exist_ok=True)
-            fallback_file = backup_dir / "training_state_backup.json"
-            with open(fallback_file, 'w') as f:
-                json.dump(training_state, f, indent=2)
-            print(f"✅ Training state saved to fallback location: {fallback_file}")
-        except Exception as fallback_e:
-            print(f"❌ Failed to save training state even with fallback: {fallback_e}")
+        print(f"❌ Failed to save training state to database: {e}")
 
 # Register signal handlers
 signal.signal(signal.SIGINT, signal_handler)
@@ -1069,7 +1071,8 @@ class MasterARCTrainer:
             return
         
         timestamp = int(time.time())
-        results_file = f"data/sessions/master_training_results_{timestamp}.json"
+        # Database-only mode: Skip file-based results export
+        # results_file = f"data/sessions/master_training_results_{timestamp}.json"
         try:
             # Clean results for JSON serialization recursively
             def clean_for_json(obj):
@@ -1395,7 +1398,8 @@ class MasterARCTrainer:
         if self.config.no_logs:
             return
         try:
-            log_file = f"data/sessions/meta_cognitive_training_{self.session_id}.json"
+            # Database-only mode: Skip file-based logging
+            # log_file = f"data/sessions/meta_cognitive_training_{self.session_id}.json"
             # ...existing code for config_dict, clean_session_results, log_data...
             config_dict = {
                 'mode': self.config.mode,
@@ -1692,12 +1696,13 @@ class ContinuousTrainingRunner:
         if self.dashboard:
             safe_print(f"DASHBOARD: Stopping...")
             self.dashboard.stop()
-            # Export session data
-            export_path = Path(f"data/sessions/continuous_session_{int(time.time())}.json")
+            # Database-only mode: Skip file-based export
+            # export_path = Path(f"data/sessions/continuous_session_{int(time.time())}.json")
             try:
-                if self.dashboard.export_session_data(export_path):
-                    safe_print(f"EXPORT: Session data saved to {export_path}")
-                    self.logger.info(f"Session data exported to {export_path}")
+                # if self.dashboard.export_session_data(export_path):
+                #     safe_print(f"EXPORT: Session data saved to {export_path}")
+                #     self.logger.info(f"Session data exported to {export_path}")
+                pass
             except Exception as e:
                 safe_print(f"EXPORT: Failed to save session data: {e}")
                 self.logger.error(f"Export failed: {e}")

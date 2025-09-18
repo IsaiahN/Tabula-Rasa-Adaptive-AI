@@ -189,17 +189,18 @@ class EnhancedSpaceTimeGovernor:
         """Initialize learning and pattern recognition components."""
         try:
             from .meta_learning import MetaLearningSystem
-            # Try different initialization methods
-            try:
-                self.learning_manager = MetaLearningSystem(
-                    persistence_dir=self.persistence_dir
-                )
-            except TypeError:
-                # Fallback to default initialization
-                self.learning_manager = MetaLearningSystem()
-            logger.info("Learning manager initialized")
+            # Initialize with database-only approach
+            self.learning_manager = MetaLearningSystem()
+            logger.info("Learning manager initialized successfully")
+            print(f"🧠 LEARNING MANAGER: Successfully initialized MetaLearningSystem")
         except ImportError as e:
             logger.warning(f"Learning manager not available: {e}")
+            print(f"🧠 LEARNING MANAGER: Import error - {e}")
+            self.learning_manager = None
+        except Exception as e:
+            logger.warning(f"Failed to initialize learning manager: {e}")
+            print(f"🧠 LEARNING MANAGER: Initialization error - {e}")
+            self.learning_manager = None
         
         try:
             from .pattern_analyzer import PatternAnalyzer
@@ -450,6 +451,165 @@ class EnhancedSpaceTimeGovernor:
                 self.learning_manager.update_performance(problem_type, performance_result)
             except Exception as e:
                 logger.warning(f"Learning manager update failed: {e}")
+    
+    def record_action_result(self, action: int, success: bool, score_change: float, 
+                           context: Dict[str, Any] = None) -> None:
+        """
+        Record the result of an action for learning and analysis.
+        
+        Args:
+            action: The action number that was taken
+            success: Whether the action was successful
+            score_change: Change in score from the action
+            context: Additional context about the action
+        """
+        try:
+            # Record in space-time governor
+            if hasattr(self.space_time_governor, 'record_action_result'):
+                self.space_time_governor.record_action_result(action, success, score_change, context)
+            
+            # Record in performance history
+            result_entry = {
+                'action': action,
+                'success': success,
+                'score_change': score_change,
+                'timestamp': time.time(),
+                'context': context or {}
+            }
+            self.performance_history.append(result_entry)
+            
+            # Update learning manager if available
+            if self.learning_manager:
+                try:
+                    # Create a simple experience for the learning manager
+                    from .data_models import Experience
+                    experience = Experience(
+                        state=context.get('state', []) if context else [],
+                        action=action,
+                        reward=score_change,
+                        next_state=context.get('next_state', []) if context else [],
+                        done=success
+                    )
+                    self.learning_manager.add_experience(experience, context.get('context', 'general'))
+                except Exception as e:
+                    logger.warning(f"Failed to record action result in learning manager: {e}")
+            
+            logger.debug(f"Recorded action {action}: success={success}, score_change={score_change}")
+            
+        except Exception as e:
+            logger.error(f"Failed to record action result: {e}")
+    
+    def analyze_performance_and_recommend(self, recent_actions: int = 50) -> Dict[str, Any]:
+        """
+        Analyze recent performance and provide recommendations.
+        
+        Args:
+            recent_actions: Number of recent actions to analyze
+            
+        Returns:
+            Dictionary containing analysis results and recommendations
+        """
+        try:
+            # Get recent performance data
+            recent_performance = list(self.performance_history)[-recent_actions:] if self.performance_history else []
+            
+            if not recent_performance:
+                return {
+                    'analysis': 'No recent performance data available',
+                    'recommendations': ['Continue training to collect performance data'],
+                    'confidence': 0.0
+                }
+            
+            # Analyze success rate
+            successful_actions = sum(1 for entry in recent_performance if entry['success'])
+            success_rate = successful_actions / len(recent_performance)
+            
+            # Analyze score changes
+            total_score_change = sum(entry['score_change'] for entry in recent_performance)
+            avg_score_change = total_score_change / len(recent_performance)
+            
+            # Analyze action distribution
+            action_counts = {}
+            for entry in recent_performance:
+                action = entry['action']
+                action_counts[action] = action_counts.get(action, 0) + 1
+            
+            # Generate recommendations
+            recommendations = []
+            confidence = 0.5
+            
+            if success_rate < 0.3:
+                recommendations.append("Success rate is low - consider exploring different action strategies")
+                confidence -= 0.2
+            elif success_rate > 0.7:
+                recommendations.append("Success rate is high - continue current strategy")
+                confidence += 0.2
+            
+            if avg_score_change < 0:
+                recommendations.append("Average score change is negative - review action selection")
+                confidence -= 0.1
+            elif avg_score_change > 0:
+                recommendations.append("Average score change is positive - good progress")
+                confidence += 0.1
+            
+            # Check for action diversity
+            if len(action_counts) < 3:
+                recommendations.append("Limited action diversity - try exploring more action types")
+                confidence -= 0.1
+            
+            # Use space-time governor analysis if available
+            space_time_analysis = {}
+            if hasattr(self.space_time_governor, 'analyze_performance_and_recommend'):
+                try:
+                    space_time_analysis = self.space_time_governor.analyze_performance_and_recommend(recent_actions)
+                except Exception as e:
+                    logger.warning(f"Space-time governor analysis failed: {e}")
+            
+            return {
+                'analysis': {
+                    'success_rate': success_rate,
+                    'avg_score_change': avg_score_change,
+                    'total_actions_analyzed': len(recent_performance),
+                    'action_distribution': action_counts,
+                    'space_time_analysis': space_time_analysis
+                },
+                'recommendations': recommendations,
+                'confidence': max(0.0, min(1.0, confidence))
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to analyze performance: {e}")
+            return {
+                'analysis': f'Analysis failed: {e}',
+                'recommendations': ['Check system logs for errors'],
+                'confidence': 0.0
+            }
+    
+    def cleanup_logs_on_new_game(self, game_id: str) -> None:
+        """
+        Clean up logs when starting a new game.
+        
+        Args:
+            game_id: The ID of the new game
+        """
+        try:
+            # Clear old performance history to prevent memory buildup
+            if len(self.performance_history) > 1000:
+                # Keep only the most recent 500 entries
+                recent_performance = list(self.performance_history)[-500:]
+                self.performance_history.clear()
+                self.performance_history.extend(recent_performance)
+            
+            # Clear old decision history
+            if len(self.decision_history) > 500:
+                recent_decisions = list(self.decision_history)[-250:]
+                self.decision_history.clear()
+                self.decision_history.extend(recent_decisions)
+            
+            logger.debug(f"Cleaned up logs for new game {game_id}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to cleanup logs for game {game_id}: {e}")
     
     def cleanup(self):
         """Clean up resources."""

@@ -10,6 +10,7 @@ import torch.nn as nn
 import json
 import pickle
 import logging
+import time
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
 from collections import deque
@@ -60,14 +61,18 @@ class MetaLearningSystem:
         memory_capacity: int = 1000,
         insight_threshold: float = 0.1,
         consolidation_interval: int = 100,
-    save_directory: str = "data/meta_learning_data",
+        save_directory: Optional[str] = None,  # Use database instead of file system
         use_salience_based_goals: bool = True
     ):
         self.memory_capacity = memory_capacity
         self.insight_threshold = insight_threshold
         self.consolidation_interval = consolidation_interval
-        self.save_directory = Path(save_directory)
-        self.save_directory.mkdir(exist_ok=True)
+        # Handle None save_directory for database-only mode
+        if save_directory is not None:
+            self.save_directory = Path(save_directory)
+            self.save_directory.mkdir(exist_ok=True)
+        else:
+            self.save_directory = None
         self.use_salience_based_goals = use_salience_based_goals
         
         # Memory systems
@@ -327,6 +332,8 @@ class MetaLearningSystem:
     
     def _save_persistent_insights(self):
         """Save insights to persistent storage."""
+        if self.save_directory is None:
+            return  # Database-only mode, skip file operations
         insights_file = self.save_directory / "learning_insights.json"
         
         # Convert insights to serializable format
@@ -343,6 +350,8 @@ class MetaLearningSystem:
     
     def _load_persistent_insights(self):
         """Load insights from persistent storage."""
+        if self.save_directory is None:
+            return  # Database-only mode, skip file operations
         insights_file = self.save_directory / "learning_insights.json"
         
         if insights_file.exists():
@@ -541,3 +550,44 @@ class MetaLearningSystem:
                 goal['confidence'] = max(goal['confidence'] - 0.05, 0.1)
             
             logger.debug(f"Updated goal {goal_id}: success_rate={goal['success_count']/goal['attempt_count']:.3f}, confidence={goal['confidence']:.3f}")
+    
+    def learn_pattern(self, pattern_data: Dict[str, Any], context: str = "general", confidence: float = 0.5) -> bool:
+        """
+        Learn a pattern from experience data.
+        
+        Args:
+            pattern_data: Dictionary containing pattern information
+            context: Context where the pattern was observed
+            confidence: Confidence level of the pattern (0.0 to 1.0)
+            
+        Returns:
+            True if pattern was successfully learned and stored
+        """
+        try:
+            # Create a pattern ID based on content hash
+            import hashlib
+            pattern_content = json.dumps(pattern_data, sort_keys=True)
+            pattern_id = hashlib.md5(pattern_content.encode()).hexdigest()[:8]
+            
+            # Create learning insight for this pattern
+            insight = LearningInsight(
+                context=context,
+                pattern=pattern_data,
+                confidence=confidence,
+                success_rate=0.5,  # Initial success rate
+                usage_count=0,
+                last_used=time.time(),
+                created_at=time.time()
+            )
+            
+            # Store the insight
+            self.learning_insights[pattern_id] = insight
+            
+            # Log the learning
+            logger.debug(f"Learned pattern {pattern_id} in context '{context}' with confidence {confidence:.2f}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to learn pattern: {e}")
+            return False

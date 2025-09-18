@@ -62,4 +62,4 @@ enable_database_integration: true
 
 # Logging Settings
 log_level: "INFO"
-log_file: "data/logs/master_arc_trainer.log"
+log_file: null  # Use database logging instead

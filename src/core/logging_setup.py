@@ -4,12 +4,11 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
-def setup_logging(log_path: str = 'master_arc_trainer.log', level=logging.INFO, max_bytes: int = 10 * 1024 * 1024, backup_count: int = 5):
-    """Centralized logging setup that forces UTF-8 file encoding and adds rotation.
+def setup_logging(log_path: str = None, level=logging.INFO, max_bytes: int = 10 * 1024 * 1024, backup_count: int = 5):
+    """Database-only logging setup - console only.
 
-    This helper attempts to preserve emojis in file logs by forcing UTF-8 encoding.
-    It will also attempt to safely reconfigure stdout/stderr on platforms that
-    support it. Use this at program entry to standardize logging behavior.
+    This helper sets up console-only logging for database-only mode.
+    All logging data is stored in the database instead of files.
     """
 
     logger = logging.getLogger()
@@ -21,23 +20,23 @@ def setup_logging(log_path: str = 'master_arc_trainer.log', level=logging.INFO, 
     console_fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     ch.setFormatter(console_fmt)
 
-    # Ensure log directory exists
-    log_file = Path(log_path)
-    if not log_file.parent.exists():
-        log_file.parent.mkdir(parents=True, exist_ok=True)
+    # Database-only mode: Skip file-based logging
+    # log_file = Path(log_path)
+    # if not log_file.parent.exists():
+    #     log_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # File handler with UTF-8 encoding and rotation
-    fh = RotatingFileHandler(str(log_file), maxBytes=max_bytes, backupCount=backup_count, encoding='utf-8')
-    fh.setLevel(level)
-    file_fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-    fh.setFormatter(file_fmt)
+    # # File handler with UTF-8 encoding and rotation
+    # fh = RotatingFileHandler(str(log_file), maxBytes=max_bytes, backupCount=backup_count, encoding='utf-8')
+    # fh.setLevel(level)
+    # file_fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+    # fh.setFormatter(file_fmt)
 
     # Replace existing handlers with ours for deterministic behavior
     for h in list(logger.handlers):
         logger.removeHandler(h)
 
     logger.addHandler(ch)
-    logger.addHandler(fh)
+    # logger.addHandler(fh)  # Database-only mode: No file handler
 
     # Try to reconfigure stdout/stderr to UTF-8 where supported (Windows/modern Python)
     try:

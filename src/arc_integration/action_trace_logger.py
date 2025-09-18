@@ -32,21 +32,64 @@ def log_action_trace(record: dict) -> None:
         
         # Log action trace to database
         coordinates = record.get('coordinates', None)
+        if coordinates is None:
+            # Try to get coordinates from x,y fields
+            x = record.get('x')
+            y = record.get('y')
+            if x is not None and y is not None:
+                coordinates = (x, y)
+        
         if isinstance(coordinates, (tuple, list)):
             coordinates = json.dumps(coordinates)
         
-        asyncio.run(integration.log_action_trace(
-            record.get('game_id', 'unknown'),
-            record.get('action_number', 0),
-            coordinates,
-            record.get('timestamp', time.time()),
-            record.get('frame_before', None),
-            record.get('frame_after', None),
-            record.get('frame_changed', False),
-            record.get('score_before', 0),
-            record.get('score_after', 0),
-            record.get('response_data', None)
-        ))
+        # Use create_task instead of run to avoid event loop conflicts
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Schedule the coroutine to run in the background
+                asyncio.create_task(integration.log_action_trace(
+                    record.get('session_id', 'unknown'),
+                    record.get('game_id', 'unknown'),
+                    record.get('action_number', 0),
+                    coordinates,
+                    record.get('frame_before', None),
+                    record.get('frame_after', None),
+                    record.get('frame_changed', False),
+                    record.get('score_before', 0),
+                    record.get('score_after', 0),
+                    record.get('response_data', None)
+                ))
+            else:
+                # No event loop running, use run
+                asyncio.run(integration.log_action_trace(
+                    record.get('session_id', 'unknown'),
+                    record.get('game_id', 'unknown'),
+                    record.get('action_number', 0),
+                    coordinates,
+                    record.get('frame_before', None),
+                    record.get('frame_after', None),
+                    record.get('frame_changed', False),
+                    record.get('score_before', 0),
+                    record.get('score_after', 0),
+                    record.get('response_data', None)
+                ))
+        except RuntimeError:
+            # Fallback: run in new thread
+            import threading
+            def run_in_thread():
+                asyncio.run(integration.log_action_trace(
+                    record.get('session_id', 'unknown'),
+                    record.get('game_id', 'unknown'),
+                    record.get('action_number', 0),
+                    coordinates,
+                    record.get('frame_before', None),
+                    record.get('frame_after', None),
+                    record.get('frame_changed', False),
+                    record.get('score_before', 0),
+                    record.get('score_after', 0),
+                    record.get('response_data', None)
+                ))
+            threading.Thread(target=run_in_thread, daemon=True).start()
         
     except Exception as e:
         try:

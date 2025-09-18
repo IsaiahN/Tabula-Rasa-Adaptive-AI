@@ -109,8 +109,8 @@ class TreeBasedDirector:
         self.max_reasoning_depth = max_reasoning_depth
         self.max_nodes_per_trace = max_nodes_per_trace
         self.memory_limit_mb = memory_limit_mb
-        self.persistence_dir = persistence_dir or Path("data/tree_director")
-        self.persistence_dir.mkdir(parents=True, exist_ok=True)
+        self.persistence_dir = None  # Database-only mode
+        # No directory creation needed for database-only mode
         
         # Reasoning state
         self.active_traces: Dict[str, ReasoningTrace] = {}

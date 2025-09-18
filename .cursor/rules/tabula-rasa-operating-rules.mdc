@@ -61,6 +61,18 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
     9.  `await integration.get_game_results()` - Recent game results
     10. `await integration.get_session_status()` - Active session status
 
+    **Tier 3 (Advanced Analytics - Use Director Analytics API):**
+    11. `await analytics.get_comprehensive_gameplay_analysis()` - Complete gameplay analysis
+    12. `await analytics.get_strategic_insights()` - Strategic recommendations and insights
+    13. `await analytics.get_current_session_overview()` - Real-time session monitoring
+    14. `await analytics.get_performance_trends(7)` - 7-day performance trends
+    15. `await analytics.get_critical_error_analysis()` - Critical error identification
+    16. `await analytics.get_underperforming_actions()` - Action improvement opportunities
+    17. `await analytics.get_high_potential_coordinates()` - Untapped coordinate potential
+    18. `await analytics.get_game_difficulty_analysis(7)` - Game difficulty assessment
+    19. `await analytics.get_learned_pattern_effectiveness()` - Pattern learning analysis
+    20. `await analytics.get_live_session_dashboard()` - Real-time session dashboard
+
     **Tier 3 (Legacy File Analysis - DEPRECATED):**
     11. ~~`data/logs/master_arc_trainer.log`~~ - **DEPRECATED: Use database instead**
     12. ~~`data/sessions/*.json`~~ - **DEPRECATED: Use database instead**
@@ -124,9 +136,12 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
 ```python
 from src.database.director_commands import get_director_commands
 from src.database.system_integration import get_system_integration
+from src.database.director_analytics import get_director_analytics, get_director_self_model
 
 director = get_director_commands()
 integration = get_system_integration()
+analytics = get_director_analytics()
+self_model = get_director_self_model()
 
 # System Analysis
 status = await director.get_system_overview()
@@ -138,9 +153,31 @@ performance = await director.get_performance_summary(24)
 actions = await director.get_action_effectiveness()
 coordinates = await director.get_coordinate_intelligence()
 
+# Advanced Analytics
+comprehensive_analysis = await analytics.get_comprehensive_gameplay_analysis()
+strategic_insights = await analytics.get_strategic_insights()
+session_overview = await analytics.get_current_session_overview()
+performance_trends = await analytics.get_performance_trends(7)
+critical_errors = await analytics.get_critical_error_analysis()
+underperforming_actions = await analytics.get_underperforming_actions()
+high_potential_coordinates = await analytics.get_high_potential_coordinates()
+game_difficulty = await analytics.get_game_difficulty_analysis(7)
+pattern_effectiveness = await analytics.get_learned_pattern_effectiveness()
+live_dashboard = await analytics.get_live_session_dashboard()
+
 # Self-Model Persistence
 await integration.add_self_model_entry("reflection", "I discovered that color-based puzzles are my weakness", session_id, 3, {"insight_type": "learning"})
-self_model = await integration.get_self_model_entries(limit=50, type="reflection")
+self_model_entries = await integration.get_self_model_entries(limit=50, type="reflection")
+
+# Director Self-Model Management
+await self_model.store_director_thought("I need to focus on coordinate-based strategies", "reflection", 4, session_id)
+await self_model.store_learning_insight("Action 6 with coordinates (5,5) has 80% success rate", "coordinate", 0.8, session_id)
+await self_model.store_strategic_decision("Focus on high-potential coordinates", "They show 70%+ success rates", "Improved win rate", session_id)
+await self_model.store_performance_analysis("Session shows 15% win rate improvement", "session", session_id)
+recent_thoughts = await self_model.get_recent_thoughts(limit=20)
+learning_insights = await self_model.get_learning_insights(limit=10)
+strategic_decisions = await self_model.get_strategic_decisions(limit=10)
+director_summary = await self_model.get_director_summary()
 
 # System Control
 session = await director.create_training_session("maximum-intelligence")
@@ -158,6 +195,24 @@ sessions = await integration.get_session_status()
 - **Entry Types:** 'identity', 'trait', 'memory', 'reflection'
 - **Importance Levels:** 1 (low) to 5 (critical)
 - **Cross-Reference:** Always check past entries to ensure consistency and evolution.
+
+**DIRECTOR ANALYTICS API PROTOCOL:**
+- **Comprehensive Analysis:** Use `await analytics.get_comprehensive_gameplay_analysis()` for complete system overview
+- **Strategic Insights:** Use `await analytics.get_strategic_insights()` for actionable recommendations
+- **Real-Time Monitoring:** Use `await analytics.get_live_session_dashboard()` for active session status
+- **Performance Tracking:** Use `await analytics.get_performance_trends(7)` for trend analysis
+- **Error Detection:** Use `await analytics.get_critical_error_analysis()` for system health
+- **Improvement Opportunities:** Use `await analytics.get_underperforming_actions()` and `await analytics.get_high_potential_coordinates()` for optimization
+- **Game Analysis:** Use `await analytics.get_game_difficulty_analysis(7)` for difficulty assessment
+- **Pattern Learning:** Use `await analytics.get_learned_pattern_effectiveness()` for learning analysis
+
+**DIRECTOR SELF-MODEL ENHANCED PROTOCOL:**
+- **Thought Storage:** Use `await self_model.store_director_thought()` for general thoughts and reflections
+- **Learning Insights:** Use `await self_model.store_learning_insight()` for pattern and strategy discoveries
+- **Strategic Decisions:** Use `await self_model.store_strategic_decision()` for decision tracking with reasoning
+- **Performance Analysis:** Use `await self_model.store_performance_analysis()` for performance insights
+- **Thought Retrieval:** Use `await self_model.get_recent_thoughts()`, `await self_model.get_learning_insights()`, `await self_model.get_strategic_decisions()` for context
+- **Director Summary:** Use `await self_model.get_director_summary()` for activity overview
 
 **UPDATED SYSTEM FEATURES:**
 - **Tree Evaluation Engine:** Advanced simulation with space-time awareness
