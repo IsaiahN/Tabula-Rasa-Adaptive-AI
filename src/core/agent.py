@@ -424,6 +424,7 @@ class AdaptiveLearningAgent:
             state=sensory_input,
             action=action,
             next_state=sensory_input,  # Simplified - would come from environment
+            reward=0.0,  # Default reward
             learning_progress=lp_signal,
             energy_change=remaining_energy - sensory_input.energy_level,
             timestamp=sensory_input.timestamp

@@ -486,13 +486,38 @@ class EnhancedSpaceTimeGovernor:
                     experience = Experience(
                         state=context.get('state', []) if context else [],
                         action=action,
-                        reward=score_change,
                         next_state=context.get('next_state', []) if context else [],
-                        done=success
+                        reward=score_change,
+                        learning_progress=0.1 if success else 0.0,
+                        energy_change=score_change * 0.1,
+                        timestamp=int(time.time())
                     )
                     self.learning_manager.add_experience(experience, context.get('context', 'general'))
                 except Exception as e:
                     logger.warning(f"Failed to record action result in learning manager: {e}")
+                    # Log error to database
+                    try:
+                        import asyncio
+                        from src.database.system_integration import get_system_integration
+                        
+                        async def log_error():
+                            integration = get_system_integration()
+                            await integration.log_system_event(
+                                level="ERROR",
+                                component="enhanced_space_time_governor",
+                                message=f"Failed to record action result in learning manager: {e}",
+                                data={"action": action, "success": success, "score_change": score_change, "error": str(e)},
+                                session_id=context.get('session_id', 'unknown') if context else 'unknown'
+                            )
+                        
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            asyncio.create_task(log_error())
+                        else:
+                            # Skip if no event loop is running
+                            pass
+                    except Exception as log_error:
+                        logger.error(f"Failed to log error to database: {log_error}")
             
             logger.debug(f"Recorded action {action}: success={success}, score_change={score_change}")
             
@@ -565,6 +590,13 @@ class EnhancedSpaceTimeGovernor:
                 except Exception as e:
                     logger.warning(f"Space-time governor analysis failed: {e}")
             
+            # Create reasoning text
+            reasoning = f"Analyzed {len(recent_performance)} recent actions. Success rate: {success_rate:.2f}, Avg score change: {avg_score_change:.2f}"
+            if recommendations:
+                reasoning += f" Recommendations: {', '.join(recommendations)}"
+            else:
+                reasoning += " No specific recommendations at this time."
+            
             return {
                 'analysis': {
                     'success_rate': success_rate,
@@ -574,7 +606,8 @@ class EnhancedSpaceTimeGovernor:
                     'space_time_analysis': space_time_analysis
                 },
                 'recommendations': recommendations,
-                'confidence': max(0.0, min(1.0, confidence))
+                'confidence': max(0.0, min(1.0, confidence)),
+                'reasoning': reasoning
             }
             
         except Exception as e:
@@ -582,15 +615,19 @@ class EnhancedSpaceTimeGovernor:
             return {
                 'analysis': f'Analysis failed: {e}',
                 'recommendations': ['Check system logs for errors'],
-                'confidence': 0.0
+                'confidence': 0.0,
+                'reasoning': f'Analysis failed due to error: {e}'
             }
     
-    def cleanup_logs_on_new_game(self, game_id: str) -> None:
+    def cleanup_logs_on_new_game(self, game_id: str) -> Dict[str, Any]:
         """
         Clean up logs when starting a new game.
         
         Args:
             game_id: The ID of the new game
+            
+        Returns:
+            Dictionary with cleanup results
         """
         try:
             # Clear old performance history to prevent memory buildup
@@ -607,9 +644,11 @@ class EnhancedSpaceTimeGovernor:
                 self.decision_history.extend(recent_decisions)
             
             logger.debug(f"Cleaned up logs for new game {game_id}")
+            return {'success': True, 'action': 'cleaned', 'game_id': game_id}
             
         except Exception as e:
             logger.warning(f"Failed to cleanup logs for game {game_id}: {e}")
+            return {'success': False, 'action': 'failed', 'error': str(e), 'game_id': game_id}
     
     def cleanup(self):
         """Clean up resources."""

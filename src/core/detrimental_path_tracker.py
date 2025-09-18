@@ -471,6 +471,10 @@ class DetrimentalPathTracker:
     
     def _load_patterns(self):
         """Load detrimental patterns from persistence."""
+        # Database-only mode: Skip file-based pattern loading
+        if self.persistence_dir is None:
+            return
+            
         pattern_file = self.persistence_dir / "detrimental_patterns.json"
         
         if not pattern_file.exists():

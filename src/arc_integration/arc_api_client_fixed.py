@@ -64,13 +64,33 @@ class Scorecard:
     tags: List[str] = None
     source_url: str = None
     opaque: Dict[str, Any] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the scorecard to a dictionary."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'Scorecard':
+        """Create a scorecard from a dictionary."""
+        return cls(**data)
+
+@dataclass
+class ARCScorecard:
+    """Dataclass for holding ARC evaluation metrics."""
+    task_id: str
+    score: float
+    accuracy: float
+    efficiency: float
+    generalization: float
+    timestamp: float
+    metadata: Dict[str, Any] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert the scorecard to a dictionary."""
         return asdict(self)
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Scorecard':
+    def from_dict(cls, data: Dict[str, Any]) -> 'ARCScorecard':
         """Create a scorecard from a dictionary."""
         return cls(**data)
 
@@ -449,4 +469,77 @@ class ARCClient:
             except:
                 pass
             raise
+
+class ScorecardTracker:
+    """Tracks and analyzes scorecards over time."""
+    
+    def __init__(self):
+        """Initialize the scorecard tracker."""
+        self.scorecards = []
+        self.metrics = {
+            'scores': [],
+            'accuracies': [],
+            'efficiencies': [],
+            'generalizations': [],
+            'timestamps': []
+        }
+        
+    def add_scorecard(self, scorecard: Union[ARCScorecard, Dict]) -> None:
+        """Add a scorecard to the tracker.
+        
+        Args:
+            scorecard: The scorecard to add.
+        """
+        if isinstance(scorecard, dict):
+            scorecard = ARCScorecard.from_dict(scorecard)
+            
+        self.scorecards.append(scorecard)
+        self.metrics['scores'].append(scorecard.score)
+        self.metrics['accuracies'].append(scorecard.accuracy)
+        self.metrics['efficiencies'].append(scorecard.efficiency)
+        self.metrics['generalizations'].append(scorecard.generalization)
+        self.metrics['timestamps'].append(scorecard.timestamp)
+        
+    def get_summary(self) -> Dict[str, Any]:
+        """Get a summary of the tracked scorecards.
+        
+        Returns:
+            Dictionary with summary statistics.
+        """
+        if not self.scorecards:
+            return {}
+            
+        scores = self.metrics['scores']
+        return {
+            'total_scorecards': len(self.scorecards),
+            'avg_score': sum(scores) / len(scores),
+            'max_score': max(scores),
+            'min_score': min(scores),
+            'latest_score': scores[-1],
+            'improvement': scores[-1] - scores[0] if len(scores) > 1 else 0,
+            'trend': self._calculate_trend(scores)
+        }
+        
+    def _calculate_trend(self, values: List[float], window: int = 5) -> float:
+        """Calculate the trend of the last 'window' values."""
+        if len(values) < 2:
+            return 0
+            
+        window = min(window, len(values))
+        recent = values[-window:]
+        x = list(range(len(recent)))
+        y = recent
+        
+        # Simple linear regression for trend
+        n = len(x)
+        if n == 0:
+            return 0
+            
+        x_mean = sum(x) / n
+        y_mean = sum(y) / n
+        
+        numerator = sum((x[i] - x_mean) * (y[i] - y_mean) for i in range(n))
+        denominator = sum((x[i] - x_mean) ** 2 for i in range(n))
+        
+        return numerator / denominator if denominator != 0 else 0
 

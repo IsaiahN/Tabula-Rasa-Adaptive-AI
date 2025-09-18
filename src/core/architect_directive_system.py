@@ -24,7 +24,7 @@ from pathlib import Path
 try:
     from .governor_session_reporter import GovernorSessionReport, SessionStatus
     from .architect import Architect, SystemGenome
-    from .meta_cognitive_governor import MetaCognitiveGovernor
+    from .enhanced_space_time_governor import EnhancedSpaceTimeGovernor
 except ImportError:
     # Fallback for direct execution
     from governor_session_reporter import GovernorSessionReport, SessionStatus

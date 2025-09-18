@@ -23,7 +23,6 @@ class TrainingVisualizer:
         """
         # Database-only mode: No file-based visualization output
         self.output_dir = None  # Disabled for database-only mode
-        # self.output_dir.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
     def plot_scorecard_metrics(
@@ -268,10 +267,8 @@ class TrainingVisualizer:
         """
         
         if save:
-            # Save the HTML report
-            html_filename = self.output_dir / f"training_report_{self.timestamp}.html"
-            with open(html_filename, 'w', encoding='utf-8') as f:
-                f.write(html_content)
+            # Database-only mode: No file saving
+            pass
                 
             # Save the metrics plot
             self.plot_scorecard_metrics(tracker, save=True, show=False)

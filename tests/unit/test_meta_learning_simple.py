@@ -39,6 +39,7 @@ def test_meta_learning_basic():
             state=sensory_input,
             action=torch.randn(6),
             next_state=sensory_input,
+            reward=0.1 * (i % 3),  # Add reward parameter
             learning_progress=0.5 + 0.1 * (i % 3),
             energy_change=-2.0,
             timestamp=int(time.time()) + i

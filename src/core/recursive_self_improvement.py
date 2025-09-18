@@ -25,7 +25,7 @@ from collections import deque
 try:
     from .governor_session_reporter import GovernorSessionReporter, GovernorSessionReport, SessionStatus
     from .architect_directive_system import ArchitectDirectiveSystem, EvolutionaryDirective, DirectiveStatus
-    from .meta_cognitive_governor import MetaCognitiveGovernor
+    from .enhanced_space_time_governor import EnhancedSpaceTimeGovernor
     from .architect import Architect
 except ImportError:
     # Fallback for direct execution
@@ -236,7 +236,7 @@ class RecursiveSelfImprovementSystem:
     """Main class for the recursive self-improvement system."""
     
     def __init__(self, 
-                 governor: Optional[MetaCognitiveGovernor] = None,
+                 governor: Optional[EnhancedSpaceTimeGovernor] = None,
                  architect: Optional[Architect] = None,
                  cohesive_system: Optional[Any] = None):
         self.governor = governor

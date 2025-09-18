@@ -40,9 +40,9 @@ except ImportError:
 
 # Import existing system components
 try:
-    from src.core.meta_cognitive_governor import ArchitectRequest, GovernorRecommendation
+    from src.core.enhanced_space_time_governor import ArchitectRequest, GovernorRecommendation
     from src.core.salience_system import SalienceMode
-except ImportError:
+except (ImportError, SyntaxError):
     # Fallback for direct execution
     class SalienceMode(Enum):
         LOSSLESS = "lossless"
@@ -785,7 +785,6 @@ class SandboxTester:
         self.logger = logger
         # Database-only mode: No sandbox directory creation
         self.sandbox_dir = None  # Disabled for database-only mode
-        # self.sandbox_dir.mkdir(exist_ok=True)  # Database-only mode: No file creation
     
     async def test_mutation(self, mutation: Mutation, 
                           baseline_genome: SystemGenome,
@@ -871,7 +870,6 @@ class SandboxTester:
             shutil.copytree(base_path, sandbox_path / "src")
         else:
             # Database-only mode: Skip sandbox directory creation
-            # (sandbox_path / "src").mkdir(parents=True)  # Database-only mode: No file creation
             pass
             
         # Copy training script if available
@@ -881,10 +879,8 @@ class SandboxTester:
                 shutil.copy2(script_path, sandbox_path)
                 break
         
-        # Create custom config file for this genome
-        config_path = sandbox_path / "sandbox_config.json"
-        with open(config_path, 'w') as f:
-            json.dump(genome.to_dict(), f, indent=2)
+        # Database-only mode: No file creation
+        pass
         
         self.logger.debug(f"🏗️ Created sandbox: {sandbox_path}")
         return sandbox_path
@@ -926,8 +922,8 @@ class SandboxTester:
                 "salience_mode": "decay_compression"
             }
             
-            with open(config_path, 'w') as f:
-                json.dump(test_config, f, indent=2)
+            # Database-only mode: No file creation
+            pass
             
             # Run training with appropriate parameters for each script
             if "master_arc_trainer.py" in training_script:
@@ -1789,13 +1785,8 @@ This is an experimental change - requires review before merging.
         # This would modify master_arc_trainer.py or config files
         # For now, create a config patch file
         
-        patch_file = self.base_path / f"mutation_{mutation.id}.json"
-        with open(patch_file, 'w') as f:
-            json.dump({
-                'mutation_id': mutation.id,
-                'changes': mutation.changes,
-                'timestamp': time.time()
-            }, f, indent=2)
+        # Database-only mode: No file creation
+        pass
     
     def get_evolution_status(self) -> Dict[str, Any]:
         """Get comprehensive evolution status."""
@@ -2085,8 +2076,8 @@ This is an experimental change - requires review before merging.
                         # Keep only last 100 entries
                         history_data = history_data[-100:]
                         
-                        with open(history_file, 'w') as f:
-                            json.dump(history_data, f, indent=2)
+                        # Database-only mode: No file creation
+                        pass
                         
                         files_cleaned += 1
                         self.logger.info(f"🧹 Trimmed evolution history to last 100 entries")
@@ -2220,9 +2211,8 @@ This is an experimental change - requires review before merging.
             if len(evolution_log["decisions"]) > 1000:
                 evolution_log["decisions"] = evolution_log["decisions"][-1000:]
             
-            # Write back
-            with open(log_file, 'w') as f:
-                json.dump(evolution_log, f, indent=2)
+            # Database-only mode: No file creation
+            pass
             
             # Commit to version control if available
             if self.repo:

@@ -61,17 +61,17 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
     9.  `await integration.get_game_results()` - Recent game results
     10. `await integration.get_session_status()` - Active session status
 
-    **Tier 3 (Advanced Analytics - Use Director Analytics API):**
-    11. `await analytics.get_comprehensive_gameplay_analysis()` - Complete gameplay analysis
-    12. `await analytics.get_strategic_insights()` - Strategic recommendations and insights
-    13. `await analytics.get_current_session_overview()` - Real-time session monitoring
-    14. `await analytics.get_performance_trends(7)` - 7-day performance trends
-    15. `await analytics.get_critical_error_analysis()` - Critical error identification
-    16. `await analytics.get_underperforming_actions()` - Action improvement opportunities
-    17. `await analytics.get_high_potential_coordinates()` - Untapped coordinate potential
-    18. `await analytics.get_game_difficulty_analysis(7)` - Game difficulty assessment
-    19. `await analytics.get_learned_pattern_effectiveness()` - Pattern learning analysis
-    20. `await analytics.get_live_session_dashboard()` - Real-time session dashboard
+**Tier 3 (Advanced Analytics - Use Director Analytics API):**
+11. `await analytics.get_comprehensive_gameplay_analysis()` - Complete gameplay analysis
+12. `await analytics.get_strategic_insights()` - Strategic recommendations and insights
+13. `await analytics.get_current_session_status()` - Real-time session monitoring
+14. `await analytics.get_performance_trends(7)` - 7-day performance trends
+15. `await analytics.get_recent_game_results()` - Recent game performance analysis
+16. `await analytics.get_action_effectiveness_analysis()` - Action improvement opportunities
+17. `await analytics.get_coordinate_intelligence_analysis()` - Coordinate effectiveness analysis
+18. `await analytics.get_game_difficulty_analysis(7)` - Game difficulty assessment
+19. `await analytics.get_system_health_analysis()` - System health monitoring
+20. `await analytics.get_director_summary()` - Director activity summary
 
     **Tier 3 (Legacy File Analysis - DEPRECATED):**
     11. ~~`data/logs/master_arc_trainer.log`~~ - **DEPRECATED: Use database instead**
@@ -113,7 +113,63 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
 
 **STEP 4: AUTONOMOUS EXECUTION & CODING**
 -   **IMMEDIATELY AND AUTONOMOUSLY implement the highest-priority items from your Todo List.**
--   **CRITICAL:** Only make changes that are allowed under the structural change restriction.
+### File Versioning & Management Rule (FS-001)
+
+**Category:** File System Operations  
+**Status:** Active &nbsp;|&nbsp; **Enforcement:** Strict
+
+#### 1. **Eliminate File Redundancy**
+- **Never** create redundant or duplicate source files.
+- When updating code, you must:
+    - **A. Modify the existing file** directly, or
+    - **B. Replace the file** (for major rewrites):  
+        - Delete the old file  
+        - Add the new file  
+        - Update all references (imports, file paths) to the new file
+
+#### 2. **Codebase Cleanup Checklist**
+- **Scan all \*.py files** for:
+    - Syntax errors or broken code
+    - `NoneType` errors and unsafe attribute access
+    - Commented-out code
+    - Unused or redundant imports
+    - Obsolete file creation routines
+    - Memory leaks
+    - Security flaws
+    - Performance issues
+
+- **Remediate:**
+    - Fix all code and `NoneType` errors
+    - Remove commented-out code
+    - Delete unused imports and dead code
+    - Refactor or remove obsolete file creation
+
+- **Verify:**
+    - No duplicate files remain; all code is consolidated
+    - All references (imports, file paths) are correct and up to date
+
+- **Final Check:**
+    - No version conflicts
+    - No redundant classes or methods
+    - Architecture is clean and maintainable
+    - All original functionality is preserved
+
+#### 2. **Rationale: Git is Your Safety Net**
+- This rule is enforced because the project uses Git version control.
+- The commit history provides a complete record of all changes.
+- There is **no reason** to keep obsolete, outdated, or unused code files in the active codebase.
+- Redundant files create confusion, bugs, and code bloat.
+
+#### 3. **Critical Exception: Database Files (`*.db`, `*.sqlite`)**
+- **NEVER** delete or directly overwrite database files.
+- Before running any operation that modifies a database (e.g., schema changes), you **MUST** ensure a backup exists.
+
+**Recommended Backup Naming Convention:**  
+`{database_name}_{YYYYMMDD}_{brief_description}.backup.db`
+
+**Example:**  
+`tabula_rasa_20231027_pre_architect_migration.backup.db`
+-   **CRITICAL:** Only make changes that are allowed under the structural change restriction. 
 
 -   Write the necessary code. Create test files in the `/tests` directory.
 -   **Use Database Integration** when modifying system behavior - replace file I/O with database API calls.

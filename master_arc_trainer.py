@@ -62,14 +62,17 @@ except ImportError as e:
     DATABASE_AVAILABLE = False
     print(f"WARNING: Database initialization not available: {e}")
 
-# Meta-cognitive imports
+# Enhanced Space-Time Governor imports (replaces meta-cognitive governor)
 try:
-    from src.core.meta_cognitive_governor import MetaCognitiveGovernor
+    from src.core.enhanced_space_time_governor import EnhancedSpaceTimeGovernor, create_enhanced_space_time_governor
     from src.core.architect import Architect
-    META_COGNITIVE_AVAILABLE = True
-except ImportError as e:
-    META_COGNITIVE_AVAILABLE = False
-    print(f"WARNING: Meta-cognitive systems not available: {e}")
+    ENHANCED_GOVERNOR_AVAILABLE = True
+except (ImportError, SyntaxError) as e:
+    ENHANCED_GOVERNOR_AVAILABLE = False
+    print(f"WARNING: Enhanced space-time governor not available: {e}")
+    EnhancedSpaceTimeGovernor = None
+    create_enhanced_space_time_governor = None
+    Architect = None
 
 # Color output support
 try:
@@ -141,10 +144,6 @@ def setup_windows_logging():
         handlers.append(tee_handler)
         
         # Database-only mode: Skip file-based logging
-        # file_handler = logging.FileHandler('data/logs/master_arc_trainer.log', encoding='utf-8')
-        # file_handler.setLevel(logging.DEBUG)
-        # file_handler.setFormatter(logging.Formatter(log_format))
-        # handlers.append(file_handler)
         
     except Exception as e:
         # Fallback to console-only
@@ -179,18 +178,16 @@ class TeeHandler(logging.Handler):
         super().__init__()
         self.file_path = file_path
         self.console_handler = console_handler
-        # Ensure log directory exists
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        # Database-only mode: No file creation
+        pass
         
     def emit(self, record):
         try:
             # Format the record
             msg = self.format(record)
             
-            # Write to file (append mode, UTF-8 encoding)
-            with open(self.file_path, 'a', encoding='utf-8') as f:
-                f.write(msg + '\n')
-                f.flush()
+            # Database-only mode: No file writing
+            pass
             
             # Also emit to console
             if self.console_handler:
@@ -203,19 +200,7 @@ def safe_print(text: str, use_color: bool = True, log_to_file: bool = True):
     """Print text safely to both terminal and log file, handling Unicode encoding issues on Windows."""
     try:
         # Database-only mode: Skip file-based logging
-        if log_to_file:
-            # log_path = 'data/logs/master_arc_trainer_output.log'
-            # try:
-            #     os.makedirs(os.path.dirname(log_path), exist_ok=True)
-            #     with open(log_path, 'a', encoding='utf-8') as f:
-            #         # Strip ANSI codes for file logging
-            #         import re
-            #         clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-            #         f.write(clean_text + '\r\n')
-            pass
-            # except Exception as e:
-            #     # Don't let file logging errors prevent console output
-            #     pass
+        pass
         
         # On Windows, handle encoding issues more gracefully
         if os.name == 'nt':  # Windows
@@ -472,7 +457,7 @@ class MasterARCTrainer:
                 self.logger.info("Initializing MOCK ARC client for local testing...")
                 self.arc_client = MockARCClient(api_key="mock-api-key")
             else:
-                from arc_integration.arc_api_client_fixed import ARCClient, DEFAULT_BASE_URL
+                from arc_integration.arc_api_client import ARCClient, DEFAULT_BASE_URL
                 self.logger.info("Initializing REAL ARC API client...")
                 
                 # Debug: Log environment variables
@@ -547,16 +532,15 @@ class MasterARCTrainer:
                 self.coordinate_manager = None
                 self.logger.info("Coordinate system will be initialized with continuous loop")
             
-            # Initialize meta-cognitive governor if enabled
-            if self.config.enable_meta_cognitive_governor:
+            # Initialize enhanced space-time governor if enabled
+            if self.config.enable_meta_cognitive_governor and ENHANCED_GOVERNOR_AVAILABLE:
                 try:
-                    from src.core.meta_cognitive_governor import MetaCognitiveGovernor
                     base_path = os.path.dirname(os.path.abspath(__file__))
                     data_path = os.path.join(base_path, 'data')
-                    self.governor = MetaCognitiveGovernor(persistence_dir=data_path)
-                    self.logger.info("Meta-cognitive governor initialized")
-                except ImportError as e:
-                    self.logger.warning(f"Could not initialize meta-cognitive governor: {e}")
+                    self.governor = create_enhanced_space_time_governor(persistence_dir=data_path)
+                    self.logger.info("Enhanced space-time governor initialized")
+                except (ImportError, SyntaxError) as e:
+                    self.logger.warning(f"Could not initialize enhanced space-time governor: {e}")
                     self.governor = None
             
             # Initialize architect if enabled
@@ -566,9 +550,8 @@ class MasterARCTrainer:
                     base_path = os.path.dirname(os.path.abspath(__file__))
                     # Use the main tabula-rasa repository as the repo_path
                     repo_path = base_path
-                    # Ensure the architect evolution data directory exists for file storage
-                    architect_data_dir = os.path.join(base_path, 'data', 'architect_evolution_data')
-                    os.makedirs(architect_data_dir, exist_ok=True)
+                    # Database-only mode: No file storage
+                    pass
                     
                     self.architect = Architect(base_path=base_path, repo_path=repo_path)
                     self.logger.info("Architect system initialized with main repository")
@@ -1087,9 +1070,8 @@ class MasterARCTrainer:
                 else:
                     return obj
             clean_results = clean_for_json(results)
-            with open(results_file, 'w', encoding='utf-8') as f:
-                json.dump(clean_results, f, indent=2, ensure_ascii=False)
-            self.logger.info(f"Results saved to: {results_file}")
+            # Database-only mode: No file saving
+            self.logger.info("Results saved to database")
         except Exception as e:
             self.logger.error(f"Could not save results: {e}")
     
@@ -1452,8 +1434,8 @@ class MasterARCTrainer:
                     'architect_evolutions': len(self.architect_evolutions)
                 }
             }
-            with open(log_file, 'w', encoding='utf-8') as f:
-                json.dump(log_data, f, indent=2, ensure_ascii=False)
+            # Database-only mode: No file saving
+            pass
             if COLOR_AVAILABLE and self.config.enable_colored_output:
                 print(f"\n{Fore.BLUE}📊 Meta-cognitive logs saved to: {log_file}{Style.RESET_ALL}")
             else:
@@ -1797,8 +1779,7 @@ Examples:
     parser.add_argument('--disable-boundary-detection', action='store_true')
     parser.add_argument('--disable-memory-consolidation', action='store_true')
     parser.add_argument('--disable-action-intelligence', action='store_true')
-    parser.add_argument('--disable-meta-cognitive-governor', action='store_true',
-                       help='Disable meta-cognitive Governor (Third Brain)')
+    # Note: --disable-meta-cognitive-governor flag removed - Enhanced Space-Time Governor is now the default
     parser.add_argument('--disable-architect-evolution', action='store_true',
                        help='Disable Architect evolution system (Zeroth Brain)')
     parser.add_argument('--disable-colored-output', action='store_true',
@@ -1914,7 +1895,7 @@ async def main():
         enable_boundary_detection=not args.disable_boundary_detection,
         enable_memory_consolidation=not args.disable_memory_consolidation,
         enable_action_intelligence=not args.disable_action_intelligence,
-        enable_meta_cognitive_governor=not args.disable_meta_cognitive_governor,
+        enable_meta_cognitive_governor=True,  # Enhanced Space-Time Governor is now default
         enable_architect_evolution=not args.disable_architect_evolution,
         enable_colored_output=not args.disable_colored_output and COLOR_AVAILABLE,
         enable_detailed_monitoring=args.enable_detailed_monitoring,

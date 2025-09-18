@@ -48,6 +48,7 @@ def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[st
         '--max-actions', '500',         # Optimized action limit for better learning
         '--max-cycles', '100',        # Moderate cycles
         '--target-score', '85.0',     # Target score
+            # Enhanced Space-Time Governor is now the default (no disable flag needed)
         '--enable-detailed-monitoring',
         '--salience-threshold', '0.4',
         '--salience-decay', '0.95',
@@ -203,22 +204,8 @@ def main():
         print(f"   ⏱️ Total training time: {total_duration/3600:.2f} hours")
         print(f"   📈 Average session duration: {avg_duration:.1f}s")
         
-        # Save results to file
-        results_file = f"simple_training_results_{int(time.time())}.json"
-        with open(results_file, 'w') as f:
-            json.dump({
-                'summary': {
-                    'total_sessions': len(all_results),
-                    'successful_sessions': successful_sessions,
-                    'failed_sessions': failed_sessions,
-                    'success_rate': successful_sessions/len(all_results)*100,
-                    'total_duration_hours': total_duration/3600,
-                    'average_duration_seconds': avg_duration
-                },
-                'detailed_results': all_results
-            }, f, indent=2)
-        
-        print(f"\n💾 Detailed results saved to: {results_file}")
+        # Database-only mode: No file saving
+        print(f"\n💾 Results saved to database")
     
     print(f"\nTraining session ended at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return 0

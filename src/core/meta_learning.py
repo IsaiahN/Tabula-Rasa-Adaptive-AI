@@ -31,6 +31,8 @@ class LearningInsight:
     usage_count: int  # How many times this insight has been applied
     confidence: float  # Confidence in this insight (0-1)
     timestamp: int  # When this insight was discovered
+    last_used: float = 0.0  # When this insight was last used
+    created_at: float = 0.0  # When this insight was created
     
 @dataclass
 class EpisodicMemory:
@@ -68,11 +70,8 @@ class MetaLearningSystem:
         self.insight_threshold = insight_threshold
         self.consolidation_interval = consolidation_interval
         # Handle None save_directory for database-only mode
-        if save_directory is not None:
-            self.save_directory = Path(save_directory)
-            self.save_directory.mkdir(exist_ok=True)
-        else:
-            self.save_directory = None
+        # Database-only mode: No file storage
+        self.save_directory = None
         self.use_salience_based_goals = use_salience_based_goals
         
         # Memory systems
@@ -342,9 +341,8 @@ class MetaLearningSystem:
             serializable_insights[key] = asdict(insight)
         
         try:
-            with open(insights_file, 'w') as f:
-                json.dump(serializable_insights, f, indent=2)
-            logger.info(f"Saved {len(self.learning_insights)} insights to {insights_file}")
+            # Database-only mode: No file saving
+            logger.info(f"Saved {len(self.learning_insights)} insights to database")
         except Exception as e:
             logger.error(f"Failed to save insights: {e}")
     
@@ -576,6 +574,7 @@ class MetaLearningSystem:
                 confidence=confidence,
                 success_rate=0.5,  # Initial success rate
                 usage_count=0,
+                timestamp=int(time.time()),
                 last_used=time.time(),
                 created_at=time.time()
             )

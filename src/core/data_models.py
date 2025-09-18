@@ -32,9 +32,10 @@ class Experience:
     state: SensoryInput
     action: Tensor
     next_state: SensoryInput
-    learning_progress: float
-    energy_change: float
-    timestamp: int
+    reward: float = 0.0  # Added missing reward field
+    learning_progress: float = 0.0
+    energy_change: float = 0.0
+    timestamp: int = 0
 
 
 @dataclass

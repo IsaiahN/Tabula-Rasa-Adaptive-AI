@@ -661,6 +661,14 @@ class OpenCVFeatureExtractor:
             height, width = len(grid), len(grid[0])
             logger.debug(f"Grid dimensions: {width}x{height}")
             
+            # Handle single-row grids (1xN) - treat as 2D by duplicating rows
+            if height == 1 and width > 1:
+                logger.debug("Single-row grid detected, duplicating for 2D analysis")
+                # Duplicate the single row to create a 2D grid
+                grid = [grid[0].copy() for _ in range(min(3, width))]  # Create 3 rows max
+                height = len(grid)
+                logger.debug(f"Expanded grid dimensions: {width}x{height}")
+            
             # Find connected components using simple flood fill
             visited = [[False for _ in range(width)] for _ in range(height)]
             

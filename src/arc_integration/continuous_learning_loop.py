@@ -750,11 +750,9 @@ class ContinuousLearningLoop:
         self.phase0_logs_dir = self.phase0_experiment_results_dir / "logs"
         # Directory creation removed - all data stored in database
         
-        # Initialize adaptive learning evaluation directory
-        self.adaptive_learning_eval_dir = self.save_directory / "adaptive_learning_agi_evaluation_1756519407"
-        # Directory creation removed - all data stored in database
-        self.architect_evolution_data_dir = self.save_directory / "architect_evolution_data"
-        # Directory creation removed - all data stored in database
+        # Database-only mode: No file-based directories needed
+        self.adaptive_learning_eval_dir = None  # DEPRECATED: Use database instead
+        self.architect_evolution_data_dir = None  # DEPRECATED: Use database instead
         
         # Initialize meta-learning system
         try:
@@ -1103,11 +1101,9 @@ class ContinuousLearningLoop:
         self.phase0_logs_dir = self.phase0_experiment_results_dir / "logs"
         # Directory creation removed - all data stored in database
 
-        # Adaptive learning evaluation and architect evolution directories
-        self.adaptive_learning_eval_dir = self.save_directory / "adaptive_learning_agi_evaluation_1756519407"
-        # Directory creation removed - all data stored in database
-        self.architect_evolution_data_dir = self.save_directory / "architect_evolution_data"
-        # Directory creation removed - all data stored in database
+        # Database-only mode: No file-based directories needed
+        self.adaptive_learning_eval_dir = None  # DEPRECATED: Use database instead
+        self.architect_evolution_data_dir = None  # DEPRECATED: Use database instead
 
         # Initialize meta-learning systems
         print("🧠 Initializing meta-learning systems...")
@@ -1119,12 +1115,11 @@ class ContinuousLearningLoop:
         )
         print("✅ Base meta-learning system initialized")
 
-        # Update any logic that creates adaptive learning evaluation results to use the new continuous_learning_data directory
-        self.adaptive_learning_eval_path = self.adaptive_learning_eval_dir / "research_results.json"  # DEPRECATED: Use database instead
-        # Update any logic that creates architect evolution data to use the new continuous_learning_data directory
-        self.architectural_insights_path = self.architect_evolution_data_dir / "architectural_insights.json"  # DEPRECATED: Use database instead
-        self.evolution_history_path = self.architect_evolution_data_dir / "evolution_history.json"  # DEPRECATED: Use database instead
-        self.evolution_strategies_path = self.architect_evolution_data_dir / "evolution_strategies.json"  # DEPRECATED: Use database instead
+        # Database-only mode: No file-based paths needed
+        self.adaptive_learning_eval_path = None  # DEPRECATED: Use database instead
+        self.architectural_insights_path = None  # DEPRECATED: Use database instead  
+        self.evolution_history_path = None  # DEPRECATED: Use database instead
+        self.evolution_strategies_path = None  # DEPRECATED: Use database instead
 
         print("🎯 Initializing ARC meta-learning system...")
         self.arc_meta_learning = ARCMetaLearningSystem(
@@ -6210,7 +6205,18 @@ class ContinuousLearningLoop:
                 import asyncio
                 from src.database.system_integration import get_system_integration
                 integration = get_system_integration()
-                intelligence_data = asyncio.run(integration.load_action_intelligence(game_id=game_id))
+                # Use create_task instead of run to avoid event loop conflicts
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Schedule the coroutine to run in the background
+                        task = asyncio.create_task(integration.load_action_intelligence(game_id=game_id))
+                        intelligence_data = None  # We can't await here, so set to None
+                    else:
+                        # Skip if no event loop is running
+                        intelligence_data = None
+                except RuntimeError:
+                    intelligence_data = None
                 if not intelligence_data:
                     intelligence_data = {
                         'winning_sequences': [],
@@ -6284,7 +6290,18 @@ class ContinuousLearningLoop:
                 import asyncio
                 from src.database.system_integration import get_system_integration
                 integration = get_system_integration()
-                intelligence_data = asyncio.run(integration.load_action_intelligence(game_id=game_id))
+                # Use create_task instead of run to avoid event loop conflicts
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Schedule the coroutine to run in the background
+                        task = asyncio.create_task(integration.load_action_intelligence(game_id=game_id))
+                        intelligence_data = None  # We can't await here, so set to None
+                    else:
+                        # Skip if no event loop is running
+                        intelligence_data = None
+                except RuntimeError:
+                    intelligence_data = None
                 if not intelligence_data:
                     intelligence_data = {
                         'winning_sequences': [],
@@ -6334,14 +6351,24 @@ class ContinuousLearningLoop:
                 
                 # Save coordinate intelligence to database
                 import asyncio
-                asyncio.run(integration.update_coordinate_intelligence(
-                    game_id=game_id,
-                    x=x,
-                    y=y,
-                    success=success,
-                    attempts=coord_data['attempts'],
-                    successes=coord_data['successes']
-                ))
+                # Use create_task instead of run to avoid event loop conflicts
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Schedule the coroutine to run in the background
+                        task = asyncio.create_task(integration.update_coordinate_intelligence(
+                            game_id=game_id,
+                            x=x,
+                            y=y,
+                            success=success,
+                            attempts=coord_data['attempts'],
+                            successes=coord_data['successes']
+                        ))
+                    else:
+                        # Skip if no event loop is running
+                        pass
+                except RuntimeError:
+                    pass  # Skip if event loop issues
             except Exception as e:
                 print(f"Failed to save coordinate intelligence to database: {e}")
             
@@ -6575,7 +6602,15 @@ class ContinuousLearningLoop:
                 # Avoid if frame analyzer says so
                 if hasattr(self.frame_analyzer, 'should_avoid_coordinate') and self.frame_analyzer.should_avoid_coordinate(candidate_x, candidate_y):
                     should_avoid = True
-                    print(f" Avoiding stuck coordinate: ({candidate_x},{candidate_y}) - attempt {attempt + 1}")
+                    print(f"🚫 AVOIDING STUCK COORDINATE: ({candidate_x},{candidate_y}) - attempt {attempt + 1}")
+                else:
+                    # Also check if coordinate is marked as stuck in coordinate_results
+                    coord_key = (candidate_x, candidate_y)
+                    if hasattr(self.frame_analyzer, 'coordinate_results') and coord_key in self.frame_analyzer.coordinate_results:
+                        result = self.frame_analyzer.coordinate_results[coord_key]
+                        if result.get('is_stuck_coordinate', False):
+                            should_avoid = True
+                            print(f"🚫 AVOIDING STUCK COORDINATE: ({candidate_x},{candidate_y}) - marked as stuck - attempt {attempt + 1}")
                 
                 # Avoid if previously failed
                 if coord_key in failed_coords:
@@ -8448,7 +8483,7 @@ class ContinuousLearningLoop:
                     game_id, max_actions_per_session, session_count
                 )
                 
-                if "error" in game_session_result:
+                if game_session_result is not None and "error" in game_session_result:
                     print(f" Direct control failed: {game_session_result['error']}")
                     # Handle error gracefully without falling back to main.py
                     total_score = 0
@@ -8916,6 +8951,11 @@ class ContinuousLearningLoop:
             game_state = response_data.get('state', 'UNKNOWN')
             success = game_state in ['WIN', 'LEVEL_WIN', 'FULL_GAME_WIN'] or score_change > 0
             
+            # Only learn patterns for successful actions or actions with meaningful score changes
+            if not success and score_change <= 0:
+                print(f"🧠 SKIPPING PATTERN LEARNING: Action {action_number} failed (success: {success}, score_change: {score_change})")
+                return
+            
             # Create context for pattern learning
             context = {
                 'game_id': game_id,
@@ -8943,14 +8983,19 @@ class ContinuousLearningLoop:
             # Learn the pattern
             from src.core.cross_session_learning import KnowledgeType, PersistenceLevel
             
-            # Determine persistence level based on success
-            persistence_level = PersistenceLevel.PERMANENT if success and score_change > 5 else PersistenceLevel.SESSION
-            
-            pattern_id = self.governor.learning_manager.learn_pattern(
-                pattern_data=pattern_data,
-                context=context,
-                confidence=1.0 if success else 0.0
-            )
+            # Only learn patterns for successful actions or actions with meaningful score changes
+            if not success and score_change <= 0:
+                print(f"🧠 SKIPPING PATTERN LEARNING: Action {action_number} failed (success: {success}, score_change: {score_change})")
+                pattern_id = None
+            else:
+                # Determine persistence level based on success
+                persistence_level = PersistenceLevel.PERMANENT if success and score_change > 5 else PersistenceLevel.SESSION
+                
+                pattern_id = self.governor.learning_manager.learn_pattern(
+                    pattern_data=pattern_data,
+                    context=context,
+                    confidence=1.0 if success else 0.0
+                )
             
             # Learn from conscious architecture outcome
             if hasattr(self, 'cohesive_system') and self.cohesive_system:
@@ -8970,8 +9015,8 @@ class ContinuousLearningLoop:
             else:
                 print(f"🧠 PATTERN LEARNING FAILED: ACTION{action_number} pattern not saved")
                 
-                # Also learn coordinate patterns for ACTION6
-                if action_number == 6 and x is not None and y is not None:
+                # Also learn coordinate patterns for ACTION6 (only if successful)
+                if action_number == 6 and x is not None and y is not None and success and score_change > 0:
                     coord_pattern_data = {
                         'action_type': 'ACTION6_COORDINATE',
                         'x': x,
@@ -8988,6 +9033,8 @@ class ContinuousLearningLoop:
                         context=context,
                         confidence=1.0 if success else 0.0
                     )
+                else:
+                    coord_pattern_id = None
                     
                     if coord_pattern_id:
                         logger.debug(f"🧠 Learned coordinate pattern {coord_pattern_id}: ({x},{y}) {'successful' if success else 'unsuccessful'}")
@@ -9906,7 +9953,17 @@ class ContinuousLearningLoop:
                 session_results['detailed_metrics']['grid_sizes_encountered'] = list(session_results['detailed_metrics']['grid_sizes_encountered'])
             
             # Save session results to database
-            asyncio.run(integration.update_session_metrics(session_results['session_id'], session_results))
+            # Use create_task instead of run to avoid event loop conflicts
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Schedule the coroutine to run in the background
+                    task = asyncio.create_task(integration.update_session_metrics(session_results['session_id'], session_results))
+                else:
+                    # Skip if no event loop is running
+                    pass
+            except RuntimeError:
+                pass  # Skip if event loop issues
             
             # Also save meta-learning state to database
             if hasattr(self, 'arc_meta_learning'):
@@ -9915,7 +9972,17 @@ class ContinuousLearningLoop:
                     'learning_state': self.arc_meta_learning.get_learning_state(),
                     'timestamp': time.time()
                 }
-                asyncio.run(integration.log_system_event("INFO", "meta_learning", "Meta-learning state saved", meta_learning_data, session_results['session_id']))
+                # Use create_task instead of run to avoid event loop conflicts
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Schedule the coroutine to run in the background
+                        task = asyncio.create_task(integration.log_system_event("INFO", "meta_learning", "Meta-learning state saved", meta_learning_data, session_results['session_id']))
+                    else:
+                        # Skip if no event loop is running
+                        pass
+                except RuntimeError:
+                    pass  # Skip if event loop issues
             
         except Exception as e:
             logger.error(f"Failed to save session results: {e}")
@@ -10478,13 +10545,23 @@ class ContinuousLearningLoop:
                 
                 # Save winning sequence to database
                 import asyncio
-                asyncio.run(integration.save_learned_pattern(
-                    pattern_type='winning_sequence',
-                    pattern_data=winning_sequence,
-                    game_id=game_id,
-                    confidence=1.0,
-                    success_rate=1.0
-                ))
+                # Use create_task instead of run to avoid event loop conflicts
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Schedule the coroutine to run in the background
+                        task = asyncio.create_task(integration.save_learned_pattern(
+                            pattern_type='winning_sequence',
+                            pattern_data=winning_sequence,
+                            game_id=game_id,
+                            confidence=1.0,
+                            success_rate=1.0
+                        ))
+                    else:
+                        # Skip if no event loop is running
+                        pass
+                except RuntimeError:
+                    pass  # Skip if event loop issues
             except Exception as e:
                 print(f"Failed to save winning sequence to database: {e}")
                 
@@ -10546,13 +10623,23 @@ class ContinuousLearningLoop:
                 
                 # Save coordinate pattern to database
                 import asyncio
-                asyncio.run(integration.save_coordinate_pattern(
-                    game_id=game_id,
-                    action=action,
-                    x=x,
-                    y=y,
-                    success=success
-                ))
+                # Use create_task instead of run to avoid event loop conflicts
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Schedule the coroutine to run in the background
+                        task = asyncio.create_task(integration.save_coordinate_pattern(
+                            game_id=game_id,
+                            action=action,
+                            x=x,
+                            y=y,
+                            success=success
+                        ))
+                    else:
+                        # Skip if no event loop is running
+                        pass
+                except RuntimeError:
+                    pass  # Skip if event loop issues
             except Exception as e:
                 print(f"Failed to save coordinate pattern to database: {e}")
             
@@ -10607,7 +10694,17 @@ class ContinuousLearningLoop:
             }
             
             # Save to database
-            asyncio.run(integration.save_action_intelligence(game_id, game_intelligence))
+            # Use create_task instead of run to avoid event loop conflicts
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Schedule the coroutine to run in the background
+                    task = asyncio.create_task(integration.save_action_intelligence(game_id, game_intelligence))
+                else:
+                    # Skip if no event loop is running
+                    pass
+            except RuntimeError:
+                pass  # Skip if event loop issues
             logger.info(f" Saved action intelligence for {game_id}: {len(effective_actions)} effective actions")
         except Exception as e:
             logger.error(f"Failed to save action intelligence for {game_id}: {e}")
@@ -12416,7 +12513,17 @@ class ContinuousLearningLoop:
                 return True
             
             # Run the async function
-            asyncio.run(save_to_database())
+            # Use create_task instead of run to avoid event loop conflicts
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Schedule the coroutine to run in the background
+                    task = asyncio.create_task(save_to_database())
+                else:
+                    # Skip if no event loop is running
+                    pass
+            except RuntimeError:
+                pass  # Skip if event loop issues
             logger.debug("Continuous learning state saved to database")
         except Exception as e:
             logger.error(f"Failed to save state to database: {e}")
@@ -14615,11 +14722,44 @@ class ContinuousLearningLoop:
                 return True
             
             # Run the async function
-            asyncio.run(save_performance())
+            # Use create_task instead of run to avoid event loop conflicts
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Schedule the coroutine to run in the background
+                    task = asyncio.create_task(save_performance())
+                else:
+                    # Skip if no event loop is running
+                    pass
+            except RuntimeError:
+                pass  # Skip if event loop issues
             print(f"📊 TASK PERFORMANCE: Game {game_id} - Score: {final_score}, Actions: {actions_taken}, Success: {success}")
             
         except Exception as e:
             print(f"📊 ERROR updating task performance: {e}")
+            # Log error to database
+            try:
+                import asyncio
+                from src.database.system_integration import get_system_integration
+                
+                async def log_error():
+                    integration = get_system_integration()
+                    await integration.log_system_event(
+                        level="ERROR",
+                        component="task_performance",
+                        message=f"Failed to update task performance: {e}",
+                        data={"game_id": game_id, "error": str(e)},
+                        session_id=getattr(self, 'session_id', 'continuous_learning')
+                    )
+                
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(log_error())
+                else:
+                    # Skip if no event loop is running
+                    pass
+            except Exception as log_error:
+                print(f"Failed to log error to database: {log_error}")
     
     def _track_score_progression(self, game_id: str, final_score: int, actions_taken: int, effective_actions: List[int]):
         """Track score progression and learning patterns for analysis."""
@@ -14647,7 +14787,17 @@ class ContinuousLearningLoop:
                 return True
             
             # Run the async function
-            asyncio.run(save_progression())
+            # Use create_task instead of run to avoid event loop conflicts
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Schedule the coroutine to run in the background
+                    task = asyncio.create_task(save_progression())
+                else:
+                    # Skip if no event loop is running
+                    pass
+            except RuntimeError:
+                pass  # Skip if event loop issues
             print(f"📈 SCORE PROGRESSION: Game {game_id} - Score: {final_score}, Actions: {actions_taken}, Effective: {len(effective_actions)}")
             
         except Exception as e:
@@ -15683,13 +15833,25 @@ class ContinuousLearningLoop:
                 governor_recommendation = None
                 if self.governor:
                     try:
+                        print(f"🧠 GOVERNOR DEBUG: Calling analyze_performance_and_recommend with actions_taken={actions_taken}")
                         governor_recommendation = self.governor.analyze_performance_and_recommend(
                             recent_actions=actions_taken
                         )
+                        print(f"🧠 GOVERNOR DEBUG: Received recommendation: {governor_recommendation}")
                         if governor_recommendation:
-                            print(f"🧠 GOVERNOR RECOMMENDATION: {governor_recommendation.get('reasoning', 'No reasoning provided')}")
+                            reasoning = governor_recommendation.get('reasoning', 'No reasoning provided')
+                            recommendations = governor_recommendation.get('recommendations', [])
+                            print(f"🧠 GOVERNOR RECOMMENDATION: {reasoning}")
+                            if recommendations:
+                                print(f"🧠 GOVERNOR SUGGESTIONS: {recommendations}")
+                        else:
+                            print("🧠 GOVERNOR DEBUG: No recommendation returned")
                     except Exception as e:
                         print(f"🧠 GOVERNOR ANALYSIS ERROR: {e}")
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    print("🧠 GOVERNOR DEBUG: No governor available")
 
                 # Use our intelligent action selection with current available actions
                 try:
