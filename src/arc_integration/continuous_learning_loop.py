@@ -6,6 +6,7 @@ against ARC-AGI-3 tasks, collecting insights and improving performance over time
 """
 import asyncio
 import aiohttp
+import ast
 import json
 import logging
 import os
@@ -12377,7 +12378,7 @@ class ContinuousLearningLoop:
         danger_coords = set()
         for coord_str, boundary_info in boundary_data.items():
             if boundary_info['confidence'] > 0.7:  # High confidence boundaries
-                coord = eval(coord_str)  # Convert string back to tuple
+                coord = ast.literal_eval(coord_str)  # Convert string back to tuple safely
                 danger_coords.add(coord)
         
         if len(danger_coords) >= 3:

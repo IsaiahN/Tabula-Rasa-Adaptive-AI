@@ -113,6 +113,28 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
 
 **STEP 4: AUTONOMOUS EXECUTION & CODING**
 -   **IMMEDIATELY AND AUTONOMOUSLY implement the highest-priority items from your Todo List.**
+### Rule: TEST-001 — Holistic Test Analysis
+
+**Category:** Testing & Validation  
+**Status:** Active &nbsp;|&nbsp; **Enforcement:** Strict
+
+#### 1. **Dual-Purpose Test Objective**
+- Every automated test run must:
+    - **A. Validate the specific functionality under test**
+    - **B. Detect and surface all system anomalies, regardless of their relation to the test target**
+
+#### 2. **Comprehensive Error & Anomaly Capture**
+- **All errors, warnings, or unexpected behaviors** encountered during test execution—whether directly related to the test target or not—**must** be:
+    - Captured and logged
+    - Converted into a tracked work item (e.g., `// TODO:` comment, GitHub Issue, or backlog task)
+
+#### 3. **Zero Tolerance for Ignored Failures**
+- **Ignoring non-target failures is strictly prohibited.**
+- All anomalies must be addressed or tracked for remediation.
+
+#### 4. **Rationale**
+- This rule ensures that the test suite not only validates intended functionality but also acts as a sentinel for overall system health, accelerating the discovery and resolution of latent issues.
+
 ### File Versioning & Management Rule (FS-001)
 
 **Category:** File System Operations  
@@ -169,6 +191,7 @@ You are in self-directed mode. When the user says "continue," you MUST execute t
 
 **Example:**  
 `tabula_rasa_20231027_pre_architect_migration.backup.db`
+
 -   **CRITICAL:** Only make changes that are allowed under the structural change restriction. 
 
 -   Write the necessary code. Create test files in the `/tests` directory.

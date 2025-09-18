@@ -286,7 +286,7 @@ try:
     
     # Try to import coordinate system
     try:
-        from enhanced_coordinate_intelligence import EnhancedCoordinateIntelligence
+        from src.database.api import CoordinateIntelligence
         COORDINATE_SYSTEM_AVAILABLE = True
     except ImportError:
         COORDINATE_SYSTEM_AVAILABLE = False
@@ -527,7 +527,7 @@ class MasterARCTrainer:
         try:
             # Initialize coordinate system if enabled
             if self.config.enable_coordinates and COORDINATE_SYSTEM_AVAILABLE:
-                from enhanced_coordinate_intelligence import EnhancedCoordinateIntelligence
+                from src.database.api import CoordinateIntelligence
                 # We'll initialize the coordinate manager later when we have the continuous loop
                 self.coordinate_manager = None
                 self.logger.info("Coordinate system will be initialized with continuous loop")
@@ -742,8 +742,8 @@ class MasterARCTrainer:
                 
                 # Initialize coordinate manager with the continuous loop if needed
                 if self.config.enable_coordinates and COORDINATE_SYSTEM_AVAILABLE and self.coordinate_manager is None:
-                    from enhanced_coordinate_intelligence import EnhancedCoordinateIntelligence
-                    self.coordinate_manager = EnhancedCoordinateIntelligence(self.continuous_loop)
+                    from src.api.enhanced_client import CoordinateManager
+                    self.coordinate_manager = CoordinateManager()
                     self.logger.info("Coordinate system initialized with continuous loop")
                 
                 # Inject the initialized client if the loop accepts it
@@ -1437,9 +1437,9 @@ class MasterARCTrainer:
             # Database-only mode: No file saving
             pass
             if COLOR_AVAILABLE and self.config.enable_colored_output:
-                print(f"\n{Fore.BLUE}📊 Meta-cognitive logs saved to: {log_file}{Style.RESET_ALL}")
+                print(f"\n{Fore.BLUE}📊 Meta-cognitive logs saved to database{Style.RESET_ALL}")
             else:
-                print(f"\n📊 Meta-cognitive logs saved to: {log_file}")
+                print(f"\n📊 Meta-cognitive logs saved to database")
                 
         except Exception as e:
             self.logger.error(f"Could not save meta-cognitive logs: {e}")

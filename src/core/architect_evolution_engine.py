@@ -778,6 +778,11 @@ class ArchitectEvolutionEngine:
     def _load_evolution_state(self):
         """Load existing evolution state from persistence."""
         try:
+            # Database-only mode: Skip file-based loading
+            if self.evolution_data_dir is None:
+                logger.info("Database-only mode: Skipping file-based evolution state loading")
+                return
+                
             insights_file = self.evolution_data_dir / "architectural_insights.json"
             if insights_file.exists():
                 with open(insights_file, 'r') as f:
@@ -806,6 +811,11 @@ class ArchitectEvolutionEngine:
     def save_evolution_state(self):
         """Save current evolution state to persistence."""
         try:
+            # Database-only mode: Skip file-based saving
+            if self.evolution_data_dir is None:
+                logger.info("Database-only mode: Skipping file-based evolution state saving")
+                return
+                
             # Save insights
             insights_file = self.evolution_data_dir / "architectural_insights.json"
             with open(insights_file, 'w') as f:
