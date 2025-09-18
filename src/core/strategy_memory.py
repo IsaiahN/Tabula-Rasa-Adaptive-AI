@@ -49,8 +49,8 @@ class StrategyMemory:
         self.strategy_misses = 0
         self.total_retrievals = 0
         
-        # Ensure persistence directory exists
-        self.persistence_dir.mkdir(parents=True, exist_ok=True)
+        # Database-only mode: No file-based persistence
+        # self.persistence_dir.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
         
         # Load existing strategies
         self._load_strategies()

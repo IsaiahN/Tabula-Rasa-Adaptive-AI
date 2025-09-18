@@ -95,8 +95,9 @@ class MetaCognitiveMemoryManager:
         }
         
         self.memory_inventory: Dict[Path, MemoryFile] = {}
-        self.backup_directory = self.base_path / "data" / "memory" / "backups"
-        self.backup_directory.mkdir(parents=True, exist_ok=True)
+        # Database-only mode: No file-based backup directory
+        self.backup_directory = None  # Disabled for database-only mode
+        # self.backup_directory.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
     
     def classify_file(self, file_path: Path) -> MemoryClassification:
         """Classify a file based on patterns and content analysis."""

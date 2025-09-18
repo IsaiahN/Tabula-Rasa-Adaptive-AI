@@ -198,8 +198,9 @@ class FallbackJSONOperations:
     """Fallback JSON operations when database is not available."""
     
     def __init__(self, save_directory: Path):
-        self.save_directory = save_directory
-        self.save_directory.mkdir(parents=True, exist_ok=True)
+        # Database-only mode: No file-based operations
+        self.save_directory = None  # Disabled for database-only mode
+        # self.save_directory.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
     
     def save_global_counters(self, counters: Dict[str, Any]) -> bool:
         """Fallback: Save global counters to JSON file."""

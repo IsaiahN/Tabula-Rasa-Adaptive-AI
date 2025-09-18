@@ -188,8 +188,8 @@ class RewardCapManager:
         try:
             config = self.get_all_config()
             
-            # Ensure directory exists
-            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+            # Database-only mode: Skip directory creation
+            # Path(file_path).parent.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
             
             with open(file_path, 'w') as f:
                 json.dump(config, f, indent=2)

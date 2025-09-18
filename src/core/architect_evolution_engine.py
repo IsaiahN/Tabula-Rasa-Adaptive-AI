@@ -83,10 +83,10 @@ class ArchitectEvolutionEngine:
         evolution_data_dir: str = "data/architect_evolution",
         enable_autonomous_evolution: bool = True
     ):
-        self.persistence_dir = Path(persistence_dir)
-        self.evolution_data_dir = self.persistence_dir / evolution_data_dir
-        # Ensure the directory exists with proper Windows path handling
-        self.evolution_data_dir.mkdir(parents=True, exist_ok=True)
+        # Database-only mode: No file-based persistence
+        self.persistence_dir = None  # Disabled for database-only mode
+        self.evolution_data_dir = None  # Disabled for database-only mode
+        # self.evolution_data_dir.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
         
         self.enable_autonomous_evolution = enable_autonomous_evolution
         

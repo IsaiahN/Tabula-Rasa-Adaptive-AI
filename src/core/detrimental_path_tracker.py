@@ -161,8 +161,9 @@ class DetrimentalPathTracker:
                  persistence_dir: str = "data/detrimental_patterns"):
         self.max_patterns = max_patterns
         self.min_failure_rate = min_failure_rate
-        self.persistence_dir = Path(persistence_dir)
-        self.persistence_dir.mkdir(parents=True, exist_ok=True)
+        # Database-only mode: No file-based persistence
+        self.persistence_dir = None  # Disabled for database-only mode
+        # self.persistence_dir.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
         
         # Pattern storage
         self.detrimental_patterns: Dict[str, DetrimentalPattern] = {}

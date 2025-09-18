@@ -102,8 +102,9 @@ class OutcomeTracker:
     """Tracks and analyzes outcomes of meta-cognitive decisions."""
     
     def __init__(self, data_dir: Path, logger: Optional[logging.Logger] = None):
-        self.data_dir = Path(data_dir)
-        self.data_dir.mkdir(exist_ok=True)
+        # Database-only mode: No file-based data directory
+        self.data_dir = None  # Disabled for database-only mode
+        # self.data_dir.mkdir(exist_ok=True)  # Database-only mode: No file creation
         self.logger = logger or logging.getLogger(f"{__name__}.OutcomeTracker")
         
         # Outcome storage

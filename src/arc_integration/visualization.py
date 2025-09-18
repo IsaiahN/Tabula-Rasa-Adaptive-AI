@@ -21,8 +21,9 @@ class TrainingVisualizer:
         Args:
             output_dir: Directory to save visualization files.
         """
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        # Database-only mode: No file-based visualization output
+        self.output_dir = None  # Disabled for database-only mode
+        # self.output_dir.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
     def plot_scorecard_metrics(

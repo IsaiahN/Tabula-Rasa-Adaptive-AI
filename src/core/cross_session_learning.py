@@ -169,8 +169,9 @@ class CrossSessionLearningManager:
     """Manages persistence and recovery of learned patterns across sessions."""
     
     def __init__(self, persistence_dir: Path, logger: Optional[logging.Logger] = None):
-        self.persistence_dir = Path(persistence_dir)
-        self.persistence_dir.mkdir(exist_ok=True)
+        # Database-only mode: No file-based persistence
+        self.persistence_dir = None  # Disabled for database-only mode
+        # self.persistence_dir.mkdir(exist_ok=True)  # Database-only mode: No file creation
         self.logger = logger or logging.getLogger(f"{__name__}.CrossSessionLearning")
         self.patterns_manager = get_learned_patterns_manager()
         

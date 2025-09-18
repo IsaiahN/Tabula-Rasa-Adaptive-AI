@@ -63,8 +63,9 @@ class DynamicActionLimits:
     
     def __init__(self, persistence_dir: Path, logger: Optional[logging.Logger] = None):
         self.logger = logger or logging.getLogger(f"{__name__}.DynamicActionLimits")
-        self.persistence_dir = Path(persistence_dir)
-        self.persistence_dir.mkdir(exist_ok=True)
+        # Database-only mode: No file-based persistence
+        self.persistence_dir = None  # Disabled for database-only mode
+        # self.persistence_dir.mkdir(exist_ok=True)  # Database-only mode: No file creation
         
         # Load or initialize configuration
         self.config_file = self.persistence_dir / "dynamic_action_limits.json"

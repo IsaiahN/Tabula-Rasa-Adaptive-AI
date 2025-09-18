@@ -154,10 +154,10 @@ class PerformanceOptimizationEngine:
         enable_real_time_optimization: bool = True,
         optimization_interval: float = 60.0  # Optimization check interval in seconds
     ):
-        self.persistence_dir = Path(persistence_dir)
-        self.performance_data_dir = self.persistence_dir / performance_data_dir
-        # Ensure the directory exists with proper Windows path handling
-        self.performance_data_dir.mkdir(parents=True, exist_ok=True)
+        # Database-only mode: No file-based persistence
+        self.persistence_dir = None  # Disabled for database-only mode
+        self.performance_data_dir = None  # Disabled for database-only mode
+        # self.performance_data_dir.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
         
         self.enable_real_time_optimization = enable_real_time_optimization
         self.optimization_interval = optimization_interval

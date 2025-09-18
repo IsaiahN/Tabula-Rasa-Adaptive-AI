@@ -783,8 +783,9 @@ class SandboxTester:
     def __init__(self, base_path: Path, logger: logging.Logger):
         self.base_path = base_path
         self.logger = logger
-        self.sandbox_dir = base_path / "sandbox_tests"
-        self.sandbox_dir.mkdir(exist_ok=True)
+        # Database-only mode: No sandbox directory creation
+        self.sandbox_dir = None  # Disabled for database-only mode
+        # self.sandbox_dir.mkdir(exist_ok=True)  # Database-only mode: No file creation
     
     async def test_mutation(self, mutation: Mutation, 
                           baseline_genome: SystemGenome,
@@ -794,6 +795,17 @@ class SandboxTester:
         sandbox_path = None
         
         try:
+            # Database-only mode: Skip sandbox testing
+            if self.sandbox_dir is None:
+                self.logger.warning("Sandbox testing disabled in database-only mode")
+                return TestResult(
+                    success=False,
+                    performance_improvement=0.0,
+                    test_duration=0.0,
+                    error_message="Sandbox testing disabled in database-only mode",
+                    test_results={}
+                )
+            
             # Create mutated genome
             mutated_genome = mutation.apply_to_genome(baseline_genome)
             
@@ -843,6 +855,10 @@ class SandboxTester:
     
     async def _create_sandbox(self, genome: SystemGenome) -> Path:
         """Create isolated sandbox environment for testing."""
+        # Database-only mode: No sandbox creation
+        if self.sandbox_dir is None:
+            raise NotImplementedError("Sandbox testing disabled in database-only mode")
+        
         sandbox_id = f"sandbox_{genome.get_hash()}_{int(time.time())}"
         sandbox_path = self.sandbox_dir / sandbox_id
         
@@ -854,8 +870,9 @@ class SandboxTester:
             # If base_path is already the src directory
             shutil.copytree(base_path, sandbox_path / "src")
         else:
-            # Create minimal src structure
-            (sandbox_path / "src").mkdir(parents=True)
+            # Database-only mode: Skip sandbox directory creation
+            # (sandbox_path / "src").mkdir(parents=True)  # Database-only mode: No file creation
+            pass
             
         # Copy training script if available
         for script_name in ["master_arc_trainer.py"]:
@@ -1153,7 +1170,8 @@ class Architect:
         self.current_genome = self._load_current_genome()
         self.mutation_engine = MutationEngine(self.current_genome, self.logger)
         self.sandbox_tester = SandboxTester(self.base_path, self.logger)
-        self.sandbox_dir = self.base_path / "sandbox_tests"  # Make sandbox_dir accessible
+        # Database-only mode: No sandbox directory
+        self.sandbox_dir = None  # Disabled for database-only mode
         
         # Evolution state
         self.generation = 0
@@ -2088,6 +2106,10 @@ This is an experimental change - requires review before merging.
     def _cleanup_old_sandboxes(self) -> Dict[str, Any]:
         """Clean up old sandbox directories."""
         try:
+            # Database-only mode: No sandbox cleanup needed
+            if self.sandbox_dir is None:
+                return {"status": "database_only_mode", "sandboxes_cleaned": 0}
+            
             if not self.sandbox_dir.exists():
                 return {"status": "no_sandboxes"}
             
