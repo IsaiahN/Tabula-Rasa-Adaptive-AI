@@ -600,15 +600,24 @@ class AdaptiveLearningARCAgent(Agent):
         self._save_learning_data(episode_insight)
         
     def _save_learning_data(self, insight: Dict[str, Any]):
-        """Save learning data for future analysis."""
-        save_dir = Path("data/arc_learning_data")
-        save_dir.mkdir(parents=True, exist_ok=True)
-        filename = save_dir / f"{self.game_id}_episode_{len(self.performance_history)}.json"
+        """Save learning data to database instead of files."""
         try:
-            with open(filename, 'w') as f:
-                json.dump(insight, f, indent=2, default=str)
+            # Store learning data in database
+            from ..database.performance_data_manager import get_performance_manager
+            performance_manager = get_performance_manager()
+            
+            # Store as experiment data
+            performance_manager.store_experiment_data(
+                experiment_name=f"arc_learning_{self.game_id}",
+                experiment_type="arc_learning",
+                parameters=insight,
+                results={"episode": len(self.performance_history)},
+                success=True,
+                duration=0,
+                notes=f"Episode {len(self.performance_history)} learning data"
+            )
         except Exception as e:
-            logger.warning(f"Failed to save learning data: {e}")
+            logger.warning(f"Failed to save learning data to database: {e}")
             
     def get_learning_summary(self) -> Dict[str, Any]:
         """Get summary of learning progress."""

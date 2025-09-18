@@ -102,8 +102,12 @@ def get_api_key():
     print(f"   ❌ No API key found")
     return None
 
-def test_scorecard_api(card_id, api_key):
+def test_scorecard_api():
     """Test the scorecard API with a specific card ID."""
+    
+    # Get test parameters
+    card_id = "test_card_123"
+    api_key = get_api_key()
     
     print(f"\n📊 DIRECTOR: Testing Scorecard API")
     print(f"   Card ID: {card_id}")

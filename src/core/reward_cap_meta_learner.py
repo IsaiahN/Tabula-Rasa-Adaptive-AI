@@ -18,6 +18,8 @@ import time
 import json
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, asdict
+
+from ..database.reward_cap_manager import get_reward_cap_manager
 from collections import deque
 import numpy as np
 from pathlib import Path
@@ -76,6 +78,7 @@ class RewardCapMetaLearner:
     ):
         self.base_path = Path(base_path)
         self.logger = logger or logging.getLogger(f"{__name__}.RewardCapMetaLearner")
+        self.db_manager = get_reward_cap_manager()
         
         # Configuration
         self.adjustment_interval = adjustment_interval
@@ -351,38 +354,44 @@ class RewardCapMetaLearner:
         }
     
     def _save_configuration(self):
-        """Save current configuration to disk."""
-        config_path = self.base_path / "data" / "reward_cap_config.json"
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        config_data = {
-            "current_caps": self.current_caps.to_dict(),
-            "cap_history": list(self.cap_history),
-            "learning_phase": self.learning_phase,
-            "last_adjustment": self.last_adjustment,
-            "action_count": self.action_count
-        }
-        
-        with open(config_path, 'w') as f:
-            json.dump(config_data, f, indent=2)
+        """Save current configuration to database."""
+        try:
+            # Save current caps
+            self.db_manager.update_current_caps(self.current_caps.to_dict())
+            
+            # Save cap history
+            for history_entry in self.cap_history:
+                self.db_manager.update_cap_history(history_entry)
+            
+            # Save other configuration
+            self.db_manager.set_learning_phase(self.learning_phase)
+            self.db_manager.set_last_adjustment(self.last_adjustment)
+            self.db_manager.set_action_count(self.action_count)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to save configuration to database: {e}")
     
     def _load_configuration(self):
-        """Load configuration from disk."""
-        config_path = self.base_path / "data" / "reward_cap_config.json"
-        
-        if config_path.exists():
-            try:
-                with open(config_path, 'r') as f:
-                    config_data = json.load(f)
-                
-                self.current_caps = CapConfiguration.from_dict(config_data.get("current_caps", {}))
-                self.cap_history = deque(config_data.get("cap_history", []), maxlen=100)
-                self.learning_phase = config_data.get("learning_phase", "exploration")
-                self.last_adjustment = config_data.get("last_adjustment", 0)
-                self.action_count = config_data.get("action_count", 0)
-                
-                self.logger.info("📁 Loaded reward cap configuration from disk")
-            except Exception as e:
-                self.logger.warning(f"⚠️ Failed to load reward cap configuration: {e}")
-                self.logger.info("🔄 Using default configuration")
+        """Load configuration from database."""
+        try:
+            # Load current caps
+            caps_data = self.db_manager.get_current_caps()
+            if caps_data:
+                self.current_caps = CapConfiguration.from_dict(caps_data)
+            else:
+                self.current_caps = CapConfiguration()
+            
+            # Load cap history
+            history_data = self.db_manager.get_cap_history()
+            self.cap_history = deque(history_data, maxlen=100)
+            
+            # Load other configuration
+            self.learning_phase = self.db_manager.get_learning_phase()
+            self.last_adjustment = self.db_manager.get_last_adjustment()
+            self.action_count = self.db_manager.get_action_count()
+            
+            self.logger.info("📁 Loaded reward cap configuration from database")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Failed to load reward cap configuration from database: {e}")
+            self.logger.info("🔄 Using default configuration")
 

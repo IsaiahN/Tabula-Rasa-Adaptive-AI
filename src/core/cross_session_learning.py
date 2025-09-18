@@ -18,6 +18,8 @@ from typing import Dict, List, Any, Optional, Set, Tuple
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from enum import Enum
+
+from ..database.learned_patterns_manager import get_learned_patterns_manager
 from collections import defaultdict, deque
 import statistics
 import threading
@@ -170,6 +172,7 @@ class CrossSessionLearningManager:
         self.persistence_dir = Path(persistence_dir)
         self.persistence_dir.mkdir(exist_ok=True)
         self.logger = logger or logging.getLogger(f"{__name__}.CrossSessionLearning")
+        self.patterns_manager = get_learned_patterns_manager()
         
         # Windows compatibility
         self.is_windows = platform.system() == "Windows"
@@ -534,19 +537,13 @@ class CrossSessionLearningManager:
         self.current_session.key_insights = insights
     
     def _load_persistent_state(self):
-        """Load persistent state from disk."""
-        patterns_file = self.persistence_dir / "learned_patterns.pkl"
-        # Ensure the directory exists
-        patterns_file.parent.mkdir(parents=True, exist_ok=True)
-        sessions_file = self.persistence_dir / "session_history.jsonl"
-        
-        # Load learned patterns
-        if patterns_file.exists():
-            try:
-                with open(patterns_file, 'rb') as f:
-                    saved_patterns = pickle.load(f)
-                    
-                for pattern_id, pattern_data in saved_patterns.items():
+        """Load persistent state from database."""
+        try:
+            # Load learned patterns from database
+            patterns = self.patterns_manager.get_patterns(limit=1000)
+            
+            for pattern_data in patterns:
+                try:
                     # Convert string enums back to enum objects
                     if isinstance(pattern_data.get('knowledge_type'), str):
                         pattern_data['knowledge_type'] = KnowledgeType(pattern_data['knowledge_type'])
@@ -554,152 +551,62 @@ class CrossSessionLearningManager:
                         pattern_data['persistence_level'] = PersistenceLevel(pattern_data['persistence_level'])
                     
                     pattern = LearnedPattern(**pattern_data)
-                    self.learned_patterns[pattern_id] = pattern
-                    self.patterns_by_type[pattern.knowledge_type].append(pattern_id)
+                    self.learned_patterns[pattern.pattern_id] = pattern
+                    self.patterns_by_type[pattern.knowledge_type].append(pattern.pattern_id)
                     
-                self.logger.info(f"Loaded {len(saved_patterns)} learned patterns from disk")
-            except Exception as e:
-                self.logger.error(f"Failed to load learned patterns: {e}")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Failed to load pattern {pattern_data.get('id', 'unknown')}: {e}")
+                    
+            self.logger.info(f"📁 Loaded {len(patterns)} learned patterns from database")
+            
+        except Exception as e:
+            self.logger.warning(f"⚠️ Failed to load learned patterns from database: {e}")
         
-        # Load session history
-        if sessions_file.exists():
-            try:
-                with open(sessions_file, 'r') as f:
-                    for line in f:
-                        if line.strip():
-                            session_data = json.loads(line.strip())
-                            # Convert session data back to SessionMetaLearningState
-                            # (simplified for this example)
-                            pass
-            except Exception as e:
-                self.logger.error(f"Failed to load session history: {e}")
+        # Note: Session history is now handled by the database through other managers
+        self.logger.info("📁 Session history now managed by database")
     
     def _save_persistent_state(self):
-        """Save persistent state to disk."""
-        # Save learned patterns
-        patterns_file = self.persistence_dir / "learned_patterns.pkl"
-        # Ensure the directory exists
-        patterns_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Debug: Log the actual path being used
-        self.logger.debug(f"Attempting to save patterns to: {patterns_file}")
-        self.logger.debug(f"Persistence dir type: {type(self.persistence_dir)}, value: {self.persistence_dir}")
-        self.logger.debug(f"Patterns file type: {type(patterns_file)}, value: {patterns_file}")
-        self.logger.debug(f"Patterns file parent: {patterns_file.parent}")
-        self.logger.debug(f"Parent exists: {patterns_file.parent.exists()}")
-        self.logger.debug(f"Parent is dir: {patterns_file.parent.is_dir()}")
-        
+        """Save persistent state to database."""
         try:
-            # Save ALL patterns, not just permanent ones (for testing and gradual learning)
-            # Create a copy to avoid "dictionary changed size during iteration" error
-            patterns_copy = dict(self.learned_patterns)
-            persistent_patterns = {}
-            
-            # Safely convert patterns to dictionaries, handling any serialization issues
-            for pattern_id, pattern in patterns_copy.items():
+            # Save learned patterns to database
+            saved_count = 0
+            for pattern_id, pattern in self.learned_patterns.items():
                 try:
                     pattern_dict = asdict(pattern)
-                    # Remove any problematic fields that might not be serializable
+                    
+                    # Clean metadata for JSON serialization
                     if 'metadata' in pattern_dict and isinstance(pattern_dict['metadata'], dict):
-                        # Ensure metadata is serializable
                         cleaned_metadata = {}
                         for k, v in pattern_dict['metadata'].items():
                             try:
-                                # Test if the value is picklable
-                                pickle.dumps(v)
+                                json.dumps(v)
                                 cleaned_metadata[k] = v
-                            except (TypeError, pickle.PicklingError):
-                                # Convert non-picklable values to strings
+                            except (TypeError, ValueError):
                                 cleaned_metadata[k] = str(v)
                         pattern_dict['metadata'] = cleaned_metadata
-                    persistent_patterns[pattern_id] = pattern_dict
-                except Exception as pattern_error:
-                    self.logger.warning(f"Failed to serialize pattern {pattern_id}: {pattern_error}")
+                    
+                    # Add pattern to database
+                    result = self.patterns_manager.add_pattern(
+                        pattern_dict,
+                        pattern_type=pattern.knowledge_type.value if hasattr(pattern.knowledge_type, 'value') else str(pattern.knowledge_type),
+                        success_rate=pattern.success_rate
+                    )
+                    
+                    if result['is_new'] or not result['is_new']:  # Both new and updated patterns count
+                        saved_count += 1
+                        
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Failed to save pattern {pattern_id}: {e}")
                     continue
             
-            # Use absolute path to avoid Windows path issues
-            # Ensure the directory exists
-            patterns_file.parent.mkdir(parents=True, exist_ok=True)
+            self.logger.info(f"💾 Saved {saved_count} learned patterns to database")
             
-            # Use Windows-safe saving method
-            if self.is_windows:
-                if not self._save_patterns_windows_safe(patterns_file, persistent_patterns):
-                    raise OSError("Windows-safe pattern saving failed")
-            else:
-                # Unix/Linux: use direct saving
-                with open(patterns_file, 'wb') as f:
-                    pickle.dump(persistent_patterns, f)
-                
-            self.logger.debug(f"Saved {len(persistent_patterns)} patterns to disk at {patterns_file}")
         except Exception as e:
-            self.logger.error(f"Failed to save learned patterns: {e}")
-            self.logger.error(f"Patterns file path: {patterns_file}")
-            self.logger.error(f"Patterns file path (str): {str(patterns_file)}")
-            self.logger.error(f"Persistence dir: {self.persistence_dir}")
-            self.logger.error(f"Persistence dir (str): {str(self.persistence_dir)}")
-            self.logger.error(f"File exists: {patterns_file.exists()}")
-            self.logger.error(f"Parent dir exists: {patterns_file.parent.exists()}")
-            self.logger.error(f"Parent dir is dir: {patterns_file.parent.is_dir()}")
-            self.logger.error(f"Error type: {type(e)}")
-            self.logger.error(f"Error args: {e.args}")
-            
-            # Fallback: Try saving to a temporary file first, then move it
-            try:
-                import tempfile
-                import shutil
-                
-                # Create a temporary file in the same directory
-                temp_file = patterns_file.parent / f"learned_patterns_temp_{os.getpid()}.pkl"
-                
-                # Try to save to temp file first with Windows-safe approach
-                if self.is_windows:
-                    # Use Windows-safe saving for temp file too
-                    if not self._save_patterns_windows_safe(temp_file, persistent_patterns):
-                        raise OSError("Windows-safe temp file saving failed")
-                else:
-                    with open(temp_file, 'wb') as f:
-                        pickle.dump(persistent_patterns, f)
-                
-                # If successful, move temp file to final location (Windows-safe)
-                try:
-                    # Try atomic move first
-                    shutil.move(str(temp_file), str(patterns_file))
-                except (OSError, PermissionError):
-                    # Fallback to copy and delete
-                    shutil.copy2(str(temp_file), str(patterns_file))
-                    temp_file.unlink()
-                
-                self.logger.info(f"Successfully saved patterns using fallback method")
-                
-            except Exception as fallback_error:
-                self.logger.error(f"Fallback save also failed: {fallback_error}")
-                # Clean up temp file if it exists
-                try:
-                    if 'temp_file' in locals() and temp_file.exists():
-                        temp_file.unlink()
-                except:
-                    pass
-            
-            # Try to create the directory again with more explicit error handling
-            try:
-                patterns_file.parent.mkdir(parents=True, exist_ok=True)
-                self.logger.info(f"Successfully created directory: {patterns_file.parent}")
-            except Exception as mkdir_error:
-                self.logger.error(f"Failed to create directory: {mkdir_error}")
-                self.logger.error(f"Directory path: {patterns_file.parent}")
-                self.logger.error(f"Directory path (str): {str(patterns_file.parent)}")
+            self.logger.error(f"❌ Failed to save learned patterns to database: {e}")
         
-        # Save current session to history
-        if self.current_session:
-            sessions_file = self.persistence_dir / "session_history.jsonl"
-            try:
-                with open(sessions_file, 'a') as f:
-                    f.write(json.dumps(asdict(self.current_session), default=str) + '\n')
-            except Exception as e:
-                self.logger.error(f"Failed to save session history: {e}")
+        # Note: Session history is now handled by the database through other managers
+        self.logger.info("💾 Session history now managed by database")
         
-        self.last_save_time = time.time()
-    
     def _start_auto_save(self):
         """Start auto-save thread."""
         def auto_save_worker():

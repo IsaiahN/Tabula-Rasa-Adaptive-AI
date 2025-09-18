@@ -1,6 +1,7 @@
 -- TABULA RASA DATABASE SCHEMA
 -- Comprehensive SQLite database for ARC-AGI-3 training system
--- Designed for heavy usage with optimized indexing and relationships
+-- Generated from current tabula_rasa.db structure
+-- Last updated: $(date)
 
 -- ============================================================================
 -- CORE SYSTEM TABLES
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS game_results (
     session_id TEXT NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP,
-    status TEXT NOT NULL, -- 'completed', 'failed', 'timeout', 'cancelled'
+    status TEXT NOT NULL, -- 'completed', 'failed', 'timeout', 'cancelled'  
     final_score REAL DEFAULT 0.0,
     total_actions INTEGER DEFAULT 0,
     actions_taken TEXT, -- JSON array of action numbers
@@ -43,7 +44,7 @@ CREATE TABLE IF NOT EXISTS game_results (
     coordinate_successes INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (game_id, session_id),
-    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)       
 );
 
 -- ============================================================================
@@ -65,7 +66,7 @@ CREATE TABLE IF NOT EXISTS action_effectiveness (
     UNIQUE(game_id, action_number)
 );
 
--- Coordinate intelligence for Action 6
+-- Coordinate intelligence tracking
 CREATE TABLE IF NOT EXISTS coordinate_intelligence (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     game_id TEXT NOT NULL,
@@ -80,42 +81,6 @@ CREATE TABLE IF NOT EXISTS coordinate_intelligence (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(game_id, x, y)
 );
-
--- Note: winning_sequences table was removed (data now in learned_patterns)
-
--- Note: action_transitions table was removed (data now in learned_patterns)
-
--- ============================================================================
--- LEARNING AND PATTERN TABLES
--- ============================================================================
-
--- Learned patterns and strategies
-CREATE TABLE IF NOT EXISTS learned_patterns (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    pattern_type TEXT NOT NULL, -- 'coordinate', 'sequence', 'strategy', 'heuristic'
-    pattern_data TEXT NOT NULL, -- JSON data
-    confidence REAL DEFAULT 0.0,
-    frequency INTEGER DEFAULT 1,
-    success_rate REAL DEFAULT 0.0,
-    game_context TEXT, -- Game ID or pattern context
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Meta-learning session data
-CREATE TABLE IF NOT EXISTS training_sessions (
-    session_id TEXT PRIMARY KEY,
-    learning_type TEXT NOT NULL, -- 'coordinate_optimization', 'action_sequencing', 'strategy_refinement'
-    input_data TEXT, -- JSON input data
-    output_data TEXT, -- JSON output/learned data
-    improvement_metrics TEXT, -- JSON performance metrics
-    success BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- ============================================================================
--- LOGGING AND TRACING TABLES
--- ============================================================================
 
 -- Action traces for detailed analysis
 CREATE TABLE IF NOT EXISTS action_traces (
@@ -133,61 +98,138 @@ CREATE TABLE IF NOT EXISTS action_traces (
     score_change REAL DEFAULT 0.0,
     response_data TEXT, -- JSON API response
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)       
 );
 
--- System logs with structured data
+-- Action tracking for pattern analysis
+CREATE TABLE IF NOT EXISTS action_tracking (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    action_type TEXT,
+    action_sequence TEXT, -- JSON array of actions
+    effectiveness REAL,
+    context TEXT, -- JSON context data
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Coordinate tracking for spatial analysis
+CREATE TABLE IF NOT EXISTS coordinate_tracking (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    coordinate_x INTEGER,
+    coordinate_y INTEGER,
+    action_type TEXT,
+    success BOOLEAN,
+    context TEXT, -- JSON context data
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- LEARNING AND PATTERN TABLES
+-- ============================================================================
+
+-- Learned patterns and strategies
+CREATE TABLE IF NOT EXISTS learned_patterns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pattern_type TEXT NOT NULL, -- 'coordinate', 'sequence', 'strategy', 'heuristic'                                                                    
+    pattern_data TEXT NOT NULL, -- JSON data
+    confidence REAL DEFAULT 0.0,
+    frequency INTEGER DEFAULT 1,
+    success_rate REAL DEFAULT 0.0,
+    game_context TEXT, -- Game ID or pattern context
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Winning sequences analysis
+CREATE TABLE IF NOT EXISTS winning_sequences (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    sequence TEXT NOT NULL, -- JSON array of action numbers
+    frequency INTEGER DEFAULT 1,
+    avg_score REAL DEFAULT 0.0,
+    success_rate REAL DEFAULT 1.0,
+    last_used TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(game_id, sequence)
+);
+
+-- ============================================================================
+-- PERFORMANCE AND ANALYTICS TABLES
+-- ============================================================================
+
+-- Performance history tracking
+CREATE TABLE IF NOT EXISTS performance_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    game_id TEXT,
+    score REAL,
+    win_rate REAL,
+    learning_efficiency REAL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    metadata TEXT, -- JSON metadata
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Session history tracking
+CREATE TABLE IF NOT EXISTS session_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    game_id TEXT,
+    status TEXT,
+    duration_seconds INTEGER,
+    actions_taken INTEGER,
+    score REAL,
+    win BOOLEAN,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    metadata TEXT, -- JSON metadata
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Score history tracking
+CREATE TABLE IF NOT EXISTS score_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    session_id TEXT,
+    score REAL,
+    score_type TEXT, -- 'current', 'best', 'average', etc.
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Frame tracking for stagnation detection
+CREATE TABLE IF NOT EXISTS frame_tracking (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    frame_hash TEXT,
+    frame_analysis TEXT, -- JSON analysis data
+    stagnation_detected BOOLEAN,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- SYSTEM MANAGEMENT TABLES
+-- ============================================================================
+
+-- System logs
 CREATE TABLE IF NOT EXISTS system_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    log_level TEXT NOT NULL, -- 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
-    component TEXT NOT NULL, -- 'governor', 'architect', 'director', 'learning_loop'
+    log_level TEXT NOT NULL, -- 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'                                                                         
+    component TEXT NOT NULL, -- 'governor', 'architect', 'director', 'learning_loop'                                                                    
     message TEXT NOT NULL,
     data TEXT, -- JSON additional data
     session_id TEXT,
     game_id TEXT,
     timestamp TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)       
 );
 
--- Alias for backward compatibility
-CREATE VIEW IF NOT EXISTS logs AS SELECT * FROM system_logs;
-
--- System logs (replaces governor_decisions and other log tables)
-CREATE TABLE IF NOT EXISTS system_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    log_level TEXT NOT NULL,
-    component TEXT NOT NULL,
-    message TEXT NOT NULL,
-    data TEXT, -- JSON data
-    session_id TEXT,
-    game_id TEXT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- ============================================================================
--- ARCHITECTURE AND EVOLUTION TABLES
--- ============================================================================
-
--- System architecture evolution
-CREATE TABLE IF NOT EXISTS system_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    generation INTEGER NOT NULL,
-    evolution_type TEXT NOT NULL, -- 'mutation', 'crossover', 'optimization'
-    changes TEXT NOT NULL, -- JSON changes made
-    performance_impact REAL DEFAULT 0.0,
-    success BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Note: experiments and task_performance tables were removed (data now in system_logs)
-
--- ============================================================================
--- SYSTEM STATE AND MONITORING TABLES
--- ============================================================================
-
--- Global system counters and state
+-- Global counters for system state
 CREATE TABLE IF NOT EXISTS global_counters (
     counter_name TEXT PRIMARY KEY,
     counter_value INTEGER DEFAULT 0,
@@ -195,76 +237,129 @@ CREATE TABLE IF NOT EXISTS global_counters (
     description TEXT
 );
 
--- System performance metrics
-CREATE TABLE IF NOT EXISTS training_sessions (
+-- Error logging with deduplication
+CREATE TABLE IF NOT EXISTS error_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    metric_name TEXT NOT NULL,
-    metric_value REAL NOT NULL,
-    metric_type TEXT NOT NULL, -- 'counter', 'rate', 'percentage', 'score'
-    session_id TEXT,
-    game_id TEXT,
-    timestamp TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+    error_type TEXT NOT NULL,
+    error_message TEXT NOT NULL,
+    error_hash TEXT NOT NULL UNIQUE,
+    stack_trace TEXT,
+    context TEXT,
+    occurrence_count INTEGER DEFAULT 1,
+    first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+    resolved BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Reset debug information
-CREATE TABLE IF NOT EXISTS system_logs (
+-- ============================================================================
+-- CONFIGURATION AND EXPERIMENT TABLES
+-- ============================================================================
+
+-- Reward cap configuration
+CREATE TABLE IF NOT EXISTS reward_cap_config (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    game_id TEXT NOT NULL,
-    reset_reason TEXT NOT NULL,
-    debug_data TEXT NOT NULL, -- JSON debug information
-    timestamp TIMESTAMP NOT NULL,
+    config_key TEXT NOT NULL UNIQUE,
+    config_value TEXT NOT NULL,
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,        
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Experiment tracking
+CREATE TABLE IF NOT EXISTS experiments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_name TEXT NOT NULL,
+    experiment_type TEXT NOT NULL,
+    parameters TEXT NOT NULL, -- JSON experiment parameters
+    results TEXT NOT NULL, -- JSON experiment results
+    success BOOLEAN DEFAULT FALSE,
+    duration REAL DEFAULT 0.0, -- Duration in seconds
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Task performance tracking
+CREATE TABLE IF NOT EXISTS task_performance (
+    task_id TEXT PRIMARY KEY,
+    training_sessions TEXT NOT NULL, -- JSON performance data
+    learning_progress TEXT NOT NULL, -- JSON learning progress
+    success_rate REAL DEFAULT 0.0,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- DIRECTOR SELF-MODEL TABLE
+-- ============================================================================
+
+-- Director self-model persistence
+CREATE TABLE IF NOT EXISTS director_self_model (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    type TEXT NOT NULL CHECK (type IN ('identity', 'trait', 'memory', 'reflection')),                                                                   
+    content TEXT NOT NULL,
+    session_id INTEGER,
+    importance INTEGER DEFAULT 1 CHECK (importance >= 1 AND importance <= 5),                                                                           
+    metadata TEXT DEFAULT '{}',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================================================
 
--- Primary performance indexes
-CREATE INDEX IF NOT EXISTS idx_game_results_session ON game_results(session_id);
-CREATE INDEX IF NOT EXISTS idx_game_results_game ON game_results(game_id);
-CREATE INDEX IF NOT EXISTS idx_game_results_status ON game_results(status);
-CREATE INDEX IF NOT EXISTS idx_game_results_timestamp ON game_results(start_time);
-
-CREATE INDEX IF NOT EXISTS idx_action_effectiveness_game ON action_effectiveness(game_id);
-CREATE INDEX IF NOT EXISTS idx_action_effectiveness_action ON action_effectiveness(action_number);
-CREATE INDEX IF NOT EXISTS idx_action_effectiveness_success_rate ON action_effectiveness(success_rate);
-
-CREATE INDEX IF NOT EXISTS idx_coordinate_intelligence_game ON coordinate_intelligence(game_id);
-CREATE INDEX IF NOT EXISTS idx_coordinate_intelligence_coords ON coordinate_intelligence(x, y);
-CREATE INDEX IF NOT EXISTS idx_coordinate_intelligence_success ON coordinate_intelligence(success_rate);
-
-CREATE INDEX IF NOT EXISTS idx_action_traces_session ON action_traces(session_id);
-CREATE INDEX IF NOT EXISTS idx_action_traces_game ON action_traces(game_id);
-CREATE INDEX IF NOT EXISTS idx_action_traces_timestamp ON action_traces(timestamp);
-
-CREATE INDEX IF NOT EXISTS idx_system_logs_component ON system_logs(component);
-CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(log_level);
-CREATE INDEX IF NOT EXISTS idx_system_logs_timestamp ON system_logs(timestamp);
-
-CREATE INDEX IF NOT EXISTS idx_system_logs_session ON system_logs(session_id);
-CREATE INDEX IF NOT EXISTS idx_system_logs_component ON system_logs(component);
-CREATE INDEX IF NOT EXISTS idx_system_logs_timestamp ON system_logs(timestamp);
-
--- Performance optimization indexes
-CREATE INDEX IF NOT EXISTS idx_training_sessions_status ON training_sessions(status);
+-- Training sessions indexes
 CREATE INDEX IF NOT EXISTS idx_training_sessions_mode ON training_sessions(mode);
+CREATE INDEX IF NOT EXISTS idx_training_sessions_status ON training_sessions(status);
 CREATE INDEX IF NOT EXISTS idx_training_sessions_start_time ON training_sessions(start_time);
 
+-- Game results indexes
+CREATE INDEX IF NOT EXISTS idx_game_results_session_id ON game_results(session_id);
+CREATE INDEX IF NOT EXISTS idx_game_results_status ON game_results(status);
+CREATE INDEX IF NOT EXISTS idx_game_results_final_score ON game_results(final_score);
+
+-- Action effectiveness indexes
+CREATE INDEX IF NOT EXISTS idx_action_effectiveness_game_id ON action_effectiveness(game_id);
+CREATE INDEX IF NOT EXISTS idx_action_effectiveness_action_number ON action_effectiveness(action_number);
+CREATE INDEX IF NOT EXISTS idx_action_effectiveness_success_rate ON action_effectiveness(success_rate);
+
+-- Coordinate intelligence indexes
+CREATE INDEX IF NOT EXISTS idx_coordinate_intelligence_game_id ON coordinate_intelligence(game_id);
+CREATE INDEX IF NOT EXISTS idx_coordinate_intelligence_coords ON coordinate_intelligence(x, y);
+CREATE INDEX IF NOT EXISTS idx_coordinate_intelligence_success_rate ON coordinate_intelligence(success_rate);
+
+-- Action traces indexes
+CREATE INDEX IF NOT EXISTS idx_action_traces_session_id ON action_traces(session_id);
+CREATE INDEX IF NOT EXISTS idx_action_traces_game_id ON action_traces(game_id);
+CREATE INDEX IF NOT EXISTS idx_action_traces_timestamp ON action_traces(timestamp);
+
+-- System logs indexes
+CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(log_level);
+CREATE INDEX IF NOT EXISTS idx_system_logs_component ON system_logs(component);
+CREATE INDEX IF NOT EXISTS idx_system_logs_timestamp ON system_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_system_logs_session_id ON system_logs(session_id);
+
+-- Performance history indexes
+CREATE INDEX IF NOT EXISTS idx_performance_history_session_id ON performance_history(session_id);
+CREATE INDEX IF NOT EXISTS idx_performance_history_timestamp ON performance_history(timestamp);
+
+-- Learned patterns indexes
 CREATE INDEX IF NOT EXISTS idx_learned_patterns_type ON learned_patterns(pattern_type);
 CREATE INDEX IF NOT EXISTS idx_learned_patterns_confidence ON learned_patterns(confidence);
 CREATE INDEX IF NOT EXISTS idx_learned_patterns_success_rate ON learned_patterns(success_rate);
+
+-- Director self-model indexes
+CREATE INDEX IF NOT EXISTS idx_director_self_model_type ON director_self_model(type);
+CREATE INDEX IF NOT EXISTS idx_director_self_model_importance ON director_self_model(importance);
+CREATE INDEX IF NOT EXISTS idx_director_self_model_created_at ON director_self_model(created_at);
 
 -- ============================================================================
 -- VIEWS FOR COMMON QUERIES
 -- ============================================================================
 
--- Real-time system status view
-CREATE VIEW IF NOT EXISTS system_status AS
+-- Recent training performance view
+CREATE VIEW IF NOT EXISTS recent_training_performance AS
 SELECT 
     ts.session_id,
     ts.mode,
@@ -274,14 +369,11 @@ SELECT
     ts.total_games,
     ts.win_rate,
     ts.avg_score,
-    ts.energy_level,
-    ts.memory_operations,
-    ts.sleep_cycles,
     ts.start_time,
-    ts.updated_at
+    ts.end_time
 FROM training_sessions ts
-WHERE ts.status = 'running'
-ORDER BY ts.updated_at DESC;
+WHERE ts.start_time >= datetime('now', '-7 days')
+ORDER BY ts.start_time DESC;
 
 -- Action effectiveness summary view
 CREATE VIEW IF NOT EXISTS action_effectiveness_summary AS
@@ -291,7 +383,7 @@ SELECT
     SUM(attempts) as total_attempts,
     SUM(successes) as total_successes,
     AVG(success_rate) as avg_success_rate,
-    MAX(updated_at) as last_updated
+    AVG(avg_score_impact) as avg_score_impact
 FROM action_effectiveness
 GROUP BY action_number
 ORDER BY avg_success_rate DESC;
@@ -299,57 +391,24 @@ ORDER BY avg_success_rate DESC;
 -- Coordinate intelligence summary view
 CREATE VIEW IF NOT EXISTS coordinate_intelligence_summary AS
 SELECT 
-    game_id,
-    COUNT(*) as coordinate_count,
+    x,
+    y,
+    COUNT(*) as game_count,
     SUM(attempts) as total_attempts,
     SUM(successes) as total_successes,
-    AVG(success_rate) as avg_success_rate,
-    MAX(updated_at) as last_updated
+    AVG(success_rate) as avg_success_rate
 FROM coordinate_intelligence
-GROUP BY game_id
+GROUP BY x, y
 ORDER BY avg_success_rate DESC;
 
--- Recent performance trends view
-CREATE VIEW IF NOT EXISTS recent_performance AS
+-- System health view
+CREATE VIEW IF NOT EXISTS system_health AS
 SELECT 
-    DATE(ts.start_time) as date,
-    COUNT(*) as sessions,
-    AVG(ts.win_rate) as avg_win_rate,
-    AVG(ts.avg_score) as avg_score,
-    SUM(ts.total_actions) as total_actions,
-    SUM(ts.total_wins) as total_wins
-FROM training_sessions ts
-WHERE ts.start_time >= datetime('now', '-7 days')
-GROUP BY DATE(ts.start_time)
-ORDER BY date DESC;
-
--- Director Self-Model Persistence
-CREATE TABLE IF NOT EXISTS director_self_model (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    type TEXT NOT NULL CHECK (type IN ('identity', 'trait', 'memory', 'reflection')),
-    content TEXT NOT NULL,
-    session_id INTEGER,
-    importance INTEGER DEFAULT 1 CHECK (importance >= 1 AND importance <= 5),
-    metadata TEXT DEFAULT '{}',
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Indexes for director_self_model
-CREATE INDEX IF NOT EXISTS idx_director_self_model_type ON director_self_model(type);
-CREATE INDEX IF NOT EXISTS idx_director_self_model_session ON director_self_model(session_id);
-CREATE INDEX IF NOT EXISTS idx_director_self_model_importance ON director_self_model(importance);
-CREATE INDEX IF NOT EXISTS idx_director_self_model_created ON director_self_model(created_at);
-
--- View for recent self-model entries
-CREATE VIEW IF NOT EXISTS recent_self_model AS
-SELECT 
-    type,
-    content,
-    importance,
-    session_id,
-    created_at,
-    json_extract(metadata, '$.insight_type') as insight_type
-FROM director_self_model
-WHERE created_at >= datetime('now', '-7 days')
-ORDER BY created_at DESC, importance DESC;
+    component,
+    log_level,
+    COUNT(*) as log_count,
+    MAX(timestamp) as last_log
+FROM system_logs
+WHERE timestamp >= datetime('now', '-1 hour')
+GROUP BY component, log_level
+ORDER BY component, log_level;

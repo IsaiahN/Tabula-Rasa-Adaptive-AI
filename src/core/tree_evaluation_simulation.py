@@ -58,7 +58,7 @@ class TreeEvaluationConfig:
     memory_limit_mb: float = 100.0
     timeout_seconds: float = 30.0
     confidence_threshold: float = 0.7
-    pruning_threshold: float = 0.1
+    pruning_threshold: float = 0.01
     # Stochastic evaluation parameters
     enable_stochasticity: bool = True
     noise_level: float = 0.1
@@ -203,6 +203,9 @@ class TreeEvaluationSimulationEngine:
                 metadata={'generated_at': time.time()}
             )
             
+            # Evaluate child value before pruning check
+            child_node.value = self._evaluate_node_value(child_node)
+            
             # Only store if not pruning
             if not self._should_prune_node(child_node):
                 self.active_nodes[child_id] = child_node
@@ -242,7 +245,7 @@ class TreeEvaluationSimulationEngine:
             return self.evaluation_cache[cache_key]
         
         # Calculate value based on state and depth
-        base_value = 0.0
+        base_value = 0.05  # Give a small base value to prevent immediate pruning
         
         # Depth penalty (deeper nodes are less certain)
         depth_penalty = 1.0 / (1.0 + node.depth * 0.1)
@@ -253,14 +256,14 @@ class TreeEvaluationSimulationEngine:
             if isinstance(position, (list, tuple)):
                 # Calculate distance from center for multi-dimensional position
                 center_distance = sum(abs(p) for p in position) / len(position)
-                position_value = min(center_distance / 100.0, 1.0)
+                position_value = min(center_distance / 10.0, 1.0)  # Increased from 100.0 to 10.0
             else:
-                position_value = min(abs(position) / 100.0, 1.0)
-            base_value += position_value * 0.3
+                position_value = min(abs(position) / 10.0, 1.0)  # Increased from 100.0 to 10.0
+            base_value += position_value * 0.5  # Increased from 0.3 to 0.5
         
         if 'action_count' in node.state:
             efficiency_value = 1.0 / (1.0 + node.state['action_count'] * 0.01)
-            base_value += efficiency_value * 0.2
+            base_value += efficiency_value * 0.3  # Increased from 0.2 to 0.3
         
         # Terminal state bonus
         if node.node_type == NodeType.TERMINAL:
@@ -673,7 +676,7 @@ class TreeEvaluationSimulationEngine:
         best_path = []
         
         # Always evaluate at least depth 1
-        min_depth = max(1, min(3, self.config.max_depth))
+        min_depth = 1
         
         for depth in range(min_depth, self.config.max_depth + 1):
             if time.time() - start_time > self.config.timeout_seconds:
@@ -702,7 +705,9 @@ class TreeEvaluationSimulationEngine:
                 continue
         
         # Calculate memory savings
-        theoretical_memory = self.config.max_depth * self.config.branching_factor * (self.config.state_representation_bits // 8)
+        # Theoretical memory for full tree: sum of all nodes at each depth
+        theoretical_nodes = sum(self.config.branching_factor ** d for d in range(self.config.max_depth + 1))
+        theoretical_memory = theoretical_nodes * (self.config.state_representation_bits // 8)
         actual_memory = self._calculate_memory_usage() * 1024 * 1024
         self.evaluation_stats['memory_savings'] = max(0, theoretical_memory - actual_memory)
         
@@ -736,8 +741,7 @@ class TreeEvaluationSimulationEngine:
             if current_node.depth < target_depth:
                 children = self._generate_children_implicitly(current_node, available_actions)
                 for child in children:
-                    if not self._should_prune_node(child):
-                        queue.append(child)
+                    queue.append(child)
             
             # Limit queue size to prevent memory explosion
             if len(queue) > 1000:  # Reasonable limit

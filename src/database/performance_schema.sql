@@ -41,6 +41,57 @@ CREATE TABLE IF NOT EXISTS action_tracking (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Error logging table with deduplication
+CREATE TABLE IF NOT EXISTS error_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    error_type TEXT NOT NULL,
+    error_message TEXT NOT NULL,
+    error_hash TEXT NOT NULL UNIQUE, -- Hash of error for deduplication
+    stack_trace TEXT,
+    context TEXT, -- JSON context data
+    occurrence_count INTEGER DEFAULT 1,
+    first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+    resolved BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Reward cap configuration table (replaces reward_cap_config.json)
+CREATE TABLE IF NOT EXISTS reward_cap_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_key TEXT NOT NULL UNIQUE,
+    config_value TEXT NOT NULL, -- JSON value
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Learned patterns table (replaces learned_patterns.pkl)
+CREATE TABLE IF NOT EXISTS learned_patterns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pattern_hash TEXT NOT NULL UNIQUE, -- Hash of pattern for deduplication
+    pattern_data TEXT NOT NULL, -- JSON pattern data
+    pattern_type TEXT,
+    success_rate REAL,
+    usage_count INTEGER DEFAULT 1,
+    last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- System logs table (replaces log files)
+CREATE TABLE IF NOT EXISTS system_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    log_level TEXT NOT NULL,
+    logger_name TEXT,
+    message TEXT NOT NULL,
+    module TEXT,
+    function TEXT,
+    line_number INTEGER,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    session_id TEXT,
+    game_id TEXT,
+    metadata TEXT -- JSON metadata
+);
+
 -- Score history table (replaces the growing score_history lists)
 CREATE TABLE IF NOT EXISTS score_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

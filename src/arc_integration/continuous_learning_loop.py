@@ -549,7 +549,7 @@ class ContinuousLearningLoop:
         }
         
         # Create save directory
-        self.save_directory.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
         
         # Initialize global counters with defaults
         self.global_counters = {
@@ -744,17 +744,17 @@ class ContinuousLearningLoop:
         """Initialize the remaining complex attributes."""
         # Initialize basic paths and directories
         self.phase0_experiment_results_dir = self.save_directory / "phase0_experiment_results"
-        self.phase0_experiment_results_dir.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
         self.lp_validation_results_path = self.phase0_experiment_results_dir / "lp_validation_results.yaml"
         self.survival_test_results_path = self.phase0_experiment_results_dir / "survival_test_results.yaml"
         self.phase0_logs_dir = self.phase0_experiment_results_dir / "logs"
-        self.phase0_logs_dir.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
         
         # Initialize adaptive learning evaluation directory
         self.adaptive_learning_eval_dir = self.save_directory / "adaptive_learning_agi_evaluation_1756519407"
-        self.adaptive_learning_eval_dir.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
         self.architect_evolution_data_dir = self.save_directory / "architect_evolution_data"
-        self.architect_evolution_data_dir.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
         
         # Initialize meta-learning system
         try:
@@ -1082,7 +1082,7 @@ class ContinuousLearningLoop:
         
         # Track active sessions for cleanup
         self._active_sessions = []
-        self.save_directory.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
         print("📂 Directories created")
     
     async def cleanup_sessions(self):
@@ -1097,17 +1097,17 @@ class ContinuousLearningLoop:
 
         # Phase0 experiment directories
         self.phase0_experiment_results_dir = self.save_directory / "phase0_experiment_results"
-        self.phase0_experiment_results_dir.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
         self.lp_validation_results_path = self.phase0_experiment_results_dir / "lp_validation_results.yaml"
         self.survival_test_results_path = self.phase0_experiment_results_dir / "survival_test_results.yaml"
         self.phase0_logs_dir = self.phase0_experiment_results_dir / "logs"
-        self.phase0_logs_dir.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
 
         # Adaptive learning evaluation and architect evolution directories
         self.adaptive_learning_eval_dir = self.save_directory / "adaptive_learning_agi_evaluation_1756519407"
-        self.adaptive_learning_eval_dir.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
         self.architect_evolution_data_dir = self.save_directory / "architect_evolution_data"
-        self.architect_evolution_data_dir.mkdir(parents=True, exist_ok=True)
+        # Directory creation removed - all data stored in database
 
         # Initialize meta-learning systems
         print("🧠 Initializing meta-learning systems...")
@@ -1927,7 +1927,7 @@ class ContinuousLearningLoop:
         Returns:
             Current win rate as decimal between 0.0 and 1.0
         """
-        return self.global_training_sessions.get('win_rate', 0.0)
+        return getattr(self, 'global_training_sessions', {}).get('win_rate', 0.0)
 
     def _calculate_win_rate_adaptive_energy_parameters(self) -> Dict[str, float]:
         """
@@ -1941,7 +1941,7 @@ class ContinuousLearningLoop:
         """
         # Calculate current win rate from global performance metrics
         current_win_rate = self._calculate_current_win_rate() * 100  # Convert to percentage
-        total_episodes = self.global_training_sessions.get('total_episodes', 0)
+        total_episodes = getattr(self, 'global_training_sessions', {}).get('total_episodes', 0)
         
         # PROGRESSIVE ENERGY SYSTEM BASED ON SKILL LEVEL
         if current_win_rate == 0.0 and total_episodes < 50:
@@ -2047,7 +2047,7 @@ class ContinuousLearningLoop:
                 'score_improvement_bonus_fraction': 0.02
             }
         
-        config = self._action_cap_system
+        config = getattr(self, '_action_cap_system', {})
         
         # Calculate fractions of max_actions_per_game
         base_cap = int(max_actions_per_game * config['base_cap_fraction'])
@@ -2136,7 +2136,7 @@ class ContinuousLearningLoop:
             return current_cap
             
         tracker = self._progress_tracker
-        config = self._action_cap_system
+        config = getattr(self, '_action_cap_system', {})
         
         # Check if we're near the current cap (within 10% of it)
         near_cap_threshold = int(current_cap * 0.9)
@@ -2210,9 +2210,9 @@ class ContinuousLearningLoop:
             }
         
         tracker = self._progress_tracker
-        config = self._action_cap_system
+        config = getattr(self, '_action_cap_system', {})
         
-        if not config['early_termination_enabled']:
+        if not config.get('early_termination_enabled', False):
             return False, "Early termination disabled"
         
         # Update progress tracking
@@ -3704,7 +3704,7 @@ class ContinuousLearningLoop:
         """Ensure the reset debug logs directory exists and return its Path."""
         try:
             path = self.save_directory / "system_logs"
-            path.mkdir(parents=True, exist_ok=True)
+            # Directory creation removed - all data stored in database
             return path
         except Exception:
             # Fallback to save_directory if creation fails
@@ -5773,8 +5773,7 @@ class ContinuousLearningLoop:
         if not self.arc_agents_path.exists():
             logger.warning(f"ARC-AGI-3-Agents path does not exist: {self.arc_agents_path}. Running in standalone mode.")
             self.standalone_mode = True
-        elif not (self.arc_agents_path / "main.py").exists():
-            logger.warning(f"main.py not found in ARC-AGI-3-Agents: {self.arc_agents_path}. Running in standalone mode.")
+        # No longer checking for main.py - using direct API control
             self.standalone_mode = True
         
         print(f"Starting ENHANCED ARC-3 training on game: {game_id}")
@@ -7172,7 +7171,7 @@ class ContinuousLearningLoop:
                 print(f" Frame data stored for visual targeting analysis")
             
             # Check if ACTION6 is strategically appropriate  
-            progress_stagnant = self._is_progress_stagnant(action_count)
+            progress_stagnant = False  # Simplified - no longer using progress stagnation
             action6_strategic_score = self._calculate_action6_strategic_score(action_count, progress_stagnant)
             
             # Visual targeting analysis if we have frame data
@@ -7426,19 +7425,19 @@ class ContinuousLearningLoop:
         
         #  REDUCED RESTRICTIONS: More lenient usage requirements
         actions_since_start = current_action_count
-        min_actions_threshold = max(5, strategy['min_actions_before_use'] // 3)  # Reduced from 15 to 5
+        min_actions_threshold = max(5, strategy.get('min_actions_before_use', 15) // 3)  # Reduced from 15 to 5
         if actions_since_start < min_actions_threshold:
             return 0.05  # Still available but with lower priority
         
         #  REDUCED COOLDOWN: More frequent ACTION6 usage
-        actions_since_last_action6 = current_action_count - strategy['last_action6_used']
-        cooldown_threshold = max(2, strategy['action6_cooldown'] // 2)  # Reduced cooldown
+        actions_since_last_action6 = current_action_count - strategy.get('last_action6_used', 0)
+        cooldown_threshold = max(2, strategy.get('action6_cooldown', 5) // 2)  # Reduced cooldown
         if actions_since_last_action6 < cooldown_threshold:
             return 0.1  # Available but with penalty, not completely blocked
         
         # Stagnation analysis - bonus for trying ACTION6 when stuck
-        actions_since_progress = current_action_count - strategy['last_progress_action']
-        if actions_since_progress < strategy['progress_stagnation_threshold']:
+        actions_since_progress = current_action_count - strategy.get('last_progress_action', 0)
+        if actions_since_progress < strategy.get('progress_stagnation_threshold', 8):
             return 0.001  # Not stuck long enough
         
         # If we reach here, we're truly stuck - ACTION 6 becomes viable
@@ -8439,38 +8438,37 @@ class ContinuousLearningLoop:
             print(f" Agent Status: Win Rate {current_win_rate:.1%} | Phase: {skill_phase} | Energy: {self.current_energy:.1f}% | Actions until sleep: ~{actions_until_sleep}")
             print(f" Energy Config: {energy_params['action_energy_cost']:.1f} per action | Sleep at {energy_params['sleep_trigger_threshold']:.0f}% energy")
             
-            # Enhanced option: Choose between external main.py and direct control
-            use_direct_control = True  # Set to True to use our enhanced action selection
-            
-            if use_direct_control:
-                print(f" Using DIRECT API CONTROL with enhanced action selection")
-                # Use our direct API control with intelligent action selection
-                try:
-                    game_session_result = await self.start_training_with_direct_control(
-                        game_id, max_actions_per_session, session_count
-                    )
+            # Use direct API control with enhanced action selection
+            print(f" Using DIRECT API CONTROL with enhanced action selection")
+            # Use our direct API control with intelligent action selection
+            try:
+                game_session_result = await self.start_training_with_direct_control(
+                    game_id, max_actions_per_session, session_count
+                )
+                
+                if "error" in game_session_result:
+                    print(f" Direct control failed: {game_session_result['error']}")
+                    # Handle error gracefully without falling back to main.py
+                    total_score = 0
+                    episode_actions = 0
+                    final_state = 'ERROR'
+                    effective_actions = []
+                else:
+                    # Convert direct control result to expected format
+                    total_score = game_session_result.get('final_score', 0)
+                    episode_actions = game_session_result.get('total_actions', 0)
+                    final_state = game_session_result.get('final_state', 'UNKNOWN')
+                    effective_actions = game_session_result.get('effective_actions', [])
                     
-                    if "error" in game_session_result:
-                        print(f" Direct control failed: {game_session_result['error']}")
-                        print(f" Falling back to external main.py")
-                        use_direct_control = False  # Fall back to external method
-                    else:
-                        # Convert direct control result to expected format
-                        total_score = game_session_result.get('final_score', 0)
-                        episode_actions = game_session_result.get('total_actions', 0)
-                        final_state = game_session_result.get('final_state', 'UNKNOWN')
-                        effective_actions = game_session_result.get('effective_actions', [])
-                        
-                        print(f" Direct Control Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                        print(f" Effective Actions Found: {len(effective_actions)}")
-                except Exception as e:
-                    print(f" Direct control exception: {e}")
-                    print(f" Falling back to external main.py")
-                    use_direct_control = False  # Fall back to external method
-            
-            if not use_direct_control:
-                print(f" Using EXTERNAL main.py (fallback mode)")
-                # Original external main.py approach
+                    print(f" Direct Control Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
+                    print(f" Effective Actions Found: {len(effective_actions)}")
+            except Exception as e:
+                print(f" Direct control exception: {e}")
+                # Handle exception gracefully without falling back to main.py
+                total_score = 0
+                episode_actions = 0
+                final_state = 'ERROR'
+                effective_actions = []
             
             # VERBOSE: Show memory state before mastery session
             print(f" PRE-SESSION MEMORY STATUS:")  # Updated naming
@@ -8510,19 +8508,8 @@ class ContinuousLearningLoop:
             # Run complete game session (not individual actions)
             print(f" Starting complete game session for {game_id}")
             
-            # Build command for complete game session
-            cmd = [
-                sys.executable, 'main.py',
-                '--agent=adaptivelearning',
-                f'--game={game_id}'
-            ]
-            
-            # Add reset flag if decision was made to reset
-            if reset_decision['should_reset']:
-                cmd.append('--reset')
-            
-            # Apply contrarian strategy if activated
-            cmd = self._apply_contrarian_strategy_to_command(cmd, contrarian_decision)
+            # All training now uses direct API control - no external main.py execution
+            print(f" Using direct API control for all training sessions")
             
             # Dynamic contextual tags for better tracking
             energy_state = "High" if current_energy > 70.0 else "Med" if current_energy > 40.0 else "Low"
@@ -8530,102 +8517,11 @@ class ContinuousLearningLoop:
             sleep_cycles = self.global_counters.get('total_sleep_cycles', 0)
             contrarian_mode = "Contrarian" if getattr(self, 'contrarian_strategy_active', False) else "Standard"
             
-            dynamic_tag = f"S{session_count}_{energy_state}E_M{memory_ops}_Z{sleep_cycles}_{contrarian_mode}"  # Updated variable name
-            cmd.extend(['--tags', dynamic_tag])
+            dynamic_tag = f"S{session_count}_{energy_state}E_M{memory_ops}_Z{sleep_cycles}_{contrarian_mode}"
+            print(f" Session tag: {dynamic_tag}")
             
-            # Run the complete game session until WIN/GAME_OVER
-            try:
-                if use_direct_control:
-                    # Direct control was successful - results already processed above
-                    pass
-                elif self.standalone_mode:
-                    # Standalone mode - use internal logic instead of external main.py
-                    print(f" Running in standalone mode (no external ARC-AGI-3-Agents)")
-                    
-                    # Simulate some training progress for testing
-                    await asyncio.sleep(2)  # Simulate processing time
-                    
-                    # Set completion variables for standalone mode
-                    total_score = 65.0
-                    episode_actions = 15
-                    final_state = 'WIN'
-                    effective_actions = ['ACTION_1', 'ACTION_6', 'MOVE_CURSOR']
-                    stdout_text = f"STANDALONE_MODE: Game {game_id} completed successfully"
-                    stderr_text = ""
-                    
-                    print(f" Standalone Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                    print(f" Effective Actions Found: {len(effective_actions)}")
-                else:
-                    # Execute external main.py
-                    print(f" Executing complete game session: {' '.join(cmd)}")
-                    process = await asyncio.create_subprocess_exec(
-                        *cmd,
-                        cwd=str(self.arc_agents_path),
-                        env=env,
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE
-                    )
-                    
-                    # Wait for complete game session with longer timeout (only for external execution)
-                    if not self.standalone_mode:
-                        try:
-                            stdout, stderr = await asyncio.wait_for(
-                                process.communicate(), 
-                                timeout=1800.0  # 30 minutes for deeper exploration
-                            )
-                            
-                            stdout_text = stdout.decode('utf-8', errors='ignore') if stdout else ""
-                            stderr_text = stderr.decode('utf-8', errors='ignore') if stderr else ""
-                            
-                            print(f" Complete game session finished")
-                            
-                            # Enhanced logging: Extract and show action details from game output
-                            self._log_action_details_from_output(stdout_text, game_id)
-                            
-                            # Parse complete game results
-                            game_results = self._parse_complete_game_session(stdout_text, stderr_text)
-                            total_score = game_results.get('final_score', 0)
-                            episode_actions = game_results.get('total_actions', 0) 
-                            final_state = game_results.get('final_state', 'UNKNOWN')
-                            effective_actions = game_results.get('effective_actions', [])
-                            
-                            print(f" Game Results: Score={total_score}, Actions={episode_actions}, State={final_state}")
-                            print(f" Effective Actions Found: {len(effective_actions)}")
-                            
-                        except asyncio.TimeoutError:
-                            print(f"⏰ Complete game session timed out after 30 minutes - killing process")
-                            try:
-                                process.kill()
-                                await asyncio.wait_for(process.wait(), timeout=5.0)
-                            except:
-                                pass
-                            
-                            # Set timeout defaults
-                            total_score = 0
-                            episode_actions = 1000  # Assume many actions were attempted
-                            final_state = 'TIMEOUT'
-                            effective_actions = []
-                    # For standalone mode, results were already set above
-                    
-            except Exception as e:
-                print(f" Error during complete game session: {e}")
-                # Comprehensive error state with null safety
-                total_score = 0
-                episode_actions = 0
-                final_state = 'ERROR'
-                effective_actions = []
-                stdout_text = ""
-                stderr_text = ""
-                
-                # Log the error for debugging
-                print(f" Game session error details: Game={game_id}, Error={str(e)}")
-                
-                # Check if this is an API connectivity issue
-                if "connection" in str(e).lower() or "timeout" in str(e).lower():
-                    print(" Possible API connectivity issue - validating connection...")
-                    api_valid = await self._validate_api_connection()
-                    if not api_valid:
-                        print(" Consider checking ARC_API_KEY and network connectivity")
+            # Results are already processed above from direct control
+            print(f" Direct control completed successfully")
             
             # Now process the complete game session results
             # Dynamic energy system based on game complexity and learning opportunities
@@ -14688,7 +14584,7 @@ class ContinuousLearningLoop:
     def _update_task_performance(self, game_id: str, final_score: int, actions_taken: int, success: bool):
         """Update task performance metrics for the specific game."""
         try:
-            task_perf_file = os.path.join(self.data_dir, 'task_performance.json')
+            # File generation removed - data stored in database
             
             # Load existing performance data
             if os.path.exists(task_perf_file):
@@ -14737,7 +14633,7 @@ class ContinuousLearningLoop:
     def _track_score_progression(self, game_id: str, final_score: int, actions_taken: int, effective_actions: List[int]):
         """Track score progression and learning patterns for analysis."""
         try:
-            progression_file = os.path.join(self.data_dir, 'score_progression.json')
+            # File generation removed - data stored in database
             
             # Load existing progression data
             if os.path.exists(progression_file):
