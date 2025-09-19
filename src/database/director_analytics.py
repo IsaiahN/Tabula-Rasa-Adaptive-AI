@@ -437,12 +437,32 @@ class DirectorAnalytics:
             # Get game results
             game_results = await self.db.get_game_results()
             
-            # Filter by date (last N days)
+            # Filter by date (last N days) - handle both string and datetime objects
             cutoff_date = datetime.now() - timedelta(days=days)
-            recent_games = [
-                game for game in game_results 
-                if game.start_time >= cutoff_date
-            ]
+            recent_games = []
+            
+            for game in game_results:
+                try:
+                    # Handle both string and datetime objects
+                    if isinstance(game.start_time, str):
+                        # Parse string datetime
+                        if 'T' in game.start_time:
+                            game_start_time = datetime.fromisoformat(game.start_time.replace('Z', '+00:00'))
+                        else:
+                            game_start_time = datetime.fromisoformat(game.start_time)
+                    elif hasattr(game.start_time, 'isoformat'):
+                        # Already a datetime object
+                        game_start_time = game.start_time
+                    else:
+                        # Skip games with invalid start_time
+                        continue
+                    
+                    if game_start_time >= cutoff_date:
+                        recent_games.append(game)
+                except (ValueError, TypeError, AttributeError) as e:
+                    # Skip games with invalid start_time format
+                    self.logger.debug(f"Skipping game with invalid start_time: {e}")
+                    continue
             
             if not recent_games:
                 return {
@@ -629,6 +649,30 @@ class DirectorAnalytics:
                 "analysis_timestamp": datetime.now().isoformat(),
                 "strategic_insights": {"recommendations": [], "total_recommendations": 0}
             }
+    
+    # ============================================================================
+    # MISSING METHODS (for compatibility)
+    # ============================================================================
+    
+    async def get_game_results(self, limit: int = 100) -> List[Any]:
+        """Get game results (compatibility method)."""
+        try:
+            return await self.db.get_game_results()
+        except Exception as e:
+            self.logger.error(f"Failed to get game results: {e}")
+            return []
+    
+    async def get_action_effectiveness(self) -> List[Any]:
+        """Get action effectiveness data (compatibility method)."""
+        try:
+            return await self.db.get_action_effectiveness()
+        except Exception as e:
+            self.logger.error(f"Failed to get action effectiveness: {e}")
+            return []
+    
+    async def get_system_health(self) -> Dict[str, Any]:
+        """Get system health (compatibility method)."""
+        return await self.get_system_health_analysis()
 
 # ============================================================================
 # DIRECTOR SELF-MODEL PERSISTENCE FUNCTIONS
@@ -777,27 +821,27 @@ def get_director_self_model() -> DirectorSelfModel:
         _director_self_model = DirectorSelfModel()
     return _director_self_model
 
-# ============================================================================
-# QUICK ACCESS FUNCTIONS
-# ============================================================================
+    # ============================================================================
+    # QUICK ACCESS FUNCTIONS
+    # ============================================================================
 
-async def get_comprehensive_analysis() -> Dict[str, Any]:
-    """Quick access to comprehensive gameplay analysis."""
-    analytics = get_director_analytics()
-    return await analytics.get_comprehensive_gameplay_analysis()
+    async def get_comprehensive_analysis() -> Dict[str, Any]:
+        """Quick access to comprehensive gameplay analysis."""
+        analytics = get_director_analytics()
+        return await analytics.get_comprehensive_gameplay_analysis()
 
-async def get_strategic_insights() -> Dict[str, Any]:
-    """Quick access to strategic insights."""
-    analytics = get_director_analytics()
-    return await analytics.get_strategic_insights()
+    async def get_strategic_insights() -> Dict[str, Any]:
+        """Quick access to strategic insights."""
+        analytics = get_director_analytics()
+        return await analytics.get_strategic_insights()
 
-async def store_director_thought(thought: str, thought_type: str = "reflection", 
-                               importance: int = 3, session_id: str = None) -> bool:
-    """Quick access to store Director thought."""
-    self_model = get_director_self_model()
-    return await self_model.store_director_thought(thought, thought_type, importance, session_id)
+    async def store_director_thought(thought: str, thought_type: str = "reflection", 
+                                   importance: int = 3, session_id: str = None) -> bool:
+        """Quick access to store Director thought."""
+        self_model = get_director_self_model()
+        return await self_model.store_director_thought(thought, thought_type, importance, session_id)
 
-async def get_director_summary() -> Dict[str, Any]:
-    """Quick access to Director summary."""
-    self_model = get_director_self_model()
-    return await self_model.get_director_summary()
+    async def get_director_summary() -> Dict[str, Any]:
+        """Quick access to Director summary."""
+        self_model = get_director_self_model()
+        return await self_model.get_director_summary()

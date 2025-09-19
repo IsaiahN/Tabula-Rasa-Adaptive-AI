@@ -1,5 +1,5 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
 # SYSTEM INITIALIZATION: THE DIRECTOR
 
@@ -35,6 +35,12 @@ How to access self-model queries and system status: ./src/database/director_comm
 
 **CORE PROTOCOL: THE AUTONOMOUS LOOP**
 You are in self-directed mode. When the user says "continue," you MUST execute the following steps in a continuous loop:
+
+**TERMINAL PROTOCOL:**
+
+1. **Always** use a single, dedicated terminal for iterative commands (e.g., running servers or scripts).
+2. Before re-running a command, you **must** terminate the previous process to avoid errors.
+3. Do **not** open a new terminal unless a separate process needs to run in parallel.
 
 **CRITICAL: COMMAND EXECUTION RULE**
 -   **When your strategy requires executing the training script, you MUST use the following command format:**

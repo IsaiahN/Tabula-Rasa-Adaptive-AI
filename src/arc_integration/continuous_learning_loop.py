@@ -691,6 +691,13 @@ class ContinuousLearningLoop:
             'experiment_mode': False
         })
         
+        # CRITICAL FIX: Initialize frame storage for OpenCV target detection
+        self._current_frame = None
+        
+        # ENHANCED: Initialize coordinate learning storage
+        self._successful_coordinates = {}  # game_id -> [(x, y, success_type, timestamp)]
+        self._failed_coordinates = {}      # game_id -> [(x, y, timestamp)]
+        
         # Initialize game reset tracker
         self.game_reset_tracker = {
             'reset_decisions_made': 0,
@@ -1510,16 +1517,20 @@ class ContinuousLearningLoop:
                 7: {'base_relevance': 0.8, 'current_modifier': 0.8, 'recent_success_rate': 0.4, 'last_used': 0, 'consecutive_failures': 0}
             },
             
-            # ACTION 6 STRATEGIC CONTROL SYSTEM
+            # ACTION 6 STRATEGIC CONTROL SYSTEM - ENHANCED FOR TARGETING
             'action6_strategy': {
-                'use_sparingly': True,           # Only use when stuck/no progress
-                'min_actions_before_use': 15,   # Must try other actions first
-                'progress_stagnation_threshold': 8,  # No progress for N actions before considering ACTION6
+                'use_sparingly': False,          # CHANGED: Use ACTION6 more frequently for targeting
+                'min_actions_before_use': 5,    # CHANGED: Reduced from 15 to 5 for faster targeting
+                'progress_stagnation_threshold': 3,  # CHANGED: Reduced from 8 to 3 for quicker response
                 'last_progress_action': 0,      # Track when last progress was made
-                'action6_cooldown': 5,          # Actions between ACTION6 uses
+                'action6_cooldown': 2,          # CHANGED: Reduced from 5 to 2 for more frequent use
                 'last_action6_used': 0,         # Track last ACTION6 usage
                 'predictive_mode': True,        # Try to predict good coordinates
-                'emergency_reset_only': True    # Only use as mini-reset when truly stuck
+                'emergency_reset_only': False,  # CHANGED: Use ACTION6 for targeting, not just reset
+                'target_detection_mode': True,  # NEW: Prioritize OpenCV target detection
+                'coordinate_learning': True,    # NEW: Enable coordinate learning
+                'visual_analysis_priority': 0.8, # NEW: High priority for visual analysis
+                'fallback_to_random': False     # NEW: Don't fall back to random coordinates
             },
             
             # UNIVERSAL BOUNDARY DETECTION SYSTEM - Extended to all coordinate-based actions
@@ -5260,6 +5271,10 @@ class ContinuousLearningLoop:
                                     frame_data = data['frame']
                                     frame_size = f"{len(frame_data[0])}x{len(frame_data)}" if frame_data and len(frame_data) > 0 else "empty"
                                     logger.debug(f"Received frame data: {frame_size}")
+                                    
+                                    # CRITICAL FIX: Store current frame for OpenCV target detection
+                                    self._current_frame = frame_data
+                                    print(f"🎯 FRAME STORED: Current frame stored for OpenCV target detection")
                                 
                                 # ENHANCED: Log ACTION6 interaction in frame analyzer for hypothesis generation
                                 if action_number == 6 and x is not None and y is not None and hasattr(self, 'frame_analyzer') and hasattr(self.frame_analyzer, 'log_action6_interaction'):
@@ -5784,6 +5799,10 @@ class ContinuousLearningLoop:
                                     frame_data = data['frame']
                                     frame_size = f"{len(frame_data[0])}x{len(frame_data)}" if frame_data and len(frame_data) > 0 else "empty"
                                     logger.debug(f"Received frame data: {frame_size}")
+                                    
+                                    # CRITICAL FIX: Store current frame for OpenCV target detection
+                                    self._current_frame = frame_data
+                                    print(f"🎯 FRAME STORED: Current frame stored for OpenCV target detection")
                                 
                                 return data
                                 
@@ -6047,14 +6066,25 @@ class ContinuousLearningLoop:
                     
                     # INTELLIGENT RESET LOGIC: Check if we should reset due to frame stagnation
                     if self._should_reset_due_to_stagnation(session_result, game_id):
-                        print(f" FRAME STAGNATION DETECTED: Resetting level due to lack of new visual information")
-                        # Perform level reset instead of starting new game
-                        reset_result = await self._start_game_session(game_id, self.current_game_sessions.get(game_id))
-                        if reset_result and 'error' not in reset_result:
-                            print(f" Level reset successful - continuing with fresh frame data")
-                            # Continue with the same session count
+                        # Check current game state before starting new game
+                        current_status = session_result.get('game_state', 'UNKNOWN')
+                        print(f" FRAME STAGNATION DETECTED: Current status is {current_status}")
+                        
+                        # Only allow new games when status is GAME_OVER or WIN
+                        if current_status not in ['GAME_OVER', 'WIN']:
+                            print(f" Cannot start new game due to frame stagnation - current status is {current_status}. Must be GAME_OVER or WIN to start new game.")
+                            # Continue with current session instead of starting new game
                         else:
-                            print(f" Level reset failed - continuing with current session")
+                            print(f" Starting new game due to frame stagnation (level reset disabled)")
+                            # Clear existing session and start fresh game instead of level reset
+                            if game_id in self.current_game_sessions:
+                                del self.current_game_sessions[game_id]
+                            reset_result = await self._start_game_session(game_id)
+                            if reset_result and 'error' not in reset_result:
+                                print(f" New game started successfully - continuing with fresh frame data")
+                                # Continue with the same session count
+                            else:
+                                print(f" New game start failed - continuing with current session")
                     
                     # Check if we should continue based on performance
                     if self._should_stop_training(game_results, target_performance):
@@ -7552,15 +7582,35 @@ class ContinuousLearningLoop:
 
     def _calculate_action6_strategic_score(self, current_action_count: int, progress_stagnant: bool) -> float:
         """
-         ENHANCED: Calculate strategic score for ACTION 6 with more balanced usage.
+         ENHANCED: Calculate strategic score for ACTION 6 with visual targeting priority.
         
         ACTION 6 should be used when:
-        1. Simple actions aren't making sufficient progress
-        2. Visual targeting might be more effective 
-        3. As part of systematic exploration strategy
-        4. When game seems to require coordinate-based interaction
+        1. OpenCV has identified actionable targets
+        2. Visual analysis suggests interactive elements
+        3. Simple actions aren't making sufficient progress
+        4. As part of systematic exploration strategy
+        5. When game seems to require coordinate-based interaction
         """
         strategy = self.available_actions_memory['action6_strategy']
+        
+        # ENHANCED: Check for OpenCV targets first
+        if strategy.get('target_detection_mode', True) and hasattr(self, '_current_frame') and self._current_frame:
+            try:
+                if hasattr(self, 'opencv_extractor') and self.opencv_extractor:
+                    targets = self.opencv_extractor.identify_actionable_targets(self._current_frame, 'current_game')
+                    if targets:
+                        # High priority for ACTION6 when targets are detected
+                        high_priority_targets = [t for t in targets if t.priority > 0.7]
+                        if high_priority_targets:
+                            print(f"🎯 ACTION6 HIGH PRIORITY: {len(high_priority_targets)} high-priority targets detected")
+                            return 0.9  # Very high score for detected targets
+                        else:
+                            print(f"🎯 ACTION6 MEDIUM PRIORITY: {len(targets)} targets detected")
+                            return 0.7  # Medium-high score for any targets
+            except Exception as e:
+                print(f"🎯 ACTION6 TARGET DETECTION ERROR: {e}")
+        
+        # Fallback to original logic if no targets detected
         
         #  CRITICAL FIX: More balanced base score for ACTION6
         base_score = 0.3 if progress_stagnant else 0.15  # Much higher base score
@@ -11819,17 +11869,94 @@ class ContinuousLearningLoop:
         print(f" ACTION {action} FALLBACK: Using center ({fallback_x},{fallback_y}) after boundary avoidance")
         return (fallback_x, fallback_y)
 
+    def _store_successful_coordinate(self, game_id: str, coordinate: Tuple[int, int], frame_changed: bool, score_improved: bool) -> None:
+        """Store successful coordinate for learning."""
+        if game_id not in self._successful_coordinates:
+            self._successful_coordinates[game_id] = []
+        
+        success_type = "frame_changed" if frame_changed else "score_improved" if score_improved else "unknown"
+        self._successful_coordinates[game_id].append((coordinate[0], coordinate[1], success_type, time.time()))
+        
+        # Keep only last 50 successful coordinates per game
+        if len(self._successful_coordinates[game_id]) > 50:
+            self._successful_coordinates[game_id] = self._successful_coordinates[game_id][-50:]
+    
+    def _store_failed_coordinate(self, game_id: str, coordinate: Tuple[int, int]) -> None:
+        """Store failed coordinate for learning."""
+        if game_id not in self._failed_coordinates:
+            self._failed_coordinates[game_id] = []
+        
+        self._failed_coordinates[game_id].append((coordinate[0], coordinate[1], time.time()))
+        
+        # Keep only last 100 failed coordinates per game
+        if len(self._failed_coordinates[game_id]) > 100:
+            self._failed_coordinates[game_id] = self._failed_coordinates[game_id][-100:]
+    
+    def _get_learned_coordinates(self, game_id: str) -> List[Tuple[int, int]]:
+        """Get learned successful coordinates for a game."""
+        if game_id not in self._successful_coordinates:
+            return []
+        
+        # Return coordinates from last 10 successful attempts
+        recent_successes = self._successful_coordinates[game_id][-10:]
+        return [(x, y) for x, y, _, _ in recent_successes]
+
     def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int], game_id: str = None) -> Tuple[int, int]:
         """
-        INTELLIGENT SURVEYING SYSTEM for ACTION 6 - Fast grid exploration instead of slow directional crawling.
+        ENHANCED ACTION6 TARGETING SYSTEM - Uses OpenCV to identify actionable targets.
         
         Key Features:
-        1. Jumps intelligently across the grid to map regions quickly
-        2. Uses safe regions to launch exploration into unknown territory
-        3. Avoids slow line-by-line traversal through known safe areas
-        4. Prioritizes boundary detection and territory expansion
+        1. OpenCV-powered target detection for buttons, portals, interactive elements
+        2. Prioritizes high-contrast areas and edge interactions
+        3. Analyzes cause-and-effect patterns for better targeting
+        4. Falls back to intelligent surveying if no targets detected
         """
         grid_width, grid_height = grid_dims
+        
+        # ENHANCED: Multi-tier ACTION6 targeting system
+        try:
+            # TIER 1: OpenCV target detection (highest priority)
+            if hasattr(self, 'opencv_extractor') and self.opencv_extractor:
+                current_frame = getattr(self, '_current_frame', None)
+                if current_frame and isinstance(current_frame, list) and len(current_frame) > 0:
+                    targets = self.opencv_extractor.identify_actionable_targets(current_frame, game_id or "unknown")
+                    
+                    if targets:
+                        # Sort by priority and select highest priority target
+                        targets.sort(key=lambda t: t.priority, reverse=True)
+                        best_target = targets[0]
+                        x, y = best_target.coordinates
+                        
+                        # Ensure coordinates are within bounds
+                        x = max(0, min(x, grid_width - 1))
+                        y = max(0, min(y, grid_height - 1))
+                        
+                        print(f"🎯 OPENCV TARGET: Selected {best_target.object_type} at ({x},{y}) - priority: {best_target.priority:.2f}")
+                        return (x, y)
+                    else:
+                        print("🎯 OPENCV TARGET: No targets detected, trying learned coordinates")
+                else:
+                    print("🎯 OPENCV TARGET: No frame data available, trying learned coordinates")
+            else:
+                print("🎯 OPENCV TARGET: OpenCV extractor not available, trying learned coordinates")
+            
+            # TIER 2: Learned successful coordinates
+            if game_id and hasattr(self, '_successful_coordinates'):
+                learned_coords = self._get_learned_coordinates(game_id)
+                if learned_coords:
+                    # Select a random learned coordinate
+                    x, y = learned_coords[-1]  # Use most recent successful coordinate
+                    x = max(0, min(x, grid_width - 1))
+                    y = max(0, min(y, grid_height - 1))
+                    print(f"🎯 LEARNED COORDINATE: Using successful coordinate ({x},{y}) from previous attempts")
+                    return (x, y)
+                else:
+                    print("🎯 LEARNED COORDINATE: No learned coordinates available, falling back to intelligent surveying")
+            
+        except Exception as e:
+            print(f"🎯 ACTION6 TARGETING ERROR: {e}, falling back to intelligent surveying")
+        
+        # FALLBACK: Intelligent surveying system (original logic)
         if game_id is None:
             game_id = self.available_actions_memory.get('current_game_id', 'unknown')
         
@@ -15907,26 +16034,35 @@ class ContinuousLearningLoop:
             # Check if we have an existing session for this game
             existing_guid = self.current_game_sessions.get(game_id)
             
-            # Decide whether to reuse session or start fresh
-            should_reuse_session = (existing_guid and 
-                                  session_count > 0 and 
-                                  session_count % 10 != 0)  # Start fresh every 10 sessions
+            # Check current game state before starting new game
+            current_game_state = None
+            if existing_guid:
+                try:
+                    current_game_state = await self.api_client.get_game_state()
+                    if current_game_state and current_game_state.get('success'):
+                        game_state = current_game_state.get('game_state', {})
+                        current_status = game_state.get('state', 'UNKNOWN')
+                        print(f" Current game status: {current_status}")
+                        
+                        # Only allow new games when status is GAME_OVER or WIN
+                        if current_status not in ['GAME_OVER', 'WIN']:
+                            print(f" Cannot start new game - current status is {current_status}. Must be GAME_OVER or WIN to start new game.")
+                            return {"error": f"Cannot start new game - current status is {current_status}. Must be GAME_OVER or WIN.", "actions_taken": 0}
+                    else:
+                        print(f" Could not get current game state, proceeding with new game")
+                except Exception as e:
+                    print(f" Error getting current game state: {e}, proceeding with new game")
             
-            print(f" Session decision: existing_guid={existing_guid}, session_count={session_count}, should_reuse={should_reuse_session}")
+            # LEVEL RESET DISABLED - Always use new game reset (only when status allows)
+            print(f" Session decision: existing_guid={existing_guid}, session_count={session_count} (level reset disabled - always using new game)")
             
-            if should_reuse_session:
-                # Use level reset for subsequent sessions of the same game
-                print(f" Using LEVEL RESET for session {session_count} of {game_id} (reusing session)")
-                session_data = await self._start_game_session(game_id, existing_guid=existing_guid)
+            if existing_guid:
+                print(f" Starting FRESH SESSION for {game_id} (clearing previous session - level reset disabled)")
+                # Clear the old session
+                del self.current_game_sessions[game_id]
             else:
-                # Use new game reset for the first session or when starting fresh
-                if existing_guid:
-                    print(f" Starting FRESH SESSION for {game_id} (clearing previous session)")
-                    # Clear the old session
-                    del self.current_game_sessions[game_id]
-                else:
-                    print(f" Using NEW GAME RESET for session {session_count} of {game_id}")
-                session_data = await self._start_game_session(game_id)
+                print(f" Using NEW GAME RESET for session {session_count} of {game_id}")
+            session_data = await self._start_game_session(game_id)
             
             if not session_data:
                 return {"error": "Failed to start game session", "actions_taken": 0}
@@ -16268,26 +16404,31 @@ class ContinuousLearningLoop:
                             # Handle RESET recommendation
                             if governor_error_response.get('recommended_action') == 'RESET':
                                 print(f"🔄 GOVERNOR RECOMMENDING RESET for {game_id}")
-                                try:
-                                    reset_result = await self._start_game_session(game_id)
-                                    if reset_result and 'error' not in reset_result:
-                                        print(f"✅ RESET successful - game {game_id} started")
-                                        # Update state with reset result
-                                        new_state = reset_result.get('state', current_state)
-                                        new_score = reset_result.get('score', current_score)
-                                        new_available = reset_result.get('available_actions', available_actions)
-                                        # Update frame data
-                                        if 'frame' in reset_result:
-                                            session_data['frame'] = reset_result['frame']
-                                            self._last_frame = reset_result['frame']
-                                        # Continue with the session
-                                        continue
-                                    else:
-                                        print(f"❌ RESET failed: {reset_result.get('error', 'Unknown error')}")
+                                
+                                # Check current game state before starting new game
+                                if current_state not in ['GAME_OVER', 'WIN']:
+                                    print(f" Cannot reset game - current status is {current_state}. Must be GAME_OVER or WIN to start new game.")
+                                    # Skip reset and continue with current session
+                                else:
+                                    try:
+                                        reset_result = await self._start_game_session(game_id)
+                                        if reset_result and 'error' not in reset_result:
+                                            print(f"✅ RESET successful - game {game_id} started")
+                                            # Update state with reset result
+                                            new_state = reset_result.get('state', current_state)
+                                            new_score = reset_result.get('score', current_score)
+                                            new_available = reset_result.get('available_actions', available_actions)
+                                            # Update frame data
+                                            if 'frame' in reset_result:
+                                                session_data['frame'] = reset_result['frame']
+                                                self._last_frame = reset_result['frame']
+                                            # Continue with the session
+                                        else:
+                                            print(f"❌ RESET failed: {reset_result.get('error', 'Unknown error')}")
+                                            # Fall through to normal error handling
+                                    except Exception as e:
+                                        print(f"❌ RESET execution error: {e}")
                                         # Fall through to normal error handling
-                                except Exception as e:
-                                    print(f"❌ RESET execution error: {e}")
-                                    # Fall through to normal error handling
                             
                             # Handle WAIT recommendation (rate limiting)
                             elif governor_error_response.get('recommended_action') == 'WAIT':
