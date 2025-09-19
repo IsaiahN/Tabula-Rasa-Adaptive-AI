@@ -133,9 +133,9 @@ def main():
     
     # Configuration
     total_duration = 9 * 60 * 60  # 9 hours in seconds
-    session_duration = 15  # 15 minutes per session
-    sessions_per_hour = 4  # 4 sessions per hour
-    total_sessions = 9 * sessions_per_hour  # 36 total sessions
+    session_duration = 60  # 60 minutes per session (increased for game completion)
+    sessions_per_hour = 1  # 1 session per hour (focused on single games)
+    total_sessions = 9 * sessions_per_hour  # 9 total sessions
     
     print(f"📊 Training Plan:")
     print(f"   • Total sessions: {total_sessions}")
@@ -149,6 +149,9 @@ def main():
     
     try:
         while session_count < total_sessions:
+            # Check for shutdown request first (will be checked in run_training_session)
+            # The shutdown check is handled within the training session itself
+                
             # Check if 9 hours have elapsed
             current_time = datetime.now()
             elapsed_seconds = (current_time - start_time).total_seconds()

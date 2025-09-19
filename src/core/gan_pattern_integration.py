@@ -20,11 +20,10 @@ import json
 import logging
 import time
 from typing import Dict, List, Tuple, Any, Optional, Union
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime
 
 from ..database.api import get_database
-from ..database.director_commands import get_director_commands
 from ..arc_integration.arc_meta_learning import ARCMetaLearningSystem, ARCPattern
 from .gan_system import PatternAwareGAN, GameState, GANTrainingConfig
 
@@ -155,7 +154,6 @@ class GANPatternIntegration:
         self.pattern_learning_system = pattern_learning_system
         self.gan_system = gan_system
         self.db = get_database()
-        self.director = get_director_commands()
         
         # Initialize pattern embedding network
         self.embedding_network = PatternEmbeddingNetwork()

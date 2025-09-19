@@ -18,12 +18,11 @@ import logging
 import time
 import uuid
 from typing import Dict, List, Tuple, Any, Optional, Union
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta
 import numpy as np
 
 from ..database.api import get_database
-from ..database.director_commands import get_director_commands
 from ..arc_integration.arc_meta_learning import ARCMetaLearningSystem
 from .gan_system import PatternAwareGAN, GameState, GANTrainingConfig
 from .gan_pattern_integration import GANPatternIntegration
@@ -87,7 +86,6 @@ class GANTrainingLoop:
         self.config = config or TrainingConfig()
         self.pattern_learning_system = pattern_learning_system
         self.db = get_database()
-        self.director = get_director_commands()
         
         # Initialize GAN system
         gan_config = GANTrainingConfig(
@@ -139,15 +137,21 @@ class GANTrainingLoop:
             self.is_training = True
             
             # Log training start
-            await self.director.log_system_event(
-                "gan_training_loop_started",
+            await self.db.execute("""
+                INSERT INTO system_logs 
+                (component, log_level, message, data, timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                "gan_training_loop",
+                "INFO",
                 f"GAN training loop started with session {self.current_session_id}",
-                {
+                json.dumps({
                     "session_id": self.current_session_id,
                     "config": asdict(self.config),
                     "real_data_source": real_data_source
-                }
-            )
+                }),
+                datetime.now()
+            ))
             
             logger.info(f"GAN training loop started with session {self.current_session_id}")
             return self.current_session_id
@@ -243,16 +247,22 @@ class GANTrainingLoop:
             final_results = await self._store_final_results(epochs_completed, training_time)
             
             # Log training completion
-            await self.director.log_system_event(
-                "gan_training_completed",
+            await self.db.execute("""
+                INSERT INTO system_logs 
+                (component, log_level, message, data, timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                "gan_training_loop",
+                "INFO",
                 f"GAN training completed after {epochs_completed} epochs",
-                {
+                json.dumps({
                     "session_id": self.current_session_id,
                     "epochs_completed": epochs_completed,
                     "training_time": training_time,
                     "final_results": final_results
-                }
-            )
+                }),
+                datetime.now()
+            ))
             
             logger.info(f"GAN training completed after {epochs_completed} epochs in {training_time:.2f} seconds")
             

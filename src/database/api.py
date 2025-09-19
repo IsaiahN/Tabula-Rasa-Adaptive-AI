@@ -557,9 +557,40 @@ class TabulaRasaDatabase:
                 }
             }
 
+    async def execute(self, query: str, params: tuple = ()) -> bool:
+        """Execute a SQL query."""
+        try:
+            async with self.get_connection() as conn:
+                conn.execute(query, params)
+                conn.commit()
+                return True
+        except Exception as e:
+            self.logger.error(f"Database execute error: {e}")
+            return False
+    
+    async def fetch_all(self, query: str, params: tuple = ()) -> List[Dict[str, Any]]:
+        """Fetch all rows from a query."""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.execute(query, params)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            self.logger.error(f"Database fetch_all error: {e}")
+            return []
+    
+    async def fetch_one(self, query: str, params: tuple = ()) -> Optional[Dict[str, Any]]:
+        """Fetch one row from a query."""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.execute(query, params)
+                row = cursor.fetchone()
+                return dict(row) if row else None
+        except Exception as e:
+            self.logger.error(f"Database fetch_one error: {e}")
+            return None
+
 # ============================================================================
 # GLOBAL DATABASE INSTANCE
-# ============================================================================
 
 # Global database instance for easy access
 _db_instance = None

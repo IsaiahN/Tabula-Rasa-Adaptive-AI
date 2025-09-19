@@ -11,7 +11,11 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from .api import get_database, log_director_decision, get_director_status, get_director_insights
 from .director_training_monitor import get_training_status, detect_training_issues, get_training_recommendations
-from ..core.gan_system import PatternAwareGAN, GANTrainingConfig
+try:
+    from ..core.gan_system import PatternAwareGAN, GANTrainingConfig
+except ImportError:
+    # Fallback for when running from root directory
+    from src.core.gan_system import PatternAwareGAN, GANTrainingConfig
 
 # ============================================================================
 # DIRECTOR COMMAND INTERFACE

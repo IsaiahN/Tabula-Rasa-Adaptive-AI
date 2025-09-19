@@ -22,12 +22,11 @@ import time
 import uuid
 import numpy as np
 from typing import Dict, List, Tuple, Any, Optional, Union
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime
 import asyncio
 
 from ..database.api import get_database
-from ..database.director_commands import get_director_commands
 from ..arc_integration.arc_meta_learning import ARCMetaLearningSystem, ARCPattern
 
 logger = logging.getLogger(__name__)
@@ -51,7 +50,7 @@ class GameState:
             'properties': self.properties,
             'context': self.context,
             'action_history': self.action_history,
-            'success_probability': self.success_probability,
+            'success_probability': float(self.success_probability),
             'timestamp': self.timestamp
         }
     
@@ -292,7 +291,6 @@ class PatternAwareGAN:
         self.config = config or GANTrainingConfig()
         self.pattern_learning_system = pattern_learning_system
         self.db = get_database()
-        self.director = get_director_commands()
         
         # Initialize models
         self.generator = GameStateGenerator(
@@ -340,11 +338,17 @@ class PatternAwareGAN:
         self.current_session_id = session_id
         
         # Log session start
-        await self.director.log_system_event(
-            "gan_training_started",
+        await self.db.execute("""
+            INSERT INTO system_logs 
+            (component, log_level, message, data, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            "gan_system",
+            "INFO",
             f"GAN training session {session_id} started",
-            {"session_id": session_id}
-        )
+            json.dumps({"session_id": session_id}),
+            datetime.now()
+        ))
         
         logger.info(f"GAN training session {session_id} started")
         return session_id
@@ -378,7 +382,7 @@ class PatternAwareGAN:
                 properties=self._decode_properties(generated['properties'][i].cpu().numpy()),
                 context=context or {},
                 action_history=[],
-                success_probability=generated['success_probability'][i].item()
+                success_probability=float(generated['success_probability'][i].item())
             )
             synthetic_states.append(state)
         
@@ -502,13 +506,23 @@ class PatternAwareGAN:
     
     def _create_context_tensor(self, context: Dict[str, Any], count: int) -> torch.Tensor:
         """Create context tensor for generation."""
-        # Simplified context encoding
+        # Simplified context encoding - ensure we have the right dimension
         context_vector = np.array([
             context.get('level', 1),
             context.get('difficulty', 0.5),
             context.get('energy_level', 100.0),
             context.get('learning_drive', 0.5)
         ])
+        
+        # Ensure we have the right dimension for the context
+        # Pad with zeros to match expected context_dim
+        context_dim = 64  # This should match the context_dim in GameStateGenerator
+        if len(context_vector) < context_dim:
+            padded_vector = np.zeros(context_dim)
+            padded_vector[:len(context_vector)] = context_vector
+            context_vector = padded_vector
+        elif len(context_vector) > context_dim:
+            context_vector = context_vector[:context_dim]
         
         # Repeat for batch
         context_tensor = torch.tensor(
@@ -528,7 +542,7 @@ class PatternAwareGAN:
                     'x': int(object_vector[i] * 64),
                     'y': int(object_vector[i+1] * 64),
                     'type': int(object_vector[i+2] * 10),
-                    'properties': object_vector[i+3]
+                    'properties': float(object_vector[i+3])
                 })
         return objects
     
