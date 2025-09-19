@@ -583,6 +583,19 @@ class ContinuousLearningLoop:
         
         # Performance optimization tracking
         self._startup_time = time.time()
+        
+        # Initialize scorecard API integration
+        self.scorecard_manager = None
+        self.active_scorecard_id = None
+        self.scorecard_stats = {
+            'total_level_completions': 0,
+            'total_games_completed': 0,
+            'total_wins': 0,
+            'total_played': 0,
+            'total_actions': 0,
+            'total_score': 0
+        }
+        
         print(f"⚡ ContinuousLearningLoop initialized in {time.time() - self._startup_time:.3f}s")
     
     def _initialize_performance_monitoring(self):
@@ -639,18 +652,6 @@ class ContinuousLearningLoop:
             ),
             'actions_per_second': self.total_actions_taken / max(runtime, 1),
             'games_per_hour': (self.total_games_played / max(runtime, 1)) * 3600
-        }
-        
-        # Initialize scorecard API integration
-        self.scorecard_manager = None
-        self.active_scorecard_id = None
-        self.scorecard_stats = {
-            'total_level_completions': 0,
-            'total_games_completed': 0,
-            'total_wins': 0,
-            'total_played': 0,
-            'total_actions': 0,
-            'total_score': 0
         }
         
         # Create save directory
@@ -1102,9 +1103,20 @@ class ContinuousLearningLoop:
         try:
             from src.database.system_integration import get_system_integration
             integration = get_system_integration()
-            self.global_counters = integration.get_global_counters()
+            # Note: This is called during initialization, so we can't use await here
+            # Use a synchronous fallback for initialization
+            self.global_counters = {
+                'total_memory_operations': 0,
+                'total_sleep_cycles': 0,
+                'total_memories_deleted': 0,
+                'total_memories_combined': 0,
+                'total_memories_strengthened': 0,
+                'persistent_energy_level': 100.0,
+                'total_actions': 0,
+                'recent_consecutive_failures': 0
+            }
         except Exception as e:
-            print(f"⚠️  Failed to load global counters from database: {e}")
+            print(f"⚠️  Failed to initialize global counters: {e}")
             self.global_counters = {
                 'total_memory_operations': 0,
                 'total_sleep_cycles': 0,
@@ -1147,7 +1159,9 @@ class ContinuousLearningLoop:
         try:
             from src.database.system_integration import get_system_integration
             integration = get_system_integration()
-            return integration.get_global_counters()
+            # This method is called synchronously, so we can't use await
+            # Return a default empty dict instead
+            return {}
         except Exception as e:
             print(f"⚠️  Failed to load global counters from database: {e}")
         
@@ -8736,11 +8750,19 @@ class ContinuousLearningLoop:
             print(f" Using DIRECT API CONTROL with enhanced action selection")
             # Use our direct API control with intelligent action selection
             try:
+                print(f"🔧 DEBUG: About to call start_training_with_direct_control for {game_id}")
                 game_session_result = await self.start_training_with_direct_control(
                     game_id, max_actions_per_session, session_count
                 )
+                print(f"🔧 DEBUG: start_training_with_direct_control returned: {type(game_session_result)} - {game_session_result}")
                 
-                if game_session_result is not None and "error" in game_session_result:
+                if game_session_result is None:
+                    print(f" Direct control returned None - treating as error")
+                    total_score = 0
+                    episode_actions = 0
+                    final_state = 'ERROR'
+                    effective_actions = []
+                elif "error" in game_session_result:
                     print(f" Direct control failed: {game_session_result['error']}")
                     # Handle error gracefully without falling back to main.py
                     total_score = 0
@@ -8750,7 +8772,7 @@ class ContinuousLearningLoop:
                 else:
                     # Convert direct control result to expected format
                     total_score = game_session_result.get('final_score', 0)
-                    episode_actions = game_session_result.get('total_actions', 0)
+                    episode_actions = game_session_result.get('actions_taken', 0)  # Fixed: use 'actions_taken' not 'total_actions'
                     final_state = game_session_result.get('final_state', 'UNKNOWN')
                     effective_actions = game_session_result.get('effective_actions', [])
                     
@@ -9010,9 +9032,9 @@ class ContinuousLearningLoop:
             
             # Extract data from result
             final_score = result.get('final_score', 0)
-            total_actions = result.get('actions_taken', 0)
+            total_actions = result.get('actions_taken', 0)  # Fixed: use 'actions_taken' from result object
             win_detected = result.get('success', False)
-            final_state = result.get('game_state', 'UNKNOWN')
+            final_state = result.get('game_state', 'UNKNOWN')  # Fixed: use 'game_state' from result object
             
             # Get session ID (use current session or create one)
             session_id = getattr(self, 'session_id', f'director_session_{int(datetime.now().timestamp())}')
@@ -12932,7 +12954,8 @@ class ContinuousLearningLoop:
             self.session_history = [session for session in sessions if session.get('status') == 'completed']
             
             # Load global training sessions from database
-            self.global_training_sessions = integration.get_global_counters()
+            # Note: This is called during initialization, so we can't use await here
+            self.global_training_sessions = {}
             
             logger.info(f" Loaded previous state from database: {len(self.session_history)} sessions")
         except Exception as e:
@@ -16112,8 +16135,9 @@ class ContinuousLearningLoop:
         session_count: int = 0
     ) -> Dict[str, Any]:
         """Run training session with direct API action control instead of external main.py."""
-        print(f"\n STARTING DIRECT CONTROL TRAINING for {game_id}")
+        print(f"\n🔧 DEBUG: STARTING DIRECT CONTROL TRAINING for {game_id}")
         print(f"   Max Actions: {max_actions_per_game}, Session: {session_count}")
+        print(f"🔧 DEBUG: Method entry - about to initialize")
         
         # CRITICAL FIX: Ensure system is fully initialized before training
         self._ensure_initialized()
@@ -17070,7 +17094,7 @@ class ContinuousLearningLoop:
                 final_result = {
                     'final_score': current_score,
                     'final_state': current_state,
-                    'total_actions': actions_taken,
+                    'actions_taken': actions_taken,  # Fixed: use 'actions_taken' to match processing code
                     'effective_actions': effective_actions,
                     'action_history': action_history,
                     'success': current_state == 'WIN' or current_score > 0,
@@ -17087,7 +17111,7 @@ class ContinuousLearningLoop:
                 final_result = {
                     'final_score': 0,
                     'final_state': 'ERROR',
-                    'total_actions': 0,
+                    'actions_taken': 0,  # Fixed: use 'actions_taken' to match processing code
                     'effective_actions': [],
                     'action_history': [],
                     'success': False,
@@ -17177,14 +17201,17 @@ class ContinuousLearningLoop:
             except Exception as e:
                 print(f"🧠 ERROR adapting learning rate: {e}")
             
+            print(f"🔧 DEBUG: About to return final_result: {final_result}")
             return final_result
             
         except Exception as e:
-            print(f"    Error in direct control training: {e}")
+            print(f"🔧 DEBUG: Exception caught in direct control training: {e}")
             print(f"    Error type: {type(e)}")
             import traceback
             print(f"    Traceback: {traceback.format_exc()}")
-            return {"error": str(e), "actions_taken": 0}
+            error_result = {"error": str(e), "actions_taken": 0}
+            print(f"🔧 DEBUG: Returning error result: {error_result}")
+            return error_result
     
     async def _trigger_enhanced_sleep_with_arc_data(
         self, 

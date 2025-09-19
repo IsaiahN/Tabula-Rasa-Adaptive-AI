@@ -131,7 +131,7 @@ class DirectorAnalytics:
                         "coordinate_attempts": game.coordinate_attempts,
                         "coordinate_successes": game.coordinate_successes,
                         "frame_changes": game.frame_changes,
-                        "start_time": game.start_time.isoformat()
+                        "start_time": game.start_time.isoformat() if hasattr(game.start_time, 'isoformat') else str(game.start_time)
                     }
                     for game in recent_games
                 ],

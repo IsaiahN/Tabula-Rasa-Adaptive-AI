@@ -354,6 +354,44 @@ class SystemIntegration:
         """Get coordinate intelligence data (alias for compatibility)."""
         return await self.director_commands.get_coordinate_intelligence(game_id)
     
+    async def get_self_model_entries(self, limit: int = 100, type: str = None) -> List[Dict[str, Any]]:
+        """Retrieve Director self-model entries."""
+        async with self.db.get_connection() as conn:
+            try:
+                if type:
+                    query = "SELECT * FROM director_self_model WHERE type = ? ORDER BY created_at DESC LIMIT ?"
+                    cursor = conn.execute(query, (type, limit))
+                else:
+                    query = "SELECT * FROM director_self_model ORDER BY created_at DESC LIMIT ?"
+                    cursor = conn.execute(query, (limit,))
+                
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows]
+            except Exception as e:
+                self.logger.error(f"Database error retrieving self-model entries: {e}")
+                return []
+    
+    async def add_self_model_entry(self, type: str, content: str, session_id: str = None, 
+                                 importance: int = 1, metadata: dict = None) -> bool:
+        """Add a new entry to the Director's self-model."""
+        async with self.db.get_connection() as conn:
+            try:
+                conn.execute("""
+                    INSERT INTO director_self_model (type, content, session_id, importance, metadata)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    type,
+                    content,
+                    session_id,
+                    importance,
+                    json.dumps(metadata) if metadata else '{}'
+                ))
+                conn.commit()
+                return True
+            except Exception as e:
+                self.logger.error(f"Database error adding self-model entry: {e}")
+                return False
+    
     # ============================================================================
     # GLOBAL COUNTERS INTEGRATION
     # ============================================================================

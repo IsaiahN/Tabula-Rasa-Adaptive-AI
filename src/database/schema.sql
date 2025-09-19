@@ -412,3 +412,118 @@ FROM system_logs
 WHERE timestamp >= datetime('now', '-1 hour')
 GROUP BY component, log_level
 ORDER BY component, log_level;
+
+-- ============================================================================
+-- GAN SYSTEM TABLES
+-- ============================================================================
+
+-- GAN training sessions and performance tracking
+CREATE TABLE IF NOT EXISTS gan_training_sessions (
+    session_id TEXT PRIMARY KEY,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    status TEXT NOT NULL DEFAULT 'running',
+    generator_loss REAL DEFAULT 0.0,
+    discriminator_loss REAL DEFAULT 0.0,
+    pattern_accuracy REAL DEFAULT 0.0,
+    synthetic_quality_score REAL DEFAULT 0.0,
+    total_generated_states INTEGER DEFAULT 0,
+    total_training_steps INTEGER DEFAULT 0,
+    convergence_epoch INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Generated synthetic game states
+CREATE TABLE IF NOT EXISTS gan_generated_states (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    game_id TEXT,
+    state_data TEXT NOT NULL, -- JSON encoded game state
+    pattern_context TEXT, -- JSON encoded pattern context
+    quality_score REAL DEFAULT 0.0,
+    discriminator_score REAL DEFAULT 0.0,
+    pattern_consistency_score REAL DEFAULT 0.0,
+    generation_method TEXT DEFAULT 'gan',
+    is_validated BOOLEAN DEFAULT FALSE,
+    validation_score REAL DEFAULT 0.0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES gan_training_sessions(session_id)
+);
+
+-- GAN model checkpoints and weights
+CREATE TABLE IF NOT EXISTS gan_model_checkpoints (
+    checkpoint_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    epoch INTEGER NOT NULL,
+    generator_weights TEXT NOT NULL, -- JSON encoded model weights
+    discriminator_weights TEXT NOT NULL, -- JSON encoded model weights
+    generator_loss REAL NOT NULL,
+    discriminator_loss REAL NOT NULL,
+    pattern_accuracy REAL NOT NULL,
+    synthetic_quality REAL NOT NULL,
+    model_size_bytes INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES gan_training_sessions(session_id)
+);
+
+-- GAN pattern learning integration
+CREATE TABLE IF NOT EXISTS gan_pattern_learning (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    pattern_id TEXT NOT NULL,
+    pattern_type TEXT NOT NULL, -- 'visual', 'action', 'reasoning'
+    synthetic_generation_count INTEGER DEFAULT 0,
+    pattern_accuracy REAL DEFAULT 0.0,
+    learning_effectiveness REAL DEFAULT 0.0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES gan_training_sessions(session_id)
+);
+
+-- GAN reverse engineering results
+CREATE TABLE IF NOT EXISTS gan_reverse_engineering (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    game_id TEXT NOT NULL,
+    discovered_rules TEXT, -- JSON encoded discovered game rules
+    rule_confidence REAL DEFAULT 0.0,
+    rule_accuracy REAL DEFAULT 0.0,
+    mechanics_understood REAL DEFAULT 0.0,
+    reverse_engineering_method TEXT DEFAULT 'adversarial_learning',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES gan_training_sessions(session_id)
+);
+
+-- GAN synthetic data validation results
+CREATE TABLE IF NOT EXISTS gan_validation_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    generated_state_id INTEGER NOT NULL,
+    validation_type TEXT NOT NULL, -- 'pattern_consistency', 'game_logic', 'visual_quality'
+    validation_score REAL NOT NULL,
+    validation_details TEXT, -- JSON encoded validation details
+    is_passed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES gan_training_sessions(session_id),
+    FOREIGN KEY (generated_state_id) REFERENCES gan_generated_states(id)
+);
+
+-- GAN performance metrics and analytics
+CREATE TABLE IF NOT EXISTS gan_performance_metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    metric_name TEXT NOT NULL,
+    metric_value REAL NOT NULL,
+    metric_type TEXT NOT NULL, -- 'loss', 'accuracy', 'quality', 'convergence'
+    epoch INTEGER DEFAULT 0,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES gan_training_sessions(session_id)
+);
+
+-- GAN indexes for performance
+CREATE INDEX IF NOT EXISTS idx_gan_generated_states_session ON gan_generated_states(session_id);
+CREATE INDEX IF NOT EXISTS idx_gan_generated_states_quality ON gan_generated_states(quality_score);
+CREATE INDEX IF NOT EXISTS idx_gan_model_checkpoints_session ON gan_model_checkpoints(session_id);
+CREATE INDEX IF NOT EXISTS idx_gan_pattern_learning_session ON gan_pattern_learning(session_id);
+CREATE INDEX IF NOT EXISTS idx_gan_reverse_engineering_session ON gan_reverse_engineering(session_id);
+CREATE INDEX IF NOT EXISTS idx_gan_performance_metrics_session ON gan_performance_metrics(session_id);

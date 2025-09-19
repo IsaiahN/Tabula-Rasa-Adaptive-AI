@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from .api import get_database, log_director_decision, get_director_status, get_director_insights
 from .director_training_monitor import get_training_status, detect_training_issues, get_training_recommendations
+from ..core.gan_system import PatternAwareGAN, GANTrainingConfig
 
 # ============================================================================
 # DIRECTOR COMMAND INTERFACE
@@ -595,6 +596,289 @@ class DirectorCommands:
             steps.append("Increase pattern recognition activities and learning sessions")
         
         return steps
+    
+    # ============================================================================
+    # GAN SYSTEM COMMANDS
+    # ============================================================================
+    
+    async def start_gan_training(self, session_name: str = None, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Start GAN training session for synthetic data generation.
+        
+        Args:
+            session_name: Optional name for the training session
+            config: Optional GAN configuration parameters
+            
+        Returns:
+            Dict containing session information and status
+        """
+        try:
+            # Create GAN configuration
+            gan_config = GANTrainingConfig()
+            if config:
+                for key, value in config.items():
+                    if hasattr(gan_config, key):
+                        setattr(gan_config, key, value)
+            
+            # Initialize GAN system
+            gan_system = PatternAwareGAN(config=gan_config)
+            
+            # Start training session
+            session_id = await gan_system.start_training_session(session_name)
+            
+            # Store GAN system reference (in production, this would be managed better)
+            if not hasattr(self, '_gan_systems'):
+                self._gan_systems = {}
+            self._gan_systems[session_id] = gan_system
+            
+            await log_director_decision("gan_training_started", f"GAN training session {session_id} started", 1.0)
+            
+            return {
+                "status": "success",
+                "session_id": session_id,
+                "message": f"GAN training session {session_id} started successfully",
+                "config": asdict(gan_config)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start GAN training: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to start GAN training: {str(e)}"
+            }
+    
+    async def generate_synthetic_states(self, session_id: str, count: int = 10, 
+                                      context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Generate synthetic game states using GAN.
+        
+        Args:
+            session_id: GAN training session ID
+            count: Number of synthetic states to generate
+            context: Optional context for generation
+            
+        Returns:
+            Dict containing generated states and metadata
+        """
+        try:
+            # Get GAN system
+            if not hasattr(self, '_gan_systems') or session_id not in self._gan_systems:
+                return {
+                    "status": "error",
+                    "message": f"GAN session {session_id} not found"
+                }
+            
+            gan_system = self._gan_systems[session_id]
+            
+            # Generate synthetic states
+            synthetic_states = await gan_system.generate_synthetic_states(count, context)
+            
+            # Convert to serializable format
+            states_data = [state.to_dict() for state in synthetic_states]
+            
+            await log_director_decision("synthetic_states_generated", 
+                                      f"Generated {len(synthetic_states)} synthetic states", 1.0)
+            
+            return {
+                "status": "success",
+                "count": len(synthetic_states),
+                "states": states_data,
+                "session_id": session_id
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to generate synthetic states: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to generate synthetic states: {str(e)}"
+            }
+    
+    async def train_gan_epoch(self, session_id: str, real_states: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Train GAN for one epoch using real game states.
+        
+        Args:
+            session_id: GAN training session ID
+            real_states: List of real game states for training
+            
+        Returns:
+            Dict containing training metrics and status
+        """
+        try:
+            # Get GAN system
+            if not hasattr(self, '_gan_systems') or session_id not in self._gan_systems:
+                return {
+                    "status": "error",
+                    "message": f"GAN session {session_id} not found"
+                }
+            
+            gan_system = self._gan_systems[session_id]
+            
+            # Convert real states to GameState objects
+            from ..core.gan_system import GameState
+            game_states = [GameState.from_dict(state) for state in real_states]
+            
+            # Train epoch
+            metrics = await gan_system.train_epoch(game_states)
+            
+            await log_director_decision("gan_epoch_trained", 
+                                      f"GAN epoch trained with {len(real_states)} real states", 1.0)
+            
+            return {
+                "status": "success",
+                "metrics": metrics,
+                "session_id": session_id
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to train GAN epoch: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to train GAN epoch: {str(e)}"
+            }
+    
+    async def get_gan_training_status(self, session_id: str) -> Dict[str, Any]:
+        """
+        Get GAN training status and metrics.
+        
+        Args:
+            session_id: GAN training session ID
+            
+        Returns:
+            Dict containing training status and metrics
+        """
+        try:
+            # Get GAN system
+            if not hasattr(self, '_gan_systems') or session_id not in self._gan_systems:
+                return {
+                    "status": "error",
+                    "message": f"GAN session {session_id} not found"
+                }
+            
+            gan_system = self._gan_systems[session_id]
+            
+            # Get training status
+            status = await gan_system.get_training_status()
+            
+            return {
+                "status": "success",
+                "training_status": status,
+                "session_id": session_id
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get GAN training status: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get GAN training status: {str(e)}"
+            }
+    
+    async def reverse_engineer_game_mechanics(self, session_id: str, game_id: str) -> Dict[str, Any]:
+        """
+        Use GAN to reverse engineer game mechanics.
+        
+        Args:
+            session_id: GAN training session ID
+            game_id: Game ID to analyze
+            
+        Returns:
+            Dict containing discovered game mechanics and rules
+        """
+        try:
+            # Get GAN system
+            if not hasattr(self, '_gan_systems') or session_id not in self._gan_systems:
+                return {
+                    "status": "error",
+                    "message": f"GAN session {session_id} not found"
+                }
+            
+            gan_system = self._gan_systems[session_id]
+            
+            # Reverse engineer mechanics
+            discovered_rules = await gan_system.reverse_engineer_game_mechanics(game_id)
+            
+            await log_director_decision("game_mechanics_discovered", 
+                                      f"Discovered mechanics for game {game_id}", 1.0)
+            
+            return {
+                "status": "success",
+                "game_id": game_id,
+                "discovered_rules": discovered_rules,
+                "session_id": session_id
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to reverse engineer game mechanics: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to reverse engineer game mechanics: {str(e)}"
+            }
+    
+    async def get_gan_analytics(self, hours: int = 24) -> Dict[str, Any]:
+        """
+        Get GAN analytics and performance metrics.
+        
+        Args:
+            hours: Number of hours to look back
+            
+        Returns:
+            Dict containing GAN analytics and insights
+        """
+        try:
+            # Get GAN sessions from database
+            sessions = await self.db.fetch_all("""
+                SELECT * FROM gan_training_sessions 
+                WHERE start_time >= datetime('now', '-{} hours')
+                ORDER BY start_time DESC
+            """.format(hours))
+            
+            # Get performance metrics
+            metrics = await self.db.fetch_all("""
+                SELECT * FROM gan_performance_metrics 
+                WHERE timestamp >= datetime('now', '-{} hours')
+                ORDER BY timestamp DESC
+            """.format(hours))
+            
+            # Get generated states count
+            generated_states = await self.db.fetch_all("""
+                SELECT session_id, COUNT(*) as count, AVG(quality_score) as avg_quality
+                FROM gan_generated_states 
+                WHERE created_at >= datetime('now', '-{} hours')
+                GROUP BY session_id
+            """.format(hours))
+            
+            # Calculate analytics
+            total_sessions = len(sessions)
+            total_generated = sum(gs['count'] for gs in generated_states)
+            avg_quality = sum(gs['avg_quality'] for gs in generated_states) / max(len(generated_states), 1)
+            
+            # Get recent patterns
+            recent_patterns = await self.db.fetch_all("""
+                SELECT * FROM gan_pattern_learning 
+                WHERE last_updated >= datetime('now', '-{} hours')
+                ORDER BY last_updated DESC
+                LIMIT 10
+            """.format(hours))
+            
+            return {
+                "status": "success",
+                "analytics": {
+                    "total_sessions": total_sessions,
+                    "total_generated_states": total_generated,
+                    "average_quality": avg_quality,
+                    "recent_sessions": [dict(s) for s in sessions[:5]],
+                    "recent_metrics": [dict(m) for m in metrics[:20]],
+                    "recent_patterns": [dict(p) for p in recent_patterns]
+                },
+                "time_period_hours": hours
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get GAN analytics: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get GAN analytics: {str(e)}"
+            }
 
 # ============================================================================
 # GLOBAL DIRECTOR COMMANDS INSTANCE
