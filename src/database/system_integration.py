@@ -76,6 +76,14 @@ class SystemIntegration:
         session = await self.db.get_session(session_id)
         return asdict(session) if session else None
     
+    async def get_all_sessions(self) -> List[Dict[str, Any]]:
+        """Get all training sessions."""
+        sessions = await self.db.fetch_all("""
+            SELECT * FROM training_sessions
+            ORDER BY start_time DESC
+        """)
+        return [dict(session) for session in sessions]
+    
     # ============================================================================
     # GAME RESULTS INTEGRATION
     # ============================================================================

@@ -49,7 +49,7 @@ def signal_handler(signum, frame):
     print(f"\n🛑 GRACEFUL SHUTDOWN REQUESTED (Signal: {signum})")
     shutdown_requested = True
     print("🛑 Training will stop after current session completes...")
-    print("🛑 Press Ctrl+C again to force immediate exit")
+    print("🛑 Press Ctrl+G again to force immediate exit")
 
 async def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[str, Any]:
     """Run a single training session with direct API control (no subprocess)."""
@@ -105,12 +105,18 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         game_id = selected_game['game_id']  # Extract the game_id string
         print(f"🎮 Selected game: {selected_game['title']} ({game_id})")
         
-        # Run training with direct control
+        # Run training with direct control for the specified duration
         print(f"🎯 Starting direct API training for {duration_minutes} minutes...")
+        
+        # Run training for the full duration in a single continuous session
+        print(f"🎯 Starting continuous training session for {duration_minutes} minutes...")
+        
+        # Run a single continuous training session for the full duration
         result = await learning_loop.start_training_with_direct_control(
             game_id=game_id,
-            max_actions_per_game=500,  # Optimized action limit
-            session_count=session_id
+            max_actions_per_game=500,  # This will be the total actions for the entire session
+            session_count=session_id,
+            duration_minutes=duration_minutes  # Pass the duration parameter
         )
         
         duration = time.time() - start_time
@@ -142,10 +148,11 @@ async def main():
     global shutdown_requested
     
     # Setup signal handlers for graceful shutdown
-    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
-    signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
-    if hasattr(signal, 'SIGBREAK'):  # Windows
+    if hasattr(signal, 'SIGQUIT'):  # Unix/Linux/Mac - Ctrl+G
+        signal.signal(signal.SIGQUIT, signal_handler)
+    if hasattr(signal, 'SIGBREAK'):  # Windows - Ctrl+G
         signal.signal(signal.SIGBREAK, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
     
     print("=" * 80)
     print("TABULA RASA - SIMPLE 9 HOUR CONTINUOUS TRAINING")
@@ -168,7 +175,7 @@ async def main():
     start_time = datetime.now()
     print(f"🕐 Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print()
-    print("Press Ctrl+C to stop gracefully")
+    print("Press Ctrl+G to stop gracefully")
     print()
     
     # Configuration - SINGLE SESSION FOCUS
@@ -251,7 +258,7 @@ async def main():
     except KeyboardInterrupt:
         current_time = datetime.now()
         elapsed_seconds = (current_time - start_time).total_seconds()
-        print(f"\n🛑 Training stopped by user (Ctrl+C)")
+        print(f"\n🛑 Training stopped by user (Ctrl+G)")
         print(f"⏱️ Total duration: {elapsed_seconds/3600:.2f} hours")
         print(f"📊 Total sessions completed: {session_count}")
         

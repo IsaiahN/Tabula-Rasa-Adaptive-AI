@@ -821,6 +821,19 @@ class ContinuousLearningLoop:
             'extension_threshold': 0.1  # 10% progress threshold
         }
         
+        # Initialize API client
+        if self.api_key:
+            try:
+                from .arc_api_client_fixed import ARCClient
+                self.api_client = ARCClient(api_key=self.api_key)
+                print("✅ ARC API client initialized")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize ARC API client: {e}")
+                self.api_client = None
+        else:
+            print("⚠️ No API key available for ARC API client")
+            self.api_client = None
+        
         # Initialize scorecard API manager
         if self.api_key:
             try:
@@ -3995,29 +4008,10 @@ class ContinuousLearningLoop:
                 return []
             
             # Get current game state to check if it's unfinished
-            current_game_state = await self.api_client.get_game_state()
-            if not current_game_state.get('success'):
-                logger.warning("Failed to get current game state")
-                return []
-            
-            game_state = current_game_state.get('game_state', {})
-            state = game_state.get('state', 'UNKNOWN')
-            
-            unfinished_games = []
-            if state == 'NOT_FINISHED':
-                unfinished_games.append({
-                    'game_id': game_state.get('game_id'),
-                    'state': state,
-                    'score': game_state.get('score', 0),
-                    'win_score': game_state.get('win_score', 0),
-                    'available_actions': game_state.get('available_actions', []),
-                    'frame': game_state.get('frame', 0),
-                    'guid': game_state.get('guid'),
-                    'can_resume': True
-                })
-                logger.info(f"Found unfinished game: {game_state.get('game_id')} (score: {game_state.get('score', 0)})")
-            
-            return unfinished_games
+            # Note: ARCClient doesn't have get_game_state, we'll skip this check for now
+            # For now, return empty list since we can't check current state
+            logger.warning("Cannot check current game state - ARCClient doesn't have get_game_state method")
+            return []
             
         except Exception as e:
             logger.error(f"Error getting unfinished games: {e}")
@@ -4042,26 +4036,9 @@ class ContinuousLearningLoop:
                 return {'error': 'No API client available', 'success': False}
             
             # Get current game state
-            current_game_state = await self.api_client.get_game_state()
-            if not current_game_state.get('success'):
-                return {'error': 'Failed to get game state', 'success': False}
-            
-            game_state = current_game_state.get('game_state', {})
-            if game_state.get('game_id') != game_id:
-                return {'error': f'Game ID mismatch: expected {game_id}, got {game_state.get("game_id")}', 'success': False}
-            
-            state = game_state.get('state', 'UNKNOWN')
-            if state != 'NOT_FINISHED':
-                return {'error': f'Game is not in NOT_FINISHED state: {state}', 'success': False}
-            
-            logger.info(f"Resuming game {game_id} from state {state} with score {game_state.get('score', 0)}")
-            
-            # Continue the game from where it left off
-            return await self.start_training_with_direct_control(
-                game_id=game_id,
-                max_actions_per_game=max_actions,
-                session_count=0
-            )
+            # Note: ARCClient doesn't have get_game_state method
+            # For now, return error since we can't check current state
+            return {'error': 'Cannot check current game state - ARCClient missing get_game_state method', 'success': False}
             
         except Exception as e:
             logger.error(f"Error resuming game {game_id}: {e}")
@@ -13313,8 +13290,9 @@ class ContinuousLearningLoop:
             integration = get_system_integration()
             
             # Load session history from database
-            sessions = integration.get_session_status()
-            self.session_history = [session for session in sessions if session.get('status') == 'completed']
+            # Note: This is called during initialization, so we can't use await here
+            # For now, initialize with empty history - will be loaded later when needed
+            self.session_history = []
             
             # Load global training sessions from database
             # Note: This is called during initialization, so we can't use await here
@@ -16501,7 +16479,8 @@ class ContinuousLearningLoop:
         self, 
         game_id: str,
         max_actions_per_game: int = ActionLimits.get_max_actions_per_game(),
-        session_count: int = 0
+        session_count: int = 0,
+        duration_minutes: int = None
     ) -> Dict[str, Any]:
         """Run training session with direct API action control instead of external main.py."""
         print(f"\n🔧 DEBUG: STARTING DIRECT CONTROL TRAINING for {game_id}")
@@ -16534,18 +16513,9 @@ class ContinuousLearningLoop:
             current_game_state = None
             if existing_guid:
                 try:
-                    current_game_state = await self.api_client.get_game_state()
-                    if current_game_state and current_game_state.get('success'):
-                        game_state = current_game_state.get('game_state', {})
-                        current_status = game_state.get('state', 'UNKNOWN')
-                        print(f" Current game status: {current_status}")
-                        
-                        # Only allow new games when status is GAME_OVER or WIN
-                        if current_status not in ['GAME_OVER', 'WIN']:
-                            print(f" Cannot start new game - current status is {current_status}. Must be GAME_OVER or WIN to start new game.")
-                            return {"error": f"Cannot start new game - current status is {current_status}. Must be GAME_OVER or WIN.", "actions_taken": 0}
-                    else:
-                        print(f" Could not get current game state, proceeding with new game")
+                    # Note: ARCClient doesn't have get_game_state method
+                    # Skip checking current game state for now
+                    print(f" Skipping current game state check - ARCClient missing get_game_state method")
                 except Exception as e:
                     print(f" Error getting current game state: {e}, proceeding with new game")
             
@@ -16624,9 +16594,14 @@ class ContinuousLearningLoop:
                     'termination_reason': None
                 })
             
+            # Add duration tracking if specified
+            start_time = time.time() if duration_minutes else None
+            duration_seconds = duration_minutes * 60 if duration_minutes else None
+            
             while (actions_taken < actual_max_actions and 
                 current_state not in ['WIN', 'GAME_OVER'] and
-                current_score < 100):  # Reasonable win condition
+                current_score < 100 and  # Reasonable win condition
+                (duration_seconds is None or (time.time() - start_time) < duration_seconds)):
                 
                 # Check for shutdown request first - BEFORE any action processing
                 if self._shutdown_requested:
@@ -16636,6 +16611,13 @@ class ContinuousLearningLoop:
                 # CRITICAL: Always check current available actions from the latest response
                 # Increment action counter (use local session counter, not global)
                 actions_taken += 1
+                
+                # Duration feedback
+                if duration_seconds:
+                    elapsed_time = time.time() - start_time
+                    remaining_time = duration_seconds - elapsed_time
+                    if actions_taken % 10 == 0:  # Show every 10 actions
+                        print(f"⏱️ Duration: {elapsed_time/60:.1f}m elapsed, {remaining_time/60:.1f}m remaining")
                 
                 # PROGRESS-BASED CAP EXTENSION: Check if we should extend the cap due to progress
                 if hasattr(self, '_action_cap_system') and self._action_cap_system['enabled']:
@@ -16682,23 +16664,23 @@ class ContinuousLearningLoop:
                     
                 print(f" Available: {available_actions}")
                 
-                #  SMART EARLY TERMINATION - Check if we should stop due to lack of progress
-                if hasattr(self, '_should_terminate_early'):
-                    should_terminate, termination_reason = self._should_terminate_early(current_score, actions_taken)
-                    if should_terminate:
-                        print(f" EARLY TERMINATION: {termination_reason}")
-                        if hasattr(self, '_progress_tracker'):
-                            self._progress_tracker['termination_reason'] = termination_reason
-                        
-                        # Analyze why we got stuck
-                        if hasattr(self, '_analyze_stagnation_cause'):
-                            stagnation_analysis = self._analyze_stagnation_cause(game_id, action_history)
-                            print(f" STAGNATION ANALYSIS:")
-                            print(f"   Patterns: {stagnation_analysis.get('stagnation_patterns', [])}")
-                            print(f"   Effectiveness: {stagnation_analysis.get('action_effectiveness', {})}")
-                            print(f"   Suggested Fixes: {stagnation_analysis.get('suggested_fixes', [])}")
-                        
-                        break
+                #  SMART EARLY TERMINATION - DISABLED to allow games to play through completely
+                # if hasattr(self, '_should_terminate_early'):
+                #     should_terminate, termination_reason = self._should_terminate_early(current_score, actions_taken)
+                #     if should_terminate:
+                #         print(f" EARLY TERMINATION: {termination_reason}")
+                #         if hasattr(self, '_progress_tracker'):
+                #             self._progress_tracker['termination_reason'] = termination_reason
+                #         
+                #         # Analyze why we got stuck
+                #         if hasattr(self, '_analyze_stagnation_cause'):
+                #             stagnation_analysis = self._analyze_stagnation_cause(game_id, action_history)
+                #             print(f" STAGNATION ANALYSIS:")
+                #             print(f"   Patterns: {stagnation_analysis.get('stagnation_patterns', [])}")
+                #             print(f"   Effectiveness: {stagnation_analysis.get('action_effectiveness', {})}")
+                #             print(f"   Suggested Fixes: {stagnation_analysis.get('suggested_fixes', [])}")
+                #         
+                #         break
                 
                 # 🧠 GOVERNOR INTEGRATION - Get Governor recommendations before action selection
                 governor_recommendation = None
@@ -16985,47 +16967,57 @@ class ContinuousLearningLoop:
                         # Reset action history after successful action
                         self.available_actions_memory['action_history'] = []
                     
-                    # CRITICAL FIX: Detect infinite loops and break out
+                    # CRITICAL FIX: Detect infinite loops based on repeated identical actions with same coordinates
                     if not was_effective:
-                        # Track consecutive ineffective actions
-                        if 'ineffective_count' not in self.available_actions_memory:
-                            self.available_actions_memory['ineffective_count'] = 0
+                        # Track consecutive identical actions (action + coordinates)
+                        # Use the actual action that was taken (6 for ACTION6)
+                        current_action_key = f"6({x},{y})" if x is not None and y is not None else "6"
                         
-                        self.available_actions_memory['ineffective_count'] += 1
+                        if 'consecutive_identical_actions' not in self.available_actions_memory:
+                            self.available_actions_memory['consecutive_identical_actions'] = {}
                         
-                        # If too many ineffective actions, try a different strategy
-                        if self.available_actions_memory['ineffective_count'] > 20:  # Reduced from 50 to 20
-                            print(f"🔄 INFINITE LOOP DETECTED: {self.available_actions_memory['ineffective_count']} ineffective actions")
-                            
-                            # Reset to use historical patterns more aggressively
-                            self.available_actions_memory['ineffective_count'] = 0
-                            self.available_actions_memory['action_history'] = []
-                            
-                            # Force a different action strategy
-                            print(f"🔄 FORCING STRATEGY CHANGE for {game_id}")
-                            return  # This will cause the system to restart with fresh strategy
-                    else:
-                        # Reset ineffective count on successful action
-                        self.available_actions_memory['ineffective_count'] = 0
-                    
-                    # CRITICAL FIX: Detect infinite loops and break out
-                    if actions_taken > 1000 and score_improvement == 0:
-                        print(f"🔄 INFINITE LOOP DETECTED: {actions_taken} actions with no score improvement")
-                        print(f"🛑 BREAKING OUT OF LOOP - Resetting game state")
+                        if 'last_action_key' not in self.available_actions_memory:
+                            self.available_actions_memory['last_action_key'] = None
                         
-                        # Reset the game to break the loop
-                        reset_result = await self._send_reset_action(game_id)
-                        if reset_result and reset_result.get('success'):
-                            print(f"✅ GAME RESET SUCCESSFUL - Breaking infinite loop")
-                            # Reset action history to start fresh
-                            self.available_actions_memory['action_history'] = []
-                            # Update state from reset
-                            current_state = reset_result.get('state', 'NOT_FINISHED')
-                            current_score = reset_result.get('score', 0)
-                            available_actions = reset_result.get('available_actions', [])
-                            actions_taken = 0  # Reset action counter
+                        # Check if this is the same action as the last one
+                        if self.available_actions_memory['last_action_key'] == current_action_key:
+                            if current_action_key not in self.available_actions_memory['consecutive_identical_actions']:
+                                self.available_actions_memory['consecutive_identical_actions'][current_action_key] = 0
+                            self.available_actions_memory['consecutive_identical_actions'][current_action_key] += 1
                         else:
-                            print(f"❌ GAME RESET FAILED - Continuing with current state")
+                            # Different action, reset counters
+                            self.available_actions_memory['consecutive_identical_actions'] = {current_action_key: 1}
+                        
+                        self.available_actions_memory['last_action_key'] = current_action_key
+                        
+                        # Check for infinite loop: 500+ identical actions with same coordinates
+                        if self.available_actions_memory['consecutive_identical_actions'][current_action_key] > 500:
+                            print(f"🔄 INFINITE LOOP DETECTED: {self.available_actions_memory['consecutive_identical_actions'][current_action_key]} identical actions: {current_action_key}")
+                            
+                            # Reset counters and force different strategy
+                            self.available_actions_memory['consecutive_identical_actions'] = {}
+                            self.available_actions_memory['last_action_key'] = None
+                            self.available_actions_memory['action_history'] = []
+                            
+                            # Force a different action strategy - try random coordinates
+                            print(f"🔄 FORCING STRATEGY CHANGE for {game_id} - switching to random exploration")
+                            self.available_actions_memory['force_random_exploration'] = True
+                    else:
+                        # Reset counters on successful action
+                        self.available_actions_memory['consecutive_identical_actions'] = {}
+                        self.available_actions_memory['last_action_key'] = None
+                    
+                    # CRITICAL FIX: Detect infinite loops based on total actions with no progress
+                    if actions_taken > 5000 and score_improvement == 0:  # Increased to 5000 total actions
+                        print(f"🔄 INFINITE LOOP DETECTED: {actions_taken} total actions with no score improvement")
+                        print(f"🔄 FORCING STRATEGY CHANGE - switching to random exploration")
+                        
+                        # Force random exploration instead of resetting
+                        self.available_actions_memory['force_random_exploration'] = True
+                        self.available_actions_memory['action_history'] = []
+                        self.available_actions_memory['consecutive_identical_actions'] = {}
+                        self.available_actions_memory['last_action_key'] = None
+                        print(f"✅ STRATEGY CHANGE APPLIED - continuing with random exploration")
                     
                     # Update simulation agent with action outcome
                     if self.simulation_agent:
