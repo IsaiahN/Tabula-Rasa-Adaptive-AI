@@ -4770,14 +4770,8 @@ class ContinuousLearningLoop:
         
         print(f"🎯 COORDINATE-BASED ACTION SELECTION for {game_id}")
         
-        # Get grid dimensions from frame data
-        frame = response_data.get('frame', [])
-        if not frame:
-            print("⚠️ No frame data available, using default grid size")
-            grid_width, grid_height = 64, 64
-        else:
-            grid_height = len(frame)
-            grid_width = len(frame[0]) if frame and len(frame) > 0 else 64
+        # Get grid dimensions using proper normalization
+        grid_width, grid_height = self._extract_grid_dimensions(response_data)
         
         print(f"🎯 Grid dimensions: {grid_width}x{grid_height}")
         
@@ -6449,17 +6443,22 @@ class ContinuousLearningLoop:
                         for goal in goal_results['new_goals']:
                             print(f"   New goal: {goal.description} (priority: {goal.priority:.2f})")
                     
-                    # CRITICAL: Enhanced terminal state handling with retry logic
+                    # CRITICAL: Enhanced terminal state handling - CONTINUE PLAYING SAME GAME
                     if game_state in ['WIN', 'GAME_OVER']:
                         print(f" Game {game_id} reached terminal state: {game_state}")
+                        print(f"🔄 CONTINUING WITH SAME GAME - Starting new session on {game_id}")
                         
-                        # If it's GAME_OVER and we haven't tried many sessions, try contrarian strategy
-                        if game_state == 'GAME_OVER' and session_count < 2 and current_score < 10:
-                            print(f" Early GAME_OVER detected - activating contrarian strategy for retry")
-                            self.contrarian_strategy_active = True
-                            # Don't break, let it try one more session with different strategy
-                        else:
-                            break
+                        # Reset game state and continue with same game
+                        if game_state == 'GAME_OVER':
+                            print(f" GAME_OVER detected - resetting and continuing with {game_id}")
+                            # Clear current session and start fresh
+                            if game_id in self.current_game_sessions:
+                                del self.current_game_sessions[game_id]
+                        elif game_state == 'WIN':
+                            print(f" WIN detected - continuing with {game_id} to achieve more wins")
+                        
+                        # Don't break - continue with same game
+                        continue
                     
                     # INTELLIGENT RESET LOGIC: Check if we should reset due to frame stagnation
                     if self._should_reset_due_to_stagnation(session_result, game_id):
@@ -10050,8 +10049,8 @@ class ContinuousLearningLoop:
             logger.info(f"🧠 Started cross-session learning: {self.learning_session_id}")
         
         try:
-            # Check if SWARM mode should be used based on configuration
-            if session.swarm_enabled and len(session.games_to_play) > 2:
+            # FORCE SEQUENTIAL MODE - Always play ONE game at a time to completion
+            if False and session.swarm_enabled and len(session.games_to_play) > 2:
                 print(f"\n SWARM MODE ENABLED for {len(session.games_to_play)} games")
                 swarm_results = await self.run_swarm_mode(
                     session.games_to_play,
@@ -10099,20 +10098,13 @@ class ContinuousLearningLoop:
                     session.target_performance
                 )
                 
-                # Check if game ended and we should continue
+                # Check if game ended - this is expected for single game sessions
                 game_state = game_results.get('final_performance', {}).get('final_state', 'UNKNOWN')
-                if game_state in ['GAME_OVER', 'WIN', 'FULL_GAME_WIN']:
-                    print(f"🎮 Game {game_id} ended with GAME_OVER - continuing to next game")
-                    # Don't break, just continue to next game
-                elif game_state == 'FULL_GAME_WIN':
-                    print(f"🏆 Game {game_id} ended with FULL GAME WIN - continuing to next game")
-                    # Don't break, just continue to next game
-                elif game_state == 'LEVEL_WIN':
-                    print(f"🎯 Game {game_id} ended with LEVEL WIN - continuing to next game")
-                    # Don't break, just continue to next game
-                elif game_state == 'WIN':
-                    print(f"✅ Game {game_id} ended with WIN - continuing to next game")
-                    # Don't break, just continue to next game
+                if game_state in ['GAME_OVER', 'WIN', 'FULL_GAME_WIN', 'LEVEL_WIN']:
+                    print(f"🎮 Game {game_id} ended with {game_state} - SESSION COMPLETE")
+                    print(f"🏁 SINGLE GAME SESSION FINISHED - Session complete")
+                else:
+                    print(f"🎮 Game {game_id} session completed - continuing with same game")
                 
                 session_results['games_played'][game_id] = game_results
                 

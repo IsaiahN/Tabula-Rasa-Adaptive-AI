@@ -11,6 +11,7 @@ Features:
 - Enhanced learning across games
 - Graceful shutdown
 - Simple and stable
+- DIRECT API CONTROL (no subprocess parallel execution)
 
 Usage:
     python run_9hour_simple_training.py
@@ -18,7 +19,6 @@ Usage:
 
 import os
 import sys
-import subprocess
 import time
 import asyncio
 import signal
@@ -38,6 +38,7 @@ except ImportError:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from database.system_integration import get_system_integration
 from database.db_initializer import ensure_database_ready
+from arc_integration.continuous_learning_loop import ContinuousLearningLoop
 
 # Global shutdown flag
 shutdown_requested = False
@@ -50,18 +51,12 @@ def signal_handler(signum, frame):
     print("🛑 Training will stop after current session completes...")
     print("🛑 Press Ctrl+C again to force immediate exit")
 
-def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[str, Any]:
-    """Run a single training session with specific parameters."""
-    print(f"Starting training session #{session_id}")
-    
-    # Set environment variables for optimal performance
-    env = os.environ.copy()
-    env['PYTHONUNBUFFERED'] = '1'
-    env['PYTHONIOENCODING'] = 'utf-8'
-    env['TRAINING_SESSION_ID'] = str(session_id)
+async def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[str, Any]:
+    """Run a single training session with direct API control (no subprocess)."""
+    print(f"🚀 Starting DIRECT API training session #{session_id}")
     
     # Ensure API key is available
-    if 'ARC_API_KEY' not in env:
+    if 'ARC_API_KEY' not in os.environ:
         print("❌ ARC_API_KEY not found in environment variables")
         return {
             'session_id': session_id,
@@ -71,45 +66,69 @@ def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[st
             'error': 'ARC_API_KEY not found in environment variables'
         }
     else:
-        print(f"✅ ARC_API_KEY found: {env['ARC_API_KEY'][:10]}...")
-    
-    # Build the command with OPTIMIZED INTELLIGENCE settings
-    cmd = [
-        'python', 'master_arc_trainer.py',
-        '--mode', 'maximum-intelligence',
-        '--session-duration', str(duration_minutes),
-        '--max-actions', '500',         # Optimized action limit for better learning
-        '--max-cycles', '100',        # Moderate cycles
-        '--target-score', '85.0',     # Target score
-            # Enhanced Space-Time Governor is now the default (no disable flag needed)
-        '--enable-detailed-monitoring',
-        '--salience-threshold', '0.4',
-        '--salience-decay', '0.95',
-        '--memory-size', '512',
-        '--memory-word-size', '64',
-        '--memory-read-heads', '4',
-        '--memory-write-heads', '1',
-        '--dashboard', 'console',
-        '--verbose'
-    ]
+        print(f"✅ ARC_API_KEY found: {os.environ['ARC_API_KEY'][:10]}...")
     
     start_time = time.time()
     
     try:
-        # Run the training without capturing output to avoid encoding issues
-        process = subprocess.run(cmd, env=env, check=False)
+        # Initialize the continuous learning loop directly
+        print(f"🔧 Initializing ContinuousLearningLoop for session #{session_id}")
+        
+        # Get the current directory paths
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        arc_agents_path = os.path.join(current_dir, "ARC-AGI-3-Agents")
+        tabula_rasa_path = current_dir
+        
+        learning_loop = ContinuousLearningLoop(
+            arc_agents_path=arc_agents_path,
+            tabula_rasa_path=tabula_rasa_path,
+            api_key=os.environ.get('ARC_API_KEY')
+        )
+        
+        # Ensure the system is initialized
+        learning_loop._ensure_initialized()
+        
+        # Get available games
+        available_games = await learning_loop.get_available_games()
+        if not available_games:
+            print("❌ No available games found")
+            return {
+                'session_id': session_id,
+                'return_code': -1,
+                'duration': time.time() - start_time,
+                'success': False,
+                'error': 'No available games found'
+            }
+        
+        # Select a single game for this session
+        selected_game = available_games[0]  # Always use the first available game
+        game_id = selected_game['game_id']  # Extract the game_id string
+        print(f"🎮 Selected game: {selected_game['title']} ({game_id})")
+        
+        # Run training with direct control
+        print(f"🎯 Starting direct API training for {duration_minutes} minutes...")
+        result = await learning_loop.start_training_with_direct_control(
+            game_id=game_id,
+            max_actions_per_game=500,  # Optimized action limit
+            session_count=session_id
+        )
         
         duration = time.time() - start_time
         
+        # Check if training was successful
+        success = result is not None and 'error' not in result
+        
         return {
             'session_id': session_id,
-            'return_code': process.returncode,
+            'return_code': 0 if success else -1,
             'duration': duration,
-            'success': process.returncode == 0
+            'success': success,
+            'result': result
         }
         
     except Exception as e:
         duration = time.time() - start_time
+        print(f"❌ Error in training session #{session_id}: {e}")
         return {
             'session_id': session_id,
             'return_code': -1,
@@ -118,8 +137,8 @@ def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[st
             'error': str(e)
         }
 
-def main():
-    """Main function for simple 9-hour training."""
+async def main():
+    """Main function for simple 9-hour training with direct API control."""
     global shutdown_requested
     
     # Setup signal handlers for graceful shutdown
@@ -132,17 +151,18 @@ def main():
     print("TABULA RASA - SIMPLE 9 HOUR CONTINUOUS TRAINING")
     print("=" * 80)
     print()
-    print("Starting simple sequential training session...")
-    print("Duration: 9 hours (540 minutes)")
-    print("Mode: Sequential with multiple games per hour")
-    print("Features: Enhanced learning, stable execution, graceful shutdown")
-    print("Database: Enabled (no more JSON files)")
+    print("🚀 Starting DIRECT API sequential training session...")
+    print("⏱️ Duration: 9 hours (540 minutes)")
+    print("🎯 Mode: Sequential with direct API control (NO subprocess parallel execution)")
+    print("✨ Features: Enhanced learning, stable execution, graceful shutdown")
+    print("💾 Database: Enabled (no more JSON files)")
+    print("🔒 GUARANTEED: Single-threaded execution - no parallel _train_on_game calls")
     
     # Ensure database is ready before starting training
     print("🔍 Checking database initialization...")
     if not ensure_database_ready():
         print("❌ Database initialization failed. Training cannot proceed.")
-        return
+        return 1
     
     # Record start time
     start_time = datetime.now()
@@ -151,9 +171,9 @@ def main():
     print("Press Ctrl+C to stop gracefully")
     print()
     
-    # Configuration
+    # Configuration - SINGLE SESSION FOCUS
     total_duration = 9 * 60 * 60  # 9 hours in seconds
-    session_duration = 60  # 60 minutes per session (increased for game completion)
+    session_duration = 60  # 60 minutes per session
     sessions_per_hour = 1  # 1 session per hour (focused on single games)
     total_sessions = 9 * sessions_per_hour  # 9 total sessions
     
@@ -162,6 +182,7 @@ def main():
     print(f"   • Session duration: {session_duration} minutes")
     print(f"   • Sessions per hour: {sessions_per_hour}")
     print(f"   • Total games: {total_sessions}")
+    print(f"   • Execution: DIRECT API (no subprocess parallel execution)")
     print()
     
     all_results = []
@@ -195,11 +216,11 @@ def main():
             print("=" * 80)
             print(f"⏰ Time remaining: {remaining_hours:.2f} hours")
             print(f"🕐 Session started: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"🎮 Starting training session...")
+            print(f"🎮 Starting DIRECT API training session...")
             print()
             
-            # Run training session
-            result = run_training_session(session_count, session_duration)
+            # Run training session with direct API control
+            result = await run_training_session(session_count, session_duration)
             all_results.append(result)
             
             # Display result
@@ -225,7 +246,7 @@ def main():
                 break
             
             # Brief pause between sessions
-            time.sleep(2)
+            await asyncio.sleep(2)
             
     except KeyboardInterrupt:
         current_time = datetime.now()
@@ -256,6 +277,7 @@ def main():
         print(f"   🎯 Success rate: {successful_sessions/len(all_results)*100:.1f}%")
         print(f"   ⏱️ Total training time: {total_duration/3600:.2f} hours")
         print(f"   📈 Average session duration: {avg_duration:.1f}s")
+        print(f"   🔒 Execution mode: DIRECT API (single-threaded)")
         
         # Database-only mode: No file saving
         print(f"\n💾 Results saved to database")
@@ -264,4 +286,4 @@ def main():
     return 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(asyncio.run(main()))
