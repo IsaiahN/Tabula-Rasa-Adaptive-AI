@@ -400,13 +400,19 @@ class TabulaRasaDatabase:
         """Log system event."""
         async with self.get_connection() as conn:
             try:
+                # Custom JSON encoder to handle datetime objects
+                def json_serializer(obj):
+                    if isinstance(obj, datetime):
+                        return obj.isoformat()
+                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+                
                 conn.execute("""
                     INSERT INTO system_logs
                     (log_level, component, message, data, session_id, game_id, timestamp)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
                     level.value, component.value, message,
-                    json.dumps(data) if data else None,
+                    json.dumps(data, default=json_serializer) if data else None,
                     session_id, game_id, datetime.now()
                 ))
                 conn.commit()

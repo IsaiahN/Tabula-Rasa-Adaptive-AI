@@ -2304,6 +2304,60 @@ class FrameAnalyzer:
                     self.exploration_complete = True
                     print(f"✅ EXPLORATION COMPLETE (via productivity override)")
                     return None
+        else:
+            # If coordinate not in results yet, check if it's been tried many times in the main system
+            # This handles the case where the exploration phase is selecting coordinates that haven't been tracked yet
+            # but have been tried many times in the main learning loop
+            if hasattr(self, 'coordinate_stagnation') and game_id in self.coordinate_stagnation:
+                stagnation_data = self.coordinate_stagnation[game_id]
+                recent_coords = stagnation_data.get('recent_coordinates', [])
+                coord_failures = stagnation_data.get('coordinate_failures', {})
+                
+                # Check if this coordinate has been tried many times
+                if coord_key in coord_failures and coord_failures[coord_key] >= 3:
+                    print(f"🎯 STAGNATION OVERRIDE: Coordinate ({center_x},{center_y}) has {coord_failures[coord_key]} failures")
+                    print(f"   Marking color {target_color} as explored and moving to next color")
+                    
+                    # Mark this color as explored to move on
+                    self.explored_color_objects.add(target_color)
+                    
+                    # Try to find next unexplored color immediately
+                    new_unexplored = unique_colors - self.explored_color_objects
+                    if new_unexplored:
+                        print(f"   Moving to next unexplored color from {sorted(list(new_unexplored))}")
+                        return None
+                    else:
+                        # No more colors to explore
+                        self.exploration_phase = False
+                        self.exploration_complete = True
+                        print(f"✅ EXPLORATION COMPLETE (via stagnation override)")
+                        return None
+            
+            # Additional check: if coordinate has been tried many times in recent coordinates
+            if hasattr(self, 'coordinate_stagnation') and game_id in self.coordinate_stagnation:
+                stagnation_data = self.coordinate_stagnation[game_id]
+                recent_coords = stagnation_data.get('recent_coordinates', [])
+                
+                if coord_key in recent_coords:
+                    coord_count = recent_coords.count(coord_key)
+                    if coord_count >= 3:
+                        print(f"🎯 RECENT REPETITION OVERRIDE: Coordinate ({center_x},{center_y}) repeated {coord_count} times recently")
+                        print(f"   Marking color {target_color} as explored and moving to next color")
+                        
+                        # Mark this color as explored to move on
+                        self.explored_color_objects.add(target_color)
+                        
+                        # Try to find next unexplored color immediately
+                        new_unexplored = unique_colors - self.explored_color_objects
+                        if new_unexplored:
+                            print(f"   Moving to next unexplored color from {sorted(list(new_unexplored))}")
+                            return None
+                        else:
+                            # No more colors to explore
+                            self.exploration_phase = False
+                            self.exploration_complete = True
+                            print(f"✅ EXPLORATION COMPLETE (via repetition override)")
+                            return None
         
         # Create exploration target
         exploration_target = {

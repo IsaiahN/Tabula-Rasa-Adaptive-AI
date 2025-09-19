@@ -21,6 +21,7 @@ import sys
 import subprocess
 import time
 import asyncio
+import signal
 from datetime import datetime
 from typing import Dict, List, Any
 import json
@@ -37,6 +38,17 @@ except ImportError:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from database.system_integration import get_system_integration
 from database.db_initializer import ensure_database_ready
+
+# Global shutdown flag
+shutdown_requested = False
+
+def signal_handler(signum, frame):
+    """Handle graceful shutdown signals."""
+    global shutdown_requested
+    print(f"\n🛑 GRACEFUL SHUTDOWN REQUESTED (Signal: {signum})")
+    shutdown_requested = True
+    print("🛑 Training will stop after current session completes...")
+    print("🛑 Press Ctrl+C again to force immediate exit")
 
 def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[str, Any]:
     """Run a single training session with specific parameters."""
@@ -108,6 +120,14 @@ def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[st
 
 def main():
     """Main function for simple 9-hour training."""
+    global shutdown_requested
+    
+    # Setup signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
+    if hasattr(signal, 'SIGBREAK'):  # Windows
+        signal.signal(signal.SIGBREAK, signal_handler)
+    
     print("=" * 80)
     print("TABULA RASA - SIMPLE 9 HOUR CONTINUOUS TRAINING")
     print("=" * 80)
@@ -148,9 +168,12 @@ def main():
     session_count = 0
     
     try:
-        while session_count < total_sessions:
-            # Check for shutdown request first (will be checked in run_training_session)
-            # The shutdown check is handled within the training session itself
+        while session_count < total_sessions and not shutdown_requested:
+            # Check for shutdown request first
+            if shutdown_requested:
+                print(f"\n🛑 SHUTDOWN REQUESTED - Stopping training gracefully")
+                print(f"Completed {session_count} sessions before shutdown")
+                break
                 
             # Check if 9 hours have elapsed
             current_time = datetime.now()
@@ -194,6 +217,12 @@ def main():
             print(f"📊 Progress: {len(all_results)}/{total_sessions} sessions")
             print(f"✅ Success rate: {success_rate:.1f}%")
             print()
+            
+            # Check for shutdown request after each session
+            if shutdown_requested:
+                print(f"\n🛑 SHUTDOWN REQUESTED - Stopping training gracefully")
+                print(f"Completed {session_count} sessions before shutdown")
+                break
             
             # Brief pause between sessions
             time.sleep(2)

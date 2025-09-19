@@ -269,18 +269,23 @@ except ImportError as e:
     TreeEvaluationConfig = None
 # Import FrameAnalyzer
 try:
-    from vision.frame_analyzer import FrameAnalyzer
+    from src.vision.frame_analyzer import FrameAnalyzer
 except ImportError:
-    # Fallback FrameAnalyzer if the main one isn't available
-    class FrameAnalyzer:
-        def __init__(self):
-            pass
-        def analyze_frame(self, frame, game_id):
-            return {}
-        def reset_coordinate_tracking(self):
-            pass
-        def reset_for_new_game(self, game_id):
-            pass
+    try:
+        from vision.frame_analyzer import FrameAnalyzer
+    except ImportError:
+        # Fallback stub if import fails
+        class FrameAnalyzer:
+            def __init__(self):
+                pass
+            def analyze_frame(self, frame, game_id):
+                return {}
+            def reset_coordinate_tracking(self):
+                pass
+            def reset_for_new_game(self, game_id):
+                pass
+            def analyze_frame_for_action6_targets(self, frame, game_id):
+                return {}
 
 # Import other required systems
 try:
@@ -454,6 +459,68 @@ class TrainingSession:
     enable_salience_comparison: bool = False
     swarm_enabled: bool = True
 
+
+class PositionTracker:
+    """Tracks agent position and movement for proper ACTION1-4 usage"""
+    def __init__(self):
+        self.x = 32  # Start at center of 64x64 grid
+        self.y = 32
+        self.boundaries = (0, 63)  # Grid boundaries
+        self.visited_positions = set()
+        self.movement_history = []
+    
+    def can_move_up(self):
+        return self.y > 0
+    
+    def can_move_down(self):
+        return self.y < 63
+    
+    def can_move_left(self):
+        return self.x > 0
+    
+    def can_move_right(self):
+        return self.x < 63
+    
+    def move_up(self):
+        if self.can_move_up():
+            self.y -= 1
+            self.visited_positions.add((self.x, self.y))
+            self.movement_history.append((self.x, self.y))
+            return True
+        return False
+    
+    def move_down(self):
+        if self.can_move_down():
+            self.y += 1
+            self.visited_positions.add((self.x, self.y))
+            self.movement_history.append((self.x, self.y))
+            return True
+        return False
+    
+    def move_left(self):
+        if self.can_move_left():
+            self.x -= 1
+            self.visited_positions.add((self.x, self.y))
+            self.movement_history.append((self.x, self.y))
+            return True
+        return False
+    
+    def move_right(self):
+        if self.can_move_right():
+            self.x += 1
+            self.visited_positions.add((self.x, self.y))
+            self.movement_history.append((self.x, self.y))
+            return True
+        return False
+    
+    def get_position(self):
+        return (self.x, self.y)
+    
+    def reset(self):
+        self.x = 32
+        self.y = 32
+        self.visited_positions.clear()
+        self.movement_history.clear()
 
 class ContinuousLearningLoop:
     """
@@ -881,6 +948,9 @@ class ContinuousLearningLoop:
         
         # Initialize frame analyzer
         self.frame_analyzer = FrameAnalyzer()
+        
+        # Initialize position tracker for movement actions
+        self.position_tracker = PositionTracker()
         
         # Initialize frame dynamics analyzer for Director
         self.director_frame_integration = DirectorFrameIntegration()
@@ -2890,6 +2960,12 @@ class ContinuousLearningLoop:
                                             print(f" Reset frame analyzer tracking for new game {game_id}")
                                         except Exception as e:
                                             print(f" Failed to reset frame analyzer: {e}")
+                                    
+                                    # Reset position tracker for new game
+                                    if hasattr(self, 'position_tracker'):
+                                        self.position_tracker.reset()
+                                        print(f"🎯 POSITION TRACKER RESET: Starting at center (32,32) for new game {game_id}")
+                                    
                                     print(f" All actions will now benefit from boundary awareness and coordinate intelligence")
 
                                 return {
@@ -4404,9 +4480,21 @@ class ContinuousLearningLoop:
             logger.warning(f"No available actions for game {game_id}")
             return None
         
-        # CRITICAL FIX: When only ACTION6 is available, treat coordinates as separate actions
-        if available == [6]:
-            print(f"🎯 COORDINATE-BASED ACTION SELECTION: Only ACTION6 available, treating coordinates as actions")
+        # IMPLEMENT PROPER ACTION PRIORITY STRATEGY (per API documentation)
+        # 1. Prefer simple actions first: ACTION1-4 (movement), ACTION5 (context), ACTION7 (undo)
+        # 2. Use ACTION6 only for targeted interaction when no simple actions available
+        
+        # Check if we have simple actions available
+        simple_actions = [1, 2, 3, 4, 5, 7]  # Movement, context, undo
+        available_simple = [action for action in simple_actions if action in available]
+        
+        if available_simple:
+            print(f"🎯 SIMPLE ACTIONS AVAILABLE: {available_simple} - Using proper action priority strategy")
+            return self._select_simple_action(available_simple, response_data, game_id)
+        
+        # Only use ACTION6 if no simple actions available
+        if 6 in available:
+            print(f"🎯 ONLY ACTION6 AVAILABLE: Using coordinate targeting for interaction")
             return self._select_coordinate_based_action(response_data, game_id)
         
         # CRITICAL FIX: Load and apply historical intelligence data
@@ -4592,6 +4680,86 @@ class ContinuousLearningLoop:
             logger.warning(f"Simulation fallback failed: {e}, using intelligent selection")
             return self._select_intelligent_action_with_relevance(available_actions, context)
     
+    def _select_simple_action(self, available_simple: List[int], response_data: Dict[str, Any], game_id: str) -> int:
+        """Select appropriate simple action (1-4 movement, 5 context, 7 undo) following API priority"""
+        print(f"🎯 SELECTING SIMPLE ACTION from {available_simple}")
+        
+        # Priority order: Movement actions first, then context, then undo
+        movement_actions = [1, 2, 3, 4]  # Up, Down, Left, Right
+        context_action = 5
+        undo_action = 7
+        
+        # Try movement actions first
+        available_movement = [action for action in movement_actions if action in available_simple]
+        if available_movement:
+            return self._select_movement_action(available_movement, response_data, game_id)
+        
+        # Try context interaction
+        if context_action in available_simple:
+            print(f"🎯 USING CONTEXT INTERACTION: ACTION5")
+            return context_action
+        
+        # Try undo as last resort
+        if undo_action in available_simple:
+            print(f"🎯 USING UNDO: ACTION7")
+            return undo_action
+        
+        # Fallback to first available action
+        return available_simple[0]
+    
+    def _select_movement_action(self, available_movement: List[int], response_data: Dict[str, Any], game_id: str) -> int:
+        """Select appropriate movement action (1-4) based on position and exploration strategy"""
+        print(f"🎯 SELECTING MOVEMENT ACTION from {available_movement}")
+        
+        # Get current position
+        if not hasattr(self, 'position_tracker') or self.position_tracker is None:
+            print("🎯 WARNING: Position tracker not initialized, using fallback")
+            return available_movement[0] if available_movement else 1
+        
+        current_pos = self.position_tracker.get_position()
+        print(f"🎯 CURRENT POSITION: {current_pos}")
+        
+        # Try to move to unvisited areas first
+        for action in available_movement:
+            if action == 1 and self.position_tracker.can_move_up():  # Up
+                new_pos = (current_pos[0], current_pos[1] - 1)
+                if new_pos not in self.position_tracker.visited_positions:
+                    print(f"🎯 MOVING UP: ACTION1 to unvisited position {new_pos}")
+                    return 1
+            elif action == 2 and self.position_tracker.can_move_down():  # Down
+                new_pos = (current_pos[0], current_pos[1] + 1)
+                if new_pos not in self.position_tracker.visited_positions:
+                    print(f"🎯 MOVING DOWN: ACTION2 to unvisited position {new_pos}")
+                    return 2
+            elif action == 3 and self.position_tracker.can_move_left():  # Left
+                new_pos = (current_pos[0] - 1, current_pos[1])
+                if new_pos not in self.position_tracker.visited_positions:
+                    print(f"🎯 MOVING LEFT: ACTION3 to unvisited position {new_pos}")
+                    return 3
+            elif action == 4 and self.position_tracker.can_move_right():  # Right
+                new_pos = (current_pos[0] + 1, current_pos[1])
+                if new_pos not in self.position_tracker.visited_positions:
+                    print(f"🎯 MOVING RIGHT: ACTION4 to unvisited position {new_pos}")
+                    return 4
+        
+        # If all adjacent positions visited, use exploration pattern
+        # Try to move in a systematic pattern
+        if 1 in available_movement and self.position_tracker.can_move_up():
+            print(f"🎯 EXPLORATION: Moving UP (ACTION1)")
+            return 1
+        elif 2 in available_movement and self.position_tracker.can_move_down():
+            print(f"🎯 EXPLORATION: Moving DOWN (ACTION2)")
+            return 2
+        elif 3 in available_movement and self.position_tracker.can_move_left():
+            print(f"🎯 EXPLORATION: Moving LEFT (ACTION3)")
+            return 3
+        elif 4 in available_movement and self.position_tracker.can_move_right():
+            print(f"🎯 EXPLORATION: Moving RIGHT (ACTION4)")
+            return 4
+        
+        # Fallback to first available movement
+        return available_movement[0]
+
     def _select_coordinate_based_action(self, response_data: Dict[str, Any], game_id: str) -> int:
         """
         CRITICAL FIX: When only ACTION6 is available, treat coordinates as separate actions.
@@ -5307,6 +5475,21 @@ class ContinuousLearningLoop:
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
                                 output.debug(f"Action execution completed for {game_id}")
                                 
+                                # Update position tracker for movement actions
+                                if action_number in [1, 2, 3, 4]:  # Movement actions
+                                    if hasattr(self, 'position_tracker') and self.position_tracker is not None:
+                                        if action_number == 1:  # Up
+                                            self.position_tracker.move_up()
+                                        elif action_number == 2:  # Down
+                                            self.position_tracker.move_down()
+                                        elif action_number == 3:  # Left
+                                            self.position_tracker.move_left()
+                                        elif action_number == 4:  # Right
+                                            self.position_tracker.move_right()
+                                        print(f"🎯 POSITION UPDATED: {self.position_tracker.get_position()}")
+                                    else:
+                                        print("🎯 WARNING: Position tracker not available for movement action")
+                                
                                 # Update coordinate stagnation tracking for ACTION6
                                 if action_number == 6 and x is not None and y is not None:
                                     # Check if this was a successful action (frame changed or score improved)
@@ -5840,6 +6023,21 @@ class ContinuousLearningLoop:
                                 # Log successful action execution
                                 logger.info(f"Successfully executed ACTION{action_number} for {game_id}")
                                 output.debug(f"Action execution completed for {game_id}")
+                                
+                                # Update position tracker for movement actions
+                                if action_number in [1, 2, 3, 4]:  # Movement actions
+                                    if hasattr(self, 'position_tracker') and self.position_tracker is not None:
+                                        if action_number == 1:  # Up
+                                            self.position_tracker.move_up()
+                                        elif action_number == 2:  # Down
+                                            self.position_tracker.move_down()
+                                        elif action_number == 3:  # Left
+                                            self.position_tracker.move_left()
+                                        elif action_number == 4:  # Right
+                                            self.position_tracker.move_right()
+                                        print(f"🎯 POSITION UPDATED: {self.position_tracker.get_position()}")
+                                    else:
+                                        print("🎯 WARNING: Position tracker not available for movement action")
                                 
                                 # Update coordinate stagnation tracking for ACTION6
                                 if action_number == 6 and x is not None and y is not None:
@@ -6442,9 +6640,17 @@ class ContinuousLearningLoop:
             if hasattr(self, 'current_frame_data'):
                 current_frame = getattr(self, 'current_frame_data', None)
             
+            # Also try to get frame from frame_analysis if available
+            if current_frame is None and frame_analysis and 'frame' in frame_analysis:
+                current_frame = frame_analysis['frame']
+                print(f"🔍 FRAME DATA: Retrieved frame from frame_analysis")
+            
+            print(f"🔍 FRAME DATA: current_frame is {'available' if current_frame is not None else 'None'}")
+            
             if current_frame is not None:
                 # Use advanced frame analysis for ACTION6 targeting
                 targeting_analysis = self.frame_analyzer.analyze_frame_for_action6_targets(current_frame, game_id)
+                print(f"🔍 FRAME ANALYZER RESULT: {targeting_analysis}")
 
                 if targeting_analysis and targeting_analysis.get('recommended_action6_coord'):
                     target_x, target_y = targeting_analysis['recommended_action6_coord']
@@ -6455,6 +6661,7 @@ class ContinuousLearningLoop:
                     target_x = max(0, min(grid_width - 1, int(target_x)))
                     target_y = max(0, min(grid_height - 1, int(target_y)))
                     
+                    print(f"🔍 FRAME ANALYZER COORDINATE: ({target_x},{target_y}) - {reason} (confidence: {confidence:.2f})")
                     print(f" VISUAL TARGET SELECTED: ({target_x},{target_y}) - {reason} (confidence: {confidence:.2f})")
                     print(f"    Touching/interacting with visual element at pixel ({target_x},{target_y})")
                     
@@ -9447,6 +9654,36 @@ class ContinuousLearningLoop:
             if pattern_id:
                 print(f"🧠 LEARNED PATTERN: {pattern_id} for ACTION{action_number} (success: {success}, score: {1.0 if success else 0.0:.2f})")
                 logger.debug(f"🧠 Learned action pattern {pattern_id}: ACTION{action_number} {'successful' if success else 'unsuccessful'}")
+                
+                # Save learned pattern to database
+                try:
+                    from src.database.system_integration import get_system_integration
+                    integration = get_system_integration()
+                    logger.info(f"Attempting to save learned pattern for {game_id}: {pattern_id}")
+                    # Create async task for saving learned pattern
+                    task = asyncio.create_task(integration.save_learned_pattern(
+                        pattern_type='action_pattern',
+                        pattern_data={
+                            'pattern_id': pattern_id,
+                            'action_number': action_number,
+                            'success': success,
+                            'score_change': score_change,
+                            'context': context,
+                            'game_id': game_id
+                        },
+                        game_context=game_id,
+                        confidence=1.0 if success else 0.5,
+                        success_rate=1.0 if success else 0.0
+                    ))
+                    # Add to pending tasks for later awaiting
+                    if not hasattr(self, '_pending_tasks'):
+                        self._pending_tasks = []
+                    self._pending_tasks.append(task)
+                    logger.info(f"Created async task for saving learned pattern for {game_id}")
+                except Exception as e:
+                    logger.error(f"Error creating task for learned pattern for {game_id}: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
             else:
                 print(f"🧠 PATTERN LEARNING FAILED: ACTION{action_number} pattern not saved")
                 
@@ -9736,6 +9973,9 @@ class ContinuousLearningLoop:
                 
                 # Mark game as completed for proper scorecard lifecycle management
                 self._mark_game_completed(game_id)
+                
+                # Await any pending async tasks to ensure data is saved
+                await self._await_pending_tasks()
             else:
                 logger.warning(f" No successful episodes for {game_id} - {game_results['error_count']} errors")
             
@@ -9941,6 +10181,9 @@ class ContinuousLearningLoop:
                 logger.info(f"🧠 Ended cross-session learning: {self.learning_session_id}")
                 self.learning_session_id = None
             
+            # Await any pending async tasks to ensure data is saved
+            await self._await_pending_tasks()
+            
             logger.info(f"Completed training session {session_id} - Win rate: {overall_win_rate:.1%}")
             return session_results
             
@@ -9948,6 +10191,8 @@ class ContinuousLearningLoop:
             logger.error(f"Error in continuous learning session: {e}")
             session_results['error'] = str(e)
             session_results['end_time'] = time.time()
+            # Await any pending async tasks even in error case
+            await self._await_pending_tasks()
             return session_results
         finally:
             # Clean up any active HTTP sessions
@@ -11042,23 +11287,27 @@ class ContinuousLearningLoop:
                 
                 # Save winning sequence to database
                 import asyncio
-                # Use create_task instead of run to avoid event loop conflicts
                 try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        # Schedule the coroutine to run in the background
-                        task = asyncio.create_task(integration.save_learned_pattern(
-                            pattern_type='winning_sequence',
-                            pattern_data=winning_sequence,
-                            game_id=game_id,
-                            confidence=1.0,
-                            success_rate=1.0
-                        ))
-                    else:
-                        # Skip if no event loop is running
-                        pass
-                except RuntimeError:
-                    pass  # Skip if event loop issues
+                    from src.database.system_integration import get_system_integration
+                    integration = get_system_integration()
+                    logger.info(f"Attempting to save learned pattern for {game_id}: {winning_sequence}")
+                    # Create async task for saving winning sequence
+                    task = asyncio.create_task(integration.save_learned_pattern(
+                        pattern_type='winning_sequence',
+                        pattern_data=winning_sequence,
+                        game_context=game_id,
+                        confidence=1.0,
+                        success_rate=1.0
+                    ))
+                    # Add to pending tasks for later awaiting
+                    if not hasattr(self, '_pending_tasks'):
+                        self._pending_tasks = []
+                    self._pending_tasks.append(task)
+                    logger.info(f"Created async task for saving winning sequence for {game_id}")
+                except Exception as e:
+                    logger.error(f"Error creating task for winning sequence for {game_id}: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
             except Exception as e:
                 print(f"Failed to save winning sequence to database: {e}")
                 
@@ -11118,25 +11367,24 @@ class ContinuousLearningLoop:
                 from src.database.system_integration import get_system_integration
                 integration = get_system_integration()
                 
-                # Save coordinate pattern to database
-                import asyncio
-                # Use create_task instead of run to avoid event loop conflicts
+                # Save coordinate pattern to database using synchronous method
                 try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        # Schedule the coroutine to run in the background
-                        task = asyncio.create_task(integration.save_coordinate_pattern(
-                            game_id=game_id,
-                            action=action,
-                            x=x,
-                            y=y,
-                            success=success
-                        ))
+                    from src.database.system_integration import get_system_integration
+                    integration = get_system_integration()
+                    # Use asyncio.run to make it synchronous
+                    success = asyncio.run(integration.save_coordinate_pattern(
+                        game_id=game_id,
+                        action=action,
+                        x=x,
+                        y=y,
+                        success=success
+                    ))
+                    if success:
+                        logger.info(f"Successfully saved coordinate pattern for {game_id}")
                     else:
-                        # Skip if no event loop is running
-                        pass
-                except RuntimeError:
-                    pass  # Skip if event loop issues
+                        logger.warning(f"Failed to save coordinate pattern for {game_id}")
+                except Exception as e:
+                    logger.error(f"Error saving coordinate pattern for {game_id}: {e}")
             except Exception as e:
                 print(f"Failed to save coordinate pattern to database: {e}")
             
@@ -11190,21 +11438,38 @@ class ContinuousLearningLoop:
                 'last_updated': time.time()
             }
             
-            # Save to database
-            # Use create_task instead of run to avoid event loop conflicts
+            # Save to database using synchronous method
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Schedule the coroutine to run in the background
-                    task = asyncio.create_task(integration.save_action_intelligence(game_id, game_intelligence))
+                from src.database.memory_safe_operations import get_memory_safe_operations
+                memory_ops = get_memory_safe_operations()
+                # Use synchronous save method
+                success = memory_ops.save_action_intelligence(game_id, game_intelligence)
+                if success:
+                    logger.info(f"Successfully saved action intelligence for {game_id}")
                 else:
-                    # Skip if no event loop is running
-                    pass
-            except RuntimeError:
-                pass  # Skip if event loop issues
+                    logger.warning(f"Failed to save action intelligence for {game_id}")
+            except Exception as e:
+                logger.error(f"Error saving action intelligence for {game_id}: {e}")
             logger.info(f" Saved action intelligence for {game_id}: {len(effective_actions)} effective actions")
         except Exception as e:
             logger.error(f"Failed to save action intelligence for {game_id}: {e}")
+
+    async def _await_pending_tasks(self):
+        """Await all pending async tasks to ensure data is saved."""
+        if hasattr(self, '_pending_tasks') and self._pending_tasks:
+            try:
+                logger.info(f"Awaiting {len(self._pending_tasks)} pending async tasks...")
+                results = await asyncio.gather(*self._pending_tasks, return_exceptions=True)
+                # Log any exceptions that occurred
+                for i, result in enumerate(results):
+                    if isinstance(result, Exception):
+                        logger.error(f"Task {i} failed: {result}")
+                self._pending_tasks.clear()
+                logger.info("All pending tasks completed")
+            except Exception as e:
+                logger.error(f"Error awaiting pending tasks: {e}")
+        else:
+            logger.info("No pending tasks to await")
 
     def display_action_intelligence_summary(self, game_id: Optional[str] = None):
         """Display a summary of learned action intelligence."""
@@ -16561,9 +16826,14 @@ class ContinuousLearningLoop:
                     if x is None or y is None:
                         # Check if coordinates were already selected during action selection (for ACTION6)
                         if selected_action == 6 and hasattr(self, '_selected_coordinates') and game_id in self._selected_coordinates:
-                            x, y = self._selected_coordinates[game_id]
-                            print(f"🎯 REUSING COORDINATES: Using previously selected ({x},{y}) for ACTION6")
-                        elif current_frame_analysis:
+                            # Only reuse coordinates if no frame analysis is available
+                            if current_frame_analysis:
+                                print(f"🎯 FRAME ANALYSIS AVAILABLE: Using FrameAnalyzer instead of stored coordinates")
+                            else:
+                                x, y = self._selected_coordinates[game_id]
+                                print(f"🎯 REUSING COORDINATES: Using previously selected ({x},{y}) for ACTION6")
+                        
+                        if current_frame_analysis:
                             x, y = self._enhance_coordinate_selection_with_frame_analysis(
                                 selected_action, actual_grid_dims, game_id, current_frame_analysis
                             )
