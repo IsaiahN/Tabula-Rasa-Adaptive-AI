@@ -12,10 +12,34 @@ Key Features:
 - Enhanced predictor training with synthetic data
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
+# Lazy imports to avoid torch startup delays
+def _get_torch():
+    try:
+        import torch
+        return torch
+    except ImportError:
+        return None
+
+def _get_torch_nn():
+    try:
+        import torch.nn as nn
+        return nn
+    except ImportError:
+        return None
+
+def _get_torch_functional():
+    try:
+        import torch.nn.functional as F
+        return F
+    except ImportError:
+        return None
+
+def _get_torch_optim():
+    try:
+        import torch.optim as optim
+        return optim
+    except ImportError:
+        return None
 import json
 import logging
 import time

@@ -23,6 +23,17 @@ class PerformanceDataManager:
         self.db_path = db_path
         self._ensure_schema()
     
+    def _convert_sets_to_lists(self, obj):
+        """Convert sets to lists recursively for JSON serialization."""
+        if isinstance(obj, set):
+            return list(obj)
+        elif isinstance(obj, dict):
+            return {key: self._convert_sets_to_lists(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_sets_to_lists(item) for item in obj]
+        else:
+            return obj
+    
     def _ensure_schema(self):
         """Ensure the performance schema is created."""
         try:
@@ -245,7 +256,7 @@ class PerformanceDataManager:
                     coordinate_data.get('coordinate_y'),
                     coordinate_data.get('action_type'),
                     coordinate_data.get('success'),
-                    json.dumps(coordinate_data.get('context', {}))
+                    json.dumps(self._convert_sets_to_lists(coordinate_data.get('context', {})))
                 ))
                 conn.commit()
             return True

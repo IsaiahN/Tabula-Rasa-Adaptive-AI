@@ -56,6 +56,16 @@ except ImportError:
         MAX_ACTIONS_PER_GAME = 1000
         MAX_ACTIONS_PER_SESSION = 1000
         MAX_ACTIONS_PER_SCORECARD = 1000
+
+# Lazy import of arc_integration to avoid torch startup delays
+def get_arc_integration():
+    try:
+        from src.arc_integration import AdaptiveLearningARCAgent, ARCVisualProcessor, ARCActionMapper
+        return AdaptiveLearningARCAgent, ARCVisualProcessor, ARCActionMapper
+    except ImportError as e:
+        print(f"Warning: Could not import arc_integration: {e}")
+        return None, None, None
+
 from datetime import datetime
 
 # Core imports

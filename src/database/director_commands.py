@@ -11,11 +11,36 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from .api import get_database, log_director_decision, get_director_status, get_director_insights
 from .director_training_monitor import get_training_status, detect_training_issues, get_training_recommendations
-try:
-    from ..core.gan_system import PatternAwareGAN, GANTrainingConfig
-except ImportError:
-    # Fallback for when running from root directory
-    from src.core.gan_system import PatternAwareGAN, GANTrainingConfig
+# GAN system imports are optional and will be loaded lazily when needed
+PatternAwareGAN = None
+GANTrainingConfig = None
+
+def _get_gan_classes():
+    """Lazy loader for GAN classes to avoid torch import at startup."""
+    global PatternAwareGAN, GANTrainingConfig
+    if PatternAwareGAN is None:
+        try:
+            from ..core.gan_system import PatternAwareGAN as _PatternAwareGAN, GANTrainingConfig as _GANTrainingConfig
+            PatternAwareGAN = _PatternAwareGAN
+            GANTrainingConfig = _GANTrainingConfig
+        except ImportError:
+            try:
+                from src.core.gan_system import PatternAwareGAN as _PatternAwareGAN, GANTrainingConfig as _GANTrainingConfig
+                PatternAwareGAN = _PatternAwareGAN
+                GANTrainingConfig = _GANTrainingConfig
+            except ImportError:
+                # Define dummy classes if GAN system is not available
+                class PatternAwareGAN:
+                    def __init__(self, *args, **kwargs):
+                        pass
+                
+                class GANTrainingConfig:
+                    def __init__(self, *args, **kwargs):
+                        pass
+                
+                PatternAwareGAN = PatternAwareGAN
+                GANTrainingConfig = GANTrainingConfig
+    return PatternAwareGAN, GANTrainingConfig
 
 # ============================================================================
 # DIRECTOR COMMAND INTERFACE

@@ -99,10 +99,10 @@ def analyze_errors():
     print('=' * 50)
     
     cursor.execute('''
-        SELECT error_type, error_message, timestamp, session_id, game_id
+        SELECT error_type, error_message, last_seen, context, occurrence_count
         FROM error_logs 
-        WHERE timestamp > datetime('now', '-2 hours')
-        ORDER BY timestamp DESC 
+        WHERE last_seen > datetime('now', '-2 hours')
+        ORDER BY last_seen DESC 
         LIMIT 10
     ''')
     
@@ -110,13 +110,11 @@ def analyze_errors():
     if error_logs:
         print(f'📊 Error Logs (last 2 hours): {len(error_logs)}')
         for error in error_logs:
-            error_type, message, timestamp, session_id, game_id = error
-            print(f'   {error_type} | {timestamp}')
+            error_type, message, last_seen, context, count = error
+            print(f'   {error_type} | {last_seen} | Count: {count}')
             print(f'   Message: {message[:100]}...' if len(message) > 100 else f'   Message: {message}')
-            if session_id:
-                print(f'   Session: {session_id}')
-            if game_id:
-                print(f'   Game: {game_id}')
+            if context:
+                print(f'   Context: {context[:100]}...' if len(context) > 100 else f'   Context: {context}')
             print()
     else:
         print('📊 No error logs found in the last 2 hours')

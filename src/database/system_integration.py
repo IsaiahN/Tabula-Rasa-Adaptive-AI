@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
 
-from .api import get_database, TrainingSession, GameResult, ActionEffectiveness, CoordinateIntelligence
+from .api import get_database, TrainingSession, GameResult, ActionEffectiveness, CoordinateIntelligence, LogLevel, Component
 from dataclasses import asdict
 from .director_commands import get_director_commands
 
@@ -41,7 +41,7 @@ class SystemIntegration:
         success = await self.db.create_session(session)
         if success:
             await self.db.log_system_event(
-                "INFO", "learning_loop", f"Created training session {session_id}",
+                LogLevel.INFO, Component.LEARNING_LOOP, f"Created training session {session_id}",
                 {"mode": mode}, session_id
             )
         
@@ -102,7 +102,7 @@ class SystemIntegration:
         success = await self.db.create_game_result(game_result)
         if success:
             await self.db.log_system_event(
-                "INFO", "learning_loop", f"Logged game result for {game_id}",
+                LogLevel.INFO, Component.LEARNING_LOOP, f"Logged game result for {game_id}",
                 result_data, session_id, game_id
             )
         
@@ -138,7 +138,7 @@ class SystemIntegration:
         success = await self.db.update_action_effectiveness(effectiveness)
         if success:
             await self.db.log_system_event(
-                "DEBUG", "learning_loop", f"Updated action {action_number} effectiveness",
+                LogLevel.DEBUG, Component.LEARNING_LOOP, f"Updated action {action_number} effectiveness",
                 {"game_id": game_id, "success_rate": success_rate}, None, game_id
             )
         
@@ -213,7 +213,7 @@ class SystemIntegration:
         success = await self.db.update_coordinate_intelligence(intelligence)
         if success:
             await self.db.log_system_event(
-                "DEBUG", "coordinate_system", f"Updated coordinate ({x},{y}) intelligence",
+                LogLevel.DEBUG, Component.COORDINATE_SYSTEM, f"Updated coordinate ({x},{y}) intelligence",
                 {"game_id": game_id, "success_rate": success_rate}, None, game_id
             )
         
@@ -235,37 +235,12 @@ class SystemIntegration:
     # LOGGING INTEGRATION
     # ============================================================================
     
-    async def log_system_event(self, level: str, component: str, message: str,
+    async def log_system_event(self, level: LogLevel, component: Component, message: str,
                               data: Dict[str, Any] = None, session_id: str = None,
                               game_id: str = None) -> bool:
         """Log system event."""
-        from .api import LogLevel, Component
-        
-        level_map = {
-            "DEBUG": LogLevel.DEBUG,
-            "INFO": LogLevel.INFO,
-            "WARNING": LogLevel.WARNING,
-            "ERROR": LogLevel.ERROR,
-            "CRITICAL": LogLevel.CRITICAL
-        }
-        
-        component_map = {
-            "governor": Component.GOVERNOR,
-            "architect": Component.ARCHITECT,
-            "director": Component.DIRECTOR,
-            "learning_loop": Component.LEARNING_LOOP,
-            "coordinate_system": Component.COORDINATE_SYSTEM,
-            "memory_system": Component.MEMORY_SYSTEM,
-            "system": Component.LEARNING_LOOP,  # Map to existing component
-            "meta_learning": Component.LEARNING_LOOP,  # Map to existing component
-            "game_result": Component.LEARNING_LOOP  # Map to existing component
-        }
-        
-        log_level = level_map.get(level, LogLevel.INFO)
-        log_component = component_map.get(component, Component.LEARNING_LOOP)
-        
         return await self.db.log_system_event(
-            log_level, log_component, message, data, session_id, game_id
+            level, component, message, data, session_id, game_id
         )
     
     async def log_action_trace(self, session_id: str, game_id: str, action_number: int,
@@ -477,8 +452,8 @@ class SystemIntegration:
         try:
             # Log experiment as system event instead of using deleted experiments table
             await self.log_system_event(
-                level="INFO",
-                component="experiment",
+                level=LogLevel.INFO,
+                component=Component.EXPERIMENT,
                 message=f"Experiment: {experiment_name}",
                 data={
                     "experiment_name": experiment_name,
@@ -503,8 +478,8 @@ class SystemIntegration:
         try:
             # Log task performance as system event instead of using deleted task_performance table
             await self.log_system_event(
-                level="INFO",
-                component="task_performance",
+                level=LogLevel.INFO,
+                component=Component.TASK_PERFORMANCE,
                 message=f"Task Performance: {task_id}",
                 data={
                     "task_id": task_id,
@@ -539,7 +514,7 @@ class SystemIntegration:
             success = await self.db.create_game_result(game_result)
             if success:
                 await self.db.log_system_event(
-                    "INFO", "game_result", f"Saved game result for {game_id}",
+                    LogLevel.INFO, Component.GAME_RESULT, f"Saved game result for {game_id}",
                     {"session_id": session_id, "score": final_score, "win_detected": win_detected}, session_id
                 )
             

@@ -738,7 +738,7 @@ class ContinuousLearningLoop:
             'level_progress': 0,
             'recent_effectiveness': 0.0,
             'action_pattern_history': [],
-            'explored_coordinates': set(),
+            'explored_coordinates': [],
             'termination_reason': None
         }
         
@@ -1813,7 +1813,7 @@ class ContinuousLearningLoop:
         # Runtime instrumentation: print action cap system so logs show which config is active
         try:
             # Debug action cap system - only show in debug mode
-            from src.utils.streamlined_output import get_streamlined_output
+            from src.utils.streamlined_output import get_streamlined_output, OutputLevel
             output = get_streamlined_output()
             output.debug(f"Action cap system: {self._action_cap_system}")
         except Exception:
@@ -1828,7 +1828,7 @@ class ContinuousLearningLoop:
             'action_pattern_history': [],  # Last N actions for loop detection
             'score_history': [],  # Last N scores for trend analysis
             'termination_reason': None,
-            'explored_coordinates': set(),  # Track coordinate exploration
+            'explored_coordinates': [],  # Track coordinate exploration
             'recent_improvements': [],  # Track recent score improvements
             'exploration_bonus_used': False  # Track if exploration bonus was applied
         }
@@ -2252,6 +2252,9 @@ class ContinuousLearningLoop:
     
     def _check_progress_and_extend_cap(self, current_score: int, actions_taken: int, current_cap: int, max_actions_per_game: int) -> int:
         """Check if progress is being made and extend the action cap if so."""
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
+        
         if not hasattr(self, '_progress_tracker'):
             return current_cap
             
@@ -2271,9 +2274,9 @@ class ContinuousLearningLoop:
             recent_scores = tracker['score_history'][-min(10, len(tracker['score_history'])):]
             if len(recent_scores) >= 2 and recent_scores[-1] > recent_scores[0]:
                 recent_progress = True
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"📈 Score: {recent_scores[0]} → {recent_scores[-1]}", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                output._print(f"📈 Score: {recent_scores[0]} → {recent_scores[-1]}", OutputLevel.MINIMAL, output.Fore.GREEN)
         
         # 2. Recent meaningful changes (not just score, but any state change)
         if tracker.get('last_meaningful_change', 0) > 0:
@@ -2282,9 +2285,9 @@ class ContinuousLearningLoop:
                 recent_progress = True
                 # Only show if very recent (within 20 actions)
                 if actions_since_change < 20:
-                    from src.utils.streamlined_output import get_streamlined_output
+                    from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                     output = get_streamlined_output()
-                    output._print(f"🔄 Recent change ({actions_since_change} actions ago)", output.OutputLevel.NORMAL, output.Fore.BLUE)
+                    output._print(f"🔄 Recent change ({actions_since_change} actions ago)", OutputLevel.NORMAL, output.Fore.BLUE)
                 
                 # Reset avoidance scores when significant changes occur
                 if hasattr(self, 'frame_analyzer') and hasattr(self.frame_analyzer, 'reset_avoidance_scores'):
@@ -2296,9 +2299,9 @@ class ContinuousLearningLoop:
             recent_progress = True
             # Only show if very recent (less than 10 actions without progress)
             if stagnation_actions < 10:
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"⚡ Active progress ({stagnation_actions} actions without progress)", output.OutputLevel.NORMAL, output.Fore.GREEN)
+                output._print(f"⚡ Active progress ({stagnation_actions} actions without progress)", OutputLevel.NORMAL, output.Fore.GREEN)
         
         # If progress detected and we're near the cap, extend it
         if recent_progress and current_cap < max_actions_per_game:
@@ -2310,23 +2313,23 @@ class ContinuousLearningLoop:
                 recent_scores = tracker['score_history'][-3:]
                 if recent_scores[-1] > recent_scores[0] and (recent_scores[-1] - recent_scores[0]) > 5:
                     extension = int(max_actions_per_game * 0.4)  # 40% extension for strong progress
-                    from src.utils.streamlined_output import get_streamlined_output
+                    from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                     output = get_streamlined_output()
-                    output._print(f"🚀 Strong progress: +{recent_scores[-1] - recent_scores[0]} points", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                    output._print(f"🚀 Strong progress: +{recent_scores[-1] - recent_scores[0]} points", OutputLevel.MINIMAL, output.Fore.GREEN)
             
             # If we're very close to max and still making progress, allow full extension
             if current_cap >= int(max_actions_per_game * 0.8):  # Already at 80% of max
                 extension = max_actions_per_game - current_cap  # Extend to full max
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"⚡ Extending to {max_actions_per_game} actions", output.OutputLevel.NORMAL, output.Fore.YELLOW)
+                output._print(f"⚡ Extending to {max_actions_per_game} actions", OutputLevel.NORMAL, output.Fore.YELLOW)
             
             new_cap = min(current_cap + extension, max_actions_per_game)
             
             if new_cap > current_cap:
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"📈 Cap: {current_cap} → {new_cap} actions", output.OutputLevel.NORMAL, output.Fore.CYAN)
+                output._print(f"📈 Cap: {current_cap} → {new_cap} actions", OutputLevel.NORMAL, output.Fore.CYAN)
                 return new_cap
         
         return current_cap
@@ -2341,7 +2344,7 @@ class ContinuousLearningLoop:
                 'actions_without_progress': 0,
                 'last_meaningful_change': 0,
                 'action_pattern_history': [],
-                'explored_coordinates': set(),
+                'explored_coordinates': [],
                 'termination_reason': None
             }
         
@@ -2719,6 +2722,8 @@ class ContinuousLearningLoop:
         Returns:
             Session data with GUID if successful, None if failed
         """
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
         try:
             # Clean up logs when starting a new game (if Governor is available)
             if hasattr(self, 'governor') and self.governor:
@@ -2767,14 +2772,14 @@ class ContinuousLearningLoop:
             if existing_guid:
                 # Level Reset - reset within existing game session
                 payload["guid"] = existing_guid
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"🔄 Level reset: {game_id[:8]}", output.OutputLevel.MINIMAL, output.Fore.BLUE)
+                output._print(f"🔄 Level reset: {game_id[:8]}", OutputLevel.MINIMAL, output.Fore.BLUE)
             else:
                 # New Game - start fresh game session
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"🎮 New game: {game_id[:8]}", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                output._print(f"🎮 New game: {game_id[:8]}", OutputLevel.MINIMAL, output.Fore.GREEN)
             
             # Apply rate limiting
             await self.rate_limiter.acquire()
@@ -3183,10 +3188,11 @@ class ContinuousLearningLoop:
     
     def _check_scorecard_action_limit(self) -> bool:
         """Check if we've exceeded the max actions per scorecard limit."""
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
+        
         if self._scorecard_action_count >= self._max_actions_per_scorecard:
-            from src.utils.streamlined_output import get_streamlined_output
-            output = get_streamlined_output()
-            output._print(f"⚠️ Scorecard limit: {self._scorecard_action_count}/{self._max_actions_per_scorecard}", output.OutputLevel.MINIMAL, output.Fore.RED)
+            output._print(f"⚠️ Scorecard limit: {self._scorecard_action_count}/{self._max_actions_per_scorecard}", OutputLevel.MINIMAL, output.Fore.RED)
             return True
         return False
     
@@ -4029,6 +4035,9 @@ class ContinuousLearningLoop:
     
     def _parse_episode_results_comprehensive(self, stdout: str, stderr: str, game_id: str) -> Dict[str, Any]:
         """Comprehensive parsing of episode results with enhanced pattern detection."""
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
+        
         result = {'success': False, 'final_score': 0, 'actions_taken': 0, 'level_progressed': False, 'current_level': None}
         combined_output = stdout + "\n" + stderr
         
@@ -4049,9 +4058,9 @@ class ContinuousLearningLoop:
                 result['full_game_win'] = True
                 result['success'] = True
                 result['win_type'] = 'FULL_GAME_WIN'
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"🏆 FULL GAME WIN!", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                output._print(f"🏆 FULL GAME WIN!", OutputLevel.MINIMAL, output.Fore.GREEN)
                 break
         
         # Check for episode completion indicators - ACTUAL ARC API FORMAT
@@ -4107,16 +4116,16 @@ class ContinuousLearningLoop:
             # If we have a positive score, consider it a partial success
             if result['final_score'] > 0:
                 result['success'] = True
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"🎯 Score win: {result['final_score']} points", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                output._print(f"🎯 Score win: {result['final_score']} points", OutputLevel.MINIMAL, output.Fore.GREEN)
             
             # If we have many actions taken without explicit failure, consider it progress
             elif result['total_actions'] > 50 and not re.search(r'\b(failed|error|timeout|lost)\b', combined_output, re.IGNORECASE):
                 result['success'] = True
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"🎯 Progress win: {result['total_actions']} actions", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                output._print(f"🎯 Progress win: {result['total_actions']} actions", OutputLevel.MINIMAL, output.Fore.GREEN)
         
         # Enhanced score extraction patterns
         score_patterns = [
@@ -4163,13 +4172,14 @@ class ContinuousLearningLoop:
     
     def _safe_coordinate_fallback(self, grid_width: int, grid_height: int, reason: str = "bounds check failed") -> Tuple[int, int]:
         """ CRITICAL FIX: Generate safe fallback coordinates that are guaranteed to be in bounds."""
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
+        
         # Use center coordinates as safe fallback, but ensure they're valid
         center_x = max(0, min(grid_width - 1, grid_width // 2))
         center_y = max(0, min(grid_height - 1, grid_height // 2))
         
-        from src.utils.streamlined_output import get_streamlined_output
-        output = get_streamlined_output()
-        output._print(f"🔄 Fallback: ({center_x},{center_y}) - {reason}", output.OutputLevel.NORMAL, output.Fore.YELLOW)
+        output._print(f"🔄 Fallback: ({center_x},{center_y}) - {reason}", OutputLevel.NORMAL, output.Fore.YELLOW)
         return (center_x, center_y)
     
     def _analyze_frame_for_action_selection(self, response_data: Dict[str, Any], game_id: str) -> Dict[str, Any]:
@@ -4178,7 +4188,7 @@ class ContinuousLearningLoop:
         
         Returns analysis data that can inform action selection decisions.
         """
-        from src.utils.streamlined_output import get_streamlined_output
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
         output = get_streamlined_output()
         output.debug(f"Starting frame analysis for {game_id}")
         frame = response_data.get('frame', [])
@@ -4375,6 +4385,9 @@ class ContinuousLearningLoop:
             return {}
     def _select_next_action(self, response_data: Dict[str, Any], game_id: str) -> Optional[int]:
         """Select appropriate action based on learned intelligence, available_actions from API response, and visual frame analysis."""
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
+        
         print(f"🔧 _SELECT_NEXT_ACTION CALLED for {game_id}")
         print(f"🔧 AVAILABLE ACTIONS: {response_data.get('available_actions', [])}")
         logger.info(f"🔧 _SELECT_NEXT_ACTION CALLED for {game_id}")
@@ -4454,7 +4467,7 @@ class ContinuousLearningLoop:
                     return next_action
         
         # Perform frame analysis for visual intelligence
-        from src.utils.streamlined_output import get_streamlined_output
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
         output = get_streamlined_output()
         output.debug(f"Calling frame analysis for {game_id}")
         frame_analysis = self._analyze_frame_for_action_selection(response_data, game_id)
@@ -4584,6 +4597,9 @@ class ContinuousLearningLoop:
         CRITICAL FIX: When only ACTION6 is available, treat coordinates as separate actions.
         This method selects a coordinate to target with ACTION6, treating each coordinate as a distinct action choice.
         """
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
+        
         print(f"🎯 COORDINATE-BASED ACTION SELECTION for {game_id}")
         
         # Get grid dimensions from frame data
@@ -4614,25 +4630,25 @@ class ContinuousLearningLoop:
                 x, y = self._enhance_coordinate_selection_with_frame_analysis(
                     6, (grid_width, grid_height), game_id, frame_analysis
                 )
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"🎯 Selected: ({x},{y})", output.OutputLevel.NORMAL, output.Fore.CYAN)
+                output._print(f"🎯 Selected: ({x},{y})", OutputLevel.NORMAL, output.Fore.CYAN)
         else:
             # Use enhanced coordinate selection with frame analysis
             try:
                 x, y = self._enhance_coordinate_selection_with_frame_analysis(
                     6, (grid_width, grid_height), game_id, frame_analysis
                 )
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"🎯 Selected: ({x},{y})", output.OutputLevel.NORMAL, output.Fore.CYAN)
+                output._print(f"🎯 Selected: ({x},{y})", OutputLevel.NORMAL, output.Fore.CYAN)
             except Exception as e:
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"⚠️ Coordinate selection failed: {e}", output.OutputLevel.NORMAL, output.Fore.RED)
+                output._print(f"⚠️ Coordinate selection failed: {e}", OutputLevel.NORMAL, output.Fore.RED)
                 # Fallback to systematic exploration
                 x, y = self._generate_exploration_coordinates((grid_width, grid_height), game_id)
-                output._print(f"🎯 Fallback: ({x},{y})", output.OutputLevel.NORMAL, output.Fore.YELLOW)
+                output._print(f"🎯 Fallback: ({x},{y})", OutputLevel.NORMAL, output.Fore.YELLOW)
         
         # Store the selected coordinates for execution
         if not hasattr(self, '_selected_coordinates'):
@@ -4962,7 +4978,7 @@ class ContinuousLearningLoop:
                 "avoidance_strategies": self._get_avoidance_strategies(detrimental_analysis)
             }
             
-            from src.utils.streamlined_output import get_streamlined_output
+            from src.utils.streamlined_output import get_streamlined_output, OutputLevel
             output = get_streamlined_output()
             output.debug(f"Pattern analysis: {len(detrimental_analysis.get('patterns_to_avoid', []))} detrimental, {len(probable_paths)} probable")
             
@@ -5120,6 +5136,9 @@ class ContinuousLearningLoop:
         frame_analysis: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
         """Send action with proper validation, coordinate optimization, effectiveness tracking, and rate limiting."""
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
+        
         # Enhanced API key validation
         if not hasattr(self, 'api_key') or not self.api_key:
             error_msg = " CRITICAL: No API key found in _send_enhanced_action! Check environment variables and initialization."
@@ -5733,14 +5752,14 @@ class ContinuousLearningLoop:
                                 frame_changes=frame_changes
                             )
                             
-                            from src.utils.streamlined_output import get_streamlined_output
+                            from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                             output = get_streamlined_output()
                             status = "✓" if api_success or score_change != 0 else "✗"
-                            output._print(f"🔍 {status} Color {clicked_color} at ({x},{y})", output.OutputLevel.NORMAL, output.Fore.CYAN)
+                            output._print(f"🔍 {status} Color {clicked_color} at ({x},{y})", OutputLevel.NORMAL, output.Fore.CYAN)
                         except Exception as e:
-                            from src.utils.streamlined_output import get_streamlined_output
+                            from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                             output = get_streamlined_output()
-                            output._print(f"⚠️ Exploration error: {e}", output.OutputLevel.NORMAL, output.Fore.RED)
+                            output._print(f"⚠️ Exploration error: {e}", OutputLevel.NORMAL, output.Fore.RED)
                     else:
                         #  CRITICAL FIX: Better error reporting for frame validation failures
                         frame_height = len(current_frame) if current_frame else 0
@@ -6111,9 +6130,9 @@ class ContinuousLearningLoop:
                     
                     #  CHECK FOR FULL GAME WIN - Highest priority achievement
                     if session_result.get('full_game_win', False):
-                        from src.utils.streamlined_output import get_streamlined_output
+                        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                         output = get_streamlined_output()
-                        output._print(f"🏆 FULL GAME WIN! {game_id[:8]}", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                        output._print(f"🏆 FULL GAME WIN! {game_id[:8]}", OutputLevel.MINIMAL, output.Fore.GREEN)
                         success = True
                         game_state = 'FULL_GAME_WIN'
                         # Full game win gets maximum priority
@@ -6136,17 +6155,17 @@ class ContinuousLearningLoop:
                         self.current_level = new_level
                         
                         if new_level > previous_best:
-                            from src.utils.streamlined_output import get_streamlined_output
+                            from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                             output = get_streamlined_output()
-                            output._print(f"🎯 Level {previous_best} → {new_level}", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                            output._print(f"🎯 Level {previous_best} → {new_level}", OutputLevel.MINIMAL, output.Fore.GREEN)
                             # This is a real breakthrough - preserve with hierarchical priority
                             self._preserve_breakthrough_memories(session_result, current_score, game_id, new_level, previous_best)
                             # 🎯 LEVEL COMPLETION = SUCCESS! Override any failure state
                             success = True
                             game_state = 'LEVEL_WIN'
-                            from src.utils.streamlined_output import get_streamlined_output
+                            from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                             output = get_streamlined_output()
-                            output._print(f"🎯 Level {new_level} win!", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+                            output._print(f"🎯 Level {new_level} win!", OutputLevel.MINIMAL, output.Fore.GREEN)
                             
                             # 🧠 GOVERNOR ANALYSIS - Analyze level completion win
                             if self.governor:
@@ -6156,7 +6175,7 @@ class ContinuousLearningLoop:
                                     output.debug(f"Memory Priority: {governor_analysis['win_analysis']['memory_priority']}")
                                     output.debug(f"Strategy Analysis: {governor_analysis['win_analysis']['should_analyze_strategy']}")
                         else:
-                            output._print(f"Level {new_level} maintained", output.OutputLevel.NORMAL, output.Fore.BLUE)
+                            output._print(f"Level {new_level} maintained", OutputLevel.NORMAL, output.Fore.BLUE)
                             # Even maintaining level is a form of success
                             success = True
                             game_state = 'LEVEL_WIN'
@@ -6397,6 +6416,8 @@ class ContinuousLearningLoop:
         
         The grid is treated like a touchscreen. ACTION6 touches whatever is at that pixel.
         """
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
+        output = get_streamlined_output()
         grid_width, grid_height = grid_dimensions
         
         if action_number != 6:
@@ -7128,7 +7149,7 @@ class ContinuousLearningLoop:
 
     def _select_intelligent_action_with_relevance(self, available_actions: List[int], context: Dict[str, Any]) -> int:
         """Select action using intelligent relevance scoring with comprehensive fallbacks."""
-        from src.utils.streamlined_output import get_streamlined_output
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
         output = get_streamlined_output()
         
         # Safety check for None available_actions
@@ -16148,20 +16169,20 @@ class ContinuousLearningLoop:
                     analysis
                 )
                 
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"📊 Scorecard: {analysis['level_completions']} levels, {analysis['games_completed']} games", output.OutputLevel.NORMAL, output.Fore.CYAN)
+                output._print(f"📊 Scorecard: {analysis['level_completions']} levels, {analysis['games_completed']} games", OutputLevel.NORMAL, output.Fore.CYAN)
                 
         except Exception as e:
-            from src.utils.streamlined_output import get_streamlined_output
+            from src.utils.streamlined_output import get_streamlined_output, OutputLevel
             output = get_streamlined_output()
-            output._print(f"⚠️ Scorecard error: {e}", output.OutputLevel.NORMAL, output.Fore.RED)
+            output._print(f"⚠️ Scorecard error: {e}", OutputLevel.NORMAL, output.Fore.RED)
     
     def _log_level_completion(self, game_id: str, level: int, score: int):
         """Log a level completion event."""
-        from src.utils.streamlined_output import get_streamlined_output
+        from src.utils.streamlined_output import get_streamlined_output, OutputLevel
         output = get_streamlined_output()
-        output._print(f"🎯 Level {level} completed (Score: {score})", output.OutputLevel.MINIMAL, output.Fore.GREEN)
+        output._print(f"🎯 Level {level} completed (Score: {score})", OutputLevel.MINIMAL, output.Fore.GREEN)
         
         # Update local tracking
         self.scorecard_stats['total_level_completions'] += 1
@@ -16550,16 +16571,16 @@ class ContinuousLearningLoop:
                     return None
                 
                 # Use streamlined output for action execution
-                from src.utils.streamlined_output import get_streamlined_output
+                from src.utils.streamlined_output import get_streamlined_output, OutputLevel
                 output = get_streamlined_output()
-                output._print(f"Action {selected_action}{coord_display}", output.OutputLevel.MINIMAL, output.Fore.CYAN)
+                output._print(f"Action {selected_action}{coord_display}", OutputLevel.MINIMAL, output.Fore.CYAN)
                 
                 # Show efficiency metrics only if significant
                 efficiency_metrics = self.available_actions_memory.get('efficiency_metrics', {})
                 if efficiency_metrics.get('optimization_count', 0) > 0:
                     total_saved = efficiency_metrics.get('total_moves_saved', 0)
                     if total_saved > 10:  # Only show if significant savings
-                        output._print(f"⚡ Saved {total_saved} moves", output.OutputLevel.NORMAL, output.Fore.GREEN)
+                        output._print(f"⚡ Saved {total_saved} moves", OutputLevel.NORMAL, output.Fore.GREEN)
                 
                 # Show intelligent action description (more concise)
                 action_desc = self.get_action_description(selected_action, game_id)
@@ -16567,13 +16588,13 @@ class ContinuousLearningLoop:
                     # Extract just the key learning info
                     learned_info = action_desc.split("Learned:")[-1].strip()
                     if len(learned_info) > 50:  # Only show if significant learning
-                        output._print(f"Learned: {learned_info[:50]}...", output.OutputLevel.NORMAL, output.Fore.YELLOW)
+                        output._print(f"Learned: {learned_info[:50]}...", OutputLevel.NORMAL, output.Fore.YELLOW)
                 elif self.available_actions_memory.get('action_learning_stats', {}).get('total_observations', 0) > 0:
                     # Show basic stats only if significant
                     total_attempts = self.available_actions_memory.get('action_effectiveness', {}).get(selected_action, {}).get('attempts', 0)
                     if total_attempts > 5:  # Only show if significant attempts
                         success_rate = self.available_actions_memory.get('action_effectiveness', {}).get(selected_action, {}).get('success_rate', 0.0)
-                        output._print(f"Success: {success_rate:.1%} ({total_attempts} tries)", output.OutputLevel.NORMAL, output.Fore.BLUE)
+                        output._print(f"Success: {success_rate:.1%} ({total_attempts} tries)", OutputLevel.NORMAL, output.Fore.BLUE)
                 
                 # Execute the action with actual grid dimensions
                 try:
@@ -16599,68 +16620,17 @@ class ContinuousLearningLoop:
                 was_effective = False
 
                 if action_result:
-                    # 🧠 GOVERNOR ERROR HANDLING - Check for API errors that need Governor intervention
-                    if self.governor and 'error' in action_result:
-                        governor_error_response = self.governor.handle_api_error(
-                            error_response=action_result,
-                            game_id=game_id,
-                            context={
-                                'game_id': game_id,
-                                'current_state': current_state,
-                                'current_score': current_score,
-                                'selected_action': selected_action,
-                                'coordinates': (x, y) if x is not None else None
-                            }
-                        )
+                    # 🧠 SIMPLE ERROR HANDLING - Log API errors
+                    if 'error' in action_result:
+                        print(f"🧠 API ERROR: {action_result.get('error', 'Unknown error')}")
                         
-                        if governor_error_response:
-                            print(f"🧠 GOVERNOR ERROR HANDLING: {governor_error_response['reasoning']}")
-                            
-                            # Handle RESET recommendation
-                            if governor_error_response.get('recommended_action') == 'RESET':
-                                print(f"🔄 GOVERNOR RECOMMENDING RESET for {game_id}")
-                                
-                                # Check current game state before starting new game
-                                if current_state not in ['GAME_OVER', 'WIN']:
-                                    print(f" Cannot reset game - current status is {current_state}. Must be GAME_OVER or WIN to start new game.")
-                                    # Skip reset and continue with current session
-                                else:
-                                    try:
-                                        reset_result = await self._start_game_session(game_id)
-                                        if reset_result and 'error' not in reset_result:
-                                            print(f"✅ RESET successful - game {game_id} started")
-                                            # Update state with reset result
-                                            new_state = reset_result.get('state', current_state)
-                                            new_score = reset_result.get('score', current_score)
-                                            new_available = reset_result.get('available_actions', available_actions)
-                                            # Update frame data
-                                            if 'frame' in reset_result:
-                                                session_data['frame'] = reset_result['frame']
-                                                self._last_frame = reset_result['frame']
-                                            # Continue with the session
-                                        else:
-                                            print(f"❌ RESET failed: {reset_result.get('error', 'Unknown error')}")
-                                            # Fall through to normal error handling
-                                    except Exception as e:
-                                        print(f"❌ RESET execution error: {e}")
-                                        # Fall through to normal error handling
-                            
-                            # Handle WAIT recommendation (rate limiting)
-                            elif governor_error_response.get('recommended_action') == 'WAIT':
-                                wait_time = 5.0  # Default wait time
-                                print(f"⏳ GOVERNOR RECOMMENDING WAIT for {wait_time}s due to rate limiting")
-                                await asyncio.sleep(wait_time)
-                                continue
-                            
-                            # Handle STOP recommendation (authentication error)
-                            elif governor_error_response.get('recommended_action') == 'STOP':
-                                print(f"🛑 GOVERNOR RECOMMENDING STOP due to authentication error")
-                                return {
-                                    'error': 'Authentication failed - stopping session',
-                                    'state': 'ERROR',
-                                    'score': 0,
-                                    'available_actions': []
-                                }
+                        # Simple error handling - just log and continue
+                        if 'GAME_NOT_STARTED_ERROR' in str(action_result.get('error', '')):
+                            print(f"🔄 GAME NOT STARTED - attempting to continue")
+                        elif 'timeout' in str(action_result.get('error', '')).lower():
+                            print(f"⏰ TIMEOUT ERROR - continuing with next action")
+                        else:
+                            print(f"⚠️ OTHER ERROR - continuing with next action")
                     
                     try:
                         # Update state from response
@@ -17227,28 +17197,14 @@ class ContinuousLearningLoop:
                 if hasattr(self, 'enhanced_coordinate_intelligence'):
                     print(" Coordinate Intelligence: ACTIVE")
                 
-                # 🏗️ ARCHITECT INTEGRATION - Analyze session performance for evolutionary improvements
+                # 🏗️ ARCHITECT INTEGRATION - Simple performance tracking
                 if self.architect:
                     try:
-                        architect_analysis = self.architect.analyze_session_performance(
-                            session_data={
-                                'game_id': game_id,
-                                'actions_taken': actions_taken,
-                                'effective_actions': len(effective_actions),
-                                'final_score': current_score,
-                                'success': final_result.get('success', False),
-                                'termination_reason': final_result.get('termination_reason', 'UNKNOWN')
-                            },
-                            training_sessions={
-                                'effectiveness_rate': len(effective_actions) / max(1, actions_taken),
-                                'score_progression': current_score,
-                                'action_efficiency': actions_taken / max(1, current_score) if current_score > 0 else float('inf')
-                            }
-                        )
-                        if architect_analysis:
-                            print(f"🏗️ ARCHITECT ANALYSIS: {architect_analysis.get('reasoning', 'No reasoning provided')}")
-                            if architect_analysis.get('recommendations'):
-                                print(f"🏗️ ARCHITECT RECOMMENDATIONS: {architect_analysis['recommendations']}")
+                        # Simple performance tracking without complex analysis
+                        if final_result.get('success', False) and current_score > 0:
+                            print(f"🏗️ ARCHITECT: Session successful with score {current_score}")
+                        elif actions_taken > 0:
+                            print(f"🏗️ ARCHITECT: Session completed with {actions_taken} actions")
                     except Exception as e:
                         print(f"🏗️ ARCHITECT ANALYSIS ERROR: {e}")
                 
@@ -17472,7 +17428,7 @@ class ContinuousLearningLoop:
                 
                 # Simple pattern discovery in explored coordinates
                 if hasattr(self, '_progress_tracker'):
-                    explored_coords = getattr(self._progress_tracker, 'explored_coordinates', set())
+                    explored_coords = getattr(self._progress_tracker, 'explored_coordinates', [])
                     if len(explored_coords) > 10:
                         print(f"       Analyzed {len(explored_coords)} coordinate patterns")
                         consolidation_results['coordinate_patterns_discovered'] = len(explored_coords) // 10
