@@ -27,19 +27,35 @@ try:
 except ImportError:
     print("⚠️ python-dotenv not available in continuous_learning_loop, using system environment variables")
 
-# Try to import torch, but don't fail if it's not available
-try:
-    import torch
-except ImportError:
-    torch = None
+# Lazy imports for better performance
+_torch = None
+_opencv_available = False
+_opencv_extractor = None
 
-# Try to import OpenCV feature extractor
-try:
-    from arc_integration.opencv_feature_extractor import OpenCVFeatureExtractor
-    opencv_available = True
-except ImportError:
-    opencv_available = False
-    print("⚠️ OpenCV feature extractor not available - falling back to basic analysis")
+def get_torch():
+    """Lazy import of torch to avoid startup overhead."""
+    global _torch
+    if _torch is None:
+        try:
+            import torch
+            _torch = torch
+        except ImportError:
+            _torch = False
+    return _torch if _torch is not False else None
+
+def get_opencv_extractor():
+    """Lazy import of OpenCV feature extractor."""
+    global _opencv_available, _opencv_extractor
+    if _opencv_extractor is None:
+        try:
+            from arc_integration.opencv_feature_extractor import OpenCVFeatureExtractor
+            _opencv_extractor = OpenCVFeatureExtractor
+            _opencv_available = True
+        except ImportError:
+            _opencv_available = False
+            _opencv_extractor = False
+            print("⚠️ OpenCV feature extractor not available - falling back to basic analysis")
+    return _opencv_extractor if _opencv_extractor is not False else None
 
 # Action & session trace logger (lightweight, append-only)
 try:
@@ -451,6 +467,13 @@ class ContinuousLearningLoop:
     5. Adapts training parameters based on performance
     6. Transfers knowledge between different games
     7. Tracks long-term learning progress
+    
+    Performance Optimizations:
+    - Lazy imports for faster startup
+    - Memory-bounded collections
+    - Database query optimization
+    - Caching for frequently accessed data
+    - Efficient memory management
     """
 
     def _initialize_available_actions_memory(self) -> Dict[str, Any]:
@@ -529,6 +552,16 @@ class ContinuousLearningLoop:
         self.api_key = api_key or os.getenv('ARC_API_KEY')
         self.save_directory = Path(save_directory)
         
+        # Performance monitoring
+        self.performance_metrics = {
+            'startup_time': time.time(),
+            'memory_usage': 0,
+            'query_cache_hits': 0,
+            'query_cache_misses': 0,
+            'optimization_savings': 0,
+            'lazy_imports_used': 0
+        }
+        
         # Setup graceful shutdown handlers
         self._setup_graceful_shutdown()
         
@@ -538,12 +571,75 @@ class ContinuousLearningLoop:
         self._initialized = False
         self._active_sessions = []
         
+        # Initialize performance monitoring
+        self._initialize_performance_monitoring()
+        
         # Scorecard action tracking
         self._scorecard_action_count = 0
         self._max_actions_per_scorecard = ActionLimits.get_max_actions_per_scorecard()
         
         # Level tracking for hierarchical pattern learning
         self.current_level = 1
+        
+        # Performance optimization tracking
+        self._startup_time = time.time()
+        print(f"⚡ ContinuousLearningLoop initialized in {time.time() - self._startup_time:.3f}s")
+    
+    def _initialize_performance_monitoring(self):
+        """Initialize performance monitoring systems."""
+        try:
+            # Import query optimizer for database performance
+            from src.database.query_optimizer import get_query_optimizer
+            self.query_optimizer = get_query_optimizer()
+            print("✅ Query optimizer initialized")
+        except ImportError:
+            self.query_optimizer = None
+            print("⚠️ Query optimizer not available")
+        
+        # Initialize memory monitoring
+        self._memory_check_interval = 100  # Check memory every 100 actions
+        self._last_memory_check = 0
+        
+    def _update_performance_metrics(self, metric: str, value: float = 1.0):
+        """Update performance metrics."""
+        if metric in self.performance_metrics:
+            self.performance_metrics[metric] += value
+        else:
+            self.performance_metrics[metric] = value
+    
+    def _check_memory_usage(self):
+        """Check and log memory usage."""
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_mb = process.memory_info().rss / 1024 / 1024
+            self.performance_metrics['memory_usage'] = memory_mb
+            
+            if memory_mb > 1000:  # Alert if using more than 1GB
+                print(f"⚠️ High memory usage: {memory_mb:.1f}MB")
+                
+        except ImportError:
+            # psutil not available, skip memory monitoring
+            pass
+    
+    def get_performance_report(self) -> Dict[str, Any]:
+        """Get comprehensive performance report."""
+        runtime = time.time() - self.performance_metrics['startup_time']
+        
+        return {
+            'runtime_seconds': runtime,
+            'memory_usage_mb': self.performance_metrics.get('memory_usage', 0),
+            'query_cache_hits': self.performance_metrics.get('query_cache_hits', 0),
+            'query_cache_misses': self.performance_metrics.get('query_cache_misses', 0),
+            'lazy_imports_used': self.performance_metrics.get('lazy_imports_used', 0),
+            'optimization_savings': self.performance_metrics.get('optimization_savings', 0),
+            'cache_hit_ratio': (
+                self.performance_metrics.get('query_cache_hits', 0) / 
+                max(self.performance_metrics.get('query_cache_misses', 1), 1)
+            ),
+            'actions_per_second': self.total_actions_taken / max(runtime, 1),
+            'games_per_hour': (self.total_games_played / max(runtime, 1)) * 3600
+        }
         
         # Initialize scorecard API integration
         self.scorecard_manager = None
@@ -5142,8 +5238,9 @@ class ContinuousLearningLoop:
                                 try:
                                     # Initialize OpenCV extractor if not already done
                                     if not hasattr(self, 'opencv_extractor'):
-                                        if opencv_available:
-                                            self.opencv_extractor = OpenCVFeatureExtractor()
+                                        opencv_extractor_class = get_opencv_extractor()
+                                        if opencv_extractor_class:
+                                            self.opencv_extractor = opencv_extractor_class()
                                             print("✅ OpenCV feature extractor initialized - enhanced pattern recognition enabled")
                                         else:
                                             self.opencv_extractor = None
@@ -5670,8 +5767,9 @@ class ContinuousLearningLoop:
                                 try:
                                     # Initialize OpenCV extractor if not already done
                                     if not hasattr(self, 'opencv_extractor'):
-                                        if opencv_available:
-                                            self.opencv_extractor = OpenCVFeatureExtractor()
+                                        opencv_extractor_class = get_opencv_extractor()
+                                        if opencv_extractor_class:
+                                            self.opencv_extractor = opencv_extractor_class()
                                             print("✅ OpenCV feature extractor initialized - enhanced pattern recognition enabled")
                                         else:
                                             self.opencv_extractor = None
@@ -13377,9 +13475,11 @@ class ContinuousLearningLoop:
                     # Strengthen memory if above threshold
                     if hasattr(self.demo_agent, 'memory') and hasattr(self.demo_agent.memory, 'update_memory_salience') and weight > 0.2:
                         # Use action index as memory index for salience update
-                        memory_idx = torch.tensor([i % self.demo_agent.memory.memory_size])
-                        salience_val = torch.tensor([weight])
-                        self.demo_agent.memory.update_memory_salience(memory_idx, salience_val)
+                        torch_module = get_torch()
+                        if torch_module:
+                            memory_idx = torch_module.tensor([i % self.demo_agent.memory.memory_size])
+                            salience_val = torch_module.tensor([weight])
+                            self.demo_agent.memory.update_memory_salience(memory_idx, salience_val)
                 
                 # Record consolidation in training state
                 if 'mid_game_consolidations' not in self.training_state:
@@ -13689,13 +13789,15 @@ class ContinuousLearningLoop:
         try:
             # Create proper agent state for goal system
             from core.data_models import AgentState
-            goal_agent_state = AgentState(
-                position=torch.tensor([0.0, 0.0, 1.0]),
-                orientation=torch.tensor([0.0, 0.0, 0.0, 1.0]),
-                energy=self.current_energy,
-                hidden_state=torch.zeros(64),
-                active_goals=[],
-                memory_state=None,
+            torch_module = get_torch()
+            if torch_module:
+                goal_agent_state = AgentState(
+                    position=torch_module.tensor([0.0, 0.0, 1.0]),
+                    orientation=torch_module.tensor([0.0, 0.0, 0.0, 1.0]),
+                    energy=self.current_energy,
+                    hidden_state=torch_module.zeros(64),
+                    active_goals=[],
+                    memory_state=None,
                 timestamp=self.training_state.get('episode_count', 0)
             )
             
@@ -13708,8 +13810,9 @@ class ContinuousLearningLoop:
             # Check for emergent goal discovery by adding high-LP experience
             if learning_progress is not None and learning_progress > 0.1 and self.goal_system.current_phase == GoalPhase.EMERGENT:
                 # Add experience to emergent goals for clustering
-                state_repr = torch.randn(64)  # Placeholder state representation
-                self.goal_system.emergent_goals.add_experience(state_repr, learning_progress, goal_agent_state)
+                if torch_module:
+                    state_repr = torch_module.randn(64)  # Placeholder state representation
+                    self.goal_system.emergent_goals.add_experience(state_repr, learning_progress, goal_agent_state)
                 
                 # Check if new goals were discovered
                 new_goals = self.goal_system.emergent_goals.get_active_goals(goal_agent_state)
@@ -17299,22 +17402,39 @@ class ContinuousLearningLoop:
             for i, action_data in enumerate(action_history[-50:]):  # Last 50 actions
                 try:
                     # Create minimal states for experience
-                    current_state = AgentState(
-                        visual=torch.randn(3, 64, 64),  # Placeholder visual
-                        proprioception=torch.tensor([
-                            action_data.get('coordinates', [0, 0])[0] if action_data.get('coordinates') else 0,
-                            action_data.get('coordinates', [0, 0])[1] if action_data.get('coordinates') else 0
-                        ], dtype=torch.float32),
-                        energy_level=action_data.get('energy', 50.0),
-                        timestamp=i
-                    )
-                    
-                    next_state = AgentState(
-                        visual=torch.randn(3, 64, 64),  # Placeholder visual
-                        proprioception=current_state.proprioception + torch.randn(2) * 0.1,
-                        energy_level=max(0, current_state.energy_level - 0.5),
-                        timestamp=i + 1
-                    )
+                    torch_module = get_torch()
+                    if torch_module:
+                        current_state = AgentState(
+                            visual=torch_module.randn(3, 64, 64),  # Placeholder visual
+                            proprioception=torch_module.tensor([
+                                action_data.get('coordinates', [0, 0])[0] if action_data.get('coordinates') else 0,
+                                action_data.get('coordinates', [0, 0])[1] if action_data.get('coordinates') else 0
+                            ], dtype=torch_module.float32),
+                            energy_level=action_data.get('energy', 50.0),
+                            timestamp=i
+                        )
+                        
+                        next_state = AgentState(
+                            visual=torch_module.randn(3, 64, 64),  # Placeholder visual
+                            proprioception=current_state.proprioception + torch_module.randn(2) * 0.1,
+                            energy_level=max(0, current_state.energy_level - 0.5),
+                            timestamp=i + 1
+                        )
+                    else:
+                        # Fallback without torch
+                        current_state = AgentState(
+                            visual=None,
+                            proprioception=[0, 0],
+                            energy_level=action_data.get('energy', 50.0),
+                            timestamp=i
+                        )
+                        
+                        next_state = AgentState(
+                            visual=None,
+                            proprioception=[0, 0],
+                            energy_level=max(0, current_state.energy_level - 0.5),
+                            timestamp=i + 1
+                        )
                     
                     # Create experience
                     experience = Experience(

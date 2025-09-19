@@ -14,7 +14,7 @@ How to access self-model queries and system status: ./src/database/director_comm
 **CRITICAL CONSTRAINT: STRUCTURAL CHANGE RESTRICTION**
 **NO MAJOR STRUCTURAL CHANGES** until the system achieves **4+ game completions** (which requires winning multiple levels per game) in recent training sessions. The system has a tendency to rewrite itself when seeing no progress on historical data. You may only:
 - **Fix bugs and errors** that appear in console/terminal during gameplay
-- **Optimize existing code** for performance
+- **Optimize existing code** for performance (clean up the temporary files you created during the optimization process that are no longer needed.)
 - **Refactor for clarity** without changing core logic
 - **Add logging and debugging** capabilities
 

@@ -42,9 +42,9 @@ from dataclasses import dataclass
 try:
     from dotenv import load_dotenv
     load_dotenv()
-    print("✅ Environment variables loaded from .env file in master_arc_trainer")
+    # Suppress verbose import messages
 except ImportError:
-    print("⚠️ python-dotenv not available in master_arc_trainer, using system environment variables")
+    pass
 
 # Import ActionLimits from configuration file
 try:
@@ -62,13 +62,20 @@ from datetime import datetime
 from src.core.salience_system import SalienceMode
 from src.core.logging_setup import setup_logging
 
+# Import streamlined output system
+from src.utils.streamlined_output import (
+    StreamlinedOutput, OutputLevel, get_streamlined_output, 
+    init_streamlined_output, log_error, log_warning, log_fallback,
+    log_system_status, log_score, log_progress, show_session_summary
+)
+
 # Database imports
 try:
     from src.database.db_initializer import ensure_database_ready
     DATABASE_AVAILABLE = True
 except ImportError as e:
     DATABASE_AVAILABLE = False
-    print(f"WARNING: Database initialization not available: {e}")
+    # Log error through streamlined output after initialization
 
 # Enhanced Space-Time Governor imports (replaces meta-cognitive governor)
 try:
@@ -77,7 +84,7 @@ try:
     ENHANCED_GOVERNOR_AVAILABLE = True
 except (ImportError, SyntaxError) as e:
     ENHANCED_GOVERNOR_AVAILABLE = False
-    print(f"WARNING: Enhanced space-time governor not available: {e}")
+    # Log error through streamlined output after initialization
     EnhancedSpaceTimeGovernor = None
     create_enhanced_space_time_governor = None
     Architect = None
@@ -527,6 +534,9 @@ class MasterARCTrainer:
         # Disable noisy loggers
         for logger_name in ['matplotlib', 'PIL']:
             logging.getLogger(logger_name).setLevel(logging.WARNING)
+        
+        # Initialize streamlined output
+        self.output = get_streamlined_output()
     
     def _initialize_systems(self):
         """Initialize core systems and components."""
@@ -1853,17 +1863,23 @@ async def main():
     parser = create_parser()
     args = parser.parse_args()
     
+    # Initialize streamlined output based on verbosity
+    output_level = OutputLevel.DEBUG if args.debug_mode else (
+        OutputLevel.VERBOSE if args.verbose else OutputLevel.NORMAL
+    )
+    output = init_streamlined_output(output_level)
+    
     # Set up enhanced logging first
     setup_windows_logging()
     
     # Ensure database is ready before starting training
     if DATABASE_AVAILABLE:
-        print("🔍 Checking database initialization...")
+        log_system_status("Checking database initialization")
         if not ensure_database_ready():
-            print("❌ Database initialization failed. Training cannot proceed.")
+            log_error("Database initialization failed. Training cannot proceed.", component="Database")
             return
     else:
-        print("⚠️ Database initialization not available, proceeding without database check...")
+        log_warning("Database initialization not available, proceeding without database check", component="Database")
     
     # Get API key from args or environment
     api_key = args.api_key or os.getenv('ARC_API_KEY')
@@ -1871,12 +1887,12 @@ async def main():
     # Validate API key before proceeding
     validate_api_key(api_key)
     
-    # Use safe print for the header
-    safe_print("🚀 MASTER ARC TRAINER - Unified Training System", True)
-    safe_print("=" * 60, False)
-    safe_print("Consolidated system combining all ARC training functionality", False)
-    safe_print(f"Mode: {args.mode.upper()}", False)
-    safe_print("", False)
+    # Initialize session
+    session_id = f"master_training_{int(time.time())}"
+    output.init_session(session_id, args.mode)
+    
+    # Log system status
+    log_system_status("Master ARC Trainer initialized", f"Mode: {args.mode.upper()}")
     
     # Convert args to config with legacy compatibility
     config = MasterTrainingConfig(
@@ -1964,17 +1980,18 @@ async def main():
         results = await trainer.run_training()
         
         if results['success']:
-            safe_print(f"\n🎉 TRAINING COMPLETED SUCCESSFULLY!", True)
-            safe_print(f"Mode: {results.get('mode', 'unknown')}", False)
-            safe_print(f"Time: {results.get('timestamp', 'unknown')}", False)
+            log_system_status("Training completed successfully", f"Mode: {results.get('mode', 'unknown')}")
+            show_session_summary()
             return 0
         else:
-            safe_print(f"\n❌ TRAINING FAILED!", True)
-            safe_print(f"Error: {results.get('error', 'unknown')}", False)
+            log_error("Training failed", component="MasterTrainer")
+            log_error(f"Error: {results.get('error', 'unknown')}", component="MasterTrainer")
+            show_session_summary()
             return 1
             
     except Exception as e:
-        safe_print(f"\n💥 UNEXPECTED ERROR: {e}", True)
+        log_error("Unexpected error occurred", e, "MasterTrainer")
+        show_session_summary()
         return 1
 
 if __name__ == "__main__":
