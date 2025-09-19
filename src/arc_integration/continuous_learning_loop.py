@@ -1633,10 +1633,10 @@ class ContinuousLearningLoop:
             # ACTION 6 STRATEGIC CONTROL SYSTEM - ENHANCED FOR TARGETING
             'action6_strategy': {
                 'use_sparingly': False,          # CHANGED: Use ACTION6 more frequently for targeting
-                'min_actions_before_use': 5,    # CHANGED: Reduced from 15 to 5 for faster targeting
-                'progress_stagnation_threshold': 3,  # CHANGED: Reduced from 8 to 3 for quicker response
+                'min_actions_before_use': 2,    # CHANGED: Reduced from 5 to 2 for faster targeting
+                'progress_stagnation_threshold': 2,  # CHANGED: Reduced from 3 to 2 for quicker response
                 'last_progress_action': 0,      # Track when last progress was made
-                'action6_cooldown': 2,          # CHANGED: Reduced from 5 to 2 for more frequent use
+                'action6_cooldown': 1,          # CHANGED: Reduced from 2 to 1 for more frequent use
                 'last_action6_used': 0,         # Track last ACTION6 usage
                 'predictive_mode': True,        # Try to predict good coordinates
                 'emergency_reset_only': False,  # CHANGED: Use ACTION6 for targeting, not just reset
@@ -6911,29 +6911,39 @@ class ContinuousLearningLoop:
             print(f" Using coordinate avoidance system for exploration")
             
             # Try to get coordinates that avoid stuck areas
-            max_attempts = 20
+            max_attempts = 30  # Increased from 20 for better exploration
             attempt = 0
             
             while attempt < max_attempts:
                 # Generate candidate coordinates using various strategies
-                if attempt < 4:
-                    # Try corners first (often contain important elements)
-                    corners = [(5, 5), (grid_width-6, 5), (5, grid_height-6), (grid_width-6, grid_height-6)]
+                if attempt < 6:
+                    # Try corners and near-corners first (often contain important elements)
+                    corners = [(3, 3), (grid_width-4, 3), (3, grid_height-4), (grid_width-4, grid_height-4),
+                              (8, 8), (grid_width-9, 8), (8, grid_height-9), (grid_width-9, grid_height-9)]
                     if attempt < len(corners):
                         candidate_x, candidate_y = corners[attempt]
                     else:
                         candidate_x, candidate_y = grid_width // 2, grid_height // 2
-                elif attempt < 8:
-                    # Try edges (often contain controls)
-                    edges = [(grid_width//4, 2), (grid_width*3//4, 2), 
+                elif attempt < 12:
+                    # Try edges and center areas (often contain controls)
+                    edges = [(grid_width//6, 2), (grid_width*5//6, 2), 
+                            (2, grid_height//3), (grid_width-3, grid_height//3),
+                            (grid_width//2, 2), (grid_width//2, grid_height-3),
                             (2, grid_height//2), (grid_width-3, grid_height//2)]
-                    edge_idx = (attempt - 4) % len(edges)
+                    edge_idx = (attempt - 6) % len(edges)
                     candidate_x, candidate_y = edges[edge_idx]
+                elif attempt < 18:
+                    # Try center and quarter points
+                    centers = [(grid_width//4, grid_height//4), (grid_width*3//4, grid_height//4),
+                              (grid_width//4, grid_height*3//4), (grid_width*3//4, grid_height*3//4),
+                              (grid_width//2, grid_height//4), (grid_width//2, grid_height*3//4)]
+                    center_idx = (attempt - 12) % len(centers)
+                    candidate_x, candidate_y = centers[center_idx]
                 else:
                     # Random exploration avoiding stuck areas
                     import random
-                    candidate_x = random.randint(1, grid_width - 2)
-                    candidate_y = random.randint(1, grid_height - 2)
+                    candidate_x = random.randint(2, grid_width - 3)
+                    candidate_y = random.randint(2, grid_height - 3)
                 
                 # Check if this coordinate should be avoided
                 coord_key = (candidate_x, candidate_y)
@@ -7746,14 +7756,14 @@ class ContinuousLearningLoop:
                 # CRITICAL: Every action gets at least 20% weight to ensure diversity
                 base_weight = 0.20 + (0.80 * normalized_score)
                 
-                # ANTI-ACTION6 BIAS: Heavily penalize ACTION6 to force diversity
+                # BALANCED ACTION6 USAGE: Moderate ACTION6 usage for better targeting
                 if action == 6:
-                    # ACTION6 gets maximum 30% of its calculated weight
-                    final_weight = base_weight * 0.3
-                    print(f"🎯 ANTI-ACTION6 BIAS: Action 6 weight reduced from {base_weight:.3f} to {final_weight:.3f}")
+                    # ACTION6 gets 60% of its calculated weight (increased from 30%)
+                    final_weight = base_weight * 0.6
+                    print(f"🎯 BALANCED ACTION6: Action 6 weight set to {final_weight:.3f} (was {base_weight:.3f})")
                 else:
                     # Other actions get their full weight plus a small bonus
-                    final_weight = base_weight * 1.1
+                    final_weight = base_weight * 1.05
                 
                 action_weights.append(final_weight)
             
@@ -9368,10 +9378,13 @@ class ContinuousLearningLoop:
             game_state = response_data.get('state', 'UNKNOWN')
             success = game_state in ['WIN', 'LEVEL_WIN', 'FULL_GAME_WIN'] or score_change > 0
             
-            # Only learn patterns for successful actions or actions with meaningful score changes
+            # Learn from ALL actions to improve pattern recognition, but with different confidence levels
             if not success and score_change <= 0:
-                print(f"🧠 SKIPPING PATTERN LEARNING: Action {action_number} failed (success: {success}, score_change: {score_change})")
-                return
+                print(f"🧠 LEARNING FROM FAILURE: Action {action_number} failed (success: {success}, score_change: {score_change}) - storing for pattern avoidance")
+                # Learn negative patterns with low confidence to avoid repeating failures
+                confidence = 0.1
+            else:
+                confidence = 1.0 if success else 0.5
             
             # Create context for pattern learning
             context = {
@@ -9400,10 +9413,15 @@ class ContinuousLearningLoop:
             # Learn the pattern
             from src.core.cross_session_learning import KnowledgeType, PersistenceLevel
             
-            # Only learn patterns for successful actions or actions with meaningful score changes
+            # Learn from ALL actions with appropriate confidence levels
             if not success and score_change <= 0:
-                print(f"🧠 SKIPPING PATTERN LEARNING: Action {action_number} failed (success: {success}, score_change: {score_change})")
-                pattern_id = None
+                # Learn negative patterns with low confidence to avoid repeating failures
+                persistence_level = PersistenceLevel.SESSION
+                pattern_id = self.governor.learning_manager.learn_pattern(
+                    pattern_data=pattern_data,
+                    context=context,
+                    confidence=0.1  # Low confidence for failure patterns
+                )
             else:
                 # Determine persistence level based on success
                 persistence_level = PersistenceLevel.PERMANENT if success and score_change > 5 else PersistenceLevel.SESSION
@@ -9411,7 +9429,7 @@ class ContinuousLearningLoop:
                 pattern_id = self.governor.learning_manager.learn_pattern(
                     pattern_data=pattern_data,
                     context=context,
-                    confidence=1.0 if success else 0.0
+                    confidence=confidence
                 )
             
             # Learn from conscious architecture outcome

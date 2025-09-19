@@ -237,7 +237,7 @@ class FrameAnalyzer:
                 
                 # Only trigger emergency mode if we have a significant number of stuck attempts
                 # and we're not making progress
-                if total_stuck_attempts > 500:
+                if total_stuck_attempts > 200:  # Reduced from 500 for faster response
                     emergency_mode = True
                     print(f"🚨 EMERGENCY MODE: {total_stuck_attempts} attempts at stuck coordinates")
                     
@@ -2283,7 +2283,7 @@ class FrameAnalyzer:
             result = self.coordinate_results[coord_key]
             
             # Check if this coordinate is stuck and should be skipped in exploration
-            if (result.get('zero_progress_streak', 0) >= 5 and 
+            if (result.get('zero_progress_streak', 0) >= 3 and  # Reduced from 5 for faster switching
                 result.get('total_score_change', 0) <= 0):
                 
                 print(f"🎯 PRODUCTIVITY OVERRIDE: Color {target_color} at ({center_x},{center_y}) has {result['zero_progress_streak']} failed attempts")
