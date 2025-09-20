@@ -92,8 +92,9 @@ class FrameAnalyzer:
             # Update position tracking if we have movement
             if movement_data['has_movement'] and movement_data['movement_centroid']:
                 centroid = movement_data['movement_centroid']
-                self.position_tracker.update_position(centroid[0], centroid[1])
-                self.agent_position = (centroid[0], centroid[1])
+                if isinstance(centroid, (tuple, list)) and len(centroid) >= 2:
+                    self.position_tracker.update_position(centroid[0], centroid[1])
+                    self.agent_position = (centroid[0], centroid[1])
             
             # Update previous frame
             self.previous_frame = frame_array

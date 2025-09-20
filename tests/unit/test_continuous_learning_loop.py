@@ -14,9 +14,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 from training import (
-    ContinuousLearningLoop, 
-    TrainingSession,
-    SalienceModeComparator
+    ContinuousLearningLoop
 )
 from core.salience_system import SalienceMode
 from core.energy_system import EnergySystem

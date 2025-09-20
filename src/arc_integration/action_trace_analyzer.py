@@ -1,7 +1,7 @@
 """
 Action Trace Analyzer for ARC-AGI-3
 
-This module analyzes action traces to identify successful patterns and sequences.
+This module provides analysis capabilities for action traces and patterns.
 
 This file has been modularized. The main functionality is now in src/analysis/.
 """

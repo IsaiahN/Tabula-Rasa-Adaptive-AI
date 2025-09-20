@@ -32,8 +32,13 @@ class PatternAnalyzer:
             # Create mask for this color
             mask = np.all(frame_array == color, axis=2)
             
+            # Ensure mask is single channel
+            mask_uint8 = mask.astype(np.uint8)
+            if len(mask_uint8.shape) == 3:
+                mask_uint8 = cv2.cvtColor(mask_uint8, cv2.COLOR_RGB2GRAY)
+            
             # Find contours
-            contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
             for contour in contours:
                 area = cv2.contourArea(contour)

@@ -8,10 +8,13 @@ This file has been modularized. The main functionality is now in src/training/.
 """
 
 # Import from the new modular structure
-from src.training import ContinuousLearningLoop
+from src.training import ContinuousLearningLoop as _ContinuousLearningLoop
 
 # Re-export for backward compatibility
 __all__ = ['ContinuousLearningLoop']
+
+# Make the class available at module level
+ContinuousLearningLoop = _ContinuousLearningLoop
 
 # For direct execution, create a simple wrapper
 if __name__ == "__main__":

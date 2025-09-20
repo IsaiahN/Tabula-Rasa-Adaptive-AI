@@ -1,7 +1,7 @@
 """
 Enhanced Scorecard Monitor for ARC-AGI-3
 
-This module monitors performance and generates scorecard reports.
+This module provides monitoring and analytics capabilities.
 
 This file has been modularized. The main functionality is now in src/monitoring/.
 """

@@ -67,8 +67,14 @@ class MovementDetector:
         # Threshold the difference to find significant changes
         _, thresh = cv2.threshold(frame_diff, 30, 255, cv2.THRESH_BINARY)
         
+        # Convert to grayscale for contour detection
+        if len(thresh.shape) == 3:
+            thresh_gray = cv2.cvtColor(thresh, cv2.COLOR_RGB2GRAY)
+        else:
+            thresh_gray = thresh
+        
         # Find contours of changed regions
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(thresh_gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         regions = []
         for contour in contours:

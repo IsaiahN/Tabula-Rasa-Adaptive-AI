@@ -1,7 +1,7 @@
 """
-ARC Meta Learning System
+ARC Meta Learning System for ARC-AGI-3
 
-This module implements meta-learning capabilities for ARC-AGI-3.
+This module provides meta-learning capabilities for ARC tasks.
 
 This file has been modularized. The main functionality is now in src/learning/.
 """

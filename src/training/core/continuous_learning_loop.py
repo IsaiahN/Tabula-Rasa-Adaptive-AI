@@ -32,8 +32,8 @@ class ContinuousLearningLoop:
     
     def __init__(
         self,
-        arc_agents_path: str,
-        tabula_rasa_path: str,
+        arc_agents_path: str = ".",
+        tabula_rasa_path: str = ".",
         api_key: Optional[str] = None,
         save_directory: str = "data"
     ):
@@ -58,6 +58,12 @@ class ContinuousLearningLoop:
         
         print("✅ Modular ContinuousLearningLoop initialized successfully")
     
+    async def _ensure_api_initialized(self) -> None:
+        """Ensure API manager is initialized (async)."""
+        if not self._api_initialized:
+            await self.api_manager.initialize()
+            self._api_initialized = True
+    
     def _initialize_components(self) -> None:
         """Initialize all modular components."""
         try:
@@ -76,8 +82,9 @@ class ContinuousLearningLoop:
             )
             self.session_manager = TrainingSessionManager(session_config)
             
-            # API management
+            # API management (will be initialized when needed)
             self.api_manager = APIManager(self.api_key, local_mode=False)
+            self._api_initialized = False
             
             # Performance monitoring
             self.performance_monitor = PerformanceMonitor()
