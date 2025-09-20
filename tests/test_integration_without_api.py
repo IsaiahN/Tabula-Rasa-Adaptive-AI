@@ -18,7 +18,7 @@ def test_scorecard_module_import():
     print("=" * 60)
     
     try:
-        from arc_integration.scorecard_api import ScorecardAPIManager, get_api_key_from_config
+        from src.arc_integration.scorecard_api import ScorecardAPIManager, get_api_key_from_config
         print("✅ Scorecard module imported successfully")
         return True
     except Exception as e:
@@ -32,7 +32,7 @@ def test_continuous_learning_integration():
     print("=" * 60)
     
     try:
-        from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+        from training import ContinuousLearningLoop
         
         # Create a test instance
         loop = ContinuousLearningLoop(

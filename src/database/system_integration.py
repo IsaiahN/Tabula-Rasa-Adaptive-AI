@@ -456,9 +456,24 @@ class SystemIntegration:
     async def log_experiment(self, experiment_name: str, experiment_type: str, parameters: Dict[str, Any],
                            results: Dict[str, Any], success: bool, duration: float = 0.0,
                            notes: str = None) -> bool:
-        """Log experiment data to system_logs (experiments table was deleted)."""
+        """Log experiment data to experiments table."""
         try:
-            # Log experiment as system event instead of using deleted experiments table
+            # Save to experiments table
+            await self.db.execute("""
+                INSERT INTO experiments 
+                (experiment_name, experiment_type, parameters, results, success, duration, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                experiment_name,
+                experiment_type,
+                json.dumps(parameters),
+                json.dumps(results),
+                success,
+                duration,
+                notes
+            ))
+            
+            # Also log as system event for tracking
             await self.log_system_event(
                 level=LogLevel.INFO,
                 component=Component.EXPERIMENT,
@@ -466,11 +481,8 @@ class SystemIntegration:
                 data={
                     "experiment_name": experiment_name,
                     "experiment_type": experiment_type,
-                    "parameters": parameters,
-                    "results": results,
                     "success": success,
-                    "duration": duration,
-                    "notes": notes
+                    "duration": duration
                 },
                 session_id=f"experiment_{experiment_name}"
             )
@@ -482,25 +494,68 @@ class SystemIntegration:
     async def update_task_performance(self, task_id: str, performance_metrics: Dict[str, Any],
                                     learning_progress: Dict[str, Any], success_rate: float,
                                     notes: str = None) -> bool:
-        """Update task performance data to system_logs (task_performance table was deleted)."""
+        """Update task performance data to task_performance table."""
         try:
-            # Log task performance as system event instead of using deleted task_performance table
+            # Save to task_performance table
+            await self.db.execute("""
+                INSERT OR REPLACE INTO task_performance 
+                (task_id, training_sessions, learning_progress, success_rate, notes, updated_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (
+                task_id,
+                json.dumps(performance_metrics),
+                json.dumps(learning_progress),
+                success_rate,
+                notes
+            ))
+            
+            # Also log as system event for tracking
             await self.log_system_event(
                 level=LogLevel.INFO,
                 component=Component.TASK_PERFORMANCE,
                 message=f"Task Performance: {task_id}",
                 data={
                     "task_id": task_id,
-                    "performance_metrics": performance_metrics,
-                    "learning_progress": learning_progress,
                     "success_rate": success_rate,
-                    "notes": notes
+                    "performance_metrics": performance_metrics
                 },
                 session_id=f"task_{task_id}"
             )
             return True
         except Exception as e:
             print(f"Database error: {e}")
+            return False
+    
+    async def log_error(self, error_type: str, error_message: str, stack_trace: str = None,
+                       context: str = None, session_id: str = None, game_id: str = None) -> bool:
+        """Log error to error_logs table."""
+        try:
+            import hashlib
+            error_hash = hashlib.md5(f"{error_type}:{error_message}".encode()).hexdigest()
+            
+            # Check if error already exists
+            existing = await self.db.fetch_all(
+                "SELECT occurrence_count FROM error_logs WHERE error_hash = ?",
+                (error_hash,)
+            )
+            
+            if existing:
+                # Update occurrence count
+                await self.db.execute("""
+                    UPDATE error_logs 
+                    SET occurrence_count = occurrence_count + 1, last_seen = CURRENT_TIMESTAMP
+                    WHERE error_hash = ?
+                """, (error_hash,))
+            else:
+                # Insert new error
+                await self.db.execute("""
+                    INSERT INTO error_logs 
+                    (error_type, error_message, error_hash, stack_trace, context, occurrence_count)
+                    VALUES (?, ?, ?, ?, ?, 1)
+                """, (error_type, error_message, error_hash, stack_trace, context))
+            return True
+        except Exception as e:
+            print(f"Database error logging failed: {e}")
             return False
     
     async def save_game_result(self, game_id: str, session_id: str, final_score: int, 

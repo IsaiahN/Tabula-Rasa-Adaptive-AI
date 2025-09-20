@@ -75,7 +75,7 @@ async def check_api_connectivity():
     print("─" * 60)
     
     try:
-        from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+        from training import ContinuousLearningLoop
         
         # Create learning loop instance with required parameters
         arc_agents_path = os.getenv('ARC_AGENTS_PATH', str(current_dir / 'src'))
@@ -233,7 +233,7 @@ async def test_real_api_call():
     print("─" * 60)
     
     try:
-        from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+        from training import ContinuousLearningLoop
         
         # Create learning loop instance with required parameters
         arc_agents_path = os.getenv('ARC_AGENTS_PATH', str(current_dir / 'src'))

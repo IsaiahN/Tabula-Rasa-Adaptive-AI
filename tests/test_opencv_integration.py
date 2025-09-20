@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.append('src')
 
-from arc_integration.opencv_feature_extractor import OpenCVFeatureExtractor
+from src.arc_integration.opencv_feature_extractor import OpenCVFeatureExtractor
 
 def test_opencv_integration():
     """Test the OpenCV feature extraction system."""

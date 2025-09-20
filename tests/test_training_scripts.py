@@ -24,14 +24,14 @@ class TestMasterArcTrainer:
     def test_master_arc_trainer_import(self):
         """Test that master_arc_trainer can be imported."""
         try:
-            from master_arc_trainer import MasterARCTrainer
+            from training import MasterARCTrainer
             assert True
         except ImportError as e:
             pytest.fail(f"Failed to import MasterARCTrainer: {e}")
     
     def test_master_arc_trainer_initialization(self):
         """Test MasterARCTrainer initialization."""
-        from master_arc_trainer import MasterARCTrainer, MasterTrainingConfig
+        from training import MasterARCTrainer, MasterTrainingConfig
         
         # Test with default configuration
         config = MasterTrainingConfig()
@@ -42,7 +42,7 @@ class TestMasterArcTrainer:
     
     def test_master_arc_trainer_configuration(self):
         """Test MasterARCTrainer configuration options."""
-        from master_arc_trainer import MasterARCTrainer, MasterTrainingConfig
+        from training import MasterARCTrainer, MasterTrainingConfig
         
         # Test with custom configuration
         config = MasterTrainingConfig(
@@ -58,7 +58,7 @@ class TestMasterArcTrainer:
     
     def test_master_arc_trainer_database_integration(self):
         """Test that MasterARCTrainer uses database instead of file generation."""
-        from master_arc_trainer import MasterARCTrainer, MasterTrainingConfig
+        from training import MasterARCTrainer, MasterTrainingConfig
         
         config = MasterTrainingConfig()
         trainer = MasterARCTrainer(config)
@@ -199,7 +199,7 @@ class TestRun9HourScripts:
         pytest.skip("Script has encoding issues, but exists")
     
     def test_run_9hour_scripts_import_master_trainer(self):
-        """Test that run_9hour scripts import master_arc_trainer."""
+        """Test that run_9hour scripts import training module."""
         # Check simple training script
         simple_script_path = os.path.join(os.path.dirname(__file__), '..', 'run_9hour_simple_training.py')
         with open(simple_script_path, 'r', encoding='utf-8') as f:
@@ -237,7 +237,7 @@ class TestDatabaseIntegration:
     
     def test_no_file_generation_in_master_trainer(self):
         """Test that master_arc_trainer doesn't generate files."""
-        from master_arc_trainer import MasterARCTrainer, MasterTrainingConfig
+        from training import MasterARCTrainer, MasterTrainingConfig
         
         config = MasterTrainingConfig()
         trainer = MasterARCTrainer(config)
@@ -272,7 +272,7 @@ class TestDatabaseIntegration:
     
     def test_database_usage_in_components(self):
         """Test that components use database for data storage."""
-        from master_arc_trainer import MasterARCTrainer, MasterTrainingConfig
+        from training import MasterARCTrainer, MasterTrainingConfig
         
         config = MasterTrainingConfig()
         trainer = MasterARCTrainer(config)

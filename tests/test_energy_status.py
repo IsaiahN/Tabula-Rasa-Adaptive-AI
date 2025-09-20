@@ -3,7 +3,7 @@
 import sys
 sys.path.append('src')
 
-from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+from training import ContinuousLearningLoop
 
 def test_energy_status_display():
     """Test the adaptive energy status display system"""

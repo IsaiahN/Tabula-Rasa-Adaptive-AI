@@ -19,7 +19,7 @@ src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
 try:
-    from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+    from training import ContinuousLearningLoop
     from core.salience_system import SalienceMode
 except ImportError as e:
     print(f"Import error: {e}")

@@ -4,7 +4,7 @@ Test script for ARC-AGI-3 Rate Limiting System
 """
 import sys
 
-from arc_integration.continuous_learning_loop import RateLimiter, ARC3_RATE_LIMIT
+from training.api import RateLimiter
 
 def main():
     print('🛡️ ARC-AGI-3 Rate Limiting System Test')

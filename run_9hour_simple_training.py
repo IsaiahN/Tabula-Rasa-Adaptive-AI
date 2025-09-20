@@ -38,7 +38,7 @@ except ImportError:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from database.system_integration import get_system_integration
 from database.db_initializer import ensure_database_ready
-from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+from training import ContinuousLearningLoop
 
 # Global shutdown flag
 shutdown_requested = False

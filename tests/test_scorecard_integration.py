@@ -11,7 +11,7 @@ from pathlib import Path
 # Add the src directory to the path
 sys.path.append(str(Path(__file__).parent / "src"))
 
-from arc_integration.scorecard_api import ScorecardAPIManager, get_api_key_from_config
+from src.arc_integration.scorecard_api import ScorecardAPIManager, get_api_key_from_config
 
 def test_scorecard_api():
     """Test the scorecard API integration."""
@@ -97,7 +97,7 @@ def test_continuous_learning_integration():
     print("=" * 60)
     
     try:
-        from arc_integration.continuous_learning_loop import ContinuousLearningLoop
+        from training import ContinuousLearningLoop
         
         # Create a test instance
         loop = ContinuousLearningLoop(

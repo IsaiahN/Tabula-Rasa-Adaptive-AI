@@ -13,7 +13,7 @@ from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-from arc_integration.continuous_learning_loop import (
+from training import (
     ContinuousLearningLoop, 
     TrainingSession,
     SalienceModeComparator

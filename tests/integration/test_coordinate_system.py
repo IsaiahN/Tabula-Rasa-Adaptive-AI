@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import numpy as np
 
-from arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
+from src.arc_integration.coordinate_aware_integration import CoordinateAwareTrainingManager
 from vision.frame_analyzer import FrameAnalyzer
 from learning.pathway_system import PathwayLearningSystem
 from api.enhanced_client import ArcAgiApiClient

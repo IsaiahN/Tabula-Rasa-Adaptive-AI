@@ -11,7 +11,7 @@ import asyncio
 from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from master_arc_trainer import MasterARCTrainer, TrainingConfig
+from training import MasterARCTrainer, TrainingConfig
 
 def test_critical_fixes_integration():
     """Run the async critical fixes integration test via asyncio.run so pytest

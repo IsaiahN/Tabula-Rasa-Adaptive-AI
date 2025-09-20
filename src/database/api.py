@@ -34,6 +34,8 @@ class Component(Enum):
     LEARNING_LOOP = "learning_loop"
     COORDINATE_SYSTEM = "coordinate_system"
     MEMORY_SYSTEM = "memory_system"
+    EXPERIMENT = "experiment"
+    TASK_PERFORMANCE = "task_performance"
 
 @dataclass
 class TrainingSession:

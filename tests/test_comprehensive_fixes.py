@@ -21,7 +21,7 @@ from pathlib import Path
 # Add the project root to the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from master_arc_trainer import MasterARCTrainer, MasterTrainingConfig
+from training import MasterARCTrainer, MasterTrainingConfig
 from src.arc_integration.continuous_learning_loop import ContinuousLearningLoop
 from src.config.centralized_config import action_limits, api_config, memory_manager, memory_limits
 from src.arc_integration.memory_leak_fixes import MemoryLeakFixer, BoundedList, BoundedDict
@@ -120,7 +120,7 @@ class TestCodeDeduplication:
     def test_action_limits_centralized(self):
         """Test that ActionLimits is centralized."""
         # Both files should use the same ActionLimits class
-        from master_arc_trainer import ActionLimits as MasterActionLimits
+        from training import ActionLimits as MasterActionLimits
         from src.arc_integration.continuous_learning_loop import ActionLimits as LoopActionLimits
         
         # They should have the same values
@@ -288,7 +288,7 @@ class TestBackwardCompatibility:
     
     def test_legacy_unified_trainer_compatibility(self):
         """Test that legacy UnifiedTrainer still works."""
-        from master_arc_trainer import UnifiedTrainer
+        from training import UnifiedTrainer
         
         # Create a mock args object
         class MockArgs:
@@ -319,7 +319,7 @@ class TestBackwardCompatibility:
     
     def test_config_display_compatibility(self):
         """Test that config display still works."""
-        from master_arc_trainer import UnifiedTrainer
+        from training import UnifiedTrainer
         
         class MockArgs:
             mode = 'sequential'

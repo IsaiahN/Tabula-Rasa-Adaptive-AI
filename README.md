@@ -831,6 +831,8 @@ The LLM serves as the central executive that translates technical data into cont
 
 Beyond ARC AGI puzzles, this architecture could potentially operate in rich simulation environments with Open World Models, where the agent could develop theory of mind, engage in social interactions, and pursue self-generated goals based on intrinsic drives rather than external rewards. 
 
+p.s: True art is a gift to the world. It will never be a commodity. Being an artist is a lived experience expressed through a medium; their conduit, is effort. Paradoxically, in their limitations, they show their greatest creativity. Their message, imbued with passion, shares the perceptions and projections of their inner and outer worlds.
+
 ## License
 
 MIT License - See LICENSE file for details.
