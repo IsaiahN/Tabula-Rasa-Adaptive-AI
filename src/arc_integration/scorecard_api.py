@@ -269,8 +269,6 @@ def get_api_key_from_config() -> Optional[str]:
     
     # Check other config files
     config_files = [
-        # "data/optimized_config.json"  # DEPRECATED: Use database instead,
-        # "data/training/results/unified_trainer_results.json"  # DEPRECATED: Use database instead,
         "config.json",
         "settings.json"
     ]

@@ -24,7 +24,7 @@ class ResidualLearningSystem:
     Uses residual connections to improve gradient flow and prevent vanishing gradients.
     """
     
-    def __init__(self, config_path: str = "data/config/residual_config.json", enable_monitoring: bool = True, enable_database_storage: bool = True):
+    def __init__(self, config_path: str = None, enable_monitoring: bool = True, enable_database_storage: bool = True):
         self.config_path = config_path
         self.residual_layers = {}  # Residual layer configurations
         self.skip_connections = {}  # Skip connection weights
@@ -285,7 +285,8 @@ class ResidualLearningSystem:
     def save_residual_state(self, filepath: str = None) -> None:
         """Save residual learning state to file."""
         if filepath is None:
-            filepath = f"data/residual_state_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            # Database-only mode: Skip file-based state saving
+            return
         
         try:
             residual_state = {

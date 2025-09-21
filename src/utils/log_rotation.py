@@ -225,31 +225,6 @@ class LogRotator:
         try:
             # Database-only mode: Skip file-based log rotation
             return True
-            
-            # Unreachable code - kept for reference
-            # log_dir = Path("data/logs")
-            # if not log_dir.exists():
-            #     return True
-            # cutoff_time = datetime.now().timestamp() - (days_to_keep * 24 * 3600)
-            # cleaned_count = 0
-            # for log_file in log_dir.glob("*.log"):
-            #     if log_file.stat().st_mtime < cutoff_time:
-            #         self.logger.info(f"Removing old log file: {log_file}")
-            #         log_file.unlink()
-            #         cleaned_count += 1
-            
-            # Clean up archive directory
-            # archive_dir = Path(self.config.LOG_ARCHIVE_DIR)
-            # if archive_dir.exists():
-            #     for archive_file in archive_dir.glob("*.log"):
-            #         if archive_file.stat().st_mtime < cutoff_time:
-            #             self.logger.info(f"Removing old archive: {archive_file}")
-            #             archive_file.unlink()
-            #             cleaned_count += 1
-            # 
-            # self.logger.info(f"Cleaned up {cleaned_count} old log files")
-            # return True
-            
         except Exception as e:
             self.logger.error(f"Failed to cleanup old logs: {e}")
             return False

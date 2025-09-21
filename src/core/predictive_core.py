@@ -16,8 +16,8 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Fix relative imports by using absolute imports within the package
-from memory.dnc import DNCMemory
-from .energy_system import EnergySystem
+from ..memory.dnc import DNCMemory
+from .unified_energy_system import UnifiedEnergySystem
 from .data_models import SensoryInput  # Add missing import
 from .simulation_models import (
     SimulationResult, SimulationStep, SimulationStatus, 

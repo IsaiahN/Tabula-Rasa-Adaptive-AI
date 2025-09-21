@@ -18,40 +18,16 @@ import time
 from .data_models import SensoryInput, Experience, AgentState, Goal
 from .predictive_core import PredictiveCore
 from .learning_progress import LearningProgressDrive
-from .energy_system import EnergySystem, DeathManager
+from .unified_energy_system import UnifiedEnergySystem, EnergyConfig
 from .sleep_system import SleepCycle
 from .action_selection import ActionSelectionNetwork, ActionExecutor, ExplorationStrategy
 from .meta_learning import MetaLearningSystem
 
-# Import DNC memory with fallback patterns
-try:
-    from ..memory.dnc import DNCMemory
-except ImportError:
-    try:
-        from memory.dnc import DNCMemory
-    except ImportError:
-        # Final fallback for when imported from outside package
-        import sys
-        from pathlib import Path
-        current_dir = Path(__file__).parent
-        memory_dir = current_dir.parent / "memory"
-        if str(memory_dir) not in sys.path:
-            sys.path.insert(0, str(memory_dir))
-        from dnc import DNCMemory
+# Import DNC memory
+from ..memory.dnc import DNCMemory
 
-# Import metrics collector with fallback patterns
-try:
-    from ..monitoring.metrics_collector import MetricsCollector
-except ImportError:
-    try:
-        from monitoring.metrics_collector import MetricsCollector
-    except ImportError:
-        # Create a minimal fallback
-        class MetricsCollector:
-            def __init__(self, **kwargs):
-                pass
-            def log_step(self, **kwargs):
-                pass
+# Import metrics collector
+from ..monitoring.metrics_collector import MetricsCollector
 
 # Import goals with multiple fallback patterns
 try:
@@ -213,10 +189,10 @@ class AdaptiveLearningAgent:
         logger.info("Learning progress drive initialized")
         
     def _init_energy_system(self):
-        """Initialize the energy and death management system."""
+        """Initialize the unified energy management system."""
         energy_config = self.config.get('energy', {})
         
-        self.energy_system = EnergySystem(
+        config = EnergyConfig(
             max_energy=energy_config.get('max_energy', 100.0),
             base_consumption=energy_config.get('base_consumption', 0.01),
             action_multiplier=energy_config.get('action_multiplier', 0.5),
@@ -224,12 +200,7 @@ class AdaptiveLearningAgent:
             food_energy_value=energy_config.get('food_energy_value', 10.0)
         )
         
-        self.death_manager = DeathManager(
-            memory_size=energy_config.get('memory_size', 512),
-            word_size=energy_config.get('word_size', 64),
-            use_learned_importance=energy_config.get('use_learned_importance', False),
-            preservation_ratio=energy_config.get('preservation_ratio', 0.2)
-        )
+        self.energy_system = UnifiedEnergySystem(config)
         
         logger.info("Energy and death management system initialized")
         

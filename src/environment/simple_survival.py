@@ -11,7 +11,7 @@ from typing import Tuple, Dict, List, Optional
 import random
 
 from ..core.data_models import SensoryInput, AgentState
-from ..core.energy_system import EnergySystem
+from ..core.unified_energy_system import UnifiedEnergySystem
 
 
 class SimpleSurvivalEnvironment:

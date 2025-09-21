@@ -25,7 +25,7 @@ class ExtremeLearningMachine:
     Provides fast learning and decision-making capabilities.
     """
     
-    def __init__(self, config_path: str = "data/config/elm_config.json", enable_monitoring: bool = True, enable_database_storage: bool = True):
+    def __init__(self, config_path: str = None, enable_monitoring: bool = True, enable_database_storage: bool = True):
         self.config_path = config_path
         self.input_size = 100  # Input feature dimension
         self.hidden_size = 200  # Hidden layer size
@@ -298,7 +298,8 @@ class ExtremeLearningMachine:
     def save_elm_state(self, filepath: str = None) -> None:
         """Save ELM state to file."""
         if filepath is None:
-            filepath = f"data/elm_state_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            # Database-only mode: Skip file-based state saving
+            return
         
         try:
             elm_state = {
@@ -653,7 +654,7 @@ class DirectorELMEnsemble:
     Each ELM handles different aspects of the decision-making process.
     """
     
-    def __init__(self, config_path: str = "data/config/elm_ensemble_config.json"):
+    def __init__(self, config_path: str = None):
         self.config_path = config_path
         self.elms = {}  # Dictionary of ELMs for different tasks
         self.ensemble_weights = {}  # Weights for combining ELM outputs
