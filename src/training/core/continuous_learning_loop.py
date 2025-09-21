@@ -7,7 +7,8 @@ This replaces the massive 18,000+ line monolithic file.
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
+from ..analysis.action_selector import create_action_selector
 from pathlib import Path
 from datetime import datetime
 
@@ -63,6 +64,265 @@ class ContinuousLearningLoop:
         if not self._api_initialized:
             await self.api_manager.initialize()
             self._api_initialized = True
+            
+            # Initialize action selector
+            self.action_selector = create_action_selector(self.api_manager)
+    
+    def _ensure_initialized(self) -> None:
+        """Ensure the system is initialized (synchronous wrapper)."""
+        # The system is already initialized in __init__, but we can add validation here
+        if not hasattr(self, 'api_manager'):
+            raise RuntimeError("ContinuousLearningLoop not properly initialized")
+        print("✅ System initialization verified")
+    
+    async def get_available_games(self) -> List[Dict[str, Any]]:
+        """Get list of available games from the real ARC-AGI-3 API."""
+        try:
+            await self._ensure_api_initialized()
+            # Get real games from ARC-AGI-3 API
+            games = await self.api_manager.get_available_games()
+            if games:
+                print(f"🎮 Found {len(games)} real ARC-AGI-3 games available")
+                return games
+            else:
+                print("⚠️ No real games available from ARC-AGI-3 API")
+                return []
+        except Exception as e:
+            logger.error(f"Error getting available games: {e}")
+            return []
+    
+    async def start_training_with_direct_control(self, game_id: str, max_actions_per_game: int = 500, 
+                                               session_count: int = 1, duration_minutes: int = 15) -> Dict[str, Any]:
+        """Start training with direct API control using real ARC-AGI-3 API."""
+        try:
+            print(f"🎯 Starting REAL ARC-AGI-3 training for game {game_id}")
+            print(f"   Max actions: {max_actions_per_game}")
+            print(f"   Duration: {duration_minutes} minutes")
+            
+            # Initialize API if needed
+            await self._ensure_api_initialized()
+            
+            # Get real available games from ARC-AGI-3 API
+            available_games = await self.api_manager.get_available_games()
+            if not available_games:
+                raise Exception("No real games available from ARC-AGI-3 API")
+            
+            # Use the first available real game
+            real_game = available_games[0]
+            real_game_id = real_game.get('game_id', game_id)
+            
+            print(f"🎮 Using real ARC-AGI-3 game: {real_game_id}")
+            
+            # Open scorecard for tracking
+            scorecard_id = await self.api_manager.create_scorecard(
+                f"Real Training Session {session_count}",
+                f"Direct API control training for {real_game_id}"
+            )
+            
+            if not scorecard_id:
+                print("⚠️ No scorecard created, proceeding without scorecard tracking")
+                scorecard_id = None
+            
+            # Reset the game to get initial state
+            # Pass the scorecard_id to the reset_game method
+            reset_response = await self.api_manager.reset_game(real_game_id, scorecard_id)
+            if not reset_response:
+                raise Exception("Failed to reset game")
+            
+            # reset_response is a GameState object, not a dict
+            game_guid = reset_response.guid
+            if not game_guid:
+                raise Exception("No game GUID received from reset")
+            
+            print(f"🔄 Game start/reset successful. GUID: {game_guid[:8]}...")
+            
+            # Play the game with real actions
+            actions_taken = 0
+            total_score = 0
+            game_won = False
+            current_state = reset_response.state
+            
+            print(f"🎯 Starting real gameplay with {max_actions_per_game} max actions...")
+            
+            while actions_taken < max_actions_per_game and current_state == 'NOT_FINISHED':
+                try:
+                    # Check rate limit status and implement dynamic pausing
+                    rate_status = self.api_manager.get_rate_limit_status()
+                    warning = self.api_manager.rate_limiter.get_usage_warning()
+                    
+                    # Check if we need to pause due to rate limiting
+                    should_pause, pause_duration = self.api_manager.rate_limiter.should_pause()
+                    if should_pause:
+                        print(f"⏸️ Rate limit pause: {pause_duration:.1f}s (usage: {rate_status.get('current_usage', 0)}/{rate_status.get('max_requests', 550)})")
+                        await asyncio.sleep(pause_duration)
+                    elif warning:
+                        print(f"⚠️ {warning}")
+                        # Small delay when approaching limits
+                        await asyncio.sleep(0.5)  # 0.5 second delay
+                    
+                    # Get current game state
+                    current_response = await self.api_manager.get_game_state(real_game_id, card_id=scorecard_id, guid=game_guid)
+                    if not current_response:
+                        break
+                    
+                    current_state = current_response.state
+                    # Ensure current_score is a number
+                    if isinstance(current_response.score, (int, float)):
+                        current_score = float(current_response.score)
+                    else:
+                        current_score = 0.0
+                    available_actions = current_response.available_actions
+                    
+                    if current_state != 'NOT_FINISHED':
+                        break
+                    
+                    # Choose action based on available actions
+                    # Choose and execute an action using intelligent selection
+                    if self.action_selector:
+                        # Use intelligent action selection with frame analysis
+                        game_state = {
+                            'frame': current_response.frame,
+                            'state': current_response.state,
+                            'score': current_response.score,
+                            'available_actions': available_actions
+                        }
+                        action_to_take = self.action_selector.select_action(game_state, available_actions)
+                    else:
+                        # Fallback to simple action selection
+                        action_to_take = self._choose_smart_action(available_actions, current_response)
+                    
+                    if not action_to_take or not isinstance(action_to_take, dict):
+                        print("⚠️ No valid actions available, ending game")
+                        break
+                    
+                    # Execute the action
+                    action_result = await self.api_manager.take_action(
+                        real_game_id, action_to_take, scorecard_id, game_guid
+                    )
+                    
+                    if action_result:
+                        actions_taken += 1
+                        
+                        # Handle both GameState objects and dictionaries
+                        if hasattr(action_result, 'score'):
+                            # GameState object
+                            new_score = action_result.score
+                            game_state = action_result.state
+                        else:
+                            # Dictionary
+                            new_score = action_result.get('score', current_score)
+                            game_state = action_result.get('state', 'NOT_FINISHED')
+                        
+                        # Ensure both scores are numbers
+                        if isinstance(new_score, (int, float)):
+                            new_score = float(new_score)
+                        else:
+                            new_score = current_score
+                        
+                        score_change = new_score - current_score
+                        total_score = new_score
+                        
+                        # Display action with intelligent selection info
+                        action_display = f"Action {actions_taken}: {action_to_take}"
+                        if isinstance(action_to_take, dict) and 'reason' in action_to_take:
+                            action_display += f" ({action_to_take['reason']})"
+                        print(f"   {action_display} → Score: {total_score} (+{score_change})")
+                        
+                        # Check for win condition
+                        if game_state == 'WIN':
+                            game_won = True
+                            print(f"🎉 GAME WON! Final score: {total_score}")
+                            break
+                        
+                        # Small delay between actions (dynamic pausing handles rate limits)
+                        await asyncio.sleep(0.1)  # 100ms delay
+                    else:
+                        print(f"   Action {actions_taken}: {action_to_take} → Failed")
+                        break
+                        
+                except Exception as e:
+                    print(f"   Action {actions_taken}: Error - {e}")
+                    break
+            
+            # Close scorecard
+            try:
+                await self.api_manager.close_scorecard(scorecard_id)
+            except Exception as e:
+                logger.warning(f"Error closing scorecard: {e}")
+            
+            # Close API manager to prevent resource leaks
+            try:
+                await self.api_manager.close()
+            except Exception as e:
+                logger.warning(f"Error closing API manager: {e}")
+            
+            # Create real training result
+            result = {
+                'game_id': real_game_id,
+                'session_count': session_count,
+                'max_actions': max_actions_per_game,
+                'actions_taken': actions_taken,
+                'score': total_score,
+                'win': game_won,
+                'final_state': current_state,
+                'training_completed': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            print(f"✅ Real training completed: {actions_taken} actions, score {total_score}, win: {game_won}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in start_training_with_direct_control: {e}")
+            return {
+                'game_id': game_id,
+                'error': str(e),
+                'training_completed': False
+            }
+    
+    def _choose_smart_action(self, available_actions: List[int], game_response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Choose a smart action based on available actions and game state."""
+        try:
+            # Prefer simple actions first (1-5, 7)
+            simple_actions = [1, 2, 3, 4, 5, 7]
+            for action in simple_actions:
+                if action in available_actions:
+                    return {'id': action}
+            
+            # If ACTION6 is available, use it with smart targeting
+            if 6 in available_actions:
+                # Analyze frame for targeting
+                frame_data = game_response.frame
+                if frame_data:
+                    target = self._find_target_coordinates(frame_data[0])
+                    if target:
+                        return {
+                            'id': 6,
+                            'x': target[0],
+                            'y': target[1]
+                        }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error choosing action: {e}")
+            return None
+    
+    def _find_target_coordinates(self, frame: List[List[int]]) -> Optional[Tuple[int, int]]:
+        """Find target coordinates for ACTION6 based on frame analysis."""
+        try:
+            # Simple strategy: find non-zero cells (potential interactive elements)
+            for y in range(len(frame)):
+                for x in range(len(frame[y])):
+                    if frame[y][x] != 0:  # Non-background cell
+                        return (x, y)
+            
+            # Fallback: center of grid
+            return (32, 32)
+            
+        except Exception as e:
+            logger.error(f"Error finding target coordinates: {e}")
+            return (32, 32)  # Safe fallback
     
     def _initialize_components(self) -> None:
         """Initialize all modular components."""
@@ -85,6 +345,7 @@ class ContinuousLearningLoop:
             # API management (will be initialized when needed)
             self.api_manager = APIManager(self.api_key, local_mode=False)
             self._api_initialized = False
+            self.action_selector = None
             
             # Performance monitoring
             self.performance_monitor = PerformanceMonitor()
@@ -313,6 +574,11 @@ class ContinuousLearningLoop:
             logger.info("Cleanup completed")
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
+    
+    def request_shutdown(self) -> None:
+        """Request shutdown from external code."""
+        self.shutdown_handler.request_shutdown()
+        logger.info("External shutdown requested")
     
     async def close(self) -> None:
         """Close the continuous learning loop."""

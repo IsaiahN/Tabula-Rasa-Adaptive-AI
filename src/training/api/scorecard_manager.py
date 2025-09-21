@@ -50,7 +50,8 @@ class ScorecardManager:
             return None
         
         try:
-            scorecard_id = await self.scorecard_api_manager.create_scorecard(name, description)
+            # create_scorecard is synchronous, not async
+            scorecard_id = self.scorecard_api_manager.create_scorecard(name, description)
             self.active_scorecard_id = scorecard_id
             logger.info(f"Created scorecard: {scorecard_id}")
             return scorecard_id

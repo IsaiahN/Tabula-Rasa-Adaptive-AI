@@ -73,6 +73,19 @@ class ScorecardAPIManager:
             logger.error(f"❌ Error opening scorecard: {e}")
             return None
     
+    def create_scorecard(self, name: str, description: str = "") -> Optional[str]:
+        """Create a new scorecard (alias for open_scorecard for compatibility)."""
+        source_url = f"https://tabula-rasa.ai/training/{name}"
+        tags = ["tabula_rasa", "training", name.lower().replace(" ", "_")]
+        opaque = {
+            "system": "tabula_rasa",
+            "version": "1.0",
+            "name": name,
+            "description": description,
+            "timestamp": time.time()
+        }
+        return self.open_scorecard(source_url, tags, opaque)
+    
     def get_scorecard_data(self, card_id: str) -> Optional[Dict]:
         """Retrieve current scorecard data including level completions."""
         
@@ -244,6 +257,12 @@ class ScorecardAPIManager:
         logger.info(f"📈 Overall: {all_stats['total_level_completions']} level completions, {all_stats['total_games_completed']} games completed")
         
         return all_stats
+    
+    async def close(self) -> None:
+        """Close the scorecard API manager and clean up resources."""
+        # This is a synchronous class, so we don't need to close anything
+        # But we'll add this method for compatibility
+        logger.info("Scorecard API manager closed")
 
 def create_scorecard_manager(api_key: str) -> ScorecardAPIManager:
     """Create a scorecard manager instance."""

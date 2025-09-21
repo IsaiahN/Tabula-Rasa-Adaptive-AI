@@ -16,20 +16,13 @@ class ShutdownHandler:
     def __init__(self):
         self._shutdown_requested = False
         self._shutdown_callbacks = []
-        self._setup_signal_handlers()
     
-    def _setup_signal_handlers(self):
-        """Setup signal handlers for graceful shutdown."""
-        try:
-            signal.signal(signal.SIGINT, self._signal_handler)
-            signal.signal(signal.SIGTERM, self._signal_handler)
-            logger.debug("Signal handlers setup successfully")
-        except Exception as e:
-            logger.warning(f"Could not setup signal handlers: {e}")
-    
-    def _signal_handler(self, signum, frame):
-        """Handle shutdown signals."""
-        logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+    def request_shutdown(self):
+        """Request shutdown from external code."""
+        if self._shutdown_requested:
+            return
+            
+        logger.info("Shutdown requested externally")
         self._shutdown_requested = True
         
         # Call all registered shutdown callbacks

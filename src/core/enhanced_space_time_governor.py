@@ -176,7 +176,9 @@ class EnhancedSpaceTimeGovernor:
         # Initialize 4-Phase Memory Optimization Coordinator
         try:
             from .four_phase_memory_coordinator import create_four_phase_memory_coordinator
-            self.four_phase_coordinator = create_four_phase_memory_coordinator(self.persistence_dir)
+            # Convert string to Path object if needed
+            persistence_path = self.persistence_dir if isinstance(self.persistence_dir, Path) else Path(self.persistence_dir)
+            self.four_phase_coordinator = create_four_phase_memory_coordinator(persistence_path)
             self.four_phase_initialized = False
             logger.info("4-Phase Memory Coordinator created")
         except Exception as e:

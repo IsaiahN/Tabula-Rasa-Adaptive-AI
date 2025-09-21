@@ -124,6 +124,7 @@ class ARCClient:
         self.session = None
         self.current_game_id = None
         self.current_guid = None
+        self.current_card_id = None
         self.current_scorecard_id = None
         
         # Headers for API requests
@@ -145,12 +146,22 @@ class ARCClient:
         if self.session:
             await self.session.close()
             self.session = None
+        # Reset state
+        self.current_game_id = None
+        self.current_guid = None
+        self.current_card_id = None
+        self.current_scorecard_id = None
     
     async def close(self):
-        """Manually close the session."""
+        """Manually close the session and cleanup resources."""
         if self.session:
             await self.session.close()
             self.session = None
+        # Reset state
+        self.current_game_id = None
+        self.current_guid = None
+        self.current_card_id = None
+        self.current_scorecard_id = None
     
     async def _make_request(self, method: str, url: str, **kwargs) -> Dict[str, Any]:
         """Make a request to the ARC API with retry logic.
@@ -180,15 +191,23 @@ class ARCClient:
         for attempt in range(max_retries):
             try:
                 async with self.session.request(method=method, url=url, **kwargs) as response:
-                    # Handle rate limiting
+                    # Handle rate limiting with exponential backoff
                     if response.status == 429:
-                        error_data = await response.json()
-                        logger.warning(f"Rate limit exceeded: {error_data}")
+                        try:
+                            error_data = await response.json()
+                            logger.warning(f"Rate limit exceeded: {error_data}")
+                        except:
+                            logger.warning("Rate limit exceeded (no JSON response)")
+                        
                         if attempt < max_retries - 1:
-                            wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
-                            logger.info(f"Retrying in {wait_time} seconds...")
+                            # Exponential backoff: 1s, 2s, 4s, 8s, 16s
+                            wait_time = retry_delay * (2 ** attempt)
+                            logger.info(f"Rate limit hit, retrying in {wait_time} seconds... (attempt {attempt + 1}/{max_retries})")
                             await asyncio.sleep(wait_time)
                             continue
+                        else:
+                            logger.error("Rate limit exceeded, max retries reached")
+                            raise ARCAPIError("Rate limit exceeded, max retries reached")
                     
                     # Try to parse JSON response
                     try:
@@ -330,8 +349,25 @@ class ARCClient:
         
         return GameState.from_dict(response)
     
+    async def get_game_state(self, game_id: str, card_id: str = None, guid: str = None) -> GameState:
+        """Get current game state without taking an action."""
+        try:
+            # Use the provided parameters or fall back to stored values
+            card_id = card_id or self.current_card_id
+            guid = guid or self.current_guid
+            
+            if not card_id or not guid:
+                raise ValueError("Missing required parameters: card_id and guid must be provided")
+            
+            # Use ACTION1 as a safe action to get current state
+            # This is a common pattern in ARC-AGI-3 where ACTION1 is often a no-op or safe action
+            return await self.send_action("ACTION1", game_id=game_id, card_id=card_id, guid=guid)
+        except Exception as e:
+            logger.error(f"Error getting game state: {e}")
+            return None
+    
     async def send_action(self, action: str, game_id: str = None, card_id: str = None, 
-                         guid: str = None, **kwargs) -> GameState:
+                         guid: str = None, x: int = None, y: int = None, **kwargs) -> GameState:
         """Send an action to the game.
         
         Args:
@@ -379,10 +415,10 @@ class ARCClient:
         
         # Add action-specific parameters
         if action == "ACTION6":
-            if "x" not in kwargs or "y" not in kwargs:
+            if x is None or y is None:
                 raise ValueError("ACTION6 requires x and y coordinates")
-            payload["x"] = kwargs["x"]
-            payload["y"] = kwargs["y"]
+            payload["x"] = x
+            payload["y"] = y
         else:
             # Add reasoning for other actions
             if "reasoning" in kwargs:
