@@ -10,7 +10,12 @@ import os
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 import logging
+import asyncio
 from scipy.linalg import pinv
+
+from ..database.system_integration import get_system_integration
+from ..database.api import Component, LogLevel
+from ..core.cognitive_subsystems import LearningProgressMonitor, MetaLearningMonitor, PatternRecognitionMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +25,13 @@ class ExtremeLearningMachine:
     Provides fast learning and decision-making capabilities.
     """
     
-    def __init__(self, config_path: str = "data/config/elm_config.json"):
+    def __init__(self, config_path: str = "data/config/elm_config.json", enable_monitoring: bool = True, enable_database_storage: bool = True):
         self.config_path = config_path
         self.input_size = 100  # Input feature dimension
         self.hidden_size = 200  # Hidden layer size
         self.output_size = 50   # Output dimension
+        self.enable_monitoring = enable_monitoring
+        self.enable_database_storage = enable_database_storage
         
         # ELM parameters
         self.hidden_weights = None  # Random hidden layer weights
@@ -35,6 +42,16 @@ class ExtremeLearningMachine:
         # Learning parameters
         self.regularization = 0.01  # L2 regularization parameter
         self.learning_rate = 0.001  # Learning rate for online updates
+        
+        # Initialize monitoring systems
+        if self.enable_monitoring:
+            self.learning_progress_monitor = LearningProgressMonitor()
+            self.meta_learning_monitor = MetaLearningMonitor()
+            self.pattern_recognition_monitor = PatternRecognitionMonitor()
+        
+        # Initialize database integration
+        if self.enable_database_storage:
+            self.integration = get_system_integration()
         
         self._load_config()
         self._initialize_elm()
@@ -328,6 +345,306 @@ class ExtremeLearningMachine:
         except Exception as e:
             logger.error(f"Failed to load ELM state: {e}")
             return False
+    
+    async def enhanced_train_batch(self, input_data: np.ndarray, target_data: np.ndarray, 
+                                 context: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+        """
+        Enhanced batch training with monitoring and database integration.
+        
+        Args:
+            input_data: Input data of shape (n_samples, input_size)
+            target_data: Target data of shape (n_samples, output_size)
+            context: Additional context information
+            
+        Returns:
+            Training metrics
+        """
+        start_time = datetime.now()
+        
+        try:
+            # Perform standard training
+            metrics = self.train_batch(input_data, target_data)
+            
+            # Update monitoring systems
+            if self.enable_monitoring:
+                await self._update_training_monitoring(input_data, target_data, metrics, context)
+            
+            # Store training data
+            if self.enable_database_storage:
+                await self._store_training_data(input_data, target_data, metrics, context, start_time)
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"Enhanced ELM training failed: {e}")
+            return {'mse': float('inf'), 'mae': float('inf'), 'rmse': float('inf'), 'training_samples': 0}
+    
+    async def enhanced_online_update(self, input_data: np.ndarray, target_data: np.ndarray, 
+                                   context: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+        """
+        Enhanced online update with monitoring and database integration.
+        
+        Args:
+            input_data: Single input sample of shape (1, input_size)
+            target_data: Single target sample of shape (1, output_size)
+            context: Additional context information
+            
+        Returns:
+            Update metrics
+        """
+        start_time = datetime.now()
+        
+        try:
+            # Perform standard online update
+            metrics = self.online_update(input_data, target_data)
+            
+            # Update monitoring systems
+            if self.enable_monitoring:
+                await self._update_online_monitoring(input_data, target_data, metrics, context)
+            
+            # Store update data
+            if self.enable_database_storage:
+                await self._store_online_update_data(input_data, target_data, metrics, context, start_time)
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"Enhanced ELM online update failed: {e}")
+            return {'mse': float('inf'), 'mae': float('inf'), 'rmse': float('inf'), 'update_samples': 0}
+    
+    async def _update_training_monitoring(self, input_data: np.ndarray, target_data: np.ndarray, 
+                                        metrics: Dict[str, float], context: Optional[Dict[str, Any]]):
+        """Update cognitive monitoring systems for training."""
+        try:
+            if not self.enable_monitoring:
+                return
+            
+            # Calculate ELM-specific metrics
+            elm_metrics = self._calculate_elm_metrics(input_data, target_data, metrics)
+            
+            # Update learning progress monitor
+            if hasattr(self, 'learning_progress_monitor'):
+                learning_data = {
+                    'mse': metrics['mse'],
+                    'mae': metrics['mae'],
+                    'rmse': metrics['rmse'],
+                    'training_samples': metrics['training_samples'],
+                    'elm_performance': elm_metrics['elm_performance'],
+                    'learning_efficiency': elm_metrics['learning_efficiency'],
+                    'context': context
+                }
+                self.learning_progress_monitor.update_metrics(learning_data)
+            
+            # Update meta-learning monitor
+            if hasattr(self, 'meta_learning_monitor'):
+                meta_learning_data = {
+                    'elm_adaptation': elm_metrics['elm_adaptation'],
+                    'pattern_learning': elm_metrics['pattern_learning'],
+                    'context': context
+                }
+                self.meta_learning_monitor.update_metrics(meta_learning_data)
+            
+            # Update pattern recognition monitor
+            if hasattr(self, 'pattern_recognition_monitor'):
+                pattern_data = {
+                    'feature_importance': elm_metrics['feature_importance'],
+                    'activation_patterns': elm_metrics['activation_patterns'],
+                    'context': context
+                }
+                self.pattern_recognition_monitor.update_metrics(pattern_data)
+            
+        except Exception as e:
+            logger.error(f"Failed to update training monitoring: {e}")
+    
+    async def _update_online_monitoring(self, input_data: np.ndarray, target_data: np.ndarray, 
+                                      metrics: Dict[str, float], context: Optional[Dict[str, Any]]):
+        """Update cognitive monitoring systems for online updates."""
+        try:
+            if not self.enable_monitoring:
+                return
+            
+            # Calculate online update metrics
+            online_metrics = self._calculate_online_metrics(input_data, target_data, metrics)
+            
+            # Update learning progress monitor
+            if hasattr(self, 'learning_progress_monitor'):
+                learning_data = {
+                    'mse': metrics['mse'],
+                    'mae': metrics['mae'],
+                    'rmse': metrics['rmse'],
+                    'update_samples': metrics['update_samples'],
+                    'online_learning_rate': online_metrics['online_learning_rate'],
+                    'adaptation_speed': online_metrics['adaptation_speed'],
+                    'context': context
+                }
+                self.learning_progress_monitor.update_metrics(learning_data)
+            
+        except Exception as e:
+            logger.error(f"Failed to update online monitoring: {e}")
+    
+    async def _store_training_data(self, input_data: np.ndarray, target_data: np.ndarray, 
+                                 metrics: Dict[str, float], context: Optional[Dict[str, Any]], 
+                                 start_time: datetime):
+        """Store training data in database."""
+        try:
+            if not self.enable_database_storage or not hasattr(self, 'integration'):
+                return
+            
+            # Calculate ELM metrics
+            elm_metrics = self._calculate_elm_metrics(input_data, target_data, metrics)
+            
+            # Create operation record
+            operation_data = {
+                'operation_type': 'elm_batch_training',
+                'input_shape': input_data.shape,
+                'target_shape': target_data.shape,
+                'training_samples': metrics['training_samples'],
+                'mse': metrics['mse'],
+                'mae': metrics['mae'],
+                'rmse': metrics['rmse'],
+                'elm_performance': elm_metrics['elm_performance'],
+                'learning_efficiency': elm_metrics['learning_efficiency'],
+                'processing_time': (datetime.now() - start_time).total_seconds(),
+                'context': context or {}
+            }
+            
+            await self.integration.log_system_event(
+                LogLevel.INFO,
+                Component.DIRECTOR,
+                f"ELM batch training: {metrics['training_samples']} samples",
+                operation_data,
+                "elm_training"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to store training data: {e}")
+    
+    async def _store_online_update_data(self, input_data: np.ndarray, target_data: np.ndarray, 
+                                      metrics: Dict[str, float], context: Optional[Dict[str, Any]], 
+                                      start_time: datetime):
+        """Store online update data in database."""
+        try:
+            if not self.enable_database_storage or not hasattr(self, 'integration'):
+                return
+            
+            # Calculate online metrics
+            online_metrics = self._calculate_online_metrics(input_data, target_data, metrics)
+            
+            # Create operation record
+            operation_data = {
+                'operation_type': 'elm_online_update',
+                'input_shape': input_data.shape,
+                'target_shape': target_data.shape,
+                'update_samples': metrics['update_samples'],
+                'mse': metrics['mse'],
+                'mae': metrics['mae'],
+                'rmse': metrics['rmse'],
+                'online_learning_rate': online_metrics['online_learning_rate'],
+                'adaptation_speed': online_metrics['adaptation_speed'],
+                'processing_time': (datetime.now() - start_time).total_seconds(),
+                'context': context or {}
+            }
+            
+            await self.integration.log_system_event(
+                LogLevel.INFO,
+                Component.DIRECTOR,
+                f"ELM online update: {metrics['update_samples']} samples",
+                operation_data,
+                "elm_online_update"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to store online update data: {e}")
+    
+    def _calculate_elm_metrics(self, input_data: np.ndarray, target_data: np.ndarray, 
+                             metrics: Dict[str, float]) -> Dict[str, float]:
+        """Calculate ELM-specific performance metrics."""
+        try:
+            # Calculate ELM performance (based on training metrics)
+            elm_performance = 1.0 / (1.0 + metrics['mse']) if metrics['mse'] > 0 else 1.0
+            
+            # Calculate learning efficiency (based on sample count and performance)
+            learning_efficiency = elm_performance / max(1.0, metrics['training_samples'] / 100.0)
+            
+            # Calculate ELM adaptation (based on regularization and learning rate)
+            elm_adaptation = min(1.0, (self.regularization + self.learning_rate) * 10)
+            
+            # Calculate pattern learning (based on feature importance)
+            feature_importance = self.get_feature_importance(input_data)
+            pattern_learning = float(np.mean(feature_importance))
+            
+            # Calculate activation patterns (based on hidden layer activations)
+            hidden_input = np.dot(input_data, self.hidden_weights) + self.hidden_bias
+            hidden_output = self._activation_function(hidden_input)
+            activation_patterns = float(np.std(hidden_output))
+            
+            return {
+                'elm_performance': elm_performance,
+                'learning_efficiency': learning_efficiency,
+                'elm_adaptation': elm_adaptation,
+                'pattern_learning': pattern_learning,
+                'feature_importance': pattern_learning,  # Use pattern_learning as proxy
+                'activation_patterns': activation_patterns
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to calculate ELM metrics: {e}")
+            return {
+                'elm_performance': 0.0,
+                'learning_efficiency': 0.0,
+                'elm_adaptation': 0.0,
+                'pattern_learning': 0.0,
+                'feature_importance': 0.0,
+                'activation_patterns': 0.0
+            }
+    
+    def _calculate_online_metrics(self, input_data: np.ndarray, target_data: np.ndarray, 
+                                metrics: Dict[str, float]) -> Dict[str, float]:
+        """Calculate online update performance metrics."""
+        try:
+            # Calculate online learning rate (scaled learning rate)
+            online_learning_rate = min(1.0, self.learning_rate * 1000)
+            
+            # Calculate adaptation speed (based on error reduction)
+            adaptation_speed = 1.0 / (1.0 + metrics['mse']) if metrics['mse'] > 0 else 1.0
+            
+            return {
+                'online_learning_rate': online_learning_rate,
+                'adaptation_speed': adaptation_speed
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to calculate online metrics: {e}")
+            return {
+                'online_learning_rate': 0.0,
+                'adaptation_speed': 0.0
+            }
+    
+    async def get_enhanced_report(self) -> Dict[str, Any]:
+        """Get enhanced ELM report with monitoring data."""
+        try:
+            # Get base report
+            base_report = self.get_elm_report()
+            
+            # Add monitoring data
+            if self.enable_monitoring:
+                base_report['monitoring_data'] = {
+                    'learning_progress': getattr(self.learning_progress_monitor, 'metrics', {}),
+                    'meta_learning': getattr(self.meta_learning_monitor, 'metrics', {}),
+                    'pattern_recognition': getattr(self.pattern_recognition_monitor, 'metrics', {})
+                }
+            
+            # Add database integration status
+            base_report['database_integration'] = {
+                'enabled': self.enable_database_storage,
+                'integration_available': hasattr(self, 'integration')
+            }
+            
+            return base_report
+            
+        except Exception as e:
+            logger.error(f"Failed to get enhanced report: {e}")
+            return self.get_elm_report()
 
 
 class DirectorELMEnsemble:

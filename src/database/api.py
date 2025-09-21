@@ -36,6 +36,8 @@ class Component(Enum):
     MEMORY_SYSTEM = "memory_system"
     EXPERIMENT = "experiment"
     TASK_PERFORMANCE = "task_performance"
+    SUBSYSTEM_MONITOR = "subsystem_monitor"
+    FRAME_ANALYSIS = "frame_analysis"
 
 @dataclass
 class TrainingSession:

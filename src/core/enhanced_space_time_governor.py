@@ -169,6 +169,17 @@ class EnhancedSpaceTimeGovernor:
         self.decision_history = deque(maxlen=1000)
         self.performance_history = deque(maxlen=1000)
         
+        # Initialize 4-Phase Memory Optimization Coordinator
+        try:
+            from .four_phase_memory_coordinator import create_four_phase_memory_coordinator
+            self.four_phase_coordinator = create_four_phase_memory_coordinator(self.persistence_dir)
+            self.four_phase_initialized = False
+            logger.info("4-Phase Memory Coordinator created")
+        except Exception as e:
+            logger.warning(f"Failed to initialize 4-Phase Memory Coordinator: {e}")
+            self.four_phase_coordinator = None
+            self.four_phase_initialized = False
+        
         # Action limits (legacy functionality)
         self.action_limits = {
             'max_actions_per_game': 1000,
@@ -650,10 +661,465 @@ class EnhancedSpaceTimeGovernor:
             logger.warning(f"Failed to cleanup logs for game {game_id}: {e}")
             return {'success': False, 'action': 'failed', 'error': str(e), 'game_id': game_id}
     
+    def optimize_parameters_dynamically(self, 
+                                      performance_data: List[Dict[str, Any]], 
+                                      context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Dynamically optimize d, b, h parameters based on performance data.
+        
+        Args:
+            performance_data: Recent performance data for analysis
+            context: Current context for parameter adjustment
+            
+        Returns:
+            Dictionary containing optimization results and new parameters
+        """
+        try:
+            # Get current parameters
+            current_params = self.space_time_governor.current_parameters
+            current_d = current_params.d
+            current_b = current_params.b
+            current_h = current_params.h
+            
+            # Analyze performance trends
+            performance_analysis = self._analyze_performance_trends(performance_data)
+            
+            # Calculate optimization adjustments
+            d_adjustment = self._calculate_d_adjustment(performance_analysis, context)
+            b_adjustment = self._calculate_b_adjustment(performance_analysis, context)
+            h_adjustment = self._calculate_h_adjustment(performance_analysis, context)
+            
+            # Apply adjustments with bounds checking
+            new_d = max(0.1, min(1.0, current_d + d_adjustment))
+            new_b = max(0.1, min(1.0, current_b + b_adjustment))
+            new_h = max(0.1, min(1.0, current_h + h_adjustment))
+            
+            # Update parameters
+            self.space_time_governor.current_parameters.d = new_d
+            self.space_time_governor.current_parameters.b = new_b
+            self.space_time_governor.current_parameters.h = new_h
+            
+            # Log optimization
+            logger.info(f"Parameter optimization: d={new_d:.3f}, b={new_b:.3f}, h={new_h:.3f}")
+            
+            return {
+                'success': True,
+                'old_parameters': {'d': current_d, 'b': current_b, 'h': current_h},
+                'new_parameters': {'d': new_d, 'b': new_b, 'h': new_h},
+                'adjustments': {'d': d_adjustment, 'b': b_adjustment, 'h': h_adjustment},
+                'performance_analysis': performance_analysis,
+                'reasoning': self._generate_optimization_reasoning(performance_analysis, d_adjustment, b_adjustment, h_adjustment)
+            }
+            
+        except Exception as e:
+            logger.error(f"Parameter optimization failed: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'old_parameters': {'d': current_d, 'b': current_b, 'h': current_h},
+                'new_parameters': {'d': current_d, 'b': current_b, 'h': current_h}
+            }
+    
+    def _analyze_performance_trends(self, performance_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze performance trends to inform parameter optimization."""
+        if not performance_data:
+            return {'trend': 'no_data', 'confidence': 0.0}
+        
+        # Calculate success rate trend
+        success_rates = []
+        for i in range(0, len(performance_data), 10):  # Every 10 actions
+            batch = performance_data[i:i+10]
+            if batch:
+                success_rate = sum(1 for entry in batch if entry.get('success', False)) / len(batch)
+                success_rates.append(success_rate)
+        
+        if len(success_rates) < 2:
+            return {'trend': 'insufficient_data', 'confidence': 0.0}
+        
+        # Calculate trend direction
+        recent_avg = np.mean(success_rates[-3:]) if len(success_rates) >= 3 else success_rates[-1]
+        earlier_avg = np.mean(success_rates[:-3]) if len(success_rates) >= 6 else success_rates[0]
+        
+        trend_direction = 'improving' if recent_avg > earlier_avg else 'declining'
+        trend_magnitude = abs(recent_avg - earlier_avg)
+        
+        # Calculate efficiency trend
+        efficiency_scores = [entry.get('efficiency', 1.0) for entry in performance_data if 'efficiency' in entry]
+        avg_efficiency = np.mean(efficiency_scores) if efficiency_scores else 1.0
+        
+        # Calculate action diversity
+        actions = [entry.get('action', 0) for entry in performance_data]
+        action_diversity = len(set(actions)) / len(actions) if actions else 0.0
+        
+        return {
+            'trend': trend_direction,
+            'magnitude': trend_magnitude,
+            'success_rate': recent_avg,
+            'efficiency': avg_efficiency,
+            'action_diversity': action_diversity,
+            'confidence': min(1.0, len(performance_data) / 50.0)  # More data = higher confidence
+        }
+    
+    def _calculate_d_adjustment(self, performance_analysis: Dict[str, Any], context: Dict[str, Any]) -> float:
+        """Calculate adjustment for depth parameter (d)."""
+        base_adjustment = 0.0
+        
+        # Adjust based on success rate trend
+        if performance_analysis['trend'] == 'improving':
+            # If improving, increase depth to explore more
+            base_adjustment += 0.05 * performance_analysis['magnitude']
+        elif performance_analysis['trend'] == 'declining':
+            # If declining, decrease depth to focus on immediate actions
+            base_adjustment -= 0.03 * performance_analysis['magnitude']
+        
+        # Adjust based on efficiency
+        if performance_analysis['efficiency'] > 0.8:
+            # High efficiency, can afford more depth
+            base_adjustment += 0.02
+        elif performance_analysis['efficiency'] < 0.5:
+            # Low efficiency, reduce depth
+            base_adjustment -= 0.02
+        
+        # Adjust based on action diversity
+        if performance_analysis['action_diversity'] < 0.3:
+            # Low diversity, increase depth to explore more
+            base_adjustment += 0.03
+        elif performance_analysis['action_diversity'] > 0.7:
+            # High diversity, can reduce depth
+            base_adjustment -= 0.01
+        
+        return base_adjustment
+    
+    def _calculate_b_adjustment(self, performance_analysis: Dict[str, Any], context: Dict[str, Any]) -> float:
+        """Calculate adjustment for branching factor parameter (b)."""
+        base_adjustment = 0.0
+        
+        # Adjust based on success rate
+        if performance_analysis['success_rate'] > 0.7:
+            # High success rate, increase branching to explore more options
+            base_adjustment += 0.03
+        elif performance_analysis['success_rate'] < 0.3:
+            # Low success rate, decrease branching to focus on fewer options
+            base_adjustment -= 0.02
+        
+        # Adjust based on action diversity
+        if performance_analysis['action_diversity'] < 0.4:
+            # Low diversity, increase branching
+            base_adjustment += 0.04
+        elif performance_analysis['action_diversity'] > 0.8:
+            # High diversity, can reduce branching
+            base_adjustment -= 0.02
+        
+        # Adjust based on trend
+        if performance_analysis['trend'] == 'improving':
+            # Improving trend, increase branching slightly
+            base_adjustment += 0.01
+        elif performance_analysis['trend'] == 'declining':
+            # Declining trend, decrease branching
+            base_adjustment -= 0.02
+        
+        return base_adjustment
+    
+    def _calculate_h_adjustment(self, performance_analysis: Dict[str, Any], context: Dict[str, Any]) -> float:
+        """Calculate adjustment for horizon parameter (h)."""
+        base_adjustment = 0.0
+        
+        # Adjust based on efficiency
+        if performance_analysis['efficiency'] > 0.8:
+            # High efficiency, can afford longer horizon
+            base_adjustment += 0.04
+        elif performance_analysis['efficiency'] < 0.5:
+            # Low efficiency, reduce horizon
+            base_adjustment -= 0.03
+        
+        # Adjust based on success rate trend
+        if performance_analysis['trend'] == 'improving':
+            # Improving trend, increase horizon
+            base_adjustment += 0.02 * performance_analysis['magnitude']
+        elif performance_analysis['trend'] == 'declining':
+            # Declining trend, decrease horizon
+            base_adjustment -= 0.03 * performance_analysis['magnitude']
+        
+        # Adjust based on context complexity
+        context_complexity = len(str(context)) / 1000.0  # Rough complexity measure
+        if context_complexity > 0.5:
+            # Complex context, increase horizon
+            base_adjustment += 0.02
+        elif context_complexity < 0.2:
+            # Simple context, can reduce horizon
+            base_adjustment -= 0.01
+        
+        return base_adjustment
+    
+    def _generate_optimization_reasoning(self, performance_analysis: Dict[str, Any], 
+                                       d_adj: float, b_adj: float, h_adj: float) -> str:
+        """Generate human-readable reasoning for parameter optimization."""
+        reasoning_parts = []
+        
+        # Trend-based reasoning
+        if performance_analysis['trend'] == 'improving':
+            reasoning_parts.append("Performance is improving")
+        elif performance_analysis['trend'] == 'declining':
+            reasoning_parts.append("Performance is declining")
+        
+        # Parameter-specific reasoning
+        if abs(d_adj) > 0.02:
+            if d_adj > 0:
+                reasoning_parts.append(f"increased depth (d) by {d_adj:.3f} for better exploration")
+            else:
+                reasoning_parts.append(f"decreased depth (d) by {abs(d_adj):.3f} for focused action")
+        
+        if abs(b_adj) > 0.02:
+            if b_adj > 0:
+                reasoning_parts.append(f"increased branching (b) by {b_adj:.3f} for more options")
+            else:
+                reasoning_parts.append(f"decreased branching (b) by {abs(b_adj):.3f} for focused search")
+        
+        if abs(h_adj) > 0.02:
+            if h_adj > 0:
+                reasoning_parts.append(f"increased horizon (h) by {h_adj:.3f} for longer-term planning")
+            else:
+                reasoning_parts.append(f"decreased horizon (h) by {abs(h_adj):.3f} for immediate focus")
+        
+        if not reasoning_parts:
+            reasoning_parts.append("no significant adjustments needed")
+        
+        return f"Optimization: {', '.join(reasoning_parts)} (confidence: {performance_analysis['confidence']:.2f})"
+    
+    def get_parameter_optimization_status(self) -> Dict[str, Any]:
+        """Get current status of parameter optimization system."""
+        current_params = self.space_time_governor.current_parameters
+        
+        return {
+            'current_parameters': {
+                'd': current_params.d,
+                'b': current_params.b,
+                'h': current_params.h
+            },
+            'optimization_enabled': True,
+            'last_optimization': getattr(self, '_last_optimization_time', None),
+            'optimization_count': getattr(self, '_optimization_count', 0),
+            'performance_data_points': len(self.performance_history)
+        }
+    
+    async def initialize_four_phase_memory_system(self) -> bool:
+        """Initialize the 4-Phase Memory Optimization system."""
+        if not self.four_phase_coordinator:
+            logger.warning("4-Phase Memory Coordinator not available")
+            return False
+        
+        try:
+            if not self.four_phase_initialized:
+                success = await self.four_phase_coordinator.initialize()
+                if success:
+                    self.four_phase_initialized = True
+                    logger.info("4-Phase Memory Optimization system initialized")
+                else:
+                    logger.error("Failed to initialize 4-Phase Memory Optimization system")
+                return success
+            else:
+                logger.info("4-Phase Memory Optimization system already initialized")
+                return True
+        except Exception as e:
+            logger.error(f"Error initializing 4-Phase Memory system: {e}")
+            return False
+    
+    async def process_memory_through_four_phases(self, memory_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process memory data through all four phases of optimization."""
+        if not self.four_phase_initialized or not self.four_phase_coordinator:
+            logger.warning("4-Phase Memory system not initialized")
+            return {'error': '4-Phase Memory system not initialized'}
+        
+        try:
+            # Process through all four phases
+            results = await self.four_phase_coordinator.process_memory_data(memory_data)
+            
+            # Update governor with insights from 4-phase processing
+            await self._integrate_four_phase_insights(results)
+            
+            return results
+        except Exception as e:
+            logger.error(f"Error processing memory through 4 phases: {e}")
+            return {'error': str(e)}
+    
+    async def _integrate_four_phase_insights(self, four_phase_results: Dict[str, Any]) -> None:
+        """Integrate insights from 4-phase processing into governor decision making."""
+        try:
+            # Extract pattern recognition insights
+            if 'pattern_recognition' in four_phase_results:
+                pattern_data = four_phase_results['pattern_recognition']
+                if 'optimization_suggestions' in pattern_data:
+                    # Apply pattern-based optimizations to space-time parameters
+                    await self._apply_pattern_optimizations(pattern_data['optimization_suggestions'])
+            
+            # Extract memory clustering insights
+            if 'memory_clustering' in four_phase_results:
+                cluster_data = four_phase_results['memory_clustering']
+                if 'clustering_insights' in cluster_data:
+                    # Use clustering insights for better memory management
+                    await self._apply_clustering_insights(cluster_data['clustering_insights'])
+            
+            # Extract architect evolution insights
+            if 'architect_evolution' in four_phase_results:
+                architect_data = four_phase_results['architect_evolution']
+                if 'evolution_results' in architect_data:
+                    # Apply architectural improvements
+                    await self._apply_architectural_improvements(architect_data['evolution_results'])
+            
+            # Extract performance optimization insights
+            if 'performance_optimization' in four_phase_results:
+                performance_data = four_phase_results['performance_optimization']
+                if 'optimization_results' in performance_data:
+                    # Apply performance optimizations
+                    await self._apply_performance_optimizations(performance_data['optimization_results'])
+            
+        except Exception as e:
+            logger.error(f"Error integrating 4-phase insights: {e}")
+    
+    async def _apply_pattern_optimizations(self, optimization_suggestions: List[Dict[str, Any]]) -> None:
+        """Apply pattern-based optimizations to the governor."""
+        try:
+            for suggestion in optimization_suggestions:
+                if suggestion.get('type') == 'memory_efficiency':
+                    # Adjust space-time parameters based on memory efficiency suggestions
+                    efficiency_factor = suggestion.get('efficiency_factor', 1.0)
+                    if efficiency_factor > 1.1:  # Significant improvement
+                        # Increase depth and branching for better exploration
+                        self.space_time_governor.current_parameters.d = min(1.0, 
+                            self.space_time_governor.current_parameters.d * 1.05)
+                        self.space_time_governor.current_parameters.b = min(1.0,
+                            self.space_time_governor.current_parameters.b * 1.05)
+                    elif efficiency_factor < 0.9:  # Significant degradation
+                        # Reduce depth and branching for focused action
+                        self.space_time_governor.current_parameters.d = max(0.1,
+                            self.space_time_governor.current_parameters.d * 0.95)
+                        self.space_time_governor.current_parameters.b = max(0.1,
+                            self.space_time_governor.current_parameters.b * 0.95)
+        except Exception as e:
+            logger.error(f"Error applying pattern optimizations: {e}")
+    
+    async def _apply_clustering_insights(self, clustering_insights: Dict[str, Any]) -> None:
+        """Apply memory clustering insights to the governor."""
+        try:
+            # Use clustering insights to improve memory management
+            if 'memory_locality_score' in clustering_insights:
+                locality_score = clustering_insights['memory_locality_score']
+                if locality_score > 0.8:  # Good locality
+                    # Can afford more complex operations
+                    self.space_time_governor.current_parameters.h = min(1.0,
+                        self.space_time_governor.current_parameters.h * 1.02)
+                elif locality_score < 0.5:  # Poor locality
+                    # Simplify operations
+                    self.space_time_governor.current_parameters.h = max(0.1,
+                        self.space_time_governor.current_parameters.h * 0.98)
+        except Exception as e:
+            logger.error(f"Error applying clustering insights: {e}")
+    
+    async def _apply_architectural_improvements(self, evolution_results: Dict[str, Any]) -> None:
+        """Apply architectural improvements from the evolution engine."""
+        try:
+            # Apply architectural improvements to governor parameters
+            if 'parameter_adjustments' in evolution_results:
+                adjustments = evolution_results['parameter_adjustments']
+                for param, adjustment in adjustments.items():
+                    if param == 'decision_threshold':
+                        self.decision_threshold = max(0.1, min(1.0, 
+                            self.decision_threshold + adjustment))
+                    elif param == 'adaptation_rate':
+                        self.adaptation_rate = max(0.01, min(0.5,
+                            self.adaptation_rate + adjustment))
+        except Exception as e:
+            logger.error(f"Error applying architectural improvements: {e}")
+    
+    async def _apply_performance_optimizations(self, optimization_results: Dict[str, Any]) -> None:
+        """Apply performance optimizations from the performance engine."""
+        try:
+            # Apply performance optimizations to governor
+            if 'resource_optimizations' in optimization_results:
+                resource_opts = optimization_results['resource_optimizations']
+                if 'memory_usage_reduction' in resource_opts:
+                    # Reduce memory usage by adjusting parameters
+                    reduction_factor = resource_opts['memory_usage_reduction']
+                    self.space_time_governor.current_parameters.d = max(0.1,
+                        self.space_time_governor.current_parameters.d * (1 - reduction_factor))
+        except Exception as e:
+            logger.error(f"Error applying performance optimizations: {e}")
+    
+    async def run_four_phase_optimization_cycle(self) -> Dict[str, Any]:
+        """Run a complete 4-phase optimization cycle."""
+        if not self.four_phase_initialized or not self.four_phase_coordinator:
+            logger.warning("4-Phase Memory system not initialized")
+            return {'error': '4-Phase Memory system not initialized'}
+        
+        try:
+            # Run optimization cycle
+            result = await self.four_phase_coordinator.run_optimization_cycle()
+            
+            # Integrate results into governor
+            if result.success:
+                await self._integrate_optimization_cycle_results(result)
+            
+            return {
+                'success': result.success,
+                'cycle_id': result.cycle_id,
+                'phases_optimized': result.phases_optimized,
+                'performance_improvements': result.performance_improvements,
+                'optimization_duration': result.optimization_duration,
+                'error_message': result.error_message
+            }
+        except Exception as e:
+            logger.error(f"Error running 4-phase optimization cycle: {e}")
+            return {'error': str(e)}
+    
+    async def _integrate_optimization_cycle_results(self, result) -> None:
+        """Integrate results from an optimization cycle into the governor."""
+        try:
+            # Update governor parameters based on performance improvements
+            for phase, improvement in result.performance_improvements.items():
+                if improvement > 0.1:  # Significant improvement
+                    # Adjust space-time parameters based on improvement
+                    if phase == 'pattern_recognition':
+                        # Pattern recognition improved - can increase exploration
+                        self.space_time_governor.current_parameters.d = min(1.0,
+                            self.space_time_governor.current_parameters.d * (1 + improvement * 0.1))
+                    elif phase == 'memory_clustering':
+                        # Memory clustering improved - can increase branching
+                        self.space_time_governor.current_parameters.b = min(1.0,
+                            self.space_time_governor.current_parameters.b * (1 + improvement * 0.1))
+                    elif phase == 'performance_optimization':
+                        # Performance improved - can increase horizon
+                        self.space_time_governor.current_parameters.h = min(1.0,
+                            self.space_time_governor.current_parameters.h * (1 + improvement * 0.1))
+        except Exception as e:
+            logger.error(f"Error integrating optimization cycle results: {e}")
+    
+    async def get_four_phase_system_status(self) -> Dict[str, Any]:
+        """Get status of the 4-Phase Memory Optimization system."""
+        if not self.four_phase_coordinator:
+            return {'error': '4-Phase Memory Coordinator not available'}
+        
+        try:
+            return await self.four_phase_coordinator.get_system_status()
+        except Exception as e:
+            logger.error(f"Error getting 4-phase system status: {e}")
+            return {'error': str(e)}
+    
     def cleanup(self):
         """Clean up resources."""
         if hasattr(self.space_time_governor, 'cleanup'):
             self.space_time_governor.cleanup()
+        
+        # Clean up 4-phase coordinator
+        if self.four_phase_coordinator and self.four_phase_initialized:
+            try:
+                import asyncio
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(self.four_phase_coordinator.cleanup())
+                else:
+                    loop.run_until_complete(self.four_phase_coordinator.cleanup())
+            except Exception as e:
+                logger.warning(f"Error cleaning up 4-phase coordinator: {e}")
         
         self.decision_history.clear()
         self.performance_history.clear()

@@ -644,6 +644,89 @@ async def get_self_model_entries(limit: int = 100, type: str = None) -> List[Dic
             print(f"Database error: {e}")
             return []
 
+# ============================================================================
+# SUBSYSTEM MONITORING INTEGRATION
+# ============================================================================
+
+async def store_subsystem_metrics(metrics_data: Dict[str, Any]) -> bool:
+    """Store subsystem metrics in the database."""
+    integration = get_system_integration()
+    try:
+        # Store in a dedicated subsystem_metrics table
+        # This would be implemented in the database API
+        await integration.db.log_system_event(
+            LogLevel.INFO, Component.SUBSYSTEM_MONITOR, 
+            f"Stored metrics for subsystem {metrics_data.get('subsystem_id', 'unknown')}",
+            metrics_data, metrics_data.get('subsystem_id', 'unknown')
+        )
+        return True
+    except Exception as e:
+        print(f"Failed to store subsystem metrics: {e}")
+        return False
+
+async def store_subsystem_config(subsystem_id: str, config_data: Dict[str, Any]) -> bool:
+    """Store subsystem configuration in the database."""
+    integration = get_system_integration()
+    try:
+        await integration.db.log_system_event(
+            LogLevel.INFO, Component.SUBSYSTEM_MONITOR,
+            f"Updated configuration for subsystem {subsystem_id}",
+            config_data, subsystem_id
+        )
+        return True
+    except Exception as e:
+        print(f"Failed to store subsystem config: {e}")
+        return False
+
+async def store_subsystem_alerts(subsystem_id: str, alerts: List[Dict[str, Any]]) -> bool:
+    """Store subsystem alerts in the database."""
+    integration = get_system_integration()
+    try:
+        for alert in alerts:
+            await integration.db.log_system_event(
+                LogLevel.WARNING if alert.get('severity') == 'warning' else LogLevel.ERROR,
+                Component.SUBSYSTEM_MONITOR,
+                f"Subsystem {subsystem_id} alert: {alert.get('message', 'Unknown alert')}",
+                alert, subsystem_id
+            )
+        return True
+    except Exception as e:
+        print(f"Failed to store subsystem alerts: {e}")
+        return False
+
+async def get_subsystem_config(subsystem_id: str) -> Optional[Dict[str, Any]]:
+    """Get subsystem configuration from the database."""
+    integration = get_system_integration()
+    try:
+        # This would query the database for stored configuration
+        # For now, return None to use default configuration
+        return None
+    except Exception as e:
+        print(f"Failed to get subsystem config: {e}")
+        return None
+
+async def get_subsystem_metrics_history(subsystem_id: str, hours: int = 24) -> List[Dict[str, Any]]:
+    """Get subsystem metrics history from the database."""
+    integration = get_system_integration()
+    try:
+        # This would query the database for historical metrics
+        # For now, return empty list
+        return []
+    except Exception as e:
+        print(f"Failed to get subsystem metrics history: {e}")
+        return []
+
+async def get_subsystem_alerts(subsystem_id: str, hours: int = 24) -> List[Dict[str, Any]]:
+    """Get subsystem alerts from the database."""
+    integration = get_system_integration()
+    try:
+        # This would query the database for alerts
+        # For now, return empty list
+        return []
+    except Exception as e:
+        print(f"Failed to get subsystem alerts: {e}")
+        return []
+
 # ============================================================================       
 # CONVENIENCE FUNCTIONS
 # ============================================================================       

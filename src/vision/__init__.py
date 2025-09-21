@@ -15,7 +15,44 @@ from .pattern_analysis import PatternAnalyzer
 from .frame_processing import FrameProcessor
 from .frame_analyzer import FrameAnalyzer
 
+# Enhanced frame analysis system
+from .enhanced_frame_analyzer import (
+    EnhancedFrameAnalyzer,
+    EnhancedFrameAnalysisConfig,
+    AnalysisMode,
+    VisualPattern,
+    FrameAnalysisResult,
+    create_enhanced_frame_analyzer
+)
+from .frame_analysis_integration import (
+    FrameAnalysisIntegration,
+    FrameAnalysisIntegrationConfig,
+    create_frame_analysis_integration
+)
+
+# Enhanced vision components
+from .enhanced import (
+    AdvancedObjectDetector,
+    DetectionConfig,
+    DetectionMethod,
+    Detection,
+    RealTimeProcessor,
+    ProcessingConfig,
+    ProcessingMode,
+    ProcessedFrame,
+    AttentionMechanism,
+    AttentionConfig,
+    AttentionType,
+    AttentionResult,
+    VisualReasoningEngine,
+    ReasoningConfig,
+    ReasoningType,
+    ReasoningResult,
+    SpatialRelation
+)
+
 __all__ = [
+    # Core vision components
     'DetectedObject',
     'ObjectDetector', 
     'SpatialRelationship',
@@ -30,5 +67,35 @@ __all__ = [
     'MovementDetector',
     'PatternAnalyzer',
     'FrameProcessor',
-    'FrameAnalyzer'
+    'FrameAnalyzer',
+    
+    # Enhanced frame analysis system
+    'EnhancedFrameAnalyzer',
+    'EnhancedFrameAnalysisConfig',
+    'AnalysisMode',
+    'VisualPattern',
+    'FrameAnalysisResult',
+    'create_enhanced_frame_analyzer',
+    'FrameAnalysisIntegration',
+    'FrameAnalysisIntegrationConfig',
+    'create_frame_analysis_integration',
+    
+    # Enhanced vision components
+    'AdvancedObjectDetector',
+    'DetectionConfig',
+    'DetectionMethod',
+    'Detection',
+    'RealTimeProcessor',
+    'ProcessingConfig',
+    'ProcessingMode',
+    'ProcessedFrame',
+    'AttentionMechanism',
+    'AttentionConfig',
+    'AttentionType',
+    'AttentionResult',
+    'VisualReasoningEngine',
+    'ReasoningConfig',
+    'ReasoningType',
+    'ReasoningResult',
+    'SpatialRelation'
 ]

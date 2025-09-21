@@ -126,7 +126,15 @@ class TreeBasedDirector:
         self.node_compression_enabled = True
         self.reasoning_cache = {}
         
-        logger.info("Tree-Based Director initialized")
+        # Internal narrative generation (stream of consciousness)
+        self.narrative_enabled = True
+        self.narrative_buffer = deque(maxlen=1000)  # Store last 1000 narrative entries
+        self.narrative_style = "analytical"  # analytical, creative, strategic, reflective
+        self.narrative_frequency = 0.1  # Generate narrative every 10% of reasoning steps
+        self.narrative_context = {}
+        self.narrative_history = deque(maxlen=5000)  # Long-term narrative storage
+        
+        logger.info("Tree-Based Director initialized with narrative generation")
     
     def create_reasoning_trace(self, 
                              root_goal: str,
@@ -423,6 +431,12 @@ class TreeBasedDirector:
         
         self.reasoning_stats['total_nodes'] += 1
         
+        # Generate internal narrative for this reasoning step
+        if self.narrative_enabled and np.random.random() < self.narrative_frequency:
+            narrative = self.generate_internal_narrative(trace_id, {}, content)
+            if narrative:
+                logger.debug(f"Internal narrative: {narrative}")
+        
         logger.debug(f"Added reasoning step {node_id} to trace {trace_id}")
         return node_id
     
@@ -683,6 +697,335 @@ class TreeBasedDirector:
         
         logger.info(f"Exported trace {trace_id} to {file_path}")
         return file_path
+    
+    def generate_internal_narrative(self, 
+                                  trace_id: str,
+                                  context: Dict[str, Any],
+                                  reasoning_step: Optional[str] = None) -> str:
+        """
+        Generate internal narrative (stream of consciousness) for the reasoning process.
+        
+        Args:
+            trace_id: ID of the current reasoning trace
+            context: Current context and state
+            reasoning_step: Optional specific reasoning step to narrate
+            
+        Returns:
+            Generated narrative text
+        """
+        if not self.narrative_enabled:
+            return ""
+        
+        try:
+            # Get current trace information
+            trace = self.active_traces.get(trace_id)
+            if not trace:
+                return self._generate_contextual_narrative(context, reasoning_step)
+            
+            # Generate narrative based on current reasoning state
+            narrative = self._generate_reasoning_narrative(trace, context, reasoning_step)
+            
+            # Store narrative entry
+            narrative_entry = {
+                'timestamp': time.time(),
+                'trace_id': trace_id,
+                'narrative': narrative,
+                'context_snapshot': context.copy(),
+                'reasoning_step': reasoning_step,
+                'narrative_style': self.narrative_style
+            }
+            
+            self.narrative_buffer.append(narrative_entry)
+            self.narrative_history.append(narrative_entry)
+            
+            # Update narrative context
+            self._update_narrative_context(trace, context)
+            
+            return narrative
+            
+        except Exception as e:
+            logger.error(f"Error generating internal narrative: {e}")
+            return f"[Narrative generation error: {e}]"
+    
+    def _generate_reasoning_narrative(self, 
+                                    trace: ReasoningTrace, 
+                                    context: Dict[str, Any],
+                                    reasoning_step: Optional[str] = None) -> str:
+        """Generate narrative for a specific reasoning trace."""
+        
+        # Get current reasoning state
+        current_depth = trace.reasoning_depth
+        total_nodes = len(trace.nodes)
+        confidence = trace.confidence_score
+        
+        # Generate narrative based on style
+        if self.narrative_style == "analytical":
+            return self._generate_analytical_narrative(trace, context, reasoning_step)
+        elif self.narrative_style == "creative":
+            return self._generate_creative_narrative(trace, context, reasoning_step)
+        elif self.narrative_style == "strategic":
+            return self._generate_strategic_narrative(trace, context, reasoning_step)
+        elif self.narrative_style == "reflective":
+            return self._generate_reflective_narrative(trace, context, reasoning_step)
+        else:
+            return self._generate_default_narrative(trace, context, reasoning_step)
+    
+    def _generate_analytical_narrative(self, 
+                                     trace: ReasoningTrace, 
+                                     context: Dict[str, Any],
+                                     reasoning_step: Optional[str] = None) -> str:
+        """Generate analytical narrative style."""
+        narrative_parts = []
+        
+        # Opening analysis
+        narrative_parts.append(f"Analyzing goal: '{trace.root_goal}'")
+        
+        # Current reasoning state
+        if reasoning_step:
+            narrative_parts.append(f"Current step: {reasoning_step}")
+        
+        # Reasoning depth analysis
+        if trace.reasoning_depth > 3:
+            narrative_parts.append(f"Deep reasoning in progress (depth {trace.reasoning_depth})")
+        elif trace.reasoning_depth > 1:
+            narrative_parts.append(f"Building reasoning chain (depth {trace.reasoning_depth})")
+        else:
+            narrative_parts.append("Initializing reasoning process")
+        
+        # Confidence assessment
+        if trace.confidence_score > 0.8:
+            narrative_parts.append("High confidence in current reasoning path")
+        elif trace.confidence_score > 0.6:
+            narrative_parts.append("Moderate confidence, monitoring for improvements")
+        else:
+            narrative_parts.append("Low confidence, considering alternative approaches")
+        
+        # Context integration
+        if context.get('performance_metrics'):
+            metrics = context['performance_metrics']
+            if metrics.get('success_rate', 0) > 0.7:
+                narrative_parts.append("Strong performance context supports current approach")
+            elif metrics.get('success_rate', 0) < 0.3:
+                narrative_parts.append("Poor performance context suggests need for strategy change")
+        
+        # Node analysis
+        goals = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.GOAL]
+        strategies = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.STRATEGY]
+        
+        if goals:
+            narrative_parts.append(f"Identified {len(goals)} sub-goals to address")
+        if strategies:
+            narrative_parts.append(f"Evaluating {len(strategies)} potential strategies")
+        
+        return " | ".join(narrative_parts)
+    
+    def _generate_creative_narrative(self, 
+                                   trace: ReasoningTrace, 
+                                   context: Dict[str, Any],
+                                   reasoning_step: Optional[str] = None) -> str:
+        """Generate creative narrative style."""
+        narrative_parts = []
+        
+        # Creative opening
+        narrative_parts.append(f"Exploring the landscape of '{trace.root_goal}'")
+        
+        # Metaphorical descriptions
+        if trace.reasoning_depth > 3:
+            narrative_parts.append("Diving deeper into the conceptual ocean")
+        elif trace.reasoning_depth > 1:
+            narrative_parts.append("Following the thread of possibility")
+        else:
+            narrative_parts.append("Planting the seeds of understanding")
+        
+        # Creative confidence expression
+        if trace.confidence_score > 0.8:
+            narrative_parts.append("The path ahead shines brightly")
+        elif trace.confidence_score > 0.6:
+            narrative_parts.append("The fog is lifting, revealing new possibilities")
+        else:
+            narrative_parts.append("Navigating through uncertainty, seeking clarity")
+        
+        # Creative context integration
+        if context.get('energy_level'):
+            energy = context['energy_level']
+            if energy > 80:
+                narrative_parts.append("High energy fuels creative exploration")
+            elif energy < 30:
+                narrative_parts.append("Conserving energy for focused bursts of insight")
+        
+        # Creative node descriptions
+        goals = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.GOAL]
+        strategies = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.STRATEGY]
+        
+        if goals:
+            narrative_parts.append(f"Multiple pathways branching from the main quest")
+        if strategies:
+            narrative_parts.append(f"Various tools and techniques available for the journey")
+        
+        return " ~ ".join(narrative_parts)
+    
+    def _generate_strategic_narrative(self, 
+                                    trace: ReasoningTrace, 
+                                    context: Dict[str, Any],
+                                    reasoning_step: Optional[str] = None) -> str:
+        """Generate strategic narrative style."""
+        narrative_parts = []
+        
+        # Strategic opening
+        narrative_parts.append(f"Strategic analysis of objective: '{trace.root_goal}'")
+        
+        # Strategic positioning
+        if trace.reasoning_depth > 3:
+            narrative_parts.append("Deep strategic planning in progress")
+        elif trace.reasoning_depth > 1:
+            narrative_parts.append("Building strategic framework")
+        else:
+            narrative_parts.append("Initial strategic assessment")
+        
+        # Strategic confidence
+        if trace.confidence_score > 0.8:
+            narrative_parts.append("Strategic position is strong")
+        elif trace.confidence_score > 0.6:
+            narrative_parts.append("Strategic position is developing")
+        else:
+            narrative_parts.append("Strategic position needs reinforcement")
+        
+        # Resource analysis
+        if context.get('resource_usage'):
+            resources = context['resource_usage']
+            if resources.get('memory_usage', 0) > 80:
+                narrative_parts.append("Memory resources under pressure")
+            if resources.get('cpu_usage', 0) > 80:
+                narrative_parts.append("Computational resources at capacity")
+        
+        # Strategic elements
+        goals = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.GOAL]
+        strategies = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.STRATEGY]
+        constraints = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.CONSTRAINT]
+        
+        if goals:
+            narrative_parts.append(f"Strategic objectives: {len(goals)} identified")
+        if strategies:
+            narrative_parts.append(f"Strategic options: {len(strategies)} under evaluation")
+        if constraints:
+            narrative_parts.append(f"Strategic constraints: {len(constraints)} to manage")
+        
+        return " → ".join(narrative_parts)
+    
+    def _generate_reflective_narrative(self, 
+                                     trace: ReasoningTrace, 
+                                     context: Dict[str, Any],
+                                     reasoning_step: Optional[str] = None) -> str:
+        """Generate reflective narrative style."""
+        narrative_parts = []
+        
+        # Reflective opening
+        narrative_parts.append(f"Reflecting on the challenge: '{trace.root_goal}'")
+        
+        # Reflective depth
+        if trace.reasoning_depth > 3:
+            narrative_parts.append("Deep contemplation reveals new layers")
+        elif trace.reasoning_depth > 1:
+            narrative_parts.append("Thoughts are crystallizing")
+        else:
+            narrative_parts.append("Beginning to understand the nature of this challenge")
+        
+        # Reflective confidence
+        if trace.confidence_score > 0.8:
+            narrative_parts.append("Inner certainty guides the way forward")
+        elif trace.confidence_score > 0.6:
+            narrative_parts.append("Growing understanding brings clarity")
+        else:
+            narrative_parts.append("Uncertainty invites deeper reflection")
+        
+        # Reflective context
+        if context.get('learning_progress'):
+            progress = context['learning_progress']
+            if progress > 0.7:
+                narrative_parts.append("Past learning illuminates the present path")
+            elif progress < 0.3:
+                narrative_parts.append("This moment offers new learning opportunities")
+        
+        # Reflective elements
+        goals = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.GOAL]
+        strategies = [n for n in trace.nodes.values() if n.node_type == ReasoningNodeType.STRATEGY]
+        
+        if goals:
+            narrative_parts.append(f"What truly matters: {len(goals)} core values identified")
+        if strategies:
+            narrative_parts.append(f"Ways forward: {len(strategies)} approaches to consider")
+        
+        return " ... ".join(narrative_parts)
+    
+    def _generate_default_narrative(self, 
+                                  trace: ReasoningTrace, 
+                                  context: Dict[str, Any],
+                                  reasoning_step: Optional[str] = None) -> str:
+        """Generate default narrative style."""
+        return f"Processing '{trace.root_goal}' (depth: {trace.reasoning_depth}, confidence: {trace.confidence_score:.2f})"
+    
+    def _generate_contextual_narrative(self, 
+                                     context: Dict[str, Any],
+                                     reasoning_step: Optional[str] = None) -> str:
+        """Generate narrative when no active trace is available."""
+        narrative_parts = []
+        
+        narrative_parts.append("Operating without active reasoning trace")
+        
+        if reasoning_step:
+            narrative_parts.append(f"Current activity: {reasoning_step}")
+        
+        if context.get('performance_metrics'):
+            metrics = context['performance_metrics']
+            success_rate = metrics.get('success_rate', 0)
+            if success_rate > 0.7:
+                narrative_parts.append("System performing well")
+            elif success_rate < 0.3:
+                narrative_parts.append("System performance needs attention")
+        
+        return " | ".join(narrative_parts)
+    
+    def _update_narrative_context(self, trace: ReasoningTrace, context: Dict[str, Any]):
+        """Update the narrative context with current state."""
+        self.narrative_context.update({
+            'current_trace_id': trace.trace_id,
+            'current_goal': trace.root_goal,
+            'reasoning_depth': trace.reasoning_depth,
+            'confidence': trace.confidence_score,
+            'total_nodes': len(trace.nodes),
+            'last_update': time.time()
+        })
+    
+    def set_narrative_style(self, style: str):
+        """Set the narrative generation style."""
+        valid_styles = ["analytical", "creative", "strategic", "reflective"]
+        if style in valid_styles:
+            self.narrative_style = style
+            logger.info(f"Narrative style set to: {style}")
+        else:
+            logger.warning(f"Invalid narrative style: {style}. Valid styles: {valid_styles}")
+    
+    def set_narrative_frequency(self, frequency: float):
+        """Set the frequency of narrative generation (0.0 to 1.0)."""
+        if 0.0 <= frequency <= 1.0:
+            self.narrative_frequency = frequency
+            logger.info(f"Narrative frequency set to: {frequency}")
+        else:
+            logger.warning(f"Invalid narrative frequency: {frequency}. Must be between 0.0 and 1.0")
+    
+    def get_narrative_history(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get recent narrative history."""
+        return list(self.narrative_history)[-limit:]
+    
+    def get_narrative_context(self) -> Dict[str, Any]:
+        """Get current narrative context."""
+        return self.narrative_context.copy()
+    
+    def clear_narrative_history(self):
+        """Clear narrative history to save memory."""
+        self.narrative_history.clear()
+        self.narrative_buffer.clear()
+        logger.info("Narrative history cleared")
 
 
 # Factory function

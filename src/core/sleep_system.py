@@ -19,6 +19,7 @@ from .predictive_core import PredictiveCore
 from .data_models import Experience, AgentState
 from .meta_learning import MetaLearningSystem
 from .salience_system import SalienceCalculator, SalienceWeightedReplayBuffer, SalientExperience, SalienceMode, CompressedMemory
+from .sleep_breakthrough_detection import create_sleep_breakthrough_system
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,13 @@ class SleepCycle:
             'high_salience_replays': 0,
             'salience_weighted_consolidations': 0
         }
+        
+        # Initialize breakthrough detection system
+        self.breakthrough_detector, self.breakthrough_processor = create_sleep_breakthrough_system(
+            breakthrough_threshold=0.7,
+            novelty_threshold=0.6,
+            performance_window=50
+        )
         
     def should_sleep(
         self,
@@ -268,6 +276,10 @@ class SleepCycle:
         # Phase 7: Dream Generation for Strategic Exploration
         dream_results = self._generate_strategic_dreams(arc_data)
         sleep_results.update(dream_results)
+        
+        # Phase 8: Breakthrough Detection and Processing (NEW)
+        breakthrough_results = self._process_breakthroughs_during_sleep(replay_buffer, arc_data)
+        sleep_results.update(breakthrough_results)
         
         # Update sleep metrics
         self.sleep_metrics['experiences_replayed'] += sleep_results['experiences_processed']
@@ -1521,3 +1533,56 @@ class SleepCycle:
         if not self.object_encodings:
             return 0.0
         return len(self.object_encodings) * np.mean([obj['confidence'] for obj in self.object_encodings.values()])
+    
+    def _process_breakthroughs_during_sleep(self, replay_buffer: List[Experience], 
+                                          arc_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Process breakthrough detection during sleep cycles."""
+        try:
+            # Get recent experiences for breakthrough analysis
+            recent_experiences = replay_buffer[-100:] if len(replay_buffer) > 100 else replay_buffer
+            
+            # Detect breakthroughs
+            breakthrough_events = self.breakthrough_detector.detect_breakthroughs(recent_experiences)
+            
+            # Process breakthroughs
+            breakthrough_insights = []
+            breakthrough_consolidation_benefit = 0.0
+            
+            for breakthrough in breakthrough_events:
+                # Process the breakthrough
+                processed_breakthrough = self.breakthrough_processor.process_breakthrough(breakthrough)
+                
+                if processed_breakthrough:
+                    breakthrough_insights.append(processed_breakthrough)
+                    
+                    # Calculate consolidation benefit from breakthrough
+                    breakthrough_consolidation_benefit += processed_breakthrough.get('consolidation_benefit', 0.0)
+                    
+                    # Log breakthrough for system learning
+                    logger.info(f"Breakthrough detected during sleep: {processed_breakthrough.get('type', 'unknown')}")
+            
+            # Calculate breakthrough metrics
+            breakthrough_quality = len(breakthrough_insights) / max(len(breakthrough_events), 1)
+            breakthrough_consolidation_benefit = min(breakthrough_consolidation_benefit, 1.0)
+            
+            # Update sleep metrics
+            self.sleep_metrics['breakthroughs_detected'] += len(breakthrough_events)
+            self.sleep_metrics['breakthroughs_processed'] += len(breakthrough_insights)
+            
+            return {
+                'breakthroughs_detected': len(breakthrough_events),
+                'breakthroughs_processed': len(breakthrough_insights),
+                'breakthrough_quality': breakthrough_quality,
+                'breakthrough_insights': breakthrough_insights,
+                'breakthrough_consolidation_benefit': breakthrough_consolidation_benefit
+            }
+            
+        except Exception as e:
+            logger.error(f"Breakthrough processing failed: {e}")
+            return {
+                'breakthroughs_detected': 0,
+                'breakthroughs_processed': 0,
+                'breakthrough_quality': 0.0,
+                'breakthrough_insights': [],
+                'breakthrough_consolidation_benefit': 0.0
+            }

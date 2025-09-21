@@ -10,6 +10,11 @@ import os
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 import logging
+import asyncio
+
+from ..database.system_integration import get_system_integration
+from ..database.api import Component, LogLevel
+from ..core.cognitive_subsystems import LearningProgressMonitor, PatternRecognitionMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +24,24 @@ class ResidualLearningSystem:
     Uses residual connections to improve gradient flow and prevent vanishing gradients.
     """
     
-    def __init__(self, config_path: str = "data/config/residual_config.json"):
+    def __init__(self, config_path: str = "data/config/residual_config.json", enable_monitoring: bool = True, enable_database_storage: bool = True):
         self.config_path = config_path
         self.residual_layers = {}  # Residual layer configurations
         self.skip_connections = {}  # Skip connection weights
         self.layer_outputs = {}  # Cached layer outputs for residual computation
         self.learning_rate = 0.001  # Learning rate for residual updates
         self.residual_strength = 0.1  # Strength of residual connections
+        self.enable_monitoring = enable_monitoring
+        self.enable_database_storage = enable_database_storage
+        
+        # Initialize monitoring systems
+        if self.enable_monitoring:
+            self.learning_progress_monitor = LearningProgressMonitor()
+            self.pattern_recognition_monitor = PatternRecognitionMonitor()
+        
+        # Initialize database integration
+        if self.enable_database_storage:
+            self.integration = get_system_integration()
         
         self._load_config()
         self._initialize_residual_system()
@@ -308,3 +324,304 @@ class ResidualLearningSystem:
         except Exception as e:
             logger.error(f"Failed to load residual state: {e}")
             return False
+    
+    async def enhanced_forward_pass(self, layer_name: str, input_data: np.ndarray, 
+                                  layer_weights: np.ndarray, layer_bias: np.ndarray,
+                                  context: Optional[Dict[str, Any]] = None) -> np.ndarray:
+        """
+        Enhanced forward pass with monitoring and database integration.
+        
+        Args:
+            layer_name: Name of the residual layer
+            input_data: Input data
+            layer_weights: Layer weights
+            layer_bias: Layer bias
+            context: Additional context information
+            
+        Returns:
+            Output with residual connections applied
+        """
+        start_time = datetime.now()
+        
+        try:
+            # Perform standard forward pass
+            output = self.forward_pass(layer_name, input_data, layer_weights, layer_bias)
+            
+            # Update monitoring systems
+            if self.enable_monitoring:
+                await self._update_monitoring_systems(layer_name, input_data, output, context)
+            
+            # Store operation data
+            if self.enable_database_storage:
+                await self._store_forward_pass_data(layer_name, input_data, output, context, start_time)
+            
+            return output
+            
+        except Exception as e:
+            logger.error(f"Enhanced forward pass failed: {e}")
+            # Fallback to standard forward pass
+            return self.forward_pass(layer_name, input_data, layer_weights, layer_bias)
+    
+    async def enhanced_backward_pass(self, layer_name: str, input_data: np.ndarray,
+                                   output_gradients: np.ndarray,
+                                   context: Optional[Dict[str, Any]] = None) -> Dict[str, np.ndarray]:
+        """
+        Enhanced backward pass with monitoring and database integration.
+        
+        Args:
+            layer_name: Name of the residual layer
+            input_data: Input data
+            output_gradients: Gradients from the output
+            context: Additional context information
+            
+        Returns:
+            Dictionary of gradients including residual terms
+        """
+        start_time = datetime.now()
+        
+        try:
+            # Perform standard backward pass
+            gradients = self.backward_pass(layer_name, input_data, output_gradients)
+            
+            # Update monitoring systems
+            if self.enable_monitoring:
+                await self._update_gradient_monitoring(layer_name, gradients, context)
+            
+            # Store operation data
+            if self.enable_database_storage:
+                await self._store_backward_pass_data(layer_name, gradients, context, start_time)
+            
+            return gradients
+            
+        except Exception as e:
+            logger.error(f"Enhanced backward pass failed: {e}")
+            # Fallback to standard backward pass
+            return self.backward_pass(layer_name, input_data, output_gradients)
+    
+    async def _update_monitoring_systems(self, layer_name: str, input_data: np.ndarray, 
+                                       output: np.ndarray, context: Optional[Dict[str, Any]]):
+        """Update cognitive monitoring systems."""
+        try:
+            if not self.enable_monitoring:
+                return
+            
+            # Calculate residual learning metrics
+            metrics = self._calculate_residual_metrics(layer_name, input_data, output)
+            
+            # Update learning progress monitor
+            if hasattr(self, 'learning_progress_monitor'):
+                learning_data = {
+                    'gradient_flow': metrics['gradient_flow'],
+                    'residual_effectiveness': metrics['residual_effectiveness'],
+                    'layer_performance': metrics['layer_performance'],
+                    'context': context
+                }
+                self.learning_progress_monitor.update_metrics(learning_data)
+            
+            # Update pattern recognition monitor
+            if hasattr(self, 'pattern_recognition_monitor'):
+                pattern_data = {
+                    'activation_patterns': metrics['activation_patterns'],
+                    'residual_patterns': metrics['residual_patterns'],
+                    'context': context
+                }
+                self.pattern_recognition_monitor.update_metrics(pattern_data)
+            
+        except Exception as e:
+            logger.error(f"Failed to update monitoring systems: {e}")
+    
+    async def _update_gradient_monitoring(self, layer_name: str, gradients: Dict[str, np.ndarray], 
+                                        context: Optional[Dict[str, Any]]):
+        """Update gradient monitoring systems."""
+        try:
+            if not self.enable_monitoring:
+                return
+            
+            # Calculate gradient metrics
+            gradient_metrics = self._calculate_gradient_metrics(layer_name, gradients)
+            
+            # Update learning progress monitor
+            if hasattr(self, 'learning_progress_monitor'):
+                learning_data = {
+                    'gradient_flow': gradient_metrics['gradient_flow'],
+                    'gradient_stability': gradient_metrics['gradient_stability'],
+                    'residual_gradient_effectiveness': gradient_metrics['residual_gradient_effectiveness'],
+                    'context': context
+                }
+                self.learning_progress_monitor.update_metrics(learning_data)
+            
+        except Exception as e:
+            logger.error(f"Failed to update gradient monitoring: {e}")
+    
+    async def _store_forward_pass_data(self, layer_name: str, input_data: np.ndarray, 
+                                     output: np.ndarray, context: Optional[Dict[str, Any]], 
+                                     start_time: datetime):
+        """Store forward pass data in database."""
+        try:
+            if not self.enable_database_storage or not hasattr(self, 'integration'):
+                return
+            
+            # Calculate metrics
+            metrics = self._calculate_residual_metrics(layer_name, input_data, output)
+            
+            # Create operation record
+            operation_data = {
+                'operation_type': 'residual_forward_pass',
+                'layer_name': layer_name,
+                'input_shape': input_data.shape,
+                'output_shape': output.shape,
+                'gradient_flow': metrics['gradient_flow'],
+                'residual_effectiveness': metrics['residual_effectiveness'],
+                'layer_performance': metrics['layer_performance'],
+                'processing_time': (datetime.now() - start_time).total_seconds(),
+                'context': context or {}
+            }
+            
+            await self.integration.log_system_event(
+                LogLevel.INFO,
+                Component.GOVERNOR,
+                f"Residual forward pass: {layer_name}",
+                operation_data,
+                "residual_learning"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to store forward pass data: {e}")
+    
+    async def _store_backward_pass_data(self, layer_name: str, gradients: Dict[str, np.ndarray], 
+                                      context: Optional[Dict[str, Any]], start_time: datetime):
+        """Store backward pass data in database."""
+        try:
+            if not self.enable_database_storage or not hasattr(self, 'integration'):
+                return
+            
+            # Calculate gradient metrics
+            gradient_metrics = self._calculate_gradient_metrics(layer_name, gradients)
+            
+            # Create operation record
+            operation_data = {
+                'operation_type': 'residual_backward_pass',
+                'layer_name': layer_name,
+                'gradient_count': len(gradients),
+                'gradient_flow': gradient_metrics['gradient_flow'],
+                'gradient_stability': gradient_metrics['gradient_stability'],
+                'residual_gradient_effectiveness': gradient_metrics['residual_gradient_effectiveness'],
+                'processing_time': (datetime.now() - start_time).total_seconds(),
+                'context': context or {}
+            }
+            
+            await self.integration.log_system_event(
+                LogLevel.INFO,
+                Component.GOVERNOR,
+                f"Residual backward pass: {layer_name}",
+                operation_data,
+                "residual_learning"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to store backward pass data: {e}")
+    
+    def _calculate_residual_metrics(self, layer_name: str, input_data: np.ndarray, 
+                                  output: np.ndarray) -> Dict[str, float]:
+        """Calculate residual learning performance metrics."""
+        try:
+            # Calculate gradient flow (based on output variance)
+            gradient_flow = float(np.var(output))
+            
+            # Calculate residual effectiveness (based on skip connections)
+            residual_effectiveness = 0.0
+            if layer_name in self.skip_connections:
+                skip_weights = self.skip_connections[layer_name]
+                if skip_weights:
+                    # Calculate effectiveness based on skip connection weights
+                    total_skip_strength = sum(np.mean(np.abs(weights)) for weights in skip_weights.values())
+                    residual_effectiveness = min(1.0, total_skip_strength / len(skip_weights))
+            
+            # Calculate layer performance (based on output quality)
+            layer_performance = min(1.0, 1.0 / (1.0 + np.mean(np.abs(output))))
+            
+            # Calculate activation patterns (based on output distribution)
+            activation_patterns = float(np.std(output))
+            
+            # Calculate residual patterns (based on skip connection usage)
+            residual_patterns = 0.0
+            if layer_name in self.residual_layers:
+                residual_connections = self.residual_layers[layer_name]['residual_connections']
+                residual_patterns = len(residual_connections) / 10.0  # Normalize by max expected connections
+            
+            return {
+                'gradient_flow': gradient_flow,
+                'residual_effectiveness': residual_effectiveness,
+                'layer_performance': layer_performance,
+                'activation_patterns': activation_patterns,
+                'residual_patterns': residual_patterns
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to calculate residual metrics: {e}")
+            return {
+                'gradient_flow': 0.0,
+                'residual_effectiveness': 0.0,
+                'layer_performance': 0.0,
+                'activation_patterns': 0.0,
+                'residual_patterns': 0.0
+            }
+    
+    def _calculate_gradient_metrics(self, layer_name: str, gradients: Dict[str, np.ndarray]) -> Dict[str, float]:
+        """Calculate gradient performance metrics."""
+        try:
+            # Calculate gradient flow (based on gradient variance)
+            gradient_flow = 0.0
+            if gradients:
+                gradient_flow = float(np.mean([np.var(grad) for grad in gradients.values()]))
+            
+            # Calculate gradient stability (based on gradient consistency)
+            gradient_stability = 0.0
+            if gradients:
+                gradient_means = [np.mean(np.abs(grad)) for grad in gradients.values()]
+                gradient_stability = 1.0 - float(np.std(gradient_means)) if gradient_means else 0.0
+            
+            # Calculate residual gradient effectiveness
+            residual_gradient_effectiveness = 0.0
+            if 'input_gradients' in gradients:
+                input_grad_norm = float(np.linalg.norm(gradients['input_gradients']))
+                residual_gradient_effectiveness = min(1.0, input_grad_norm)
+            
+            return {
+                'gradient_flow': gradient_flow,
+                'gradient_stability': gradient_stability,
+                'residual_gradient_effectiveness': residual_gradient_effectiveness
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to calculate gradient metrics: {e}")
+            return {
+                'gradient_flow': 0.0,
+                'gradient_stability': 0.0,
+                'residual_gradient_effectiveness': 0.0
+            }
+    
+    async def get_enhanced_report(self) -> Dict[str, Any]:
+        """Get enhanced residual learning report with monitoring data."""
+        try:
+            # Get base report
+            base_report = self.get_residual_report()
+            
+            # Add monitoring data
+            if self.enable_monitoring:
+                base_report['monitoring_data'] = {
+                    'learning_progress': getattr(self.learning_progress_monitor, 'metrics', {}),
+                    'pattern_recognition': getattr(self.pattern_recognition_monitor, 'metrics', {})
+                }
+            
+            # Add database integration status
+            base_report['database_integration'] = {
+                'enabled': self.enable_database_storage,
+                'integration_available': hasattr(self, 'integration')
+            }
+            
+            return base_report
+            
+        except Exception as e:
+            logger.error(f"Failed to get enhanced report: {e}")
+            return self.get_residual_report()

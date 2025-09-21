@@ -7,9 +7,14 @@ Prevents catastrophic forgetting during system evolution by preserving important
 import numpy as np
 import json
 import os
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 import logging
+import asyncio
+
+from ..database.system_integration import get_system_integration
+from ..database.api import Component, LogLevel
+from ..core.cognitive_subsystems import LearningProgressMonitor, MetaLearningMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +24,24 @@ class ElasticWeightConsolidation:
     Maintains Fisher Information Matrix and importance weights for critical parameters.
     """
     
-    def __init__(self, config_path: str = "data/config/ewc_config.json"):
+    def __init__(self, config_path: str = "data/config/ewc_config.json", enable_monitoring: bool = True, enable_database_storage: bool = True):
         self.config_path = config_path
         self.fisher_info = {}  # Fisher Information Matrix
         self.importance_weights = {}  # Importance weights for each parameter
         self.parameter_history = {}  # Historical parameter values
         self.consolidation_threshold = 0.1  # Threshold for parameter importance
         self.learning_rate = 0.01  # EWC learning rate
+        self.enable_monitoring = enable_monitoring
+        self.enable_database_storage = enable_database_storage
+        
+        # Initialize monitoring systems
+        if self.enable_monitoring:
+            self.learning_progress_monitor = LearningProgressMonitor()
+            self.meta_learning_monitor = MetaLearningMonitor()
+        
+        # Initialize database integration
+        if self.enable_database_storage:
+            self.integration = get_system_integration()
         
         self._load_config()
         self._initialize_ewc()
@@ -251,3 +267,183 @@ class ElasticWeightConsolidation:
                 report['consolidation_needed'] = True
         
         return report
+    
+    async def enhanced_consolidate_weights(self, parameters: Dict[str, np.ndarray], 
+                                         old_parameters: Dict[str, np.ndarray],
+                                         context: Optional[Dict[str, Any]] = None) -> Dict[str, np.ndarray]:
+        """
+        Enhanced weight consolidation with monitoring and database integration.
+        
+        Args:
+            parameters: Current parameter values
+            old_parameters: Previous parameter values to preserve
+            context: Additional context information
+            
+        Returns:
+            Consolidated parameter values
+        """
+        start_time = datetime.now()
+        
+        try:
+            # Perform standard consolidation
+            consolidated_params = self.consolidate_weights(parameters, old_parameters)
+            
+            # Update monitoring systems
+            if self.enable_monitoring:
+                await self._update_monitoring_systems(parameters, consolidated_params, context)
+            
+            # Store operation data
+            if self.enable_database_storage:
+                await self._store_consolidation_data(parameters, consolidated_params, context, start_time)
+            
+            logger.info(f"Enhanced EWC consolidation completed: {len(consolidated_params)} parameters")
+            return consolidated_params
+            
+        except Exception as e:
+            logger.error(f"Enhanced EWC consolidation failed: {e}")
+            return parameters  # Return original parameters on failure
+    
+    async def _update_monitoring_systems(self, parameters: Dict[str, np.ndarray], 
+                                       consolidated_params: Dict[str, np.ndarray],
+                                       context: Optional[Dict[str, Any]]):
+        """Update cognitive monitoring systems."""
+        try:
+            if not self.enable_monitoring:
+                return
+            
+            # Calculate consolidation metrics
+            consolidation_metrics = self._calculate_consolidation_metrics(parameters, consolidated_params)
+            
+            # Update learning progress monitor
+            if hasattr(self, 'learning_progress_monitor'):
+                learning_data = {
+                    'consolidation_quality': consolidation_metrics['consolidation_quality'],
+                    'parameter_stability': consolidation_metrics['parameter_stability'],
+                    'forgetting_prevention': consolidation_metrics['forgetting_prevention'],
+                    'context': context
+                }
+                self.learning_progress_monitor.update_metrics(learning_data)
+            
+            # Update meta-learning monitor
+            if hasattr(self, 'meta_learning_monitor'):
+                meta_learning_data = {
+                    'ewc_performance': consolidation_metrics['ewc_performance'],
+                    'adaptation_rate': consolidation_metrics['adaptation_rate'],
+                    'context': context
+                }
+                self.meta_learning_monitor.update_metrics(meta_learning_data)
+            
+        except Exception as e:
+            logger.error(f"Failed to update monitoring systems: {e}")
+    
+    async def _store_consolidation_data(self, parameters: Dict[str, np.ndarray], 
+                                      consolidated_params: Dict[str, np.ndarray],
+                                      context: Optional[Dict[str, Any]], 
+                                      start_time: datetime):
+        """Store consolidation data in database."""
+        try:
+            if not self.enable_database_storage or not hasattr(self, 'integration'):
+                return
+            
+            # Calculate metrics
+            consolidation_metrics = self._calculate_consolidation_metrics(parameters, consolidated_params)
+            
+            # Create operation record
+            operation_data = {
+                'operation_type': 'ewc_consolidation',
+                'parameter_count': len(parameters),
+                'consolidation_quality': consolidation_metrics['consolidation_quality'],
+                'parameter_stability': consolidation_metrics['parameter_stability'],
+                'forgetting_prevention': consolidation_metrics['forgetting_prevention'],
+                'ewc_performance': consolidation_metrics['ewc_performance'],
+                'processing_time': (datetime.now() - start_time).total_seconds(),
+                'context': context or {}
+            }
+            
+            await self.integration.log_system_event(
+                LogLevel.INFO,
+                Component.ARCHITECT,
+                f"EWC consolidation: {len(parameters)} parameters",
+                operation_data,
+                "ewc_consolidation"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to store consolidation data: {e}")
+    
+    def _calculate_consolidation_metrics(self, parameters: Dict[str, np.ndarray], 
+                                       consolidated_params: Dict[str, np.ndarray]) -> Dict[str, float]:
+        """Calculate consolidation performance metrics."""
+        try:
+            # Calculate parameter stability (how much parameters changed)
+            total_change = 0.0
+            total_params = 0
+            
+            for param_name in parameters:
+                if param_name in consolidated_params:
+                    param_diff = np.mean(np.abs(parameters[param_name] - consolidated_params[param_name]))
+                    total_change += param_diff
+                    total_params += 1
+            
+            parameter_stability = 1.0 - (total_change / total_params) if total_params > 0 else 1.0
+            
+            # Calculate consolidation quality (based on importance weights)
+            consolidation_quality = 0.0
+            if self.importance_weights:
+                total_importance = sum(np.mean(imp) for imp in self.importance_weights.values())
+                consolidation_quality = min(1.0, total_importance / len(self.importance_weights))
+            
+            # Calculate forgetting prevention (based on Fisher information)
+            forgetting_prevention = 0.0
+            if self.fisher_info:
+                total_fisher = sum(np.mean(fisher) for fisher in self.fisher_info.values())
+                forgetting_prevention = min(1.0, total_fisher / len(self.fisher_info))
+            
+            # Calculate EWC performance (overall effectiveness)
+            ewc_performance = (parameter_stability + consolidation_quality + forgetting_prevention) / 3.0
+            
+            # Calculate adaptation rate (how quickly the system adapts)
+            adaptation_rate = min(1.0, self.learning_rate * 100)  # Scale learning rate to [0, 1]
+            
+            return {
+                'parameter_stability': parameter_stability,
+                'consolidation_quality': consolidation_quality,
+                'forgetting_prevention': forgetting_prevention,
+                'ewc_performance': ewc_performance,
+                'adaptation_rate': adaptation_rate
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to calculate consolidation metrics: {e}")
+            return {
+                'parameter_stability': 0.0,
+                'consolidation_quality': 0.0,
+                'forgetting_prevention': 0.0,
+                'ewc_performance': 0.0,
+                'adaptation_rate': 0.0
+            }
+    
+    async def get_enhanced_report(self) -> Dict[str, Any]:
+        """Get enhanced EWC report with monitoring data."""
+        try:
+            # Get base report
+            base_report = self.get_consolidation_report()
+            
+            # Add monitoring data
+            if self.enable_monitoring:
+                base_report['monitoring_data'] = {
+                    'learning_progress': getattr(self.learning_progress_monitor, 'metrics', {}),
+                    'meta_learning': getattr(self.meta_learning_monitor, 'metrics', {})
+                }
+            
+            # Add database integration status
+            base_report['database_integration'] = {
+                'enabled': self.enable_database_storage,
+                'integration_available': hasattr(self, 'integration')
+            }
+            
+            return base_report
+            
+        except Exception as e:
+            logger.error(f"Failed to get enhanced report: {e}")
+            return self.get_consolidation_report()
