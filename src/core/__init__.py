@@ -20,6 +20,17 @@ from .coordinate_intelligence_system import (
     ZoneType, ZoneConfidence, CoordinateIntelligence, create_coordinate_intelligence_system
 )
 
+# Enhanced Exploration Strategies
+from .enhanced_exploration_strategies import (
+    ExplorationType, SearchAlgorithm, ExplorationState, ExplorationResult,
+    RandomExploration, CuriosityDrivenExploration, UCBExploration,
+    TreeSearchExploration, GeneticAlgorithmExploration, EnhancedExplorationSystem,
+    create_enhanced_exploration_system
+)
+
+# Exploration Integration
+from .exploration_integration import ExplorationIntegration, create_exploration_integration
+
 __all__ = [
     'Architect',
     'SystemGenome', 'MutationType', 'MutationImpact',
@@ -32,5 +43,10 @@ __all__ = [
     'EnhancedLearningIntegration', 'create_enhanced_learning_integration',
     'UnifiedEnergySystem', 'EnergyConfig', 'EnergyState', 'EnergySystemIntegration',
     'CoordinateIntelligenceSystem', 'SuccessZoneMapper', 'CoordinateZone',
-    'ZoneType', 'ZoneConfidence', 'CoordinateIntelligence', 'create_coordinate_intelligence_system'
+    'ZoneType', 'ZoneConfidence', 'CoordinateIntelligence', 'create_coordinate_intelligence_system',
+    'ExplorationType', 'SearchAlgorithm', 'ExplorationState', 'ExplorationResult',
+    'RandomExploration', 'CuriosityDrivenExploration', 'UCBExploration',
+    'TreeSearchExploration', 'GeneticAlgorithmExploration', 'EnhancedExplorationSystem',
+    'create_enhanced_exploration_system',
+    'ExplorationIntegration', 'create_exploration_integration'
 ]
