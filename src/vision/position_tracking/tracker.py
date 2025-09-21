@@ -7,6 +7,8 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 from collections import deque
 import json
+
+from src.core.penalty_decay_system_simple import get_simple_penalty_decay_system
 from datetime import datetime
 
 class PositionTracker:
@@ -32,6 +34,9 @@ class PositionTracker:
         # Meta-learning integration
         self.meta_learner = None
         self._initialize_meta_learner()
+        
+        # Penalty decay system for coordinate learning
+        self.penalty_system = get_simple_penalty_decay_system()
     
     def _initialize_meta_learner(self):
         """Initialize meta-learner for position tracking."""
@@ -174,8 +179,8 @@ class PositionTracker:
             'recent_movements': list(self.movement_vectors)[-5:]  # Last 5 movements
         }
     
-    def record_coordinate_attempt(self, x: int, y: int, was_successful: bool, score_change: float = 0):
-        """Record a coordinate attempt for learning."""
+    async def record_coordinate_attempt(self, x: int, y: int, was_successful: bool, score_change: float = 0, game_id: str = "unknown"):
+        """Record a coordinate attempt for learning with penalty system integration."""
         coord_key = f"{x},{y}"
         
         if coord_key not in self.coordinate_attempts:
@@ -194,7 +199,33 @@ class PositionTracker:
         if was_successful:
             record['successes'] += 1
         
-        # Update avoidance scores
+        # Integrate with penalty decay system
+        if self.penalty_system:
+            try:
+                penalty_info = await self.penalty_system.record_coordinate_attempt(
+                    game_id=game_id,
+                    x=x, y=y,
+                    success=was_successful,
+                    score_change=score_change,
+                    action_type="ACTION6",
+                    context={'position_tracker_context': coord_key}
+                )
+                
+                # Update local tracking with penalty feedback
+                if penalty_info and 'penalty_score' in penalty_info:
+                    # Update avoidance scores based on penalty system
+                    penalty_score = penalty_info['penalty_score']
+                    self.avoidance_scores[coord_key] = penalty_score
+                    
+                    # Log penalty application
+                    if penalty_info.get('penalty_applied', False):
+                        print(f"🎯 PENALTY APPLIED: ({x},{y}) - {penalty_info.get('penalty_reason', 'unknown')} "
+                              f"(score: {penalty_info['penalty_score']:.3f})")
+                
+            except Exception as e:
+                print(f"Failed to integrate with penalty system: {e}")
+        
+        # Legacy avoidance score update (fallback)
         if not was_successful and score_change < 0:
             self.avoidance_scores[coord_key] = self.avoidance_scores.get(coord_key, 0) + abs(score_change)
         elif was_successful and score_change > 0:
@@ -238,6 +269,55 @@ class PositionTracker:
             'avoidance_score': avoidance_score,
             'recommendation': recommendation
         }
+    
+    async def get_penalty_aware_avoidance_scores(self, candidate_coordinates: List[Tuple[int, int]], game_id: str = "unknown") -> Dict[Tuple[int, int], float]:
+        """Get avoidance scores that incorporate penalty system data."""
+        if not self.penalty_system:
+            # Fallback to local avoidance scores
+            return {(x, y): self.avoidance_scores.get(f"{x},{y}", 0.0) for x, y in candidate_coordinates}
+        
+        try:
+            # Get penalty-based avoidance scores
+            penalty_scores = await self.penalty_system.get_avoidance_recommendations(
+                game_id, candidate_coordinates
+            )
+            
+            # Combine with local avoidance scores
+            combined_scores = {}
+            for x, y in candidate_coordinates:
+                coord_key = f"{x},{y}"
+                local_score = self.avoidance_scores.get(coord_key, 0.0)
+                penalty_score = penalty_scores.get((x, y), 0.0)
+                
+                # Weighted combination: penalty system takes precedence
+                combined_scores[(x, y)] = (penalty_score * 0.8) + (local_score * 0.2)
+            
+            return combined_scores
+            
+        except Exception as e:
+            print(f"Failed to get penalty-aware avoidance scores: {e}")
+            # Fallback to local scores
+            return {(x, y): self.avoidance_scores.get(f"{x},{y}", 0.0) for x, y in candidate_coordinates}
+    
+    async def decay_penalties(self, game_id: str = None):
+        """Apply penalty decay to allow recovery of previously penalized coordinates."""
+        if self.penalty_system:
+            try:
+                return await self.penalty_system.decay_penalties(game_id)
+            except Exception as e:
+                print(f"Failed to decay penalties: {e}")
+                return {'error': str(e)}
+        return {'error': 'Penalty system not available'}
+    
+    async def get_penalty_system_status(self):
+        """Get status of the penalty decay system."""
+        if self.penalty_system:
+            try:
+                return await self.penalty_system.get_system_status()
+            except Exception as e:
+                print(f"Failed to get penalty system status: {e}")
+                return {'error': str(e)}
+        return {'error': 'Penalty system not available'}
     
     def reset_coordinate_tracking(self):
         """Reset coordinate tracking data."""

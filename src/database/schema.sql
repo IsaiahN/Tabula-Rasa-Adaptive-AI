@@ -82,6 +82,56 @@ CREATE TABLE IF NOT EXISTS coordinate_intelligence (
     UNIQUE(game_id, x, y)
 );
 
+-- Enhanced coordinate penalty and decay system
+CREATE TABLE IF NOT EXISTS coordinate_penalties (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    x INTEGER NOT NULL,
+    y INTEGER NOT NULL,
+    penalty_score REAL DEFAULT 0.0,
+    penalty_reason TEXT DEFAULT 'no_improvement',
+    zero_progress_streak INTEGER DEFAULT 0,
+    last_penalty_applied TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_success TIMESTAMP,
+    decay_rate REAL DEFAULT 0.1,
+    is_stuck_coordinate BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(game_id, x, y)
+);
+
+-- Coordinate diversity tracking
+CREATE TABLE IF NOT EXISTS coordinate_diversity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    x INTEGER NOT NULL,
+    y INTEGER NOT NULL,
+    last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usage_frequency INTEGER DEFAULT 1,
+    avoidance_score REAL DEFAULT 0.0,
+    recent_attempts TEXT, -- JSON array of recent attempts
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(game_id, x, y)
+);
+
+-- Failure learning system
+CREATE TABLE IF NOT EXISTS failure_learning (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    coordinate_x INTEGER,
+    coordinate_y INTEGER,
+    action_type TEXT,
+    failure_type TEXT NOT NULL, -- 'no_improvement', 'score_decrease', 'stuck_loop'
+    failure_context TEXT, -- JSON context data
+    failure_count INTEGER DEFAULT 1,
+    last_failure TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    recovery_attempts INTEGER DEFAULT 0,
+    learned_insights TEXT, -- JSON insights learned from failure
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Action traces for detailed analysis
 CREATE TABLE IF NOT EXISTS action_traces (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

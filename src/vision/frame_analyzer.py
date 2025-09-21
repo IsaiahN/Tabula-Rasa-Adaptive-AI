@@ -185,10 +185,10 @@ class FrameAnalyzer:
         
         return targets[:10]  # Return top 10 targets
     
-    def record_coordinate_attempt(self, x: int, y: int, was_successful: bool, score_change: float = 0):
-        """Record a coordinate attempt for learning."""
+    async def record_coordinate_attempt(self, x: int, y: int, was_successful: bool, score_change: float = 0, game_id: str = "unknown"):
+        """Record a coordinate attempt for learning with penalty system integration."""
         # Use the position tracker's method
-        self.position_tracker.record_coordinate_attempt(x, y, was_successful, score_change)
+        return await self.position_tracker.record_coordinate_attempt(x, y, was_successful, score_change, game_id)
         
         # Also update local tracking for backward compatibility
         coord_key = f"{x},{y}"
@@ -213,6 +213,18 @@ class FrameAnalyzer:
     def get_coordinate_effectiveness(self, x: int, y: int) -> Dict[str, Any]:
         """Get effectiveness data for a specific coordinate."""
         return self.position_tracker.get_coordinate_effectiveness(x, y)
+    
+    async def get_penalty_aware_avoidance_scores(self, candidate_coordinates: List[Tuple[int, int]], game_id: str = "unknown") -> Dict[Tuple[int, int], float]:
+        """Get avoidance scores that incorporate penalty system data."""
+        return await self.position_tracker.get_penalty_aware_avoidance_scores(candidate_coordinates, game_id)
+    
+    async def decay_penalties(self, game_id: str = None):
+        """Apply penalty decay to allow recovery of previously penalized coordinates."""
+        return await self.position_tracker.decay_penalties(game_id)
+    
+    async def get_penalty_system_status(self):
+        """Get status of the penalty decay system."""
+        return await self.position_tracker.get_penalty_system_status()
     
     def reset_coordinate_tracking(self):
         """Reset coordinate tracking data."""

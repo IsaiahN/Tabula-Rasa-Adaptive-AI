@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 import numpy as np
 from collections import defaultdict, deque
+
+from src.core.penalty_decay_system import get_penalty_decay_system
 import json
 
 logger = logging.getLogger(__name__)
@@ -556,18 +558,23 @@ class CoordinateIntelligenceSystem:
         self.total_updates = 0
         self.successful_recommendations = 0
         self.failed_recommendations = 0
+        
+        # Initialize penalty decay system
+        self.penalty_system = get_penalty_decay_system()
     
-    def update_coordinate_intelligence(
+    async def update_coordinate_intelligence(
         self, 
         game_id: str, 
         x: int, 
         y: int, 
         action_id: int,
         success: bool, 
-        frame_changes: int = 0
+        frame_changes: int = 0,
+        score_change: float = 0.0,
+        context: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
-        Update coordinate intelligence and success zone mapping.
+        Update coordinate intelligence and success zone mapping with penalty integration.
         
         Returns:
             Dictionary with update results and recommendations
@@ -606,6 +613,17 @@ class CoordinateIntelligenceSystem:
         coord_intel.action_success_rates[action_id] = (
             (1 - self.learning_rate) * current_rate + 
             self.learning_rate * new_rate
+        )
+        
+        # Integrate with penalty decay system
+        penalty_info = await self.penalty_system.record_coordinate_attempt(
+            game_id=game_id,
+            x=x,
+            y=y,
+            success=success,
+            score_change=score_change,
+            action_type=f"ACTION{action_id}",
+            context=context or {}
         )
         
         # Update confidence score
@@ -753,6 +771,151 @@ class CoordinateIntelligenceSystem:
             'learning_rate': self.learning_rate,
             'cross_game_learning_enabled': self.cross_game_learning
         }
+    
+    async def get_coordinate_avoidance_scores(
+        self, 
+        game_id: str, 
+        candidate_coordinates: List[Tuple[int, int]]
+    ) -> Dict[Tuple[int, int], float]:
+        """
+        Get avoidance scores for candidate coordinates based on penalties and diversity.
+        
+        Args:
+            game_id: Game identifier
+            candidate_coordinates: List of (x, y) coordinate tuples
+            
+        Returns:
+            Dictionary mapping coordinates to avoidance scores (higher = more avoidable)
+        """
+        try:
+            # Get penalty-based avoidance scores
+            penalty_scores = await self.penalty_system.get_avoidance_recommendations(
+                game_id, candidate_coordinates
+            )
+            
+            # Get diversity-based avoidance scores
+            diversity_scores = {}
+            for x, y in candidate_coordinates:
+                coord_key = (game_id, x, y)
+                
+                # Check recent usage frequency
+                recent_usage = 0
+                if coord_key in self.coordinate_intelligence:
+                    coord_intel = self.coordinate_intelligence[coord_key]
+                    time_since_use = time.time() - coord_intel.last_used
+                    if time_since_use < 300:  # 5 minutes
+                        recent_usage = 1.0 - (time_since_use / 300)
+                
+                # Check if coordinate is in a recently used zone
+                zone_penalty = 0.0
+                if coord_key in self.coordinate_intelligence:
+                    zone_id = self.coordinate_intelligence[coord_key].zone_id
+                    if zone_id and zone_id in self.zone_mapper.zones.get(game_id, {}):
+                        zone = self.zone_mapper.zones[game_id][zone_id]
+                        if zone.last_used and (time.time() - zone.last_used) < 180:  # 3 minutes
+                            zone_penalty = 0.5
+                
+                diversity_scores[(x, y)] = recent_usage + zone_penalty
+            
+            # Combine penalty and diversity scores
+            combined_scores = {}
+            for coord in candidate_coordinates:
+                penalty_score = penalty_scores.get(coord, 0.0)
+                diversity_score = diversity_scores.get(coord, 0.0)
+                
+                # Weighted combination: penalties are more important than diversity
+                combined_scores[coord] = (penalty_score * 0.7) + (diversity_score * 0.3)
+            
+            return combined_scores
+            
+        except Exception as e:
+            logger.error(f"Failed to get coordinate avoidance scores: {e}")
+            return {coord: 0.0 for coord in candidate_coordinates}
+    
+    async def get_diverse_coordinate_recommendations(
+        self, 
+        game_id: str, 
+        action_id: int, 
+        grid_size: Tuple[int, int], 
+        strategy: str = "balanced",
+        max_recommendations: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Get diverse coordinate recommendations that avoid recently used and penalized coordinates.
+        
+        Args:
+            game_id: Game identifier
+            action_id: Action type
+            grid_size: (width, height) of the grid
+            strategy: Recommendation strategy ('success', 'exploration', 'balanced')
+            max_recommendations: Maximum number of recommendations
+            
+        Returns:
+            List of coordinate recommendations with diversity and penalty information
+        """
+        try:
+            # Get base recommendations from success zones
+            base_recommendations = self.get_recommended_coordinates(
+                game_id, action_id, grid_size, strategy
+            )
+            
+            if not base_recommendations:
+                return []
+            
+            # Extract coordinates
+            candidate_coords = [(rec['x'], rec['y']) for rec in base_recommendations]
+            
+            # Get avoidance scores
+            avoidance_scores = await self.get_coordinate_avoidance_scores(
+                game_id, candidate_coords
+            )
+            
+            # Combine recommendations with avoidance scores
+            enhanced_recommendations = []
+            for rec in base_recommendations:
+                coord = (rec['x'], rec['y'])
+                avoidance_score = avoidance_scores.get(coord, 0.0)
+                
+                # Calculate diversity-adjusted score
+                diversity_factor = 1.0 - avoidance_score
+                adjusted_score = rec['confidence_score'] * diversity_factor
+                
+                enhanced_rec = rec.copy()
+                enhanced_rec.update({
+                    'avoidance_score': avoidance_score,
+                    'diversity_factor': diversity_factor,
+                    'adjusted_score': adjusted_score,
+                    'penalty_info': await self.penalty_system.get_coordinate_penalty(
+                        game_id, rec['x'], rec['y']
+                    )
+                })
+                
+                enhanced_recommendations.append(enhanced_rec)
+            
+            # Sort by adjusted score (higher is better)
+            enhanced_recommendations.sort(key=lambda x: x['adjusted_score'], reverse=True)
+            
+            return enhanced_recommendations[:max_recommendations]
+            
+        except Exception as e:
+            logger.error(f"Failed to get diverse coordinate recommendations: {e}")
+            return []
+    
+    async def decay_penalties(self, game_id: str = None) -> Dict[str, Any]:
+        """Apply penalty decay to allow recovery of previously penalized coordinates."""
+        try:
+            return await self.penalty_system.decay_penalties(game_id)
+        except Exception as e:
+            logger.error(f"Failed to decay penalties: {e}")
+            return {'error': str(e)}
+    
+    async def get_penalty_system_status(self) -> Dict[str, Any]:
+        """Get status of the penalty decay system."""
+        try:
+            return await self.penalty_system.get_system_status()
+        except Exception as e:
+            logger.error(f"Failed to get penalty system status: {e}")
+            return {'error': str(e)}
     
     def export_system_data(self) -> Dict[str, Any]:
         """Export all system data for persistence."""
