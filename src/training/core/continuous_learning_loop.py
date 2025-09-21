@@ -102,8 +102,7 @@ class ContinuousLearningLoop:
             # Lazy imports
             self.lazy_imports = LazyImports()
             
-            # Initialize API
-            asyncio.create_task(self.api_manager.initialize())
+            # API will be initialized when needed (async)
             
             logger.info("All modular components initialized successfully")
             
@@ -186,7 +185,10 @@ class ContinuousLearningLoop:
             results['performance_metrics'] = self.performance_monitor.get_performance_report()
             results['success_rate'] = results['games_won'] / max(results['games_completed'], 1)
             
-            print(f"🏁 Continuous learning completed: {results['games_completed']} games, {results['success_rate']:.2%} success rate")
+            print(
+                f"🏁 Continuous learning completed: {results['games_completed']} games, "
+                f"{results['success_rate']:.2%} success rate"
+            )
             return results
             
         except Exception as e:
@@ -307,7 +309,7 @@ class ContinuousLearningLoop:
     def _cleanup(self) -> None:
         """Cleanup resources on shutdown."""
         try:
-            asyncio.create_task(self.api_manager.close())
+            # API cleanup will be handled by the close() method
             logger.info("Cleanup completed")
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")

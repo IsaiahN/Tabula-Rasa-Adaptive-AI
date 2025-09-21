@@ -195,7 +195,10 @@ class MasterARCTrainer:
                     })
                     results['learning_insights'].extend(reflection.get('insights', []))
                 
-                self.logger.info(f"Game {game_num + 1}/{self.config.max_games} completed: {game_result.get('score', 0.0):.2f} score")
+                self.logger.info(
+                    f"Game {game_num + 1}/{self.config.max_games} completed: "
+                    f"{game_result.get('score', 0.0):.2f} score"
+                )
                 
             except Exception as e:
                 self.logger.error(f"Error in game {game_num}: {e}")
@@ -417,7 +420,7 @@ class MasterARCTrainer:
     def _cleanup(self) -> None:
         """Cleanup resources on shutdown."""
         try:
-            asyncio.create_task(self.api_manager.close())
+            # API cleanup will be handled by the close() method
             self.logger.info("Cleanup completed")
         except Exception as e:
             self.logger.error(f"Error during cleanup: {e}")

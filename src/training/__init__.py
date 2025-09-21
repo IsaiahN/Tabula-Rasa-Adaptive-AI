@@ -9,9 +9,34 @@ from .core.continuous_learning_loop import ContinuousLearningLoop
 from .core.master_trainer import MasterARCTrainer, MasterTrainingConfig
 from src.config.centralized_config import action_limits as ActionLimits
 
+# Import interfaces for type checking and dependency injection
+from .interfaces import (
+    ComponentInterface,
+    MemoryInterface,
+    SessionInterface,
+    APIManagerInterface,
+    PerformanceInterface,
+    GovernorInterface,
+    LearningInterface,
+    TrainingOrchestratorInterface,
+    ContinuousLearningInterface,
+    MasterTrainerInterface
+)
+
 __all__ = [
     'ContinuousLearningLoop',
     'MasterARCTrainer',
     'MasterTrainingConfig',
-    'ActionLimits'
+    'ActionLimits',
+    # Interfaces
+    'ComponentInterface',
+    'MemoryInterface',
+    'SessionInterface',
+    'APIManagerInterface',
+    'PerformanceInterface',
+    'GovernorInterface',
+    'LearningInterface',
+    'TrainingOrchestratorInterface',
+    'ContinuousLearningInterface',
+    'MasterTrainerInterface'
 ]
