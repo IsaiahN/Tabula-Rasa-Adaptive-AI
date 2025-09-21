@@ -17,6 +17,10 @@ from enum import Enum
 from collections import defaultdict, deque
 from pathlib import Path
 
+# Import caching and performance monitoring
+from .caching_system import get_global_cache, cache_result, cache_async_result, CacheLevel
+from .performance_monitor import get_global_monitor, monitor_performance, monitor_async_performance
+
 # Import space-time components
 from .space_time_governor import (
     SpaceTimeAwareGovernor,
@@ -324,6 +328,7 @@ class EnhancedSpaceTimeGovernor:
         
         return avg_confidence * avg_efficiency
     
+    @monitor_performance("governor", "pattern_recommendations")
     def _get_pattern_recommendations(self, context: Dict[str, Any], performance_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Get pattern-based recommendations."""
         if not self.pattern_analyzer:
@@ -535,6 +540,8 @@ class EnhancedSpaceTimeGovernor:
         except Exception as e:
             logger.error(f"Failed to record action result: {e}")
     
+    @monitor_performance("governor", "analyze_performance")
+    @cache_result(ttl_seconds=300, level=CacheLevel.MEMORY)  # Cache for 5 minutes
     def analyze_performance_and_recommend(self, recent_actions: int = 50) -> Dict[str, Any]:
         """
         Analyze recent performance and provide recommendations.

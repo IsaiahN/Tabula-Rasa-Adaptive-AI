@@ -18,11 +18,16 @@ import time
 import json
 import logging
 import hashlib
+from collections import deque
 from typing import Dict, List, Any, Optional, Tuple, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
 import numpy as np
+
+# Import caching and performance monitoring
+from .caching_system import get_global_cache, cache_result, cache_async_result, CacheLevel
+from .performance_monitor import get_global_monitor, monitor_performance, monitor_async_performance
 
 logger = logging.getLogger(__name__)
 
@@ -440,6 +445,8 @@ class TreeBasedDirector:
         logger.debug(f"Added reasoning step {node_id} to trace {trace_id}")
         return node_id
     
+    @monitor_performance("director", "synthesize_reasoning")
+    @cache_result(ttl_seconds=600, level=CacheLevel.MEMORY)  # Cache for 10 minutes
     def synthesize_reasoning(self, trace_id: str) -> Dict[str, Any]:
         """
         Synthesize the reasoning trace into actionable insights.

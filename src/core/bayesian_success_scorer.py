@@ -10,10 +10,13 @@ outcomes and updates its beliefs about what works.
 import time
 import logging
 import numpy as np
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass, field
 from collections import defaultdict
 import math
+
+if TYPE_CHECKING:
+    from .search_path import SearchPath
 
 logger = logging.getLogger(__name__)
 

@@ -40,6 +40,13 @@ def _get_torch_optim():
         return optim
     except ImportError:
         return None
+
+# Global variables for lazy loading
+torch = None
+nn = None
+optim = None
+F = None
+
 import json
 import logging
 import time

@@ -5,8 +5,11 @@ Handles pattern learning, coordinate tracking, and boundary detection.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, TYPE_CHECKING
 from collections import defaultdict
+
+if TYPE_CHECKING:
+    from ..core.memory_manager import MemoryManager
 
 logger = logging.getLogger(__name__)
 

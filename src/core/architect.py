@@ -128,30 +128,40 @@ class Architect:
     def evolve_strategy(self, available_actions: List[int], context: Dict[str, Any], 
                        performance_data: List[Dict[str, Any]], frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Evolve strategy based on current performance and context.
+        Evolve strategy based on current performance and context using enhanced mutation system.
         """
         try:
             game_id = context.get('game_id', 'unknown')
             
-            # Generate evolved strategy using mutation engine
-            mutation = self.mutation_engine.generate_mutation()
+            # Create mutation context for enhanced analysis
+            mutation_context = self._create_mutation_context(performance_data, frame_analysis, context)
+            
+            # Generate context-aware mutation
+            mutation = self.mutation_engine.generate_context_aware_mutation(mutation_context)
             
             # Create evolved strategy based on mutation
             evolved_strategy = {
                 'actions': available_actions,
                 'mutation_applied': mutation.id,
                 'rationale': mutation.rationale,
-                'confidence': mutation.confidence
+                'confidence': mutation.confidence,
+                'mutation_type': mutation.type.value,
+                'expected_improvement': mutation.expected_improvement
             }
             
-            # Generate reasoning
-            reasoning = f"Strategy evolved using mutation {mutation.id}: {mutation.rationale}"
+            # Generate enhanced reasoning
+            reasoning = self._generate_enhanced_reasoning(mutation, mutation_context, game_id)
+            
+            # Update mutation engine with context
+            self.mutation_engine.update_adaptive_weights(mutation, False, 0.0)  # Will be updated after testing
             
             return {
                 'strategy': evolved_strategy,
                 'reasoning': reasoning,
                 'innovation_score': mutation.confidence,
-                'mutation_id': mutation.id
+                'mutation_id': mutation.id,
+                'mutation_context': mutation_context,
+                'expected_improvement': mutation.expected_improvement
             }
             
         except Exception as e:
@@ -162,3 +172,83 @@ class Architect:
                 'innovation_score': 0.0,
                 'mutation_id': None
             }
+    
+    def _create_mutation_context(self, performance_data: List[Dict[str, Any]], 
+                               frame_analysis: Dict[str, Any], context: Dict[str, Any]) -> 'MutationContext':
+        """Create mutation context from current system state."""
+        from .mutation_system.mutator import MutationContext
+        
+        # Analyze performance for stagnation
+        recent_scores = [p.get('score', 0) for p in performance_data[-10:]] if performance_data else [0]
+        stagnation_detected = len(set(recent_scores)) <= 1 and len(recent_scores) > 3
+        
+        # Count recent failures
+        recent_failures = sum(1 for p in performance_data[-10:] if not p.get('success', False)) if performance_data else 0
+        
+        # Calculate learning progress
+        learning_progress = self._calculate_learning_progress(performance_data)
+        
+        # Extract memory and energy state from context
+        memory_state = context.get('memory_state', {})
+        energy_state = context.get('energy_state', {})
+        
+        return MutationContext(
+            performance_history=performance_data,
+            frame_analysis=frame_analysis,
+            memory_state=memory_state,
+            energy_state=energy_state,
+            learning_progress=learning_progress,
+            stagnation_detected=stagnation_detected,
+            recent_failures=recent_failures
+        )
+    
+    def _calculate_learning_progress(self, performance_data: List[Dict[str, Any]]) -> float:
+        """Calculate learning progress from performance data."""
+        if not performance_data or len(performance_data) < 5:
+            return 0.5  # Default moderate progress
+        
+        # Calculate trend in scores
+        scores = [p.get('score', 0) for p in performance_data[-10:]]
+        if len(scores) < 2:
+            return 0.5
+        
+        # Simple linear trend calculation
+        x = list(range(len(scores)))
+        y = scores
+        
+        # Calculate slope
+        n = len(x)
+        sum_x = sum(x)
+        sum_y = sum(y)
+        sum_xy = sum(x[i] * y[i] for i in range(n))
+        sum_x2 = sum(x[i] ** 2 for i in range(n))
+        
+        if n * sum_x2 - sum_x ** 2 == 0:
+            return 0.5
+        
+        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)
+        
+        # Normalize slope to 0-1 range
+        progress = max(0.0, min(1.0, (slope + 1) / 2))
+        return progress
+    
+    def _generate_enhanced_reasoning(self, mutation, mutation_context, game_id: str) -> str:
+        """Generate enhanced reasoning for the evolved strategy."""
+        reasoning_parts = [f"Enhanced strategy evolution for {game_id}"]
+        
+        # Add context-based reasoning
+        if mutation_context.stagnation_detected:
+            reasoning_parts.append("Stagnation detected - applying breakthrough strategies")
+        
+        if mutation_context.recent_failures > 3:
+            reasoning_parts.append(f"Recent failures ({mutation_context.recent_failures}) - enabling recovery mechanisms")
+        
+        if mutation_context.learning_progress < 0.2:
+            reasoning_parts.append("Low learning progress - optimizing learning parameters")
+        
+        # Add mutation-specific reasoning
+        reasoning_parts.append(f"Mutation {mutation.id}: {mutation.rationale}")
+        reasoning_parts.append(f"Expected improvement: {mutation.expected_improvement:.1%}")
+        reasoning_parts.append(f"Confidence: {mutation.confidence:.1%}")
+        
+        return " | ".join(reasoning_parts)

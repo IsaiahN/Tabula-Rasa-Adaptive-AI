@@ -4,10 +4,13 @@ Implements computer vision for agent position tracking and movement detection.
 """
 import cv2
 import numpy as np
+import logging
 from typing import Dict, List, Tuple, Optional, Any
 from collections import deque
 import json
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 # Import the meta-learner
 try:
@@ -2138,7 +2141,7 @@ class FrameAnalyzer:
         # Add coordinate to tried set for avoidance
         self.tried_coordinates.add(coord_key)
 
-    def get_coordinate_avoidance_score(self, x: int, y: int) -> float:
+    def get_coordinate_avoidance_score(self, x: int, y: int, game_id: str = "unknown") -> float:
         """Enhanced avoidance score with decay and forgetting mechanisms."""
         coord_key = (x, y)
         
@@ -2469,7 +2472,7 @@ class FrameAnalyzer:
         return avoidance_score > threshold
 
     def get_emergency_diversification_target(self, current_frame: List[List[int]], 
-                                           grid_bounds: Tuple[int, int]) -> Tuple[int, int]:
+                                           grid_bounds: Tuple[int, int], game_id: str = "unknown") -> Tuple[int, int]:
         """Get an emergency diversification target when stuck in loops."""
         width, height = grid_bounds
         

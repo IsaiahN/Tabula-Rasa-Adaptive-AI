@@ -37,7 +37,7 @@ from .tree_based_director import TreeBasedDirector
 from .implicit_memory_manager import ImplicitMemoryManager
 from .four_phase_memory_coordinator import FourPhaseMemoryCoordinator
 from .cognitive_subsystems.cognitive_coordinator import CognitiveCoordinator
-from .cognitive_subsystems.subsystem_api import SubsystemAPI
+from .cognitive_subsystems.subsystem_api import CognitiveSubsystemAPI
 from ..database.system_integration import get_system_integration
 from ..database.director_commands import get_director_commands
 

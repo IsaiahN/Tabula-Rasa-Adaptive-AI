@@ -5,6 +5,24 @@ from .mutation_system import MutationEngine, SandboxTester, Mutation, TestResult
 from .evolution_engine import EvolutionEngine, FitnessEvaluator, SelectionStrategy
 from .component_coordination import ComponentCoordinator, SystemIntegration
 
+# Enhanced Space-Time Governor
+from .enhanced_space_time_governor import EnhancedSpaceTimeGovernor, create_enhanced_space_time_governor
+
+# Tree-Based Director
+from .tree_based_director import TreeBasedDirector, create_tree_based_director
+
+# Implicit Memory Manager
+from .implicit_memory_manager import ImplicitMemoryManager, create_implicit_memory_manager
+
+# Four-Phase Memory Coordinator
+from .four_phase_memory_coordinator import FourPhaseMemoryCoordinator, create_four_phase_memory_coordinator
+
+# Enhanced Recursive Improvement Loop
+from .enhanced_recursive_improvement_loop import EnhancedRecursiveImprovementLoop, create_enhanced_recursive_improvement_loop
+
+# Action Sequence Optimizer
+from .action_sequence_optimizer import ActionSequenceOptimizer
+
 # Enhanced Learning Paradigms
 from .elastic_weight_consolidation import ElasticWeightConsolidation
 from .residual_learning import ResidualLearningSystem
@@ -37,6 +55,12 @@ __all__ = [
     'MutationEngine', 'SandboxTester', 'Mutation', 'TestResult',
     'EvolutionEngine', 'FitnessEvaluator', 'SelectionStrategy',
     'ComponentCoordinator', 'SystemIntegration',
+    'EnhancedSpaceTimeGovernor', 'create_enhanced_space_time_governor',
+    'TreeBasedDirector', 'create_tree_based_director',
+    'ImplicitMemoryManager', 'create_implicit_memory_manager',
+    'FourPhaseMemoryCoordinator', 'create_four_phase_memory_coordinator',
+    'EnhancedRecursiveImprovementLoop', 'create_enhanced_recursive_improvement_loop',
+    'ActionSequenceOptimizer',
     'ElasticWeightConsolidation',
     'ResidualLearningSystem',
     'ExtremeLearningMachine', 'DirectorELMEnsemble',

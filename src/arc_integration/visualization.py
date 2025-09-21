@@ -142,6 +142,17 @@ class TrainingVisualizer:
             
         summary = tracker.get_summary()
         
+        # Extract variables for f-string
+        total = summary.get('total_scorecards', 0)
+        avg_score = summary.get('avg_score', 0)
+        max_score = summary.get('max_score', 0)
+        min_score = summary.get('min_score', 0)
+        latest_score = summary.get('latest_score', 0)
+        improvement = summary.get('improvement', 0)
+        trend_class = 'trend-up' if improvement > 0 else ('trend-down' if improvement < 0 else 'trend-neutral')
+        timestamp = self.timestamp
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
         # Generate HTML
         html_content = f"""
         <!DOCTYPE html>
@@ -268,8 +279,7 @@ class TrainingVisualizer:
         
         if save:
             # Database-only mode: No file saving
-            pass
-                
+            html_filename = f"training_report_{timestamp}.html"
             # Save the metrics plot
             self.plot_scorecard_metrics(tracker, save=True, show=False)
             
