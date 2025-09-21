@@ -8,6 +8,7 @@ Integrates OpenCV analysis, pattern matching, and coordinate intelligence.
 import random
 import logging
 import numpy as np
+import asyncio
 from typing import Dict, List, Optional, Any, Tuple
 from .frame_analyzer import FrameAnalyzer
 from ..api.api_manager import APIManager
@@ -45,6 +46,11 @@ class ActionSelector:
         self.action_effectiveness = {}
         self.coordinate_success_rates = {}
         self.pattern_matches = []
+        
+        # Action repetition penalty system
+        self.action_repetition_penalties = {}  # action_id -> penalty_score
+        self.recent_actions = []  # Track recent actions for repetition detection
+        self.max_recent_actions = 20  # Keep last 20 actions
         
         # Initialize advanced cognitive systems
         self.tree_evaluation_engine = None
@@ -134,7 +140,12 @@ class ActionSelector:
         # 9. LEARNING UPDATE - Update all learning systems
         self._update_learning_systems(best_action, game_state, frame_analysis)
         
-        # 10. PERFORMANCE TRACKING - Track performance
+        # 10. ACTION REPETITION TRACKING - Track and penalize repeated actions
+        repetition_penalty = self._track_action_repetition(best_action)
+        if repetition_penalty > 0.5:
+            logger.warning(f"High repetition penalty for action {best_action.get('id')}: {repetition_penalty:.2f}")
+        
+        # 11. PERFORMANCE TRACKING - Track performance
         self._track_performance(best_action, current_score, game_state)
         
         return best_action
@@ -174,13 +185,32 @@ class ActionSelector:
         return suggestions
     
     def _get_intelligent_coordinates(self, frame_analysis: Dict[str, Any], available_actions: List[int]) -> List[Dict[str, Any]]:
-        """Get intelligent coordinate suggestions based on learning."""
+        """Get intelligent coordinate suggestions based on learning and penalty avoidance."""
         suggestions = []
         
         if 6 not in available_actions:
             return suggestions
         
-        # Use coordinate intelligence from past successes
+        # Get penalty-aware avoidance scores from frame analyzer
+        try:
+            avoidance_scores = self.frame_analyzer.get_penalty_aware_avoidance_scores()
+            if avoidance_scores:
+                # Filter out heavily penalized coordinates
+                for coord, penalty_score in avoidance_scores.items():
+                    if penalty_score < 0.5:  # Avoid coordinates with high penalty scores
+                        x, y = coord
+                        suggestions.append({
+                            'action': 'ACTION6',
+                            'x': x,
+                            'y': y,
+                            'confidence': 1.0 - penalty_score,  # Higher confidence for lower penalties
+                            'reason': f"Penalty-aware coordinate (penalty: {penalty_score:.2f})",
+                            'source': 'penalty_aware_intelligence'
+                        })
+        except Exception as e:
+            logger.warning(f"Failed to get penalty-aware coordinates: {e}")
+        
+        # Fallback to basic coordinate intelligence from past successes
         for coord, data in self.coordinate_success_rates.items():
             if data.get('success_rate', 0) > 0.3:  # 30% success rate threshold
                 suggestions.append({
@@ -596,18 +626,90 @@ class ActionSelector:
                     frame_factor = 1.2
                     break
         
-        # Factor 5: Exploration vs exploitation balance
+        # Factor 5: Penalty avoidance for coordinates
+        penalty_factor = 1.0
+        if 'x' in suggestion and 'y' in suggestion:
+            try:
+                # Get penalty-aware avoidance scores
+                avoidance_scores = self.frame_analyzer.get_penalty_aware_avoidance_scores()
+                if avoidance_scores:
+                    coord = (suggestion['x'], suggestion['y'])
+                    penalty_score = avoidance_scores.get(coord, 0.0)
+                    # Higher penalty score = lower factor (avoid heavily penalized coordinates)
+                    penalty_factor = 1.0 - penalty_score
+                    # Ensure minimum factor to avoid completely blocking coordinates
+                    penalty_factor = max(penalty_factor, 0.1)
+            except Exception as e:
+                logger.warning(f"Failed to get penalty scores: {e}")
+        
+        # Factor 6: Action repetition penalty
+        repetition_factor = 1.0
+        action_id = self._get_action_id(suggestion.get('action', 'ACTION1'))
+        repetition_penalty = self._get_action_repetition_penalty(action_id)
+        repetition_factor = 1.0 - repetition_penalty
+        repetition_factor = max(repetition_factor, 0.1)  # Minimum factor
+        
+        # Factor 7: Exploration vs exploitation balance
         exploration_factor = 0.8 if source == 'exploration' else 1.0
         
-        # Weighted combination
+        # Weighted combination with penalty avoidance and repetition penalties
         intelligent_score = (
-            confidence_factor * 0.4 +
-            source_factor * 0.3 +
-            learning_factor * 0.2 +
-            frame_factor * 0.1
+            confidence_factor * 0.25 +
+            source_factor * 0.2 +
+            learning_factor * 0.15 +
+            frame_factor * 0.1 +
+            penalty_factor * 0.1 +  # Coordinate penalty avoidance
+            repetition_factor * 0.2  # Action repetition penalty
         ) * exploration_factor
         
         return min(intelligent_score, 1.0)
+    
+    def _track_action_repetition(self, action: Dict[str, Any]) -> float:
+        """Track action repetition and return penalty score."""
+        action_id = action.get('id')
+        if not action_id:
+            return 0.0
+        
+        # Add to recent actions
+        self.recent_actions.append(action_id)
+        if len(self.recent_actions) > self.max_recent_actions:
+            self.recent_actions.pop(0)
+        
+        # Count recent repetitions of this action
+        recent_count = self.recent_actions.count(action_id)
+        
+        # Calculate penalty based on repetition frequency
+        if recent_count >= 10:  # 10+ repetitions in last 20 actions
+            penalty = 0.9  # Very high penalty
+        elif recent_count >= 7:  # 7+ repetitions
+            penalty = 0.7  # High penalty
+        elif recent_count >= 5:  # 5+ repetitions
+            penalty = 0.5  # Medium penalty
+        elif recent_count >= 3:  # 3+ repetitions
+            penalty = 0.3  # Low penalty
+        else:
+            penalty = 0.0  # No penalty
+        
+        # Store penalty for this action
+        self.action_repetition_penalties[action_id] = penalty
+        
+        return penalty
+    
+    def _get_action_repetition_penalty(self, action_id: int) -> float:
+        """Get penalty score for action repetition."""
+        return self.action_repetition_penalties.get(action_id, 0.0)
+    
+    def _decay_action_penalties(self):
+        """Decay action repetition penalties over time."""
+        for action_id in list(self.action_repetition_penalties.keys()):
+            current_penalty = self.action_repetition_penalties[action_id]
+            # Decay by 10% each time
+            new_penalty = current_penalty * 0.9
+            if new_penalty < 0.1:
+                # Remove very low penalties
+                del self.action_repetition_penalties[action_id]
+            else:
+                self.action_repetition_penalties[action_id] = new_penalty
     
     def _update_learning_systems(self, action: Dict[str, Any], game_state: Dict[str, Any], frame_analysis: Dict[str, Any]):
         """Update all learning systems with new action and results."""
@@ -685,6 +787,26 @@ class ActionSelector:
             attempts = self.coordinate_success_rates[coordinate]['attempts']
             successes = self.coordinate_success_rates[coordinate]['successes']
             self.coordinate_success_rates[coordinate]['success_rate'] = successes / attempts if attempts > 0 else 0
+            
+            # Update penalty decay system with coordinate attempt
+            try:
+                # Record coordinate attempt with penalty system
+                asyncio.create_task(self.frame_analyzer.record_coordinate_attempt(
+                    coordinate[0], coordinate[1], 
+                    current_score > last_score if len(self.performance_history) > 0 else False,
+                    game_state.get('game_id', 'unknown')
+                ))
+                
+                # Decay penalties periodically
+                if attempts % 10 == 0:  # Decay every 10 attempts
+                    asyncio.create_task(self.frame_analyzer.decay_penalties())
+                    
+            except Exception as e:
+                logger.warning(f"Failed to update penalty system for coordinate {coordinate}: {e}")
+        
+        # Decay action repetition penalties periodically
+        if self.learning_cycles % 20 == 0:  # Decay every 20 learning cycles
+            self._decay_action_penalties()
     
     def _track_performance(self, action: Dict[str, Any], current_score: int, game_state: Dict[str, Any]):
         """Track performance and update metrics."""

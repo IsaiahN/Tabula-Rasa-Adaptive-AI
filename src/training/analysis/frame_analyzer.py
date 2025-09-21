@@ -288,6 +288,23 @@ class FrameAnalyzer:
             }
         
         return None
+    
+    # Penalty Decay System Integration
+    def get_penalty_aware_avoidance_scores(self) -> Dict[Tuple[int, int], float]:
+        """Get penalty-aware avoidance scores for coordinates."""
+        # For now, return empty dict - this would be implemented with actual penalty system
+        # In a full implementation, this would integrate with the penalty decay system
+        return {}
+    
+    async def record_coordinate_attempt(self, x: int, y: int, success: bool, game_id: str) -> None:
+        """Record a coordinate attempt for penalty tracking."""
+        # For now, this is a no-op - in a full implementation, this would update the penalty system
+        pass
+    
+    async def decay_penalties(self) -> None:
+        """Decay penalties over time."""
+        # For now, this is a no-op - in a full implementation, this would decay penalties
+        pass
 
 def create_frame_analyzer() -> FrameAnalyzer:
     """Create a frame analyzer instance."""
