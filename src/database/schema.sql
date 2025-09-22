@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS coordinate_tracking (
 -- Learned patterns and strategies
 CREATE TABLE IF NOT EXISTS learned_patterns (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    pattern_type TEXT NOT NULL, -- 'coordinate', 'sequence', 'strategy', 'heuristic'                                                                    
+    pattern_type TEXT NOT NULL, -- 'coordinate', 'sequence', 'strategy', 'heuristic', 'game_type_profile', 'button_priority'                                                                    
     pattern_data TEXT NOT NULL, -- JSON data
     confidence REAL DEFAULT 0.0,
     frequency INTEGER DEFAULT 1,
@@ -191,6 +191,24 @@ CREATE TABLE IF NOT EXISTS learned_patterns (
     game_context TEXT, -- Game ID or pattern context
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Button priorities for Action 6 centric games
+CREATE TABLE IF NOT EXISTS button_priorities (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_type TEXT NOT NULL,
+    coordinate_x INTEGER NOT NULL,
+    coordinate_y INTEGER NOT NULL,
+    button_type TEXT NOT NULL, -- 'score_button', 'action_button', 'visual_button'
+    confidence REAL DEFAULT 0.0,
+    success_count INTEGER DEFAULT 1,
+    score_changes INTEGER DEFAULT 0,
+    action_unlocks INTEGER DEFAULT 0,
+    test_count INTEGER DEFAULT 0,
+    last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(game_type, coordinate_x, coordinate_y, button_type)
 );
 
 -- Winning sequences analysis

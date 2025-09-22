@@ -157,6 +157,12 @@ class ActionSelector:
         
         # 4. OPENCV OBJECT TESTING - Test objects for interactivity (PRIMARY for Action 6)
         if 6 in available_actions:
+            # Check if this is an Action 6 centric game
+            is_action6_centric = self._is_action6_centric_game(game_state, available_actions)
+            
+            if is_action6_centric:
+                logger.info("🎯 ACTION 6 CENTRIC GAME DETECTED - Focusing on button discovery and testing")
+            
             # Get confirmed interactive objects (highest priority for Action 6)
             interactive_suggestions = self._get_interactive_objects(frame_analysis)
             
@@ -165,6 +171,13 @@ class ActionSelector:
             
             # Get OpenCV detected objects (medium-high priority)
             opencv_detected_suggestions = self._detect_opencv_targets(frame_analysis, [6])
+            
+            # For Action 6 centric games, prioritize button testing
+            if is_action6_centric:
+                # Increase priority for untested objects to discover more buttons
+                for suggestion in untested_suggestions:
+                    suggestion['confidence'] = min(1.0, suggestion['confidence'] + 0.1)
+                    suggestion['reason'] += " (Action 6 centric - button discovery priority)"
             
             # Combine all OpenCV-based suggestions
             opencv_suggestions = interactive_suggestions + untested_suggestions + opencv_detected_suggestions
@@ -191,7 +204,7 @@ class ActionSelector:
                     })
         else:
             # Fallback to regular OpenCV detection
-            opencv_suggestions = self._detect_opencv_targets(frame_analysis, available_actions)
+        opencv_suggestions = self._detect_opencv_targets(frame_analysis, available_actions)
         
         # 5. LEARNING-BASED SUGGESTIONS - Use historical success data
         learning_suggestions = self._generate_learning_suggestions(frame_analysis, available_actions)
@@ -861,11 +874,20 @@ class ActionSelector:
             return False
     
     def _update_object_testing(self, action: Dict[str, Any], game_state: Dict[str, Any], frame_analysis: Dict[str, Any]):
-        """Update object testing based on Action 6 results - prioritize frame movement and score changes."""
+        """Update object testing based on Action 6 results - focus on visual/frame changes as buttons."""
         if action.get('id') != 6 or 'x' not in action or 'y' not in action:
             return
 
         coordinate = (action['x'], action['y'])
+        current_score = game_state.get('score', 0)
+        current_actions = set(game_state.get('available_actions', []))
+        
+        # Track previous state for comparison
+        previous_score = 0
+        previous_actions = set()
+        if len(self.performance_history) > 0:
+            previous_score = self.performance_history[-1].get('score', 0)
+            previous_actions = set(self.performance_history[-1].get('available_actions', []))
 
         # Initialize object testing data if not exists
         if coordinate not in self.tested_objects:
@@ -874,92 +896,216 @@ class ActionSelector:
                 'test_count': 0,
                 'frame_changes': 0,
                 'score_changes': 0,
-                'movement_detected': 0
+                'movement_detected': 0,
+                'action_unlocks': 0,
+                'button_confidence': 0.0,
+                'button_type': 'unknown'  # 'score_button', 'action_button', 'visual_button'
             }
 
         # Increment test count
         self.tested_objects[coordinate]['test_count'] += 1
 
-        # Check for positive signals (score increase OR frame movement)
-        current_score = game_state.get('score', 0)
+        # Check for different types of positive signals
         positive_signal = False
+        signal_type = None
         
-        if len(self.performance_history) > 0:
-            last_score = self.performance_history[-1].get('score', 0)
-            
-            # Check for score increase (strongest positive signal)
-            if current_score > last_score:
-                self.tested_objects[coordinate]['score_changes'] += 1
+        # 1. Score increase (strongest signal - direct progress)
+        if current_score > previous_score:
+            self.tested_objects[coordinate]['score_changes'] += 1
+            positive_signal = True
+            signal_type = 'score_button'
+            logger.info(f"🎯 BUTTON DETECTED: Object at {coordinate} caused SCORE INCREASE: {previous_score} -> {current_score}")
+        
+        # 2. Action unlock (new actions available - strategic progress)
+        elif current_actions != previous_actions:
+            new_actions = current_actions - previous_actions
+            if new_actions:
+                self.tested_objects[coordinate]['action_unlocks'] += 1
                 positive_signal = True
-                logger.info(f"🎯 Object at {coordinate} caused SCORE INCREASE: {last_score} -> {current_score}")
-            
-            # Check for frame movement (also a positive signal)
-            # This would require comparing frames, but for now we'll use score as proxy
-            # In a full implementation, you'd compare frame_before vs frame_after
-            elif current_score != last_score:  # Any score change indicates frame movement
-                self.tested_objects[coordinate]['movement_detected'] += 1
-                positive_signal = True
-                logger.info(f"🔄 Object at {coordinate} caused FRAME MOVEMENT: {last_score} -> {current_score}")
+                signal_type = 'action_button'
+                logger.info(f"🔓 BUTTON DETECTED: Object at {coordinate} UNLOCKED NEW ACTIONS: {new_actions}")
+        
+        # 3. Frame movement/visual change (any change indicates interactivity)
+        elif current_score != previous_score or current_actions != previous_actions:
+            self.tested_objects[coordinate]['movement_detected'] += 1
+            positive_signal = True
+            signal_type = 'visual_button'
+            logger.info(f"🔄 BUTTON DETECTED: Object at {coordinate} caused VISUAL/FRAME CHANGE")
 
         # Update frame changes counter (any positive signal)
         if positive_signal:
             self.tested_objects[coordinate]['frame_changes'] += 1
+            
+            # Update button type and confidence
+            if signal_type:
+                self.tested_objects[coordinate]['button_type'] = signal_type
+                
+                # Calculate confidence based on signal strength
+                if signal_type == 'score_button':
+                    self.tested_objects[coordinate]['button_confidence'] = min(1.0, 
+                        self.tested_objects[coordinate]['button_confidence'] + 0.3)
+                elif signal_type == 'action_button':
+                    self.tested_objects[coordinate]['button_confidence'] = min(1.0, 
+                        self.tested_objects[coordinate]['button_confidence'] + 0.25)
+                elif signal_type == 'visual_button':
+                    self.tested_objects[coordinate]['button_confidence'] = min(1.0, 
+                        self.tested_objects[coordinate]['button_confidence'] + 0.2)
 
-        # Determine if object is interactive based on test results
+        # Determine if object is a confirmed button
         test_count = self.tested_objects[coordinate]['test_count']
         frame_changes = self.tested_objects[coordinate]['frame_changes']
         score_changes = self.tested_objects[coordinate]['score_changes']
-        movement_detected = self.tested_objects[coordinate]['movement_detected']
+        action_unlocks = self.tested_objects[coordinate]['action_unlocks']
+        button_confidence = self.tested_objects[coordinate]['button_confidence']
 
         if test_count >= self.object_test_threshold:
-            # After enough tests, determine if object is interactive
+            # After enough tests, determine if object is a button
             if frame_changes > 0:
-                # Object caused positive signals - it's interactive
+                # Object caused positive signals - it's a confirmed button
                 self.tested_objects[coordinate]['interactive'] = True
                 self.interactive_objects.add(coordinate)
-                logger.info(f"✅ Object at {coordinate} confirmed as INTERACTIVE ({frame_changes}/{test_count} tests caused changes)")
-                logger.info(f"   - Score changes: {score_changes}, Movement detected: {movement_detected}")
+                
+                button_type = self.tested_objects[coordinate]['button_type']
+                logger.info(f"✅ CONFIRMED BUTTON: Object at {coordinate} is a {button_type.upper()}")
+                logger.info(f"   - Confidence: {button_confidence:.2f}")
+                logger.info(f"   - Score changes: {score_changes}, Action unlocks: {action_unlocks}")
+                logger.info(f"   - Total changes: {frame_changes}/{test_count} tests")
+                
+                # Mark as high-priority button for Action 6 centric games
+                if button_type in ['score_button', 'action_button']:
+                    logger.info(f"🎯 HIGH-PRIORITY BUTTON: {coordinate} should be prioritized for score/action progress")
             else:
-                # Object never caused positive signals - it's not interactive
+                # Object never caused positive signals - it's not a button
                 self.tested_objects[coordinate]['interactive'] = False
                 self.non_interactive_objects.add(coordinate)
-                logger.info(f"❌ Object at {coordinate} confirmed as NON-INTERACTIVE ({frame_changes}/{test_count} tests caused changes)")
+                logger.info(f"❌ NOT A BUTTON: Object at {coordinate} never caused changes ({frame_changes}/{test_count} tests)")
     
     def _get_interactive_objects(self, frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Get confirmed interactive objects from frame analysis."""
+        """Get confirmed interactive objects from frame analysis - prioritize button types."""
         suggestions = []
+        
+        # Sort interactive objects by button type and confidence
+        sorted_objects = sorted(
+            self.interactive_objects,
+            key=lambda coord: (
+                self.tested_objects.get(coord, {}).get('button_type', 'unknown'),
+                -self.tested_objects.get(coord, {}).get('button_confidence', 0.0)
+            )
+        )
         
         # Get objects from frame analysis
         objects = frame_analysis.get('objects', [])
         interactive_elements = frame_analysis.get('interactive_elements', [])
         
-        # Check confirmed interactive objects
-        for obj in objects:
-            centroid = obj.get('centroid', (0, 0))
-            if centroid in self.interactive_objects:
+        # Check confirmed interactive objects with button prioritization
+        for coord in sorted_objects:
+            # Check if coordinate is still in current frame
+            if self._is_coordinate_in_frame(coord, frame_analysis):
+                obj_data = self.tested_objects.get(coord, {})
+                button_type = obj_data.get('button_type', 'unknown')
+                button_confidence = obj_data.get('button_confidence', 0.0)
+                score_changes = obj_data.get('score_changes', 0)
+                action_unlocks = obj_data.get('action_unlocks', 0)
+                
+                # Calculate confidence based on button type and performance
+                base_confidence = 0.9
+                if button_type == 'score_button':
+                    base_confidence = 0.95  # Highest priority for score buttons
+                elif button_type == 'action_button':
+                    base_confidence = 0.9   # High priority for action unlock buttons
+                elif button_type == 'visual_button':
+                    base_confidence = 0.8   # Medium priority for visual buttons
+                
+                # Boost confidence based on performance
+                performance_boost = min(0.05, (score_changes + action_unlocks) * 0.01)
+                final_confidence = min(1.0, base_confidence + performance_boost)
+                
+                # Create detailed reason
+                reason_parts = [f'Confirmed {button_type.replace("_", " ")} at {coord}']
+                if score_changes > 0:
+                    reason_parts.append(f'{score_changes} score increases')
+                if action_unlocks > 0:
+                    reason_parts.append(f'{action_unlocks} action unlocks')
+                reason_parts.append(f'confidence: {button_confidence:.2f}')
+                
                 suggestions.append({
                     'action': 'ACTION6',
-                    'x': centroid[0],
-                    'y': centroid[1],
-                    'confidence': 0.95,  # High confidence for confirmed interactive objects
-                    'reason': f"Confirmed interactive object at ({centroid[0]}, {centroid[1]})",
-                    'source': 'confirmed_interactive'
+                    'x': coord[0],
+                    'y': coord[1],
+                    'confidence': final_confidence,
+                    'reason': ' | '.join(reason_parts),
+                    'source': 'confirmed_interactive',
+                    'button_type': button_type,
+                    'button_confidence': button_confidence
                 })
         
-        # Check confirmed interactive elements
-        for element in interactive_elements:
-            centroid = element.get('centroid', (0, 0))
-            if centroid in self.interactive_objects:
-                suggestions.append({
-                    'action': 'ACTION6',
-                    'x': centroid[0],
-                    'y': centroid[1],
-                    'confidence': 0.95,
-                    'reason': f"Confirmed interactive element at ({centroid[0]}, {centroid[1]})",
-                    'source': 'confirmed_interactive'
-                })
+        # Log button prioritization
+        if suggestions:
+            button_types = [s.get('button_type', 'unknown') for s in suggestions]
+            logger.info(f"🎯 Interactive objects prioritized: {button_types}")
         
         return suggestions
+    
+    def _is_action6_centric_game(self, game_state: Dict[str, Any], available_actions: List[int]) -> bool:
+        """Detect if this is an Action 6 centric game based on available actions and game state."""
+        try:
+            # Check if Action 6 is available
+            if 6 not in available_actions:
+                return False
+            
+            # Count non-Action 6 actions
+            non_action6_actions = [a for a in available_actions if a != 6]
+            
+            # If very few non-Action 6 actions, likely Action 6 centric
+            if len(non_action6_actions) <= 2:
+                return True
+            
+            # Check if Action 6 has been used frequently in this game
+            action6_usage = 0
+            total_actions = 0
+            
+            for entry in self.performance_history[-20:]:  # Check last 20 actions
+                action = entry.get('action', {})
+                if action.get('id') == 6:
+                    action6_usage += 1
+                total_actions += 1
+            
+            if total_actions > 0:
+                action6_ratio = action6_usage / total_actions
+                # If Action 6 is used more than 60% of the time, it's centric
+                if action6_ratio > 0.6:
+                    return True
+            
+            # Check if we have many interactive objects (suggests button-heavy game)
+            if len(self.interactive_objects) > 3:
+                return True
+            
+            # Check if we have many tested objects (suggests exploration-heavy game)
+            if len(self.tested_objects) > 5:
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Failed to detect Action 6 centric game: {e}")
+            return False
+    
+    def _is_coordinate_in_frame(self, coord: Tuple[int, int], frame_analysis: Dict[str, Any]) -> bool:
+        """Check if a coordinate is still present in the current frame."""
+        try:
+            x, y = coord
+            objects = frame_analysis.get('objects', [])
+            
+            # Check if coordinate is near any detected object
+            for obj in objects:
+                centroid = obj.get('centroid', (0, 0))
+                if abs(centroid[0] - x) <= 5 and abs(centroid[1] - y) <= 5:
+                    return True
+            
+            return True  # Assume coordinate is valid if no objects detected
+        except Exception as e:
+            logger.warning(f"Failed to check coordinate in frame: {e}")
+            return True
     
     def _get_untested_objects(self, frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get objects that haven't been tested yet for interactivity."""
@@ -1357,27 +1503,72 @@ class ActionSelector:
             
             logger.info(f"🎮 Game Type: {game_type} | Success Rate: {recommendations.get('success_rate', 0):.2f}")
             
-            # Generate suggestions based on successful coordinates
-            for coord in recommendations.get('recommended_coordinates', [])[:5]:  # Top 5
+            # Log Action 6 centric status
+            if recommendations.get('is_action6_centric', False):
+                logger.info(f"🎯 Action 6 Centric Game: {recommendations.get('action6_centric_count', 0)} previous games")
+            
+            # Log button priorities available
+            button_priorities = recommendations.get('button_priorities', [])
+            if button_priorities:
+                logger.info(f"🎯 Button Priorities Available: {len(button_priorities)} saved buttons")
+                score_buttons = [bp for bp in button_priorities if bp.get('button_type') == 'score_button']
+                action_buttons = [bp for bp in button_priorities if bp.get('button_type') == 'action_button']
+                visual_buttons = [bp for bp in button_priorities if bp.get('button_type') == 'visual_button']
+                logger.info(f"   - Score buttons: {len(score_buttons)}, Action buttons: {len(action_buttons)}, Visual buttons: {len(visual_buttons)}")
+            
+            # Generate suggestions based on button priorities (highest priority)
+            for button_priority in recommendations.get('button_priorities', [])[:10]:  # Top 10 button priorities
+                if 6 in available_actions and 'coordinate' in button_priority:
+                    coord = button_priority['coordinate']
+                    button_type = button_priority.get('button_type', 'unknown')
+                    confidence = button_priority.get('confidence', 0.0)
+                    success_count = button_priority.get('success_count', 1)
+                    
+                    # Calculate confidence based on button type and historical success
+                    base_confidence = 0.8
+                    if button_type == 'score_button':
+                        base_confidence = 0.9
+                    elif button_type == 'action_button':
+                        base_confidence = 0.85
+                    elif button_type == 'visual_button':
+                        base_confidence = 0.8
+                    
+                    # Boost confidence based on success count
+                    success_boost = min(0.1, success_count * 0.02)
+                    final_confidence = min(1.0, base_confidence + success_boost)
+                    
+                    suggestions.append({
+                        'action': 'ACTION6',
+                        'x': coord[0],
+                        'y': coord[1],
+                        'confidence': final_confidence,
+                        'reason': f'Game-specific {button_type} from {game_type} (confidence: {confidence:.2f}, successes: {success_count})',
+                        'source': 'game_specific_knowledge',
+                        'button_type': button_type,
+                        'button_confidence': confidence
+                    })
+            
+            # Generate suggestions based on successful coordinates (fallback)
+            for coord in recommendations.get('recommended_coordinates', [])[:3]:  # Top 3
                 if 6 in available_actions:
                     suggestions.append({
                         'action': 'ACTION6',
                         'x': coord[0],
                         'y': coord[1],
-                        'confidence': 0.8,  # High confidence for game-specific knowledge
+                        'confidence': 0.75,  # Medium confidence for coordinates without button data
                         'reason': f'Game-specific coordinate from {game_type} (success rate: {recommendations.get("success_rate", 0):.2f})',
                         'source': 'game_specific_knowledge'
                     })
             
-            # Generate suggestions based on interactive objects
-            for obj in recommendations.get('recommended_objects', [])[:5]:  # Top 5
+            # Generate suggestions based on interactive objects (fallback)
+            for obj in recommendations.get('recommended_objects', [])[:3]:  # Top 3
                 if 6 in available_actions and 'coordinate' in obj:
                     coord = obj['coordinate']
                     suggestions.append({
                         'action': 'ACTION6',
                         'x': coord[0],
                         'y': coord[1],
-                        'confidence': 0.85,  # Very high confidence for confirmed interactive objects
+                        'confidence': 0.8,  # High confidence for confirmed interactive objects
                         'reason': f'Game-specific interactive object from {game_type}',
                         'source': 'game_specific_knowledge'
                     })
@@ -1458,6 +1649,22 @@ class ActionSelector:
                     recent_actions = [entry.get('action', {}).get('id') for entry in self.performance_history[-10:]]
                     winning_sequence = [a for a in recent_actions if a is not None]
                 
+                # Extract button priorities from current tested objects
+                button_priorities = []
+                for coord, obj_data in self.tested_objects.items():
+                    if obj_data.get('interactive', False):
+                        button_priorities.append({
+                            'coordinate': coord,
+                            'button_type': obj_data.get('button_type', 'unknown'),
+                            'confidence': obj_data.get('button_confidence', 0.0),
+                            'score_changes': obj_data.get('score_changes', 0),
+                            'action_unlocks': obj_data.get('action_unlocks', 0),
+                            'test_count': obj_data.get('test_count', 0)
+                        })
+                
+                # Check if this is an Action 6 centric game
+                is_action6_centric = self._is_action6_centric_game(game_state, game_state.get('available_actions', []))
+                
                 # Update game type classifier
                 self.game_type_classifier.update_game_result(
                     game_id=game_id,
@@ -1466,7 +1673,9 @@ class ActionSelector:
                     patterns=patterns,
                     successful_coordinates=successful_coordinates,
                     interactive_objects=interactive_objects,
-                    winning_sequence=winning_sequence
+                    winning_sequence=winning_sequence,
+                    button_priorities=button_priorities,
+                    action6_centric=is_action6_centric
                 )
                 
                 if success:

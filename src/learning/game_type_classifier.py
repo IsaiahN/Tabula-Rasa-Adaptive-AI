@@ -27,6 +27,8 @@ class GameTypeProfile:
     successful_coordinates: List[Tuple[int, int]] = None
     interactive_objects: List[Dict[str, Any]] = None
     winning_sequences: List[List[int]] = None
+    button_priorities: List[Dict[str, Any]] = None
+    action6_centric_count: int = 0
     last_updated: datetime = None
     
     def __post_init__(self):
@@ -38,6 +40,8 @@ class GameTypeProfile:
             self.interactive_objects = []
         if self.winning_sequences is None:
             self.winning_sequences = []
+        if self.button_priorities is None:
+            self.button_priorities = []
         if self.last_updated is None:
             self.last_updated = datetime.now()
 
@@ -116,7 +120,9 @@ class GameTypeClassifier:
                           patterns: List[Dict[str, Any]] = None,
                           successful_coordinates: List[Tuple[int, int]] = None,
                           interactive_objects: List[Dict[str, Any]] = None,
-                          winning_sequence: List[int] = None):
+                          winning_sequence: List[int] = None,
+                          button_priorities: List[Dict[str, Any]] = None,
+                          action6_centric: bool = False):
         """Update game type profile with new game result."""
         game_type = self.extract_game_type(game_id)
         profile = self.get_game_type_profile(game_type)
@@ -163,9 +169,45 @@ class GameTypeClassifier:
             if winning_sequence not in profile.winning_sequences:
                 profile.winning_sequences.append(winning_sequence)
         
+        # Update button priorities
+        if button_priorities:
+            if not hasattr(profile, 'button_priorities'):
+                profile.button_priorities = []
+            
+            for button_priority in button_priorities:
+                # Check if this button priority already exists
+                existing_priority = None
+                for existing in profile.button_priorities:
+                    if (existing.get('coordinate') == button_priority.get('coordinate') and
+                        existing.get('button_type') == button_priority.get('button_type')):
+                        existing_priority = existing
+                        break
+                
+                if existing_priority:
+                    # Update existing priority with new data
+                    existing_priority['confidence'] = max(existing_priority.get('confidence', 0), 
+                                                        button_priority.get('confidence', 0))
+                    existing_priority['success_count'] = existing_priority.get('success_count', 0) + 1
+                    existing_priority['last_used'] = datetime.now().isoformat()
+                else:
+                    # Add new button priority
+                    button_priority['success_count'] = 1
+                    button_priority['last_used'] = datetime.now().isoformat()
+                    profile.button_priorities.append(button_priority)
+        
+        # Update Action 6 centric flag
+        if action6_centric:
+            if not hasattr(profile, 'action6_centric_count'):
+                profile.action6_centric_count = 0
+            profile.action6_centric_count += 1
+        
         profile.last_updated = datetime.now()
         
         logger.info(f"Updated {game_type} profile: {profile.successful_games}/{profile.total_games} wins, avg score: {profile.avg_score:.2f}")
+        if button_priorities:
+            logger.info(f"  - Added {len(button_priorities)} button priorities")
+        if action6_centric:
+            logger.info(f"  - Action 6 centric game detected")
     
     def get_game_type_knowledge(self, game_type: str) -> Dict[str, Any]:
         """Get all knowledge for a specific game type."""
@@ -180,6 +222,9 @@ class GameTypeClassifier:
             'successful_coordinates': profile.successful_coordinates,
             'interactive_objects': profile.interactive_objects,
             'winning_sequences': profile.winning_sequences,
+            'button_priorities': getattr(profile, 'button_priorities', []),
+            'action6_centric_count': getattr(profile, 'action6_centric_count', 0),
+            'is_action6_centric': getattr(profile, 'action6_centric_count', 0) > 0,
             'last_updated': profile.last_updated.isoformat()
         }
     
@@ -245,6 +290,14 @@ class GameTypeClassifier:
         # Get similar game types
         similar_types = self.get_similar_game_types(game_type)
         
+        # Get button priorities sorted by confidence and success count
+        button_priorities = getattr(profile, 'button_priorities', [])
+        sorted_button_priorities = sorted(
+            button_priorities,
+            key=lambda bp: (bp.get('confidence', 0) * bp.get('success_count', 1), bp.get('confidence', 0)),
+            reverse=True
+        )
+        
         # Combine knowledge from similar types
         combined_knowledge = {
             'primary_game_type': game_type,
@@ -252,6 +305,9 @@ class GameTypeClassifier:
             'recommended_coordinates': profile.successful_coordinates[:10],  # Top 10
             'recommended_objects': profile.interactive_objects[:10],  # Top 10
             'recommended_sequences': profile.winning_sequences[:5],  # Top 5
+            'button_priorities': sorted_button_priorities[:15],  # Top 15 button priorities
+            'is_action6_centric': getattr(profile, 'action6_centric_count', 0) > 0,
+            'action6_centric_count': getattr(profile, 'action6_centric_count', 0),
             'success_rate': profile.successful_games / max(profile.total_games, 1),
             'avg_score': profile.avg_score
         }
@@ -281,7 +337,9 @@ class GameTypeClassifier:
                     'common_patterns': profile.common_patterns,
                     'successful_coordinates': profile.successful_coordinates,
                     'interactive_objects': profile.interactive_objects,
-                    'winning_sequences': profile.winning_sequences
+                    'winning_sequences': profile.winning_sequences,
+                    'button_priorities': getattr(profile, 'button_priorities', []),
+                    'action6_centric_count': getattr(profile, 'action6_centric_count', 0)
                 }
                 
                 db_connection.execute("""
@@ -298,9 +356,33 @@ class GameTypeClassifier:
                     profile.last_updated,
                     datetime.now()
                 ))
+                
+                # Save button priorities to dedicated table
+                button_priorities = getattr(profile, 'button_priorities', [])
+                for button_priority in button_priorities:
+                    coord = button_priority.get('coordinate', (0, 0))
+                    db_connection.execute("""
+                        INSERT OR REPLACE INTO button_priorities
+                        (game_type, coordinate_x, coordinate_y, button_type, confidence, success_count, 
+                         score_changes, action_unlocks, test_count, last_used, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        game_type,
+                        coord[0],
+                        coord[1],
+                        button_priority.get('button_type', 'unknown'),
+                        button_priority.get('confidence', 0.0),
+                        button_priority.get('success_count', 1),
+                        button_priority.get('score_changes', 0),
+                        button_priority.get('action_unlocks', 0),
+                        button_priority.get('test_count', 0),
+                        button_priority.get('last_used', datetime.now().isoformat()),
+                        datetime.now(),
+                        datetime.now()
+                    ))
             
             db_connection.commit()
-            logger.info(f"Saved {len(self.game_type_profiles)} game type profiles to database")
+            logger.info(f"Saved {len(self.game_type_profiles)} game type profiles and button priorities to database")
             return True
             
         except Exception as e:
@@ -328,12 +410,44 @@ class GameTypeClassifier:
                     common_patterns=pattern_data.get('common_patterns', []),
                     successful_coordinates=pattern_data.get('successful_coordinates', []),
                     interactive_objects=pattern_data.get('interactive_objects', []),
-                    winning_sequences=pattern_data.get('winning_sequences', [])
+                    winning_sequences=pattern_data.get('winning_sequences', []),
+                    button_priorities=pattern_data.get('button_priorities', []),
+                    action6_centric_count=pattern_data.get('action6_centric_count', 0)
                 )
                 
                 self.game_type_profiles[game_type] = profile
             
-            logger.info(f"Loaded {len(self.game_type_profiles)} game type profiles from database")
+            # Load button priorities from dedicated table
+            cursor = db_connection.execute("""
+                SELECT game_type, coordinate_x, coordinate_y, button_type, confidence, success_count,
+                       score_changes, action_unlocks, test_count, last_used
+                FROM button_priorities
+                ORDER BY game_type, confidence DESC, success_count DESC
+            """)
+            
+            button_priorities_by_game = {}
+            for row in cursor.fetchall():
+                game_type = row[0]
+                if game_type not in button_priorities_by_game:
+                    button_priorities_by_game[game_type] = []
+                
+                button_priorities_by_game[game_type].append({
+                    'coordinate': (row[1], row[2]),
+                    'button_type': row[3],
+                    'confidence': row[4],
+                    'success_count': row[5],
+                    'score_changes': row[6],
+                    'action_unlocks': row[7],
+                    'test_count': row[8],
+                    'last_used': row[9]
+                })
+            
+            # Update profiles with button priorities
+            for game_type, button_priorities in button_priorities_by_game.items():
+                if game_type in self.game_type_profiles:
+                    self.game_type_profiles[game_type].button_priorities = button_priorities
+            
+            logger.info(f"Loaded {len(self.game_type_profiles)} game type profiles and button priorities from database")
             return True
             
         except Exception as e:
