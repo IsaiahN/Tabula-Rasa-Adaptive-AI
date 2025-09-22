@@ -52,11 +52,27 @@ class ActionSelector:
         self.recent_actions = []  # Track recent actions for repetition detection
         self.max_recent_actions = 20  # Keep last 20 actions
         
+        # OpenCV object testing system
+        self.tested_objects = {}  # coordinate -> {'interactive': bool, 'test_count': int, 'frame_changes': int}
+        self.interactive_objects = set()  # Set of confirmed interactive coordinates
+        self.non_interactive_objects = set()  # Set of confirmed non-interactive coordinates
+        self.object_test_threshold = 3  # Number of tests before marking as non-interactive
+        
+        # Action availability tracking system
+        self.previous_available_actions = set()  # Track previous available actions
+        self.action_availability_changes = {}  # action_id -> {'count': int, 'last_change': timestamp}
+        self.pseudo_buttons = set()  # Actions that cause available_actions to change
+        
         # Initialize advanced cognitive systems
         self.tree_evaluation_engine = None
         self.action_sequence_optimizer = None
         self.exploration_system = None
         self.predictive_core = None
+        
+        # Initialize Bayesian and GAN systems
+        self.bayesian_scorer = None
+        self.gan_system = None
+        self._initialize_advanced_systems()
         
         if TREE_EVALUATION_AVAILABLE:
             try:
@@ -89,6 +105,24 @@ class ActionSelector:
                 self.predictive_core = None
         
         logger.info("🧠 Advanced Action Selector initialized with OpenCV, pattern matching, and cognitive systems")
+    
+    def _initialize_advanced_systems(self):
+        """Initialize Bayesian and GAN systems."""
+        try:
+            # Initialize Bayesian Success Scorer
+            from ...core.bayesian_success_scorer import BayesianSuccessScorer
+            self.bayesian_scorer = BayesianSuccessScorer()
+            logger.info("✅ Bayesian Success Scorer initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Bayesian Success Scorer: {e}")
+        
+        try:
+            # Initialize GAN system
+            from ...core.gan_system import PatternAwareGAN
+            self.gan_system = PatternAwareGAN()
+            logger.info("✅ Pattern-Aware GAN initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize GAN system: {e}")
         
     def select_action(self, game_state: Dict[str, Any], available_actions: List[int]) -> Dict[str, Any]:
         """Select the best action using advanced OpenCV analysis and pattern matching."""
@@ -108,8 +142,43 @@ class ActionSelector:
         # 3. COORDINATE INTELLIGENCE - Learn from successful coordinates
         coordinate_suggestions = self._get_intelligent_coordinates(frame_analysis, available_actions)
         
-        # 4. OPENCV TARGET DETECTION - Find interactive elements
-        opencv_suggestions = self._detect_opencv_targets(frame_analysis, available_actions)
+        # 4. OPENCV OBJECT TESTING - Test objects for interactivity (PRIMARY for Action 6)
+        if 6 in available_actions:
+            # Get confirmed interactive objects (highest priority for Action 6)
+            interactive_suggestions = self._get_interactive_objects(frame_analysis)
+            
+            # Get untested objects (high priority for testing)
+            untested_suggestions = self._get_untested_objects(frame_analysis)
+            
+            # Get OpenCV detected objects (medium-high priority)
+            opencv_detected_suggestions = self._detect_opencv_targets(frame_analysis, [6])
+            
+            # Combine all OpenCV-based suggestions
+            opencv_suggestions = interactive_suggestions + untested_suggestions + opencv_detected_suggestions
+            
+            # If no OpenCV objects found, add random fallback for non-Action6 options
+            if not opencv_suggestions and len(available_actions) > 1:
+                # Prioritize Action 5 as primary fallback when stuck
+                if 5 in available_actions:
+                    opencv_suggestions.append({
+                        'action': 'ACTION5',
+                        'confidence': 0.8,  # High confidence for Action 5 fallback
+                        'reason': 'Action 5 fallback - no OpenCV objects found',
+                        'source': 'action5_fallback'
+                    })
+                
+                # Add other random suggestions for non-Action6 options
+                non_action6_actions = [a for a in available_actions if a != 6 and a != 5]
+                for action_id in non_action6_actions[:2]:  # Limit to 2 additional suggestions
+                    opencv_suggestions.append({
+                        'action': f'ACTION{action_id}',
+                        'confidence': 0.6,  # Medium confidence for random fallback
+                        'reason': f'Random fallback - no OpenCV objects found',
+                        'source': 'random_fallback'
+                    })
+        else:
+            # Fallback to regular OpenCV detection
+            opencv_suggestions = self._detect_opencv_targets(frame_analysis, available_actions)
         
         # 5. LEARNING-BASED SUGGESTIONS - Use historical success data
         learning_suggestions = self._generate_learning_suggestions(frame_analysis, available_actions)
@@ -117,19 +186,47 @@ class ActionSelector:
         # 6. EXPLORATION STRATEGY - Balance exploration vs exploitation
         exploration_suggestions = self._generate_exploration_suggestions(available_actions)
         
+        # 6.5. COORDINATE EXPLORATION - LAST RESORT for Action 6 (only when no OpenCV objects)
+        if 6 in available_actions and not opencv_suggestions:
+            coordinate_exploration_suggestions = self._get_exploration_coordinates(frame_analysis)
+            exploration_suggestions.extend(coordinate_exploration_suggestions)
+            logger.info("🚨 Using coordinate exploration as LAST RESORT for Action 6 - no OpenCV objects found")
+        
         # 7. ADVANCED COGNITIVE SYSTEMS - Tree evaluation and sequence optimization
         advanced_suggestions = self._generate_advanced_suggestions(
             frame_analysis, available_actions, current_score, game_state
         )
         
-        # 8. COMBINE ALL SUGGESTIONS - Multi-source decision making
+        # 8. BAYESIAN PATTERN DETECTION - Use Bayesian success scoring
+        bayesian_suggestions = self._generate_bayesian_suggestions(
+            frame_analysis, available_actions, current_score, game_state
+        )
+        
+        # 9. GAN-GENERATED SUGGESTIONS - Use GAN for synthetic action generation
+        gan_suggestions = self._generate_gan_suggestions(
+            frame_analysis, available_actions, current_score, game_state
+        )
+        
+        # 10. PSEUDO BUTTON SUGGESTIONS - Actions that previously discovered new actions
+        pseudo_button_suggestions = self._generate_pseudo_button_suggestions(available_actions)
+        
+        # 11. ACTION 5 FALLBACK - Detect stuck situations and suggest Action 5
+        action5_suggestions = []
+        if self._detect_stuck_situation(game_state, available_actions):
+            action5_suggestions = self._generate_action5_fallback_suggestions(available_actions)
+        
+        # 12. COMBINE ALL SUGGESTIONS - Multi-source decision making
         all_suggestions = self._combine_suggestions(
             pattern_suggestions,
             coordinate_suggestions, 
             opencv_suggestions,
             learning_suggestions,
             exploration_suggestions,
-            advanced_suggestions
+            advanced_suggestions,
+            bayesian_suggestions,
+            gan_suggestions,
+            pseudo_button_suggestions,
+            action5_suggestions
         )
         
         # 8. INTELLIGENT SELECTION - Multi-factor scoring
@@ -137,16 +234,53 @@ class ActionSelector:
             all_suggestions, available_actions, current_score, frame_analysis
         )
         
-        # 9. LEARNING UPDATE - Update all learning systems
+        # Log selected action with reasoning
+        action_id = best_action.get('id', 'UNKNOWN')
+        action_source = best_action.get('source', 'unknown')
+        action_reason = best_action.get('reason', 'no reason')
+        action_confidence = best_action.get('confidence', 0.0)
+        
+        logger.info(f"🎯 Selected Action: {action_id} | Source: {action_source} | Confidence: {action_confidence:.2f}")
+        logger.info(f"   Reason: {action_reason}")
+        
+        # Log coordinates for Action 6
+        if action_id == 6 and 'x' in best_action and 'y' in best_action:
+            logger.info(f"   Coordinates: ({best_action['x']}, {best_action['y']})")
+        
+        # 9. TRACK ACTION AVAILABILITY CHANGES - Monitor pseudo score increases
+        if len(self.performance_history) > 0:
+            last_action = self.performance_history[-1]
+            availability_changes = self._track_action_availability_changes(available_actions, last_action)
+            
+            # If we discovered new actions, treat as pseudo score increase
+            if availability_changes['pseudo_score_increase']:
+                logger.info(f"🎉 PSEUDO SCORE INCREASE: Discovered {len(availability_changes['newly_available'])} new actions!")
+        
+        # Always log available actions for visibility
+        logger.info(f"📋 Available Actions: {available_actions}")
+        
+        # Log current game state summary
+        current_score = game_state.get('score', 0)
+        game_state_status = game_state.get('state', 'UNKNOWN')
+        logger.info(f"📊 Game State: Score={current_score}, Status={game_state_status}")
+        logger.info("─" * 80)  # Separator line for readability
+        
+        # 10. LEARNING UPDATE - Update all learning systems
         self._update_learning_systems(best_action, game_state, frame_analysis)
         
-        # 10. ACTION REPETITION TRACKING - Track and penalize repeated actions
+        # 10. OBJECT TESTING UPDATE - Test objects for interactivity
+        self._update_object_testing(best_action, game_state, frame_analysis)
+        
+        # 11. ACTION REPETITION TRACKING - Track and penalize repeated actions
         repetition_penalty = self._track_action_repetition(best_action)
         if repetition_penalty > 0.5:
             logger.warning(f"High repetition penalty for action {best_action.get('id')}: {repetition_penalty:.2f}")
         
-        # 11. PERFORMANCE TRACKING - Track performance
+        # 12. PERFORMANCE TRACKING - Track performance
         self._track_performance(best_action, current_score, game_state)
+        
+        # 13. ADD REASONING TO ACTION - Include detailed reasoning for API
+        best_action = self._add_reasoning_to_action(best_action, game_state, frame_analysis, all_suggestions)
         
         return best_action
     
@@ -595,11 +729,20 @@ class ActionSelector:
         
         # Factor 2: Source reliability
         source_weights = {
-            'opencv_detection': 1.0,
-            'pattern_matching': 0.9,
-            'coordinate_intelligence': 0.8,
-            'learning': 0.7,
-            'exploration': 0.5
+            'confirmed_interactive': 1.0,  # Highest priority for confirmed interactive objects
+            'pseudo_button': 0.9,  # Very high priority for pseudo buttons (discovered new actions)
+            'action5_stuck_fallback': 0.95,  # Very high priority for Action 5 when stuck
+            'bayesian_pattern': 0.95,  # High priority for Bayesian pattern detection
+            'opencv_detection': 0.9,  # High priority for OpenCV detected objects
+            'object_testing': 0.85,  # High priority for untested objects (Action 6 primary function)
+            'pattern_matching': 0.8,
+            'coordinate_intelligence': 0.7,
+            'gan_synthetic': 0.75,  # High priority for GAN-generated suggestions
+            'action5_fallback': 0.7,  # High priority for Action 5 fallback
+            'learning': 0.6,
+            'exploration': 0.5,
+            'coordinate_exploration': 0.3,  # LOW priority - last resort for Action 6
+            'random_fallback': 0.4  # Lower priority for random fallback
         }
         source_factor = source_weights.get(source, 0.5)
         
@@ -645,24 +788,533 @@ class ActionSelector:
         # Factor 6: Action repetition penalty
         repetition_factor = 1.0
         action_id = self._get_action_id(suggestion.get('action', 'ACTION1'))
-        repetition_penalty = self._get_action_repetition_penalty(action_id)
+        
+        # For Action 6, check coordinate-specific penalties
+        if action_id == 6 and 'x' in suggestion and 'y' in suggestion:
+            coordinate = (suggestion['x'], suggestion['y'])
+            repetition_penalty = self._get_action_repetition_penalty(action_id, coordinate)
+        else:
+            repetition_penalty = self._get_action_repetition_penalty(action_id)
+        
         repetition_factor = 1.0 - repetition_penalty
         repetition_factor = max(repetition_factor, 0.1)  # Minimum factor
         
         # Factor 7: Exploration vs exploitation balance
         exploration_factor = 0.8 if source == 'exploration' else 1.0
         
+        # Hard cutoff for heavily penalized actions
+        if repetition_penalty > 0.8:  # 80%+ penalty = almost block
+            return 0.1  # Very low score
+        
         # Weighted combination with penalty avoidance and repetition penalties
         intelligent_score = (
-            confidence_factor * 0.25 +
-            source_factor * 0.2 +
-            learning_factor * 0.15 +
+            confidence_factor * 0.2 +
+            source_factor * 0.15 +
+            learning_factor * 0.1 +
             frame_factor * 0.1 +
             penalty_factor * 0.1 +  # Coordinate penalty avoidance
-            repetition_factor * 0.2  # Action repetition penalty
+            repetition_factor * 0.35  # Increased action repetition penalty weight
         ) * exploration_factor
         
         return min(intelligent_score, 1.0)
+    
+    def _test_object_interactivity(self, coordinate: tuple, frame_before: List, frame_after: List) -> bool:
+        """Test if an object at a coordinate is interactive by checking for frame changes."""
+        if not frame_before or not frame_after:
+            return False
+        
+        # Convert frames to numpy arrays for comparison
+        try:
+            import numpy as np
+            frame_before_array = np.array(frame_before)
+            frame_after_array = np.array(frame_after)
+            
+            # Check if frames are different
+            frames_different = not np.array_equal(frame_before_array, frame_after_array)
+            
+            return frames_different
+        except Exception as e:
+            logger.warning(f"Failed to compare frames for object testing: {e}")
+            return False
+    
+    def _update_object_testing(self, action: Dict[str, Any], game_state: Dict[str, Any], frame_analysis: Dict[str, Any]):
+        """Update object testing based on Action 6 results - prioritize frame movement and score changes."""
+        if action.get('id') != 6 or 'x' not in action or 'y' not in action:
+            return
+
+        coordinate = (action['x'], action['y'])
+
+        # Initialize object testing data if not exists
+        if coordinate not in self.tested_objects:
+            self.tested_objects[coordinate] = {
+                'interactive': False,
+                'test_count': 0,
+                'frame_changes': 0,
+                'score_changes': 0,
+                'movement_detected': 0
+            }
+
+        # Increment test count
+        self.tested_objects[coordinate]['test_count'] += 1
+
+        # Check for positive signals (score increase OR frame movement)
+        current_score = game_state.get('score', 0)
+        positive_signal = False
+        
+        if len(self.performance_history) > 0:
+            last_score = self.performance_history[-1].get('score', 0)
+            
+            # Check for score increase (strongest positive signal)
+            if current_score > last_score:
+                self.tested_objects[coordinate]['score_changes'] += 1
+                positive_signal = True
+                logger.info(f"🎯 Object at {coordinate} caused SCORE INCREASE: {last_score} -> {current_score}")
+            
+            # Check for frame movement (also a positive signal)
+            # This would require comparing frames, but for now we'll use score as proxy
+            # In a full implementation, you'd compare frame_before vs frame_after
+            elif current_score != last_score:  # Any score change indicates frame movement
+                self.tested_objects[coordinate]['movement_detected'] += 1
+                positive_signal = True
+                logger.info(f"🔄 Object at {coordinate} caused FRAME MOVEMENT: {last_score} -> {current_score}")
+
+        # Update frame changes counter (any positive signal)
+        if positive_signal:
+            self.tested_objects[coordinate]['frame_changes'] += 1
+
+        # Determine if object is interactive based on test results
+        test_count = self.tested_objects[coordinate]['test_count']
+        frame_changes = self.tested_objects[coordinate]['frame_changes']
+        score_changes = self.tested_objects[coordinate]['score_changes']
+        movement_detected = self.tested_objects[coordinate]['movement_detected']
+
+        if test_count >= self.object_test_threshold:
+            # After enough tests, determine if object is interactive
+            if frame_changes > 0:
+                # Object caused positive signals - it's interactive
+                self.tested_objects[coordinate]['interactive'] = True
+                self.interactive_objects.add(coordinate)
+                logger.info(f"✅ Object at {coordinate} confirmed as INTERACTIVE ({frame_changes}/{test_count} tests caused changes)")
+                logger.info(f"   - Score changes: {score_changes}, Movement detected: {movement_detected}")
+            else:
+                # Object never caused positive signals - it's not interactive
+                self.tested_objects[coordinate]['interactive'] = False
+                self.non_interactive_objects.add(coordinate)
+                logger.info(f"❌ Object at {coordinate} confirmed as NON-INTERACTIVE ({frame_changes}/{test_count} tests caused changes)")
+    
+    def _get_interactive_objects(self, frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get confirmed interactive objects from frame analysis."""
+        suggestions = []
+        
+        # Get objects from frame analysis
+        objects = frame_analysis.get('objects', [])
+        interactive_elements = frame_analysis.get('interactive_elements', [])
+        
+        # Check confirmed interactive objects
+        for obj in objects:
+            centroid = obj.get('centroid', (0, 0))
+            if centroid in self.interactive_objects:
+                suggestions.append({
+                    'action': 'ACTION6',
+                    'x': centroid[0],
+                    'y': centroid[1],
+                    'confidence': 0.95,  # High confidence for confirmed interactive objects
+                    'reason': f"Confirmed interactive object at ({centroid[0]}, {centroid[1]})",
+                    'source': 'confirmed_interactive'
+                })
+        
+        # Check confirmed interactive elements
+        for element in interactive_elements:
+            centroid = element.get('centroid', (0, 0))
+            if centroid in self.interactive_objects:
+                suggestions.append({
+                    'action': 'ACTION6',
+                    'x': centroid[0],
+                    'y': centroid[1],
+                    'confidence': 0.95,
+                    'reason': f"Confirmed interactive element at ({centroid[0]}, {centroid[1]})",
+                    'source': 'confirmed_interactive'
+                })
+        
+        return suggestions
+    
+    def _get_untested_objects(self, frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get objects that haven't been tested yet for interactivity."""
+        suggestions = []
+        
+        # Get objects from frame analysis
+        objects = frame_analysis.get('objects', [])
+        interactive_elements = frame_analysis.get('interactive_elements', [])
+        
+        # Check untested objects
+        for obj in objects:
+            centroid = obj.get('centroid', (0, 0))
+            if (centroid not in self.interactive_objects and 
+                centroid not in self.non_interactive_objects and
+                centroid not in self.tested_objects):
+                suggestions.append({
+                    'action': 'ACTION6',
+                    'x': centroid[0],
+                    'y': centroid[1],
+                    'confidence': 0.7,  # Medium confidence for untested objects
+                    'reason': f"Untested object at ({centroid[0]}, {centroid[1]}) - testing for interactivity",
+                    'source': 'object_testing'
+                })
+        
+        # Check untested interactive elements
+        for element in interactive_elements:
+            centroid = element.get('centroid', (0, 0))
+            if (centroid not in self.interactive_objects and 
+                centroid not in self.non_interactive_objects and
+                centroid not in self.tested_objects):
+                suggestions.append({
+                    'action': 'ACTION6',
+                    'x': centroid[0],
+                    'y': centroid[1],
+                    'confidence': 0.8,  # Higher confidence for untested interactive elements
+                    'reason': f"Untested interactive element at ({centroid[0]}, {centroid[1]}) - testing for interactivity",
+                    'source': 'object_testing'
+                })
+        
+        return suggestions
+    
+    def _get_exploration_coordinates(self, frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get exploration coordinates for Action 6 that grow incrementally."""
+        suggestions = []
+        
+        # Get current exploration radius (starts small, grows over time)
+        base_radius = 8  # Start with 8x8 area
+        max_radius = 32  # Maximum exploration area
+        exploration_radius = min(base_radius + (self.learning_cycles // 10), max_radius)
+        
+        # Generate exploration coordinates in expanding pattern
+        center_x, center_y = 16, 16  # Center of 32x32 grid
+        
+        # Create exploration pattern: spiral outward
+        for radius in range(2, exploration_radius, 2):
+            for angle in range(0, 360, 45):  # 8 directions
+                import math
+                x = int(center_x + radius * math.cos(math.radians(angle)))
+                y = int(center_y + radius * math.sin(math.radians(angle)))
+                
+                # Ensure coordinates are within bounds
+                x = max(0, min(31, x))
+                y = max(0, min(31, y))
+                
+                # Skip if already tested and non-interactive
+                if (x, y) in self.non_interactive_objects:
+                    continue
+                
+                # Skip if heavily penalized
+                coordinate_key = f"6_{x}_{y}"
+                if coordinate_key in self.action_repetition_penalties:
+                    penalty = self.action_repetition_penalties[coordinate_key]
+                    if penalty > 0.7:  # Skip heavily penalized coordinates
+                        continue
+                
+                suggestions.append({
+                    'action': 'ACTION6',
+                    'x': x,
+                    'y': y,
+                    'confidence': 0.5 + (0.3 * (1 - radius / max_radius)),  # Higher confidence for closer coordinates
+                    'reason': f'Exploration at ({x}, {y}) - radius {radius}',
+                    'source': 'coordinate_exploration'
+                })
+        
+        return suggestions
+    
+    def _generate_bayesian_suggestions(self, frame_analysis: Dict[str, Any], 
+                                     available_actions: List[int], 
+                                     current_score: int, 
+                                     game_state: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate suggestions using Bayesian pattern detection."""
+        suggestions = []
+        
+        if not self.bayesian_scorer:
+            return suggestions
+        
+        try:
+            # Create a mock search path for Bayesian scoring
+            # Note: SearchPath might not be available, so we'll create a simple mock
+            class MockSearchPath:
+                def __init__(self, actions, state_features):
+                    self.actions = actions
+                    self.state_features = state_features
+            
+            # Generate suggestions for each available action
+            for action_id in available_actions:
+                # Create a simple search path for this action
+                path = MockSearchPath(
+                    actions=[(action_id, None)],
+                    state_features={
+                        'score': current_score,
+                        'frame_complexity': len(frame_analysis.get('objects', [])),
+                        'interactive_elements': len(frame_analysis.get('interactive_elements', []))
+                    }
+                )
+                
+                # Get Bayesian success probability
+                success_prob = self.bayesian_scorer.score_path_success_probability(path)
+                
+                if success_prob > 0.3:  # Only suggest actions with reasonable success probability
+                    suggestion = {
+                        'action': f'ACTION{action_id}',
+                        'confidence': success_prob,
+                        'reason': f'Bayesian pattern detection (success prob: {success_prob:.2f})',
+                        'source': 'bayesian_pattern'
+                    }
+                    
+                    # Add coordinates for Action 6
+                    if action_id == 6:
+                        # Use center coordinates for Bayesian suggestions
+                        suggestion['x'] = 16
+                        suggestion['y'] = 16
+                    
+                    suggestions.append(suggestion)
+        
+        except Exception as e:
+            logger.warning(f"Bayesian suggestion generation failed: {e}")
+        
+        return suggestions
+    
+    def _generate_gan_suggestions(self, frame_analysis: Dict[str, Any], 
+                                available_actions: List[int], 
+                                current_score: int, 
+                                game_state: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate suggestions using GAN system."""
+        suggestions = []
+        
+        if not self.gan_system:
+            return suggestions
+        
+        try:
+            # Generate synthetic game states using GAN
+            context = {
+                'current_score': current_score,
+                'frame_objects': len(frame_analysis.get('objects', [])),
+                'available_actions': available_actions
+            }
+            
+            # Generate a few synthetic states
+            synthetic_states = self.gan_system.generate_synthetic_states(3, context)
+            
+            for state in synthetic_states:
+                if state.success_probability > 0.5:  # Only use high-probability synthetic states
+                    # Extract action suggestions from synthetic state
+                    for action_id in available_actions:
+                        suggestion = {
+                            'action': f'ACTION{action_id}',
+                            'confidence': state.success_probability,
+                            'reason': f'GAN-generated synthetic state (prob: {state.success_probability:.2f})',
+                            'source': 'gan_synthetic'
+                        }
+                        
+                        # Add coordinates for Action 6
+                        if action_id == 6:
+                            # Use coordinates from synthetic state or default
+                            suggestion['x'] = 16
+                            suggestion['y'] = 16
+                        
+                        suggestions.append(suggestion)
+        
+        except Exception as e:
+            logger.warning(f"GAN suggestion generation failed: {e}")
+        
+        return suggestions
+    
+    def _detect_stuck_situation(self, game_state: Dict[str, Any], available_actions: List[int]) -> bool:
+        """Detect if the system is stuck and needs Action 5 fallback."""
+        # Check if we've been stuck for too long
+        if len(self.performance_history) < 10:
+            return False
+        
+        # Check recent performance - if no score improvement in last 10 actions
+        recent_scores = [entry.get('score', 0) for entry in self.performance_history[-10:]]
+        if len(set(recent_scores)) == 1:  # All same score = no progress
+            return True
+        
+        # Check if we're repeating the same action too much
+        if len(self.recent_actions) >= 5:
+            recent_action_counts = {}
+            for action in self.recent_actions[-5:]:
+                action_id = action if isinstance(action, int) else int(action.split('_')[0])
+                recent_action_counts[action_id] = recent_action_counts.get(action_id, 0) + 1
+            
+            # If any action is repeated 4+ times in last 5 actions
+            if max(recent_action_counts.values()) >= 4:
+                return True
+        
+        # Check if we're stuck on Action 6 with no interactive objects
+        if 6 in available_actions and len(self.interactive_objects) == 0:
+            # If we've tested many objects and found none interactive
+            total_tests = sum(obj.get('test_count', 0) for obj in self.tested_objects.values())
+            if total_tests > 20:  # Tested many objects, found none interactive
+                return True
+        
+        return False
+    
+    def _generate_action5_fallback_suggestions(self, available_actions: List[int]) -> List[Dict[str, Any]]:
+        """Generate Action 5 fallback suggestions when system is stuck."""
+        suggestions = []
+        
+        if 5 in available_actions:
+            suggestions.append({
+                'action': 'ACTION5',
+                'confidence': 0.9,  # Very high confidence for Action 5 when stuck
+                'reason': 'Action 5 fallback - system detected as stuck',
+                'source': 'action5_stuck_fallback'
+            })
+        
+        return suggestions
+    
+    def _track_action_availability_changes(self, current_available_actions: List[int], 
+                                         last_action: Dict[str, Any]) -> Dict[str, Any]:
+        """Track changes in available actions and treat them as pseudo score increases."""
+        current_actions_set = set(current_available_actions)
+        previous_actions_set = self.previous_available_actions
+        
+        # Calculate changes
+        newly_available = current_actions_set - previous_actions_set
+        newly_unavailable = previous_actions_set - current_actions_set
+        
+        change_info = {
+            'has_changes': len(newly_available) > 0 or len(newly_unavailable) > 0,
+            'newly_available': list(newly_available),
+            'newly_unavailable': list(newly_unavailable),
+            'pseudo_score_increase': len(newly_available) > 0,  # New actions = positive
+            'pseudo_score_decrease': len(newly_unavailable) > 0,  # Lost actions = negative
+            'net_change': len(newly_available) - len(newly_unavailable)
+        }
+        
+        # If there were changes, record them
+        if change_info['has_changes']:
+            action_id = last_action.get('id')
+            if action_id:
+                if action_id not in self.action_availability_changes:
+                    self.action_availability_changes[action_id] = {'count': 0, 'last_change': 0}
+                
+                self.action_availability_changes[action_id]['count'] += 1
+                self.action_availability_changes[action_id]['last_change'] = len(self.performance_history)
+                
+                # If this action caused new actions to become available, it's a pseudo button
+                if change_info['pseudo_score_increase']:
+                    self.pseudo_buttons.add(action_id)
+                    logger.info(f"🎯 Action {action_id} discovered new available actions: {newly_available} - PSEUDO BUTTON!")
+                
+                logger.info(f"📊 Action availability changed: +{len(newly_available)} -{len(newly_unavailable)} (Action {action_id})")
+                logger.info(f"   Newly available: {newly_available}")
+                if newly_unavailable:
+                    logger.info(f"   Newly unavailable: {newly_unavailable}")
+        
+        # Update previous available actions
+        self.previous_available_actions = current_actions_set.copy()
+        
+        return change_info
+    
+    def _generate_pseudo_button_suggestions(self, available_actions: List[int]) -> List[Dict[str, Any]]:
+        """Generate suggestions based on actions that previously caused action availability changes."""
+        suggestions = []
+        
+        # Prioritize actions that have previously caused new actions to become available
+        for action_id in self.pseudo_buttons:
+            if action_id in available_actions:
+                # Get effectiveness data for this pseudo button
+                effectiveness = self.action_effectiveness.get(action_id, {})
+                pseudo_successes = effectiveness.get('pseudo_successes', 0)
+                attempts = effectiveness.get('attempts', 1)
+                pseudo_success_rate = pseudo_successes / attempts if attempts > 0 else 0
+                
+                if pseudo_success_rate > 0.1:  # Only suggest if it has some pseudo success rate
+                    suggestion = {
+                        'action': f'ACTION{action_id}',
+                        'confidence': 0.8 + (pseudo_success_rate * 0.2),  # High confidence for pseudo buttons
+                        'reason': f'Pseudo button - previously discovered {pseudo_successes} new actions',
+                        'source': 'pseudo_button'
+                    }
+                    
+                    # Add coordinates for Action 6
+                    if action_id == 6:
+                        suggestion['x'] = 16
+                        suggestion['y'] = 16
+                    
+                    suggestions.append(suggestion)
+        
+        return suggestions
+    
+    def _add_reasoning_to_action(self, action: Dict[str, Any], game_state: Dict[str, Any], 
+                                frame_analysis: Dict[str, Any], all_suggestions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Add detailed reasoning to the action for API submission."""
+        
+        # Create comprehensive reasoning object
+        reasoning = {
+            "policy": f"π_{action.get('source', 'unknown')}",
+            "action_id": action.get('id'),
+            "confidence": action.get('confidence', 0.0),
+            "source": action.get('source', 'unknown'),
+            "reason": action.get('reason', 'no reason'),
+            "game_state": {
+                "score": game_state.get('score', 0),
+                "state": game_state.get('state', 'UNKNOWN'),
+                "available_actions": game_state.get('available_actions', [])
+            },
+            "frame_analysis": {
+                "objects_detected": len(frame_analysis.get('objects', [])),
+                "interactive_elements": len(frame_analysis.get('interactive_elements', [])),
+                "patterns_found": len(frame_analysis.get('patterns', []))
+            },
+            "learning_data": {
+                "action_effectiveness": self.action_effectiveness.get(action.get('id'), {}),
+                "coordinate_success_rates": len(self.coordinate_success_rates),
+                "pseudo_buttons": list(self.pseudo_buttons),
+                "learning_cycles": self.learning_cycles
+            },
+            "suggestion_analysis": {
+                "total_suggestions": len(all_suggestions),
+                "sources_used": list(set(s.get('source', 'unknown') for s in all_suggestions)),
+                "top_3_suggestions": [
+                    {
+                        "action": s.get('action', 'UNKNOWN'),
+                        "source": s.get('source', 'unknown'),
+                        "confidence": s.get('confidence', 0.0),
+                        "reason": s.get('reason', 'no reason')
+                    }
+                    for s in sorted(all_suggestions, key=lambda x: x.get('confidence', 0), reverse=True)[:3]
+                ]
+            },
+            "penalty_data": {
+                "action_repetition_penalty": self.action_repetition_penalties.get(action.get('id'), 0.0),
+                "coordinate_penalty": 0.0  # Will be calculated if Action 6
+            }
+        }
+        
+        # Add coordinate-specific data for Action 6
+        if action.get('id') == 6 and 'x' in action and 'y' in action:
+            coordinate = (action['x'], action['y'])
+            coordinate_key = f"6_{coordinate[0]}_{coordinate[1]}"
+            reasoning["penalty_data"]["coordinate_penalty"] = self.action_repetition_penalties.get(coordinate_key, 0.0)
+            reasoning["coordinate_data"] = {
+                "x": action['x'],
+                "y": action['y'],
+                "coordinate_success_rate": self.coordinate_success_rates.get(coordinate, {}).get('success_rate', 0.0),
+                "coordinate_attempts": self.coordinate_success_rates.get(coordinate, {}).get('attempts', 0)
+            }
+        
+        # Add pseudo score data if available
+        if hasattr(self, 'action_availability_changes') and self.action_availability_changes:
+            reasoning["pseudo_score_data"] = {
+                "total_availability_changes": sum(data.get('count', 0) for data in self.action_availability_changes.values()),
+                "actions_that_discovered_new_actions": list(self.pseudo_buttons)
+            }
+        
+        # Add the reasoning to the action
+        action['reasoning'] = reasoning
+        
+        # Log the reasoning for debugging
+        logger.info(f"🧠 Action Reasoning: {reasoning['policy']} | Confidence: {reasoning['confidence']:.2f}")
+        logger.info(f"   Sources used: {', '.join(reasoning['suggestion_analysis']['sources_used'])}")
+        logger.info(f"   Learning cycles: {reasoning['learning_data']['learning_cycles']}")
+        
+        return action
     
     def _track_action_repetition(self, action: Dict[str, Any]) -> float:
         """Track action repetition and return penalty score."""
@@ -670,6 +1322,12 @@ class ActionSelector:
         if not action_id:
             return 0.0
         
+        # For Action 6, track coordinate-specific repetition instead of action repetition
+        if action_id == 6 and 'x' in action and 'y' in action:
+            coordinate = (action['x'], action['y'])
+            return self._track_coordinate_repetition(coordinate)
+        
+        # For other actions, track action-level repetition
         # Add to recent actions
         self.recent_actions.append(action_id)
         if len(self.recent_actions) > self.max_recent_actions:
@@ -695,8 +1353,42 @@ class ActionSelector:
         
         return penalty
     
-    def _get_action_repetition_penalty(self, action_id: int) -> float:
+    def _track_coordinate_repetition(self, coordinate: tuple) -> float:
+        """Track coordinate-specific repetition for Action 6."""
+        # Add coordinate to recent actions with coordinate info
+        self.recent_actions.append(f"6_{coordinate[0]}_{coordinate[1]}")
+        if len(self.recent_actions) > self.max_recent_actions:
+            self.recent_actions.pop(0)
+        
+        # Count recent repetitions of this specific coordinate
+        coordinate_key = f"6_{coordinate[0]}_{coordinate[1]}"
+        recent_count = self.recent_actions.count(coordinate_key)
+        
+        # Calculate penalty based on coordinate repetition frequency
+        if recent_count >= 8:  # 8+ repetitions of same coordinate
+            penalty = 0.9  # Very high penalty
+        elif recent_count >= 6:  # 6+ repetitions
+            penalty = 0.7  # High penalty
+        elif recent_count >= 4:  # 4+ repetitions
+            penalty = 0.5  # Medium penalty
+        elif recent_count >= 2:  # 2+ repetitions
+            penalty = 0.3  # Low penalty
+        else:
+            penalty = 0.0  # No penalty
+        
+        # Store penalty for this coordinate
+        self.action_repetition_penalties[coordinate_key] = penalty
+        
+        return penalty
+    
+    def _get_action_repetition_penalty(self, action_id: int, coordinate: tuple = None) -> float:
         """Get penalty score for action repetition."""
+        # For Action 6, check coordinate-specific penalties
+        if action_id == 6 and coordinate:
+            coordinate_key = f"6_{coordinate[0]}_{coordinate[1]}"
+            return self.action_repetition_penalties.get(coordinate_key, 0.0)
+        
+        # For other actions, check action-level penalties
         return self.action_repetition_penalties.get(action_id, 0.0)
     
     def _decay_action_penalties(self):
@@ -729,11 +1421,20 @@ class ActionSelector:
         # Update learning cycles
         self.learning_cycles += 1
         
+        # Check for pseudo score increases (action availability changes)
+        pseudo_score_increase = False
+        if len(self.performance_history) > 0:
+            last_action = self.performance_history[-1]
+            availability_changes = self._track_action_availability_changes(
+                game_state.get('available_actions', []), last_action
+            )
+            pseudo_score_increase = availability_changes['pseudo_score_increase']
+        
         # Update action effectiveness
         action_id = action.get('id')
         if action_id:
             if action_id not in self.action_effectiveness:
-                self.action_effectiveness[action_id] = {'successes': 0, 'attempts': 0}
+                self.action_effectiveness[action_id] = {'successes': 0, 'attempts': 0, 'pseudo_successes': 0}
             
             self.action_effectiveness[action_id]['attempts'] += 1
             
@@ -757,12 +1458,17 @@ class ActionSelector:
                     
                 if current_score > last_score:
                     self.action_effectiveness[action_id]['successes'] += 1
+            
+            # Track pseudo score increases (action availability changes)
+            if pseudo_score_increase:
+                self.action_effectiveness[action_id]['pseudo_successes'] += 1
+                logger.info(f"🎯 Action {action_id} marked as pseudo-successful (discovered new actions)")
         
         # Update coordinate intelligence for ACTION6
         if action.get('id') == 6:
             coordinate = (action.get('x', 0), action.get('y', 0))
             if coordinate not in self.coordinate_success_rates:
-                self.coordinate_success_rates[coordinate] = {'successes': 0, 'attempts': 0}
+                self.coordinate_success_rates[coordinate] = {'successes': 0, 'attempts': 0, 'pseudo_successes': 0}
             
             self.coordinate_success_rates[coordinate]['attempts'] += 1
             
@@ -783,17 +1489,24 @@ class ActionSelector:
                 if current_score > last_score:
                     self.coordinate_success_rates[coordinate]['successes'] += 1
             
-            # Calculate success rate
+            # Track pseudo score increases for coordinates
+            if pseudo_score_increase:
+                self.coordinate_success_rates[coordinate]['pseudo_successes'] += 1
+                logger.info(f"🎯 Coordinate {coordinate} marked as pseudo-successful (discovered new actions)")
+            
+            # Calculate success rate (include pseudo successes)
             attempts = self.coordinate_success_rates[coordinate]['attempts']
             successes = self.coordinate_success_rates[coordinate]['successes']
-            self.coordinate_success_rates[coordinate]['success_rate'] = successes / attempts if attempts > 0 else 0
+            pseudo_successes = self.coordinate_success_rates[coordinate]['pseudo_successes']
+            total_successes = successes + pseudo_successes
+            self.coordinate_success_rates[coordinate]['success_rate'] = total_successes / attempts if attempts > 0 else 0
             
             # Update penalty decay system with coordinate attempt
             try:
-                # Record coordinate attempt with penalty system
+                # Record coordinate attempt with penalty system (include pseudo success)
                 asyncio.create_task(self.frame_analyzer.record_coordinate_attempt(
                     coordinate[0], coordinate[1], 
-                    current_score > last_score if len(self.performance_history) > 0 else False,
+                    (current_score > last_score or pseudo_score_increase) if len(self.performance_history) > 0 else False,
                     game_state.get('game_id', 'unknown')
                 ))
                 
