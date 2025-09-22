@@ -224,6 +224,12 @@ class APIManager:
             if action_id == 6:
                 x = action.get('x', 0)
                 y = action.get('y', 0)
+                logger.info(f"🔍 DEBUG: Sending ACTION6 with coordinates x={x}, y={y}")
+                # Validate coordinates are within valid range (0-63 for 64x64 grid)
+                if not (0 <= x <= 63 and 0 <= y <= 63):
+                    logger.warning(f"⚠️ Invalid coordinates: x={x}, y={y} - clamping to valid range")
+                    x = max(0, min(63, x))
+                    y = max(0, min(63, y))
                 game_state = await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid, x=x, y=y)
             else:
                 game_state = await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid)

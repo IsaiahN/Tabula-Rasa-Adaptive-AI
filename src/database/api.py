@@ -13,6 +13,7 @@ from pathlib import Path
 import asyncio
 from contextlib import asynccontextmanager
 import threading
+from .error_handler import safe_database_execute, handle_database_error
 from dataclasses import dataclass
 from enum import Enum
 
@@ -359,12 +360,12 @@ class TabulaRasaDatabase:
                     INSERT OR REPLACE INTO coordinate_intelligence
                     (game_id, x, y, attempts, successes, success_rate,
                      frame_changes, last_used, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     intelligence.game_id, intelligence.x, intelligence.y,
                     intelligence.attempts, intelligence.successes,
                     intelligence.success_rate, intelligence.frame_changes,
-                    intelligence.last_used
+                    intelligence.last_used, datetime.now()
                 ))
                 conn.commit()
                 return True
@@ -434,6 +435,35 @@ class TabulaRasaDatabase:
         """Log detailed action trace."""
         async with self.get_connection() as conn:
             try:
+                # Ensure all data is properly serialized
+                coordinates_json = None
+                if coordinates:
+                    if isinstance(coordinates, (list, tuple)):
+                        coordinates_json = json.dumps(list(coordinates))
+                    else:
+                        coordinates_json = json.dumps(coordinates)
+                
+                frame_before_json = None
+                if frame_before:
+                    if isinstance(frame_before, str):
+                        frame_before_json = frame_before  # Already JSON string
+                    else:
+                        frame_before_json = json.dumps(frame_before)
+                
+                frame_after_json = None
+                if frame_after:
+                    if isinstance(frame_after, str):
+                        frame_after_json = frame_after  # Already JSON string
+                    else:
+                        frame_after_json = json.dumps(frame_after)
+                
+                response_data_json = None
+                if response_data:
+                    if isinstance(response_data, str):
+                        response_data_json = response_data  # Already JSON string
+                    else:
+                        response_data_json = json.dumps(response_data)
+                
                 conn.execute("""
                     INSERT INTO action_traces
                     (session_id, game_id, action_number, coordinates, timestamp,
@@ -442,18 +472,19 @@ class TabulaRasaDatabase:
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     session_id, game_id, action_number,
-                    json.dumps(coordinates) if coordinates else None,
+                    coordinates_json,
                     datetime.now(),
-                    json.dumps(frame_before) if frame_before else None,
-                    json.dumps(frame_after) if frame_after else None,
+                    frame_before_json,
+                    frame_after_json,
                     frame_changed, score_before, score_after,
                     score_after - score_before,
-                    json.dumps(response_data) if response_data else None
+                    response_data_json
                 ))
                 conn.commit()
                 return True
             except Exception as e:
                 self.logger.error(f"Failed to log action trace: {e}")
+                self.logger.error(f"🔍 DEBUG: Column count mismatch - INSERT statement has 12 columns but provided values: {len([session_id, game_id, action_number, coordinates_json, datetime.now(), frame_before_json, frame_after_json, frame_changed, score_before, score_after, score_after - score_before, response_data_json])}")
                 return False
     
     # ============================================================================

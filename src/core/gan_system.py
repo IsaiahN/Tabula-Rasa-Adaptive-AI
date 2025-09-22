@@ -336,6 +336,10 @@ class PatternAwareGAN:
             import torch.nn as nn
             import torch.optim as optim
             
+            # Verify PyTorch is properly loaded
+            if torch is None or not hasattr(torch, 'Tensor'):
+                raise ImportError("PyTorch not properly loaded")
+            
             self.generator = GameStateGenerator(
                 latent_dim=self.config.latent_dim,
                 pattern_embedding_dim=self.config.pattern_embedding_dim

@@ -214,16 +214,35 @@ class ActionSelector:
     async def select_action(self, game_state: Dict[str, Any], available_actions: List[int]) -> Dict[str, Any]:
         """Select the best action using advanced OpenCV analysis and pattern matching."""
         
-        # Extract frame data and current state
-        frame_data = game_state.get('frame', [])
-        current_score = game_state.get('score', 0)
-        game_state_status = game_state.get('state', 'NOT_FINISHED')
-        game_id = game_state.get('game_id', 'unknown')
+        try:
+            # Extract frame data and current state
+            frame_data = game_state.get('frame', [])
+            current_score = game_state.get('score', 0)
+            game_state_status = game_state.get('state', 'NOT_FINISHED')
+            game_id = game_state.get('game_id', 'unknown')
+            
+            logger.info(f"🔍 DEBUG: Starting action selection with frame_data type: {type(frame_data)}")
+            if hasattr(frame_data, 'shape'):
+                logger.info(f"🔍 DEBUG: frame_data shape: {frame_data.shape}")
+            elif isinstance(frame_data, list):
+                logger.info(f"🔍 DEBUG: frame_data length: {len(frame_data)}")
+        except Exception as e:
+            logger.error(f"🔍 DEBUG: Error in initial action selection setup: {e}")
+            import traceback
+            logger.error(f"🔍 DEBUG: Traceback: {traceback.format_exc()}")
+            raise
         
         # 0. STAGNATION INTERVENTION - Check for stagnation and trigger intervention
         if self.stagnation_intervention_system:
-            logger.info(f"🧠 STAGNATION SYSTEM ACTIVE - Analyzing frame {len(self.stagnation_intervention_system.frame_history) if hasattr(self.stagnation_intervention_system, 'frame_history') else 'unknown'}")
-            stagnation_event = await self.stagnation_intervention_system.analyze_frame(frame_data, game_state)
+            try:
+                logger.info(f"🧠 STAGNATION SYSTEM ACTIVE - Analyzing frame {len(self.stagnation_intervention_system.frame_history) if hasattr(self.stagnation_intervention_system, 'frame_history') else 'unknown'}")
+                logger.info(f"🔍 DEBUG: About to call stagnation_intervention_system.analyze_frame with frame_data type: {type(frame_data)}")
+                stagnation_event = await self.stagnation_intervention_system.analyze_frame(frame_data, game_state)
+            except Exception as e:
+                logger.error(f"🔍 DEBUG: Error in stagnation analysis: {e}")
+                import traceback
+                logger.error(f"🔍 DEBUG: Stagnation analysis traceback: {traceback.format_exc()}")
+                raise
             if stagnation_event and stagnation_event.intervention_required:
                 logger.warning(f"🚨 STAGNATION DETECTED: {stagnation_event.type.value} (severity: {stagnation_event.severity:.2f})")
                 
@@ -444,8 +463,10 @@ class ActionSelector:
                 logger.error(f"Error in strategy discovery: {e}")
         
         # 16. ENHANCED FRAME ANALYSIS - Analyze frame changes for better action selection
-        if self.frame_analysis_system and hasattr(self, 'last_frame_data'):
+        if self.frame_analysis_system and hasattr(self, 'last_frame_data') and self.last_frame_data is not None:
             try:
+                logger.info(f"🔍 DEBUG: About to analyze frame changes with last_frame_data type: {type(self.last_frame_data)}")
+                logger.info(f"🔍 DEBUG: frame_data type: {type(frame_data)}")
                 frame_change_analysis = await self.frame_analysis_system.analyze_frame_changes(
                     before_frame=self.last_frame_data,
                     after_frame=frame_data,
@@ -461,7 +482,10 @@ class ActionSelector:
                     if len(self.frame_change_history) > 20:
                         self.frame_change_history = self.frame_change_history[-20:]
             except Exception as e:
-                logger.error(f"Error in enhanced frame analysis: {e}")
+                logger.error(f"🔍 DEBUG: Error in enhanced frame analysis: {e}")
+                import traceback
+                logger.error(f"🔍 DEBUG: Frame analysis traceback: {traceback.format_exc()}")
+                raise
         
         # Store current frame for next analysis
         self.last_frame_data = frame_data
@@ -963,7 +987,7 @@ class ActionSelector:
         try:
             # Convert frame to grid format
             frame_data = frame_analysis.get('frame', [])
-            if frame_data:
+            if frame_data is not None and len(frame_data) > 0:
                 grid = frame_data[0] if isinstance(frame_data, list) else frame_data
                 
                 # Optimize action sequence
@@ -2297,9 +2321,61 @@ class ActionSelector:
             except Exception as e:
                 logger.warning(f"Failed to update penalty system for coordinate {coordinate}: {e}")
         
+        # Save learning patterns periodically
+        if self.learning_cycles % 50 == 0:  # Save patterns every 50 learning cycles
+            self._save_learning_patterns(action, game_state, frame_analysis)
+        
         # Decay action repetition penalties periodically
         if self.learning_cycles % 20 == 0:  # Decay every 20 learning cycles
             self._decay_action_penalties()
+    
+    def _save_learning_patterns(self, action: Dict[str, Any], game_state: Dict[str, Any], frame_analysis: Dict[str, Any]):
+        """Save learning patterns to database."""
+        try:
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            
+            # Save action pattern
+            action_pattern = {
+                'action_id': action.get('id'),
+                'source': action.get('source', 'unknown'),
+                'confidence': action.get('confidence', 0.0),
+                'coordinates': {'x': action.get('x'), 'y': action.get('y')} if 'x' in action else None,
+                'learning_cycles': self.learning_cycles,
+                'success_rate': self.action_effectiveness.get(action.get('id', 0), {}).get('success_rate', 0.0)
+            }
+            
+            asyncio.create_task(integration.save_learned_pattern(
+                pattern_type='action_pattern',
+                pattern_data=action_pattern,
+                confidence=action.get('confidence', 0.0),
+                frequency=1,
+                success_rate=self.action_effectiveness.get(action.get('id', 0), {}).get('success_rate', 0.0),
+                game_context=game_state.get('game_id', 'unknown')
+            ))
+            
+            # Save coordinate pattern if coordinates exist
+            if 'x' in action and 'y' in action:
+                coord_pattern = {
+                    'coordinates': {'x': action['x'], 'y': action['y']},
+                    'action_id': action.get('id'),
+                    'success_rate': self.coordinate_success_rates.get((action['x'], action['y']), 0.0),
+                    'learning_cycles': self.learning_cycles
+                }
+                
+                asyncio.create_task(integration.save_learned_pattern(
+                    pattern_type='coordinate_pattern',
+                    pattern_data=coord_pattern,
+                    confidence=action.get('confidence', 0.0),
+                    frequency=1,
+                    success_rate=self.coordinate_success_rates.get((action['x'], action['y']), 0.0),
+                    game_context=game_state.get('game_id', 'unknown')
+                ))
+            
+            logger.info(f"💾 Saved learning patterns at cycle {self.learning_cycles}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to save learning patterns: {e}")
     
     def _track_performance(self, action: Dict[str, Any], current_score: int, game_state: Dict[str, Any]):
         """Track performance and update metrics."""

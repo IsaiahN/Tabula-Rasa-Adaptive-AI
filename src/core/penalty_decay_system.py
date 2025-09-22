@@ -292,19 +292,24 @@ class PenaltyDecaySystem:
         
         try:
             # Update or insert penalty record
-            await self.integration.db.execute(
-                """
-                INSERT OR REPLACE INTO coordinate_penalties 
-                (game_id, x, y, penalty_score, penalty_reason, zero_progress_streak, 
-                 last_penalty_applied, is_stuck_coordinate, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    game_id, x, y, penalty_info['penalty_score'], penalty_info['penalty_reason'],
-                    penalty_info['zero_progress_streak'], datetime.now(), 
-                    penalty_info['is_stuck_coordinate'], datetime.now()
+            try:
+                await self.integration.db.execute(
+                    """
+                    INSERT OR REPLACE INTO coordinate_penalties 
+                    (game_id, x, y, penalty_score, penalty_reason, zero_progress_streak, 
+                     last_penalty_applied, is_stuck_coordinate, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        game_id, x, y, penalty_info['penalty_score'], penalty_info['penalty_reason'],
+                        penalty_info['zero_progress_streak'], datetime.now(), 
+                        penalty_info['is_stuck_coordinate'], datetime.now()
+                    )
                 )
-            )
+            except Exception as e:
+                self.logger.error(f"🔍 DEBUG: Error in coordinate_penalties insert: {e}")
+                self.logger.error(f"🔍 DEBUG: Provided 9 values for 9 columns - this should be correct")
+                raise
             
             # Log penalty application
             await self.integration.db.log_system_event(

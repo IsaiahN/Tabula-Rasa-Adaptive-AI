@@ -36,11 +36,24 @@ class FrameAnalyzer:
     
     def analyze_frame(self, frame_data: List[List[List[int]]]) -> Dict[str, Any]:
         """Analyze a game frame and extract visual information."""
-        if not frame_data or len(frame_data) == 0:
-            return self._empty_analysis()
-        
-        # Get the most recent frame
-        current_frame = frame_data[0] if isinstance(frame_data[0], list) else frame_data
+        try:
+            logger.info(f"🔍 DEBUG: FrameAnalyzer.analyze_frame called with frame_data type: {type(frame_data)}")
+            if hasattr(frame_data, 'shape'):
+                logger.info(f"🔍 DEBUG: frame_data shape: {frame_data.shape}")
+            elif isinstance(frame_data, list):
+                logger.info(f"🔍 DEBUG: frame_data length: {len(frame_data)}")
+            
+            if frame_data is None or len(frame_data) == 0:
+                return self._empty_analysis()
+            
+            # Get the most recent frame
+            current_frame = frame_data[0] if isinstance(frame_data[0], list) else frame_data
+            logger.info(f"🔍 DEBUG: current_frame type: {type(current_frame)}")
+        except Exception as e:
+            logger.error(f"🔍 DEBUG: Error in FrameAnalyzer.analyze_frame: {e}")
+            import traceback
+            logger.error(f"🔍 DEBUG: FrameAnalyzer traceback: {traceback.format_exc()}")
+            raise
         
         # Convert to numpy array
         grid = np.array(current_frame, dtype=np.uint8)

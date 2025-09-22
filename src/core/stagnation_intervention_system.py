@@ -118,13 +118,26 @@ class StagnationInterventionSystem:
     
     async def analyze_frame(self, frame_data: List[List[int]], game_state: Dict[str, Any]) -> Optional[StagnationEvent]:
         """Analyze current frame for stagnation patterns."""
-        current_score = game_state.get('score', 0)
-        current_actions = game_state.get('available_actions', [])
-        game_id = game_state.get('game_id', 'unknown')
-        session_id = game_state.get('session_id', 'unknown')
-        
-        # Calculate frame hash for change detection
-        frame_hash = self._calculate_frame_hash(frame_data)
+        try:
+            # Add debugging for frame_data type and content
+            self.logger.info(f"🔍 STAGNATION DEBUG: analyze_frame called with frame_data type: {type(frame_data)}")
+            if hasattr(frame_data, 'shape'):
+                self.logger.info(f"🔍 STAGNATION DEBUG: frame_data shape: {frame_data.shape}")
+            elif isinstance(frame_data, list):
+                self.logger.info(f"🔍 STAGNATION DEBUG: frame_data length: {len(frame_data)}")
+            
+            current_score = game_state.get('score', 0)
+            current_actions = game_state.get('available_actions', [])
+            game_id = game_state.get('game_id', 'unknown')
+            session_id = game_state.get('session_id', 'unknown')
+            
+            # Calculate frame hash for change detection
+            frame_hash = self._calculate_frame_hash(frame_data)
+        except Exception as e:
+            self.logger.error(f"🔍 STAGNATION DEBUG: Error in analyze_frame: {e}")
+            import traceback
+            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            raise
         
         # Update history
         self.frame_history.append(frame_hash)
@@ -144,22 +157,30 @@ class StagnationInterventionSystem:
         stagnation_events = []
         
         # 1. Frame stagnation detection
-        if self._detect_frame_stagnation():
-            self.logger.warning(f"🚨 FRAME STAGNATION DETECTED!")
-            stagnation_events.append(StagnationEvent(
-                type=StagnationType.FRAME_STAGNATION,
-                severity=self._calculate_frame_stagnation_severity(),
-                duration=len(self.frame_history),
-                consecutive_count=len(self.frame_history),
-                game_id=game_id,
-                session_id=session_id,
-                coordinates=list(self.coordinate_history),
-                actions=list(self.action_history),
-                frame_hash=frame_hash,
-                score=current_score,
-                timestamp=time.time(),
-                intervention_required=True
-            ))
+        try:
+            self.logger.info(f"🔍 STAGNATION DEBUG: About to call _detect_frame_stagnation")
+            if self._detect_frame_stagnation():
+                self.logger.info(f"🔍 STAGNATION DEBUG: _detect_frame_stagnation returned True")
+                self.logger.warning(f"🚨 FRAME STAGNATION DETECTED!")
+                stagnation_events.append(StagnationEvent(
+                    type=StagnationType.FRAME_STAGNATION,
+                    severity=self._calculate_frame_stagnation_severity(),
+                    duration=len(self.frame_history),
+                    consecutive_count=len(self.frame_history),
+                    game_id=game_id,
+                    session_id=session_id,
+                    coordinates=list(self.coordinate_history),
+                    actions=list(self.action_history),
+                    frame_hash=frame_hash,
+                    score=current_score,
+                    timestamp=time.time(),
+                    intervention_required=True
+                ))
+        except Exception as e:
+            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _detect_frame_stagnation: {e}")
+            import traceback
+            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            raise
         
         # 2. Score stagnation detection
         if self._detect_score_stagnation():
@@ -266,12 +287,23 @@ class StagnationInterventionSystem:
     def _calculate_frame_hash(self, frame_data: List[List[int]]) -> str:
         """Calculate hash of frame for change detection."""
         try:
+            self.logger.info(f"🔍 STAGNATION DEBUG: _calculate_frame_hash called with frame_data type: {type(frame_data)}")
+            if hasattr(frame_data, 'shape'):
+                self.logger.info(f"🔍 STAGNATION DEBUG: frame_data shape: {frame_data.shape}")
+            elif isinstance(frame_data, list):
+                self.logger.info(f"🔍 STAGNATION DEBUG: frame_data length: {len(frame_data)}")
+            
             # Convert to numpy array and flatten for hashing
             frame_array = np.array(frame_data)
+            self.logger.info(f"🔍 STAGNATION DEBUG: frame_array type: {type(frame_array)}, shape: {frame_array.shape}")
+            
             # Use a more robust hashing method to avoid ambiguous truth value errors
             frame_bytes = frame_array.tobytes()
             return str(hash(frame_bytes))
         except Exception as e:
+            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _calculate_frame_hash: {e}")
+            import traceback
+            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
             # Fallback to string representation
             try:
                 return str(hash(str(frame_data)))
@@ -475,11 +507,18 @@ class StagnationInterventionSystem:
     
     def _update_intelligence_metrics(self):
         """Update intelligence metrics for dynamic threshold adaptation."""
-        # Calculate frame change frequency
-        if len(self.frame_history) >= 10:
-            recent_frames = list(self.frame_history)[-10:]
-            unique_frames = len(set(recent_frames))
-            self.frame_change_frequency = unique_frames / len(recent_frames)
+        try:
+            self.logger.info(f"🔍 STAGNATION DEBUG: About to call _update_intelligence_metrics")
+            # Calculate frame change frequency
+            if len(self.frame_history) >= 10:
+                recent_frames = list(self.frame_history)[-10:]
+                unique_frames = len(set(recent_frames))
+                self.frame_change_frequency = unique_frames / len(recent_frames)
+        except Exception as e:
+            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _update_intelligence_metrics: {e}")
+            import traceback
+            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            raise
         
         # Calculate coordinate diversity
         if len(self.coordinate_history) >= 5:
@@ -495,13 +534,15 @@ class StagnationInterventionSystem:
     
     def _adapt_thresholds(self):
         """Dynamically adapt thresholds based on current behavior patterns."""
-        # Adapt frame stagnation threshold based on frame change frequency
-        if self.frame_change_frequency > 0.5:  # High frame change frequency
-            # System is active, can tolerate more frames without changes
-            self.frame_stagnation_threshold = min(
-                self.base_frame_stagnation_threshold * 1.5,
-                self.frame_stagnation_threshold + self.learning_rate
-            )
+        try:
+            self.logger.info(f"🔍 STAGNATION DEBUG: About to call _adapt_thresholds")
+            # Adapt frame stagnation threshold based on frame change frequency
+            if self.frame_change_frequency > 0.5:  # High frame change frequency
+                # System is active, can tolerate more frames without changes
+                self.frame_stagnation_threshold = min(
+                    self.base_frame_stagnation_threshold * 1.5,
+                    self.frame_stagnation_threshold + self.learning_rate
+                )
         elif self.frame_change_frequency < 0.2:  # Low frame change frequency
             # System is stagnant, be more sensitive
             self.frame_stagnation_threshold = max(
@@ -537,19 +578,24 @@ class StagnationInterventionSystem:
                 self.action_repetition_threshold - self.learning_rate
             )
         
-        # Log threshold changes for debugging
-        if hasattr(self, '_last_logged_thresholds'):
-            if (abs(self.frame_stagnation_threshold - self._last_logged_thresholds[0]) > 0.1 or
-                abs(self.coordinate_repetition_threshold - self._last_logged_thresholds[1]) > 0.1 or
-                abs(self.action_repetition_threshold - self._last_logged_thresholds[2]) > 0.1):
-                
-                self.logger.info(f"🧠 INTELLIGENT THRESHOLDS ADAPTED:")
-                self.logger.info(f"   Frame stagnation: {self.frame_stagnation_threshold:.1f}")
-                self.logger.info(f"   Coordinate repetition: {self.coordinate_repetition_threshold:.1f}")
-                self.logger.info(f"   Action repetition: {self.action_repetition_threshold:.1f}")
-                self.logger.info(f"   Frame change freq: {self.frame_change_frequency:.2f}")
-                self.logger.info(f"   Coordinate diversity: {self.coordinate_diversity:.2f}")
-                self.logger.info(f"   Action diversity: {self.action_diversity:.2f}")
+            # Log threshold changes for debugging
+            if hasattr(self, '_last_logged_thresholds'):
+                if (abs(self.frame_stagnation_threshold - self._last_logged_thresholds[0]) > 0.1 or
+                    abs(self.coordinate_repetition_threshold - self._last_logged_thresholds[1]) > 0.1 or
+                    abs(self.action_repetition_threshold - self._last_logged_thresholds[2]) > 0.1):
+                    
+                    self.logger.info(f"🧠 INTELLIGENT THRESHOLDS ADAPTED:")
+                    self.logger.info(f"   Frame stagnation: {self.frame_stagnation_threshold:.1f}")
+                    self.logger.info(f"   Coordinate repetition: {self.coordinate_repetition_threshold:.1f}")
+                    self.logger.info(f"   Action repetition: {self.action_repetition_threshold:.1f}")
+                    self.logger.info(f"   Frame change freq: {self.frame_change_frequency:.2f}")
+                    self.logger.info(f"   Coordinate diversity: {self.coordinate_diversity:.2f}")
+                    self.logger.info(f"   Action diversity: {self.action_diversity:.2f}")
+        except Exception as e:
+            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _adapt_thresholds: {e}")
+            import traceback
+            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            raise
         
         self._last_logged_thresholds = (
             self.frame_stagnation_threshold,

@@ -13,6 +13,7 @@ This system provides advanced coordinate intelligence capabilities including:
 import time
 import math
 import logging
+import asyncio
 from typing import Dict, List, Tuple, Optional, Set, Any
 from dataclasses import dataclass, field
 from enum import Enum
@@ -632,6 +633,22 @@ class CoordinateIntelligenceSystem:
         # Cross-game learning
         if self.cross_game_learning:
             self._update_cross_game_learning(game_id, x, y, action_id, success)
+        
+        # Save to database
+        try:
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            asyncio.create_task(integration.update_coordinate_intelligence(
+                game_id=game_id,
+                x=x,
+                y=y,
+                attempts=coord_intel.attempts,
+                successes=coord_intel.successes,
+                success_rate=coord_intel.success_rate,
+                frame_changes=coord_intel.frame_changes
+            ))
+        except Exception as e:
+            logger.warning(f"Failed to save coordinate intelligence to database: {e}")
         
         self.total_updates += 1
         
