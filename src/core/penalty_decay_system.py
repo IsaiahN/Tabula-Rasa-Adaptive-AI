@@ -17,10 +17,10 @@ from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime, timedelta
 from collections import deque
 import asyncio
+from src.database.api import LogLevel, Component
 
 from src.database.system_integration import get_system_integration
 from src.core.penalty_logging_system import get_penalty_logging_system
-from src.database.api import LogLevel, Component
 
 logger = logging.getLogger(__name__)
 
@@ -353,7 +353,7 @@ class PenaltyDecaySystem:
         
         try:
             # Update diversity record
-            await self.integration.execute_query(
+            await self.integration.db.execute(
                 """
                 INSERT OR REPLACE INTO coordinate_diversity 
                 (game_id, x, y, last_used, usage_frequency, updated_at)
@@ -393,7 +393,7 @@ class PenaltyDecaySystem:
             insights = self._generate_failure_insights(failure_type, score_change, context)
             
             # Insert failure learning record
-            await self.integration.execute_query(
+            await self.integration.db.execute(
                 """
                 INSERT INTO failure_learning 
                 (game_id, coordinate_x, coordinate_y, action_type, failure_type, 
@@ -436,7 +436,7 @@ class PenaltyDecaySystem:
         
         try:
             # Get recent attempts from action traces
-            recent_attempts = await self.integration.execute_query(
+            recent_attempts = await self.integration.db.fetch_all(
                 """
                 SELECT score_change FROM action_traces 
                 WHERE game_id = ? AND coordinates = ? 
@@ -469,7 +469,7 @@ class PenaltyDecaySystem:
         
         # Load from database
         try:
-            result = await self.integration.execute_query(
+            result = await self.integration.db.fetch_one(
                 """
                 SELECT penalty_score, penalty_reason, is_stuck_coordinate, 
                        last_penalty_applied, zero_progress_streak
@@ -549,7 +549,7 @@ class PenaltyDecaySystem:
                 query += " WHERE game_id = ?"
                 params.append(game_id)
             
-            penalty_records = await self.integration.execute_query(query, params)
+            penalty_records = await self.integration.db.fetch_all(query, params)
             
             for record in penalty_records:
                 last_penalty = record['last_penalty_applied']
@@ -566,7 +566,7 @@ class PenaltyDecaySystem:
                     
                     if new_penalty < record['penalty_score']:
                         # Update penalty in database
-                        await self.integration.execute_query(
+                        await self.integration.db.execute(
                             """
                             UPDATE coordinate_penalties 
                             SET penalty_score = ?, updated_at = ?
@@ -593,7 +593,8 @@ class PenaltyDecaySystem:
                         )
                         
                         await self.integration.log_system_event(
-                            event_type='penalty_decayed',
+                            level=LogLevel.INFO,
+                            component=Component.LEARNING_LOOP,
                             message=f"Penalty decayed for coordinate ({record['x']},{record['y']}): {record['penalty_score']:.3f} -> {new_penalty:.3f}",
                             data={
                                 'game_id': record['game_id'],
@@ -622,7 +623,7 @@ class PenaltyDecaySystem:
         
         try:
             # Get penalty statistics
-            penalty_stats = await self.integration.execute_query(
+            penalty_stats = await self.integration.db.fetch_one(
                 """
                 SELECT 
                     COUNT(*) as total_penalties,
@@ -634,7 +635,7 @@ class PenaltyDecaySystem:
             )
             
             # Get failure learning statistics
-            failure_stats = await self.integration.execute_query(
+            failure_stats = await self.integration.db.fetch_all(
                 """
                 SELECT 
                     failure_type,

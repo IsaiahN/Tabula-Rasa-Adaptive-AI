@@ -18,6 +18,7 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 
 from src.database.system_integration import get_system_integration
+from src.database.api import LogLevel, Component
 
 
 class PenaltyEventType(Enum):
@@ -96,7 +97,8 @@ class PenaltyLoggingSystem:
         
         # Log to system integration
         await self.integration.log_system_event(
-            event_type='penalty_applied',
+            level=LogLevel.INFO,
+            component=Component.LEARNING_LOOP,
             message=f"Penalty applied to coordinate {coordinate}: {penalty_reason} (score: {penalty_score:.3f})",
             data={
                 'game_id': game_id,
@@ -133,7 +135,8 @@ class PenaltyLoggingSystem:
         
         # Log to system integration
         await self.integration.log_system_event(
-            event_type='penalty_decayed',
+            level=LogLevel.INFO,
+            component=Component.LEARNING_LOOP,
             message=f"Penalty decayed for coordinate {coordinate}: {old_penalty:.3f} -> {new_penalty:.3f}",
             data={
                 'game_id': game_id,
@@ -273,7 +276,7 @@ class PenaltyLoggingSystem:
     async def _store_event_in_database(self, event: PenaltyEvent):
         """Store event in database for persistence."""
         try:
-            await self.integration.execute_query(
+            await self.integration.db.execute(
                 """
                 INSERT INTO system_logs 
                 (event_type, message, data, timestamp)
@@ -306,7 +309,7 @@ class PenaltyLoggingSystem:
         """Get penalty summary for a game."""
         try:
             # Get penalty statistics from database
-            penalty_stats = await self.integration.execute_query(
+            penalty_stats = await self.integration.db.fetch_one(
                 """
                 SELECT 
                     COUNT(*) as total_penalties,
@@ -324,7 +327,7 @@ class PenaltyLoggingSystem:
             recent_events = await self.get_recent_events(limit=20)
             
             # Get failure learning statistics
-            failure_stats = await self.integration.execute_query(
+            failure_stats = await self.integration.db.fetch_all(
                 """
                 SELECT 
                     failure_type,
