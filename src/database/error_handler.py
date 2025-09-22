@@ -108,7 +108,7 @@ class DatabaseErrorHandler:
         """Fix INSERT query by adjusting column count."""
         try:
             # Get table schema
-            with sqlite3.connect("data/system.db") as conn:
+            with sqlite3.connect("./tabula_rasa.db") as conn:
                 cursor = conn.execute(f"PRAGMA table_info({table_name})")
                 columns = cursor.fetchall()
                 

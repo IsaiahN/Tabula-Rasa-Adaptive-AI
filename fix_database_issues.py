@@ -28,7 +28,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     
     # Check if database exists
-    db_path = "data/system.db"
+    db_path = "./tabula_rasa.db"
     if not os.path.exists(db_path):
         print(f"❌ Database not found at {db_path}")
         print("Please run the training system first to create the database.")

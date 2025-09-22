@@ -599,15 +599,31 @@ class TabulaRasaDatabase:
                 }
             }
 
-    async def execute(self, query: str, params: tuple = ()) -> bool:
-        """Execute a SQL query."""
+    async def execute(self, query: str, params: tuple = (), table_name: str = None) -> bool:
+        """Execute a SQL query with automatic error handling and fixing."""
         try:
             async with self.get_connection() as conn:
-                conn.execute(query, params)
-                conn.commit()
-                return True
+                # Use safe database execution with error handling
+                success = safe_database_execute(conn, query, params, table_name, max_retries=3)
+                if success:
+                    conn.commit()
+                    return True
+                else:
+                    return False
         except Exception as e:
             self.logger.error(f"Database execute error: {e}")
+            # Try to auto-fix the error
+            if params and table_name:
+                success, fix_msg = handle_database_error(e, query, params, table_name)
+                if success:
+                    self.logger.info(f"Auto-fixed database error: {fix_msg}")
+                    try:
+                        async with self.get_connection() as conn:
+                            conn.execute(query, params)
+                            conn.commit()
+                            return True
+                    except Exception as retry_error:
+                        self.logger.error(f"Retry failed: {retry_error}")
             return False
     
     async def fetch_all(self, query: str, params: tuple = ()) -> List[Dict[str, Any]]:

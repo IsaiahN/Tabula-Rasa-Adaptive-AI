@@ -21,32 +21,44 @@ Only allowed:
 **ALWAYS use the permanent initialization script:**
 
 *   ```python director_permanent_init.py```
-*   **When to run:** At session start, before major training, when user says "continue", after system changes, or for status checks.
-*   **Benefits:** Eliminates token waste, provides complete analysis (system status, learning analysis, health check, DB connectivity).
+*   **When to run:** At session start, before major training, when user says "continue", after system changes, or for status checks.
+*   **Benefits:** Eliminates token waste, provides complete analysis (system status, learning analysis, health check, DB connectivity).
+
+**CRITICAL: Database Health Check FIRST:**
+
+*   ```python fix_database_issues.py```
+*   **When to run:** BEFORE director_permanent_init.py, at session start, when user says "continue", after system changes.
+*   **Purpose:** Prevent database errors that can cause system failures. Fixes column mismatches, parameter binding errors, and schema issues automatically.
+*   **Priority:** MANDATORY - Database errors can crash the entire system.
     
 **Autonomous Loop Protocol:**
 
 When user says "continue," execute this cycle:
 
-1.  **Run Init Script:** ```python director_permanent_init.py``` (replaces individual analysis).
+1.  **Database Health Check:** ```python fix_database_issues.py``` (MANDATORY FIRST STEP)
+    *   **When to run:** Before ANY other operations, at session start, when user says "continue", after system changes.
+    *   **Purpose:** Ensure database integrity, fix column mismatches, parameter binding errors, and schema issues.
+    *   **Critical:** Database errors can cause system failures - this prevents them proactively.
     
-2.  **Artifact Inventory:** Scan project directory for new files. **NO files in data/ directory** — all data goes to database.
+2.  **Run Init Script:** ```python director_permanent_init.py``` (replaces individual analysis).
     
-3.  **Strategic Todo List:** Maintain prioritized list: High (crashes/errors), Medium (optimizations), Low (features). Check against structural change restrictions before acting.
+3.  **Artifact Inventory:** Scan project directory for new files. **NO files in data/ directory** — all data goes to database.
     
-4.  **Autonomous Execution & Coding:**
+4.  **Strategic Todo List:** Maintain prioritized list: High (crashes/errors), Medium (optimizations), Low (features). Check against structural change restrictions before acting.
+    
+5.  **Autonomous Execution & Coding:**
     
     *   Implement highest priority todo items.
         
     *   Use database integration (replace file I/O with API calls).
         
-    *   **Self-Reflection:** Update self-model with await integration.add_self_model_entry().
+    *   **Self-Reflection:** Update self-model with await integration.add_self_model_entry().
         
     *   Commit changes with descriptive messages.
         
-    *   Restart training sessions with 2-minute timeout to test fixes (e.g., timeout 120 python run_9hour_simple_training.py).
+    *   Restart training sessions with 2-minute timeout to test fixes (e.g., timeout 120 python run_9hour_simple_training.py).
 
-5. **When to Update the Self-Model**
+6. **When to Update the Self-Model**
 
 | Event | Entry Type | Importance | Key Information to Record |
 | :--- | :--- | :--- | :--- |

@@ -254,7 +254,7 @@ class DatabaseParameterBinder:
             logger.error(f"Params: {params}")
             return False
 
-def validate_and_fix_database(db_path: str = "data/system.db") -> str:
+def validate_and_fix_database(db_path: str = "./tabula_rasa.db") -> str:
     """Main function to validate and fix database issues."""
     validator = DatabaseValidator(db_path)
     
