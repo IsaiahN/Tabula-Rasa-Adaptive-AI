@@ -74,6 +74,10 @@ class ActionSelector:
         self.gan_system = None
         self._initialize_advanced_systems()
         
+        # Initialize game type classifier
+        self.game_type_classifier = None
+        self._initialize_game_type_classifier()
+        
         if TREE_EVALUATION_AVAILABLE:
             try:
                 # Initialize Tree Evaluation Simulation Engine
@@ -123,6 +127,15 @@ class ActionSelector:
             logger.info("✅ Pattern-Aware GAN initialized")
         except Exception as e:
             logger.warning(f"Failed to initialize GAN system: {e}")
+    
+    def _initialize_game_type_classifier(self):
+        """Initialize game type classifier for game-specific knowledge."""
+        try:
+            from ...learning.game_type_classifier import game_type_classifier
+            self.game_type_classifier = game_type_classifier
+            logger.info("✅ Game Type Classifier initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Game Type Classifier: {e}")
         
     def select_action(self, game_state: Dict[str, Any], available_actions: List[int]) -> Dict[str, Any]:
         """Select the best action using advanced OpenCV analysis and pattern matching."""
@@ -207,7 +220,12 @@ class ActionSelector:
             frame_analysis, available_actions, current_score, game_state
         )
         
-        # 10. PSEUDO BUTTON SUGGESTIONS - Actions that previously discovered new actions
+        # 10. GAME-SPECIFIC KNOWLEDGE - Use knowledge from similar game types
+        game_specific_suggestions = self._generate_game_specific_suggestions(
+            game_state, available_actions, frame_analysis
+        )
+        
+        # 11. PSEUDO BUTTON SUGGESTIONS - Actions that previously discovered new actions
         pseudo_button_suggestions = self._generate_pseudo_button_suggestions(available_actions)
         
         # 11. ACTION 5 FALLBACK - Detect stuck situations and suggest Action 5
@@ -215,7 +233,7 @@ class ActionSelector:
         if self._detect_stuck_situation(game_state, available_actions):
             action5_suggestions = self._generate_action5_fallback_suggestions(available_actions)
         
-        # 12. COMBINE ALL SUGGESTIONS - Multi-source decision making
+        # 13. COMBINE ALL SUGGESTIONS - Multi-source decision making
         all_suggestions = self._combine_suggestions(
             pattern_suggestions,
             coordinate_suggestions, 
@@ -225,6 +243,7 @@ class ActionSelector:
             advanced_suggestions,
             bayesian_suggestions,
             gan_suggestions,
+            game_specific_suggestions,
             pseudo_button_suggestions,
             action5_suggestions
         )
@@ -279,7 +298,10 @@ class ActionSelector:
         # 12. PERFORMANCE TRACKING - Track performance
         self._track_performance(best_action, current_score, game_state)
         
-        # 13. ADD REASONING TO ACTION - Include detailed reasoning for API
+        # 13. GAME RESULT TRACKING - Save game-specific knowledge
+        self._track_game_result(best_action, game_state, frame_analysis)
+        
+        # 14. ADD REASONING TO ACTION - Include detailed reasoning for API
         best_action = self._add_reasoning_to_action(best_action, game_state, frame_analysis, all_suggestions)
         
         return best_action
@@ -730,6 +752,7 @@ class ActionSelector:
         # Factor 2: Source reliability
         source_weights = {
             'confirmed_interactive': 1.0,  # Highest priority for confirmed interactive objects
+            'game_specific_knowledge': 0.95,  # Very high priority for game-specific knowledge (lp85, vc33)
             'pseudo_button': 0.9,  # Very high priority for pseudo buttons (discovered new actions)
             'action5_stuck_fallback': 0.95,  # Very high priority for Action 5 when stuck
             'bayesian_pattern': 0.95,  # High priority for Bayesian pattern detection
@@ -1315,6 +1338,145 @@ class ActionSelector:
         logger.info(f"   Learning cycles: {reasoning['learning_data']['learning_cycles']}")
         
         return action
+    
+    def _generate_game_specific_suggestions(self, game_state: Dict[str, Any], 
+                                          available_actions: List[int], 
+                                          frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate suggestions based on game-specific knowledge (lp85, vc33, etc.)."""
+        suggestions = []
+        
+        if not self.game_type_classifier:
+            return suggestions
+        
+        try:
+            game_id = game_state.get('game_id', 'unknown')
+            
+            # Get game-specific recommendations
+            recommendations = self.game_type_classifier.get_recommendations_for_game(game_id)
+            game_type = recommendations.get('primary_game_type', 'unknown')
+            
+            logger.info(f"🎮 Game Type: {game_type} | Success Rate: {recommendations.get('success_rate', 0):.2f}")
+            
+            # Generate suggestions based on successful coordinates
+            for coord in recommendations.get('recommended_coordinates', [])[:5]:  # Top 5
+                if 6 in available_actions:
+                    suggestions.append({
+                        'action': 'ACTION6',
+                        'x': coord[0],
+                        'y': coord[1],
+                        'confidence': 0.8,  # High confidence for game-specific knowledge
+                        'reason': f'Game-specific coordinate from {game_type} (success rate: {recommendations.get("success_rate", 0):.2f})',
+                        'source': 'game_specific_knowledge'
+                    })
+            
+            # Generate suggestions based on interactive objects
+            for obj in recommendations.get('recommended_objects', [])[:5]:  # Top 5
+                if 6 in available_actions and 'coordinate' in obj:
+                    coord = obj['coordinate']
+                    suggestions.append({
+                        'action': 'ACTION6',
+                        'x': coord[0],
+                        'y': coord[1],
+                        'confidence': 0.85,  # Very high confidence for confirmed interactive objects
+                        'reason': f'Game-specific interactive object from {game_type}',
+                        'source': 'game_specific_knowledge'
+                    })
+            
+            # Generate suggestions based on winning sequences
+            for sequence in recommendations.get('recommended_sequences', [])[:3]:  # Top 3
+                if sequence and len(sequence) > 0:
+                    first_action = sequence[0]
+                    if first_action in available_actions:
+                        suggestions.append({
+                            'action': f'ACTION{first_action}',
+                            'confidence': 0.75,  # High confidence for winning sequences
+                            'reason': f'Game-specific winning sequence from {game_type}',
+                            'source': 'game_specific_knowledge'
+                        })
+            
+            if suggestions:
+                logger.info(f"🎯 Generated {len(suggestions)} game-specific suggestions for {game_type}")
+        
+        except Exception as e:
+            logger.warning(f"Failed to generate game-specific suggestions: {e}")
+        
+        return suggestions
+    
+    def _track_game_result(self, action: Dict[str, Any], game_state: Dict[str, Any], frame_analysis: Dict[str, Any]):
+        """Track game results and save game-specific knowledge."""
+        if not self.game_type_classifier:
+            return
+        
+        try:
+            game_id = game_state.get('game_id', 'unknown')
+            current_score = game_state.get('score', 0)
+            game_status = game_state.get('state', 'UNKNOWN')
+            
+            # Determine if this was a successful action
+            success = False
+            if len(self.performance_history) > 0:
+                last_score = self.performance_history[-1].get('score', 0)
+                success = current_score > last_score
+            
+            # Check if game is complete
+            game_complete = game_status in ['WIN', 'GAME_OVER', 'NOT_STARTED']
+            
+            if success or game_complete:
+                # Extract patterns from this action
+                patterns = []
+                if action.get('source') == 'game_specific_knowledge':
+                    patterns.append({
+                        'pattern_id': f"{game_id}_{action.get('id')}_{action.get('source')}",
+                        'pattern_type': 'action_success',
+                        'confidence': action.get('confidence', 0.0),
+                        'context': {
+                            'action_id': action.get('id'),
+                            'source': action.get('source'),
+                            'reason': action.get('reason', '')
+                        }
+                    })
+                
+                # Extract successful coordinates
+                successful_coordinates = []
+                if action.get('id') == 6 and 'x' in action and 'y' in action:
+                    successful_coordinates.append((action['x'], action['y']))
+                
+                # Extract interactive objects
+                interactive_objects = []
+                if action.get('id') == 6 and 'x' in action and 'y' in action:
+                    interactive_objects.append({
+                        'coordinate': (action['x'], action['y']),
+                        'confidence': action.get('confidence', 0.0),
+                        'source': action.get('source', 'unknown'),
+                        'reason': action.get('reason', '')
+                    })
+                
+                # Extract winning sequence
+                winning_sequence = []
+                if game_complete and game_status == 'WIN':
+                    # Get recent actions as winning sequence
+                    recent_actions = [entry.get('action', {}).get('id') for entry in self.performance_history[-10:]]
+                    winning_sequence = [a for a in recent_actions if a is not None]
+                
+                # Update game type classifier
+                self.game_type_classifier.update_game_result(
+                    game_id=game_id,
+                    success=success,
+                    score=current_score,
+                    patterns=patterns,
+                    successful_coordinates=successful_coordinates,
+                    interactive_objects=interactive_objects,
+                    winning_sequence=winning_sequence
+                )
+                
+                if success:
+                    logger.info(f"💾 Saved game-specific knowledge for {game_id}: {len(patterns)} patterns, {len(successful_coordinates)} coordinates")
+                
+                if game_complete:
+                    logger.info(f"🏁 Game {game_id} completed with status {game_status} - knowledge saved")
+        
+        except Exception as e:
+            logger.warning(f"Failed to track game result: {e}")
     
     def _track_action_repetition(self, action: Dict[str, Any]) -> float:
         """Track action repetition and return penalty score."""
