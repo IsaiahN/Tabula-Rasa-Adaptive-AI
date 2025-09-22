@@ -41,6 +41,9 @@ class StagnationEvent:
     type: StagnationType
     severity: float  # 0.0 to 1.0
     duration: int  # Frames stuck
+    consecutive_count: int  # Number of consecutive occurrences
+    game_id: str  # Game ID where stagnation occurred
+    session_id: str  # Session ID where stagnation occurred
     coordinates: List[Tuple[int, int]]
     actions: List[int]
     frame_hash: str
@@ -117,6 +120,8 @@ class StagnationInterventionSystem:
         """Analyze current frame for stagnation patterns."""
         current_score = game_state.get('score', 0)
         current_actions = game_state.get('available_actions', [])
+        game_id = game_state.get('game_id', 'unknown')
+        session_id = game_state.get('session_id', 'unknown')
         
         # Calculate frame hash for change detection
         frame_hash = self._calculate_frame_hash(frame_data)
@@ -145,6 +150,9 @@ class StagnationInterventionSystem:
                 type=StagnationType.FRAME_STAGNATION,
                 severity=self._calculate_frame_stagnation_severity(),
                 duration=len(self.frame_history),
+                consecutive_count=len(self.frame_history),
+                game_id=game_id,
+                session_id=session_id,
                 coordinates=list(self.coordinate_history),
                 actions=list(self.action_history),
                 frame_hash=frame_hash,
@@ -159,6 +167,9 @@ class StagnationInterventionSystem:
                 type=StagnationType.SCORE_STAGNATION,
                 severity=self._calculate_score_stagnation_severity(),
                 duration=len(self.score_history),
+                consecutive_count=len(self.score_history),
+                game_id=game_id,
+                session_id=session_id,
                 coordinates=list(self.coordinate_history),
                 actions=list(self.action_history),
                 frame_hash=frame_hash,
@@ -173,6 +184,9 @@ class StagnationInterventionSystem:
                 type=StagnationType.COORDINATE_REPETITION,
                 severity=self._calculate_coordinate_repetition_severity(),
                 duration=len(self.coordinate_history),
+                consecutive_count=len(self.coordinate_history),
+                game_id=game_id,
+                session_id=session_id,
                 coordinates=list(self.coordinate_history),
                 actions=list(self.action_history),
                 frame_hash=frame_hash,
@@ -187,6 +201,9 @@ class StagnationInterventionSystem:
                 type=StagnationType.ACTION_REPETITION,
                 severity=self._calculate_action_repetition_severity(),
                 duration=len(self.action_history),
+                consecutive_count=len(self.action_history),
+                game_id=game_id,
+                session_id=session_id,
                 coordinates=list(self.coordinate_history),
                 actions=list(self.action_history),
                 frame_hash=frame_hash,
@@ -201,6 +218,9 @@ class StagnationInterventionSystem:
                 type=StagnationType.COORDINATE_REPETITION,  # Use coordinate repetition type
                 severity=self._calculate_action6_coordinate_severity(),
                 duration=len(self.coordinate_history),
+                consecutive_count=len(self.coordinate_history),
+                game_id=game_id,
+                session_id=session_id,
                 coordinates=list(self.coordinate_history),
                 actions=[6] * len(self.coordinate_history),  # All Action 6
                 frame_hash=frame_hash,

@@ -96,6 +96,9 @@ class EmergencyOverrideSystem:
             
             most_critical = max(valid_overrides, key=lambda o: override_priority.get(o.override_type, 0))
             
+            # Set session_id from parameter
+            most_critical.session_id = session_id
+            
             # Store override in database
             await self._store_emergency_override(most_critical)
             
@@ -115,7 +118,7 @@ class EmergencyOverrideSystem:
     
     async def _check_action_loop_break(self, 
                                      game_id: str,
-                                     action_history: List[int],
+                                     action_history: List[Any],
                                      available_actions: List[int]) -> Optional[EmergencyOverride]:
         """Check for action loop that needs breaking."""
         try:
@@ -128,9 +131,19 @@ class EmergencyOverrideSystem:
             action_ids = []
             for action in recent_actions:
                 if isinstance(action, dict):
-                    action_ids.append(action.get('action', action.get('id', 0)))
+                    # Try multiple ways to extract the action ID
+                    action_id = action.get('action', action.get('id', 0))
+                    # Ensure it's an integer
+                    if isinstance(action_id, (int, float)):
+                        action_ids.append(int(action_id))
+                    else:
+                        action_ids.append(0)  # Default fallback
                 else:
-                    action_ids.append(action)
+                    # Ensure it's an integer
+                    if isinstance(action, (int, float)):
+                        action_ids.append(int(action))
+                    else:
+                        action_ids.append(0)  # Default fallback
             
             # Check for repeated action patterns
             action_counts = {}

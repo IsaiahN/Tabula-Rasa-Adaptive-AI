@@ -117,7 +117,7 @@ class ResidualLearningSystem:
             skip_weights = self.skip_connections[layer_name][layer_idx]
             
             # Ensure dimensions match
-            if input_data.shape[1] == skip_weights.shape[0] and output_data.shape[1] == skip_weights.shape[1]:
+            if (input_data.shape[1] == skip_weights.shape[0]).item() and (output_data.shape[1] == skip_weights.shape[1]).item():
                 # Apply skip connection: output = output + (input * skip_weights)
                 skip_output = np.dot(input_data, skip_weights)
                 residual_output = output_data + self.residual_strength * skip_output

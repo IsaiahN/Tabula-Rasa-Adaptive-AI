@@ -5,6 +5,7 @@ Validates proper API usage before full training integration.
 import sys
 import os
 import json
+import numpy as np
 from typing import Dict, List, Any
 from datetime import datetime
 
@@ -311,7 +312,11 @@ class CoordinateSystemTester:
             recorded_x = action_data.get('x')
             recorded_y = action_data.get('y')
             
-            coordinate_match = (recorded_x == center_x and recorded_y == center_y)
+            # Fix ambiguous truth value error - use explicit comparison for arrays
+            if isinstance(recorded_x, np.ndarray) or isinstance(recorded_y, np.ndarray):
+                coordinate_match = np.array_equal(recorded_x, center_x) and np.array_equal(recorded_y, center_y)
+            else:
+                coordinate_match = (recorded_x == center_x and recorded_y == center_y)
             
             result = {
                 'test_name': 'ACTION6 Center Start',

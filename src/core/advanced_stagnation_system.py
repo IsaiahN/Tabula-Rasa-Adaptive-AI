@@ -201,12 +201,14 @@ class AdvancedStagnationSystem:
                     context_data={
                         'repeated_action': current_action,
                         'recent_actions': recent_actions,
-                        'action_diversity': len(set(recent_actions))
+                        'action_diversity': len(set(hashable_actions))
                     }
                 )
             
             # Check for limited action diversity
-            unique_actions = len(set(recent_actions))
+            # Ensure all actions are hashable (integers)
+            hashable_actions = [a for a in recent_actions if isinstance(a, (int, str))]
+            unique_actions = len(set(hashable_actions))
             if unique_actions <= 2 and len(recent_actions) >= 6:
                 severity = 0.7  # High severity for low diversity
                 
@@ -325,7 +327,9 @@ class AdvancedStagnationSystem:
                 else:
                     recent_actions.append(action)
             
-            unique_actions = len(set(recent_actions))
+            # Ensure all actions are hashable (integers)
+            hashable_actions = [a for a in recent_actions if isinstance(a, (int, str))]
+            unique_actions = len(set(hashable_actions))
             action_diversity_ratio = unique_actions / len(recent_actions)
             
             # Calculate stagnation score
@@ -400,6 +404,21 @@ class AdvancedStagnationSystem:
             logger.error(f"Error getting recent coordinates: {e}")
             return []
     
+    def _json_serializer(self, obj):
+        """Custom JSON serializer for NumPy and other non-serializable types."""
+        if hasattr(obj, 'tolist'):
+            return obj.tolist()
+        elif hasattr(obj, 'item'):
+            return obj.item()
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return str(obj)
+    
     async def _store_stagnation_event(self, event: StagnationEvent):
         """Store stagnation event in database."""
         try:
@@ -411,7 +430,7 @@ class AdvancedStagnationSystem:
             """, (
                 event.game_id, event.session_id, event.stagnation_type.value,
                 event.severity, event.consecutive_count, 
-                json.dumps(event.context_data, default=str, ensure_ascii=False),
+                json.dumps(event.context_data, default=self._json_serializer, ensure_ascii=False),
                 event.detection_timestamp
             ))
             
