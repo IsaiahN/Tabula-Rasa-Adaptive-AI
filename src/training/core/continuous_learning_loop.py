@@ -186,7 +186,7 @@ class ContinuousLearningLoop:
                             'score': current_response.score,
                             'available_actions': available_actions
                         }
-                        action_to_take = self.action_selector.select_action(game_state, available_actions)
+                        action_to_take = await self.action_selector.select_action(game_state, available_actions)
                     else:
                         # Fallback to simple action selection
                         action_to_take = self._choose_smart_action(available_actions, current_response)
@@ -212,6 +212,7 @@ class ContinuousLearningLoop:
                             # Dictionary
                             new_score = action_result.get('score', current_score)
                             game_state = action_result.get('state', 'NOT_FINISHED')
+                        
                         
                         # Ensure both scores are numbers
                         if isinstance(new_score, (int, float)):
@@ -255,6 +256,24 @@ class ContinuousLearningLoop:
                 await self.api_manager.close()
             except Exception as e:
                 logger.warning(f"Error closing API manager: {e}")
+            
+            # Save game result to database
+            try:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                
+                await integration.save_game_result(
+                    game_id=real_game_id,
+                    session_id=f"session_{session_count}",
+                    final_score=total_score,
+                    total_actions=actions_taken,
+                    win_detected=game_won,
+                    final_state=current_state,
+                    termination_reason="COMPLETED" if game_won else "TIMEOUT"
+                )
+                print(f"💾 Game result saved to database: {real_game_id}")
+            except Exception as e:
+                print(f"⚠️ Failed to save game result to database: {e}")
             
             # Create real training result
             result = {
@@ -343,7 +362,7 @@ class ContinuousLearningLoop:
             self.session_manager = TrainingSessionManager(session_config)
             
             # API management (will be initialized when needed)
-            self.api_manager = APIManager(self.api_key, local_mode=False)
+            self.api_manager = APIManager(self.api_key)
             self._api_initialized = False
             self.action_selector = None
             

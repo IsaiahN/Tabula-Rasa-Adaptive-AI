@@ -40,15 +40,23 @@ from database.system_integration import get_system_integration
 from database.db_initializer import ensure_database_ready
 from training import ContinuousLearningLoop
 
-# Global shutdown flag
+# Global shutdown flag and cleanup handler
 shutdown_requested = False
+cleanup_handler = None
 
 def signal_handler(signum, frame):
     """Handle graceful shutdown signals."""
-    global shutdown_requested
+    global shutdown_requested, cleanup_handler
     if shutdown_requested:
         print(f"\n🛑 FORCE EXIT REQUESTED (Signal: {signum})")
         print("🛑 Exiting immediately...")
+        # Try to cleanup before force exit
+        if cleanup_handler:
+            try:
+                import asyncio
+                asyncio.run(cleanup_handler())
+            except:
+                pass
         sys.exit(0)
     
     print(f"\n🛑 GRACEFUL SHUTDOWN REQUESTED (Signal: {signum})")
@@ -89,6 +97,18 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
             tabula_rasa_path=tabula_rasa_path,
             api_key=os.environ.get('ARC_API_KEY')
         )
+        
+        # Set up cleanup handler for graceful shutdown
+        async def cleanup():
+            """Cleanup function for graceful shutdown."""
+            try:
+                print("🧹 Cleaning up resources...")
+                await learning_loop.close()
+                print("✅ Cleanup completed")
+            except Exception as e:
+                print(f"⚠️ Error during cleanup: {e}")
+        
+        cleanup_handler = cleanup
         
         # Ensure the system is initialized
         learning_loop._ensure_initialized()
@@ -151,10 +171,18 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
             'success': False,
             'error': str(e)
         }
+    
+    finally:
+        # Cleanup resources for this session
+        try:
+            if 'learning_loop' in locals():
+                await learning_loop.close()
+        except Exception as e:
+            print(f"⚠️ Error cleaning up session #{session_id}: {e}")
 
 async def main():
     """Main function for simple 9-hour training with direct API control."""
-    global shutdown_requested
+    global shutdown_requested, cleanup_handler
     
     # Setup signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
@@ -271,6 +299,15 @@ async def main():
     except Exception as e:
         print(f"\n❌ Error running training: {e}")
         return 1
+    
+    finally:
+        # Cleanup resources
+        try:
+            if cleanup_handler:
+                print("🧹 Cleaning up resources...")
+                await cleanup_handler()
+        except Exception as e:
+            print(f"⚠️ Error during cleanup: {e}")
     
     # Final statistics
     print("\n" + "=" * 80)

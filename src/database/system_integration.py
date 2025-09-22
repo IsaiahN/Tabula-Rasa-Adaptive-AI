@@ -586,6 +586,285 @@ class SystemIntegration:
             print(f"Error saving game result: {e}")
             return False
 
+    # ============================================================================
+    # ADVANCED ACTION SYSTEM INTEGRATION
+    # ============================================================================
+    
+    async def store_visual_target(self, 
+                                game_id: str,
+                                target_x: int,
+                                target_y: int,
+                                target_type: str,
+                                confidence: float,
+                                detection_method: str,
+                                interaction_successful: bool = False,
+                                frame_changes_detected: bool = False,
+                                score_impact: float = 0.0) -> bool:
+        """Store visual target detection result."""
+        try:
+            import time
+            await self.db.execute("""
+                INSERT INTO visual_targets
+                (game_id, target_x, target_y, target_type, confidence, detection_method,
+                 interaction_successful, frame_changes_detected, score_impact, detection_timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (game_id, target_x, target_y, target_type, confidence, detection_method,
+                  interaction_successful, frame_changes_detected, score_impact, time.time()))
+            return True
+        except Exception as e:
+            self.logger.error(f"Error storing visual target: {e}")
+            return False
+    
+    async def store_stagnation_event(self, 
+                                   game_id: str,
+                                   session_id: str,
+                                   stagnation_type: str,
+                                   severity: float,
+                                   consecutive_count: int,
+                                   context_data: Dict[str, Any],
+                                   recovery_action: Optional[str] = None,
+                                   recovery_successful: bool = False) -> bool:
+        """Store stagnation event."""
+        try:
+            import time
+            await self.db.execute("""
+                INSERT INTO stagnation_events
+                (game_id, session_id, stagnation_type, severity, consecutive_count,
+                 stagnation_context, recovery_action, recovery_successful, detection_timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (game_id, session_id, stagnation_type, severity, consecutive_count,
+                  json.dumps(context_data), recovery_action, recovery_successful, time.time()))
+            return True
+        except Exception as e:
+            self.logger.error(f"Error storing stagnation event: {e}")
+            return False
+    
+    async def store_winning_strategy(self, 
+                                   strategy_id: str,
+                                   game_type: str,
+                                   game_id: str,
+                                   action_sequence: List[int],
+                                   score_progression: List[float],
+                                   total_score_increase: float,
+                                   efficiency: float) -> bool:
+        """Store winning strategy."""
+        try:
+            import time
+            await self.db.execute("""
+                INSERT INTO winning_strategies
+                (strategy_id, game_type, game_id, action_sequence, score_progression,
+                 total_score_increase, efficiency, discovery_timestamp, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (strategy_id, game_type, game_id, json.dumps(action_sequence),
+                  json.dumps(score_progression), total_score_increase, efficiency,
+                  time.time(), True))
+            return True
+        except Exception as e:
+            self.logger.error(f"Error storing winning strategy: {e}")
+            return False
+    
+    async def store_frame_change_analysis(self, 
+                                        game_id: str,
+                                        action_number: int,
+                                        coordinates: Optional[Tuple[int, int]],
+                                        change_type: str,
+                                        num_pixels_changed: int,
+                                        change_percentage: float,
+                                        movement_detected: bool,
+                                        change_locations: List[Tuple[int, int]],
+                                        classification_confidence: float) -> bool:
+        """Store frame change analysis."""
+        try:
+            import time
+            await self.db.execute("""
+                INSERT INTO frame_change_analysis
+                (game_id, action_number, coordinates_x, coordinates_y, change_type,
+                 num_pixels_changed, change_percentage, movement_detected,
+                 change_locations, classification_confidence, analysis_timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (game_id, action_number,
+                  coordinates[0] if coordinates else None,
+                  coordinates[1] if coordinates else None,
+                  change_type, num_pixels_changed, change_percentage, movement_detected,
+                  json.dumps(change_locations), classification_confidence, time.time()))
+            return True
+        except Exception as e:
+            self.logger.error(f"Error storing frame change analysis: {e}")
+            return False
+    
+    async def store_exploration_phase(self, 
+                                    game_id: str,
+                                    session_id: str,
+                                    phase_name: str,
+                                    phase_attempts: int,
+                                    successful_attempts: int,
+                                    coordinates_tried: List[Tuple[int, int]],
+                                    phase_success_rate: float) -> bool:
+        """Store exploration phase data."""
+        try:
+            import time
+            await self.db.execute("""
+                INSERT INTO exploration_phases
+                (game_id, session_id, phase_name, phase_attempts, successful_attempts,
+                 coordinates_tried, phase_start_time, phase_success_rate)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (game_id, session_id, phase_name, phase_attempts, successful_attempts,
+                  json.dumps(coordinates_tried), time.time(), phase_success_rate))
+            return True
+        except Exception as e:
+            self.logger.error(f"Error storing exploration phase: {e}")
+            return False
+    
+    async def store_emergency_override(self, 
+                                     game_id: str,
+                                     session_id: str,
+                                     override_type: str,
+                                     trigger_reason: str,
+                                     actions_before_override: int,
+                                     override_action: int,
+                                     override_successful: bool = False) -> bool:
+        """Store emergency override event."""
+        try:
+            import time
+            await self.db.execute("""
+                INSERT INTO emergency_overrides
+                (game_id, session_id, override_type, trigger_reason, actions_before_override,
+                 override_action, override_successful, override_timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (game_id, session_id, override_type, trigger_reason, actions_before_override,
+                  override_action, override_successful, time.time()))
+            return True
+        except Exception as e:
+            self.logger.error(f"Error storing emergency override: {e}")
+            return False
+    
+    async def store_governor_decision(self, 
+                                    session_id: str,
+                                    decision_type: str,
+                                    context_data: Dict[str, Any],
+                                    governor_confidence: float,
+                                    decision_outcome: Dict[str, Any]) -> bool:
+        """Store governor decision."""
+        try:
+            import time
+            await self.db.execute("""
+                INSERT INTO governor_decisions
+                (session_id, decision_type, context_data, governor_confidence, decision_outcome, decision_timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (session_id, decision_type, json.dumps(context_data), governor_confidence,
+                  json.dumps(decision_outcome), time.time()))
+            return True
+        except Exception as e:
+            self.logger.error(f"Error storing governor decision: {e}")
+            return False
+    
+    async def get_visual_targets_for_game(self, game_id: str) -> List[Dict[str, Any]]:
+        """Get visual targets for a game."""
+        try:
+            results = await self.db.fetch_all("""
+                SELECT target_x, target_y, target_type, confidence, detection_method,
+                       interaction_successful, frame_changes_detected, score_impact
+                FROM visual_targets
+                WHERE game_id = ?
+                ORDER BY detection_timestamp DESC
+            """, (game_id,))
+            return [dict(row) for row in results]
+        except Exception as e:
+            self.logger.error(f"Error getting visual targets: {e}")
+            return []
+    
+    async def get_stagnation_events_for_game(self, game_id: str) -> List[Dict[str, Any]]:
+        """Get stagnation events for a game."""
+        try:
+            results = await self.db.fetch_all("""
+                SELECT stagnation_type, severity, consecutive_count, stagnation_context,
+                       recovery_action, recovery_successful, detection_timestamp
+                FROM stagnation_events
+                WHERE game_id = ?
+                ORDER BY detection_timestamp DESC
+            """, (game_id,))
+            return [dict(row) for row in results]
+        except Exception as e:
+            self.logger.error(f"Error getting stagnation events: {e}")
+            return []
+    
+    async def get_winning_strategies_for_game_type(self, game_type: str) -> List[Dict[str, Any]]:
+        """Get winning strategies for a game type."""
+        try:
+            results = await self.db.fetch_all("""
+                SELECT strategy_id, game_id, action_sequence, score_progression,
+                       total_score_increase, efficiency, replication_attempts,
+                       successful_replications, refinement_level, is_active
+                FROM winning_strategies
+                WHERE game_type = ? AND is_active = 1
+                ORDER BY efficiency DESC
+            """, (game_type,))
+            return [dict(row) for row in results]
+        except Exception as e:
+            self.logger.error(f"Error getting winning strategies: {e}")
+            return []
+    
+    async def get_frame_change_analysis_for_game(self, game_id: str) -> List[Dict[str, Any]]:
+        """Get frame change analysis for a game."""
+        try:
+            results = await self.db.fetch_all("""
+                SELECT action_number, coordinates_x, coordinates_y, change_type,
+                       num_pixels_changed, change_percentage, movement_detected,
+                       change_locations, classification_confidence, analysis_timestamp
+                FROM frame_change_analysis
+                WHERE game_id = ?
+                ORDER BY analysis_timestamp DESC
+            """, (game_id,))
+            return [dict(row) for row in results]
+        except Exception as e:
+            self.logger.error(f"Error getting frame change analysis: {e}")
+            return []
+    
+    async def get_exploration_phases_for_game(self, game_id: str) -> List[Dict[str, Any]]:
+        """Get exploration phases for a game."""
+        try:
+            results = await self.db.fetch_all("""
+                SELECT phase_name, phase_attempts, successful_attempts, coordinates_tried,
+                       phase_start_time, phase_end_time, phase_success_rate
+                FROM exploration_phases
+                WHERE game_id = ?
+                ORDER BY phase_start_time ASC
+            """, (game_id,))
+            return [dict(row) for row in results]
+        except Exception as e:
+            self.logger.error(f"Error getting exploration phases: {e}")
+            return []
+    
+    async def get_emergency_overrides_for_game(self, game_id: str) -> List[Dict[str, Any]]:
+        """Get emergency overrides for a game."""
+        try:
+            results = await self.db.fetch_all("""
+                SELECT override_type, trigger_reason, actions_before_override,
+                       override_action, override_successful, override_timestamp
+                FROM emergency_overrides
+                WHERE game_id = ?
+                ORDER BY override_timestamp DESC
+            """, (game_id,))
+            return [dict(row) for row in results]
+        except Exception as e:
+            self.logger.error(f"Error getting emergency overrides: {e}")
+            return []
+    
+    async def get_governor_decisions_for_session(self, session_id: str) -> List[Dict[str, Any]]:
+        """Get governor decisions for a session."""
+        try:
+            results = await self.db.fetch_all("""
+                SELECT decision_type, context_data, governor_confidence,
+                       decision_outcome, decision_timestamp
+                FROM governor_decisions
+                WHERE session_id = ?
+                ORDER BY decision_timestamp DESC
+            """, (session_id,))
+            return [dict(row) for row in results]
+        except Exception as e:
+            self.logger.error(f"Error getting governor decisions: {e}")
+            return []
+
 # ============================================================================
 # GLOBAL INTEGRATION INSTANCE
 # ============================================================================

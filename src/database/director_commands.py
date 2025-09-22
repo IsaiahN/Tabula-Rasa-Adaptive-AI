@@ -486,25 +486,65 @@ class DirectorCommands:
         return recommendations
     
     def _calculate_health_score(self, overview: Dict[str, Any], performance: Dict[str, Any]) -> float:
-        """Calculate system health score (0-1)."""
+        """Calculate enhanced system health score (0-1) with comprehensive metrics."""
         score = 0.0
+        weights = {
+            'sessions': 0.2,
+            'win_rate': 0.25,
+            'action_effectiveness': 0.2,
+            'learning_progress': 0.15,
+            'performance_metrics': 0.1,
+            'error_rate': 0.1
+        }
         
-        # Active sessions score
+        # Active sessions score (20%)
         active_sessions = overview.get("system_status", {}).get("active_sessions", 0)
         if active_sessions > 0:
-            score += 0.3
+            score += weights['sessions']
+        elif active_sessions == 0:
+            # Penalty for no active sessions
+            score -= 0.1
         
-        # Win rate score
+        # Win rate score (25%)
         win_rate = overview.get("system_status", {}).get("avg_win_rate", 0)
-        score += min(win_rate * 0.4, 0.4)
+        score += min(win_rate * weights['win_rate'], weights['win_rate'])
         
-        # Action effectiveness score
+        # Action effectiveness score (20%)
         action_effectiveness = overview.get("action_effectiveness", [])
         if action_effectiveness:
             avg_effectiveness = sum(a.get("avg_success_rate", 0) for a in action_effectiveness) / len(action_effectiveness)
-            score += min(avg_effectiveness * 0.3, 0.3)
+            score += min(avg_effectiveness * weights['action_effectiveness'], weights['action_effectiveness'])
+        else:
+            # Small penalty for no action effectiveness data
+            score -= 0.05
         
-        return min(score, 1.0)
+        # Learning progress score (15%)
+        learning_analysis = overview.get("learning_analysis", {})
+        if learning_analysis:
+            # Check for learning patterns and insights
+            patterns_count = len(learning_analysis.get("patterns", []))
+            if patterns_count > 0:
+                score += min(patterns_count / 10.0 * weights['learning_progress'], weights['learning_progress'])
+            else:
+                score += weights['learning_progress'] * 0.3  # Partial credit for having learning system
+        else:
+            score += weights['learning_progress'] * 0.1  # Minimal credit for having system
+        
+        # Performance metrics score (10%)
+        if performance:
+            # Check for recent performance data
+            recent_metrics = performance.get("recent_metrics", [])
+            if recent_metrics:
+                score += weights['performance_metrics']
+            else:
+                score += weights['performance_metrics'] * 0.5  # Partial credit
+        
+        # Error rate penalty (10%)
+        # This would need to be implemented with error tracking
+        # For now, assume no errors if we don't have error data
+        score += weights['error_rate'] * 0.8  # Assume 80% error-free
+        
+        return max(0.0, min(score, 1.0))
     
     def _get_health_status(self, health_score: float) -> str:
         """Get health status based on score."""

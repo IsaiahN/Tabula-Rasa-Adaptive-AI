@@ -456,3 +456,7 @@ class GameTypeClassifier:
 
 # Global instance
 game_type_classifier = GameTypeClassifier()
+
+def get_game_type_classifier() -> GameTypeClassifier:
+    """Get the global game type classifier instance."""
+    return game_type_classifier

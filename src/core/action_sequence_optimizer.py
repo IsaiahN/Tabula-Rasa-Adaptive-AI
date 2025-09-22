@@ -375,23 +375,53 @@ class ActionSequenceOptimizer:
     def _calculate_optimal_time_horizon(self, 
                                       current_state: Dict[str, Any],
                                       available_actions: List[int]) -> int:
-        """Calculate optimal time horizon using O(√t) scaling."""
+        """Calculate optimal time horizon using O(√t) scaling with enhanced caching."""
         try:
+            # Create cache key for this state
+            state_hash = hash(str(sorted(current_state.items())) + str(sorted(available_actions)))
+            
+            # Check cache first
+            if hasattr(self, '_horizon_cache'):
+                if state_hash in self._horizon_cache:
+                    return self._horizon_cache[state_hash]
+            else:
+                self._horizon_cache = {}
+            
             # Base time horizon
             base_horizon = min(len(available_actions), self.config.max_sequence_length)
             
             # Apply O(√t) scaling
             sqrt_scaling = int(np.sqrt(base_horizon))
             
-            # Adjust based on state complexity
+            # Enhanced complexity assessment with performance adaptation
             state_complexity = self._assess_state_complexity(current_state)
-            complexity_factor = min(2.0, 1.0 + state_complexity)
+            
+            # Adaptive scaling based on system performance
+            if hasattr(self, 'optimization_stats'):
+                recent_performance = self.optimization_stats.get('average_evaluation_time', 0.1)
+                if recent_performance > 0.5:  # Slow performance
+                    complexity_factor = min(1.5, 0.8 + state_complexity * 0.3)  # Reduce horizon
+                else:
+                    complexity_factor = min(2.0, 1.0 + state_complexity)  # Normal scaling
+            else:
+                complexity_factor = min(2.0, 1.0 + state_complexity)
             
             # Calculate final horizon
             optimal_horizon = int(sqrt_scaling * complexity_factor)
             
-            # Ensure reasonable bounds
-            optimal_horizon = max(1, min(optimal_horizon, self.config.max_sequence_length))
+            # Ensure reasonable bounds with dynamic limits
+            max_horizon = min(self.config.max_sequence_length, 20)  # Cap at 20 for performance
+            optimal_horizon = max(1, min(optimal_horizon, max_horizon))
+            
+            # Cache the result
+            self._horizon_cache[state_hash] = optimal_horizon
+            
+            # Limit cache size
+            if len(self._horizon_cache) > 1000:
+                # Remove oldest entries
+                oldest_keys = list(self._horizon_cache.keys())[:100]
+                for key in oldest_keys:
+                    del self._horizon_cache[key]
             
             return optimal_horizon
             

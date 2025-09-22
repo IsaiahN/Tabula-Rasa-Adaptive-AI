@@ -17,9 +17,8 @@ logger = logging.getLogger(__name__)
 class APIManager:
     """Manages ARC API client and related services."""
     
-    def __init__(self, api_key: Optional[str] = None, local_mode: bool = False):
+    def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key
-        self.local_mode = local_mode
         self.arc_client = None
         self.rate_limiter = RateLimiter()
         self.scorecard_manager = ScorecardManager(api_key)
@@ -30,10 +29,7 @@ class APIManager:
     async def initialize(self) -> bool:
         """Initialize the API client and test connection."""
         try:
-            if self.local_mode:
-                await self._initialize_mock_client()
-            else:
-                await self._initialize_real_client()
+            await self._initialize_real_client()
             
             self.initialized = True
             self.connection_retries = 0
@@ -45,15 +41,6 @@ class APIManager:
             self.connection_retries += 1
             return False
     
-    async def _initialize_mock_client(self) -> None:
-        """Initialize mock ARC client for local testing."""
-        try:
-            from src.arc_integration.mock_arc_client import MockARCClient
-            logger.info("Initializing MOCK ARC client for local testing...")
-            self.arc_client = MockARCClient(api_key="mock-api-key")
-        except ImportError as e:
-            logger.error(f"Mock ARC client not available: {e}")
-            raise
     
     async def _initialize_real_client(self) -> None:
         """Initialize real ARC API client."""
@@ -124,7 +111,21 @@ class APIManager:
                 scorecard_id = kwargs.pop('scorecard_id', None)
                 return await self.arc_client.reset_game(kwargs.get('game_id'), scorecard_id)
             elif request_type == "submit_action":
-                return await self.arc_client.submit_action(**kwargs)
+                # Extract parameters for send_action
+                action = kwargs.get('action', {})
+                action_id = action.get('action_id', 1)
+                action_str = f"ACTION{action_id}"
+                game_id = kwargs.get('game_id')
+                card_id = kwargs.get('card_id')
+                guid = kwargs.get('guid')
+                
+                # For ACTION6, we need to pass x,y coordinates as separate parameters
+                if action_id == 6:
+                    x = action.get('x', 0)
+                    y = action.get('y', 0)
+                    return await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid, x=x, y=y)
+                else:
+                    return await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid)
             elif request_type == "get_game_state":
                 # Extract parameters for get_game_state
                 game_id = kwargs.get('game_id')
@@ -281,7 +282,6 @@ class APIManager:
         """Get comprehensive API manager status."""
         return {
             'initialized': self.initialized,
-            'local_mode': self.local_mode,
             'has_api_key': bool(self.api_key),
             'rate_limit_status': self.get_rate_limit_status(),
             'connection_retries': self.connection_retries,

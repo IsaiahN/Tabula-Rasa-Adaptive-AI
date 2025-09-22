@@ -588,6 +588,199 @@ CREATE TABLE IF NOT EXISTS gan_performance_metrics (
     FOREIGN KEY (session_id) REFERENCES gan_training_sessions(session_id)
 );
 
+-- ============================================================================
+-- ADVANCED ACTION SYSTEM TABLES
+-- ============================================================================
+
+-- Strategy discovery and replication system
+CREATE TABLE IF NOT EXISTS winning_strategies (
+    strategy_id TEXT PRIMARY KEY,
+    game_type TEXT NOT NULL,
+    game_id TEXT NOT NULL,
+    action_sequence TEXT NOT NULL, -- JSON array of action numbers
+    score_progression TEXT NOT NULL, -- JSON array of score values
+    total_score_increase REAL NOT NULL,
+    efficiency REAL NOT NULL, -- Score per action
+    discovery_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    replication_attempts INTEGER DEFAULT 0,
+    successful_replications INTEGER DEFAULT 0,
+    refinement_level INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Strategy refinement tracking
+CREATE TABLE IF NOT EXISTS strategy_refinements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    strategy_id TEXT NOT NULL,
+    refinement_attempt INTEGER NOT NULL,
+    original_efficiency REAL NOT NULL,
+    new_efficiency REAL NOT NULL,
+    improvement REAL NOT NULL,
+    action_sequence TEXT NOT NULL, -- JSON array of refined actions
+    refinement_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (strategy_id) REFERENCES winning_strategies(strategy_id)
+);
+
+-- Strategy replication attempts
+CREATE TABLE IF NOT EXISTS strategy_replications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    strategy_id TEXT NOT NULL,
+    game_id TEXT NOT NULL,
+    replication_attempt INTEGER NOT NULL,
+    expected_efficiency REAL NOT NULL,
+    actual_efficiency REAL,
+    success BOOLEAN DEFAULT FALSE,
+    replication_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (strategy_id) REFERENCES winning_strategies(strategy_id)
+);
+
+-- Advanced stagnation detection
+CREATE TABLE IF NOT EXISTS stagnation_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    stagnation_type TEXT NOT NULL, -- 'score_regression', 'action_repetition', 'no_frame_changes', 'coordinate_stuck'
+    severity REAL NOT NULL, -- 0.0 to 1.0
+    consecutive_count INTEGER NOT NULL,
+    stagnation_context TEXT, -- JSON encoded context data
+    recovery_action TEXT, -- Action taken to recover
+    recovery_successful BOOLEAN DEFAULT FALSE,
+    detection_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+);
+
+-- Frame change analysis and classification
+CREATE TABLE IF NOT EXISTS frame_change_analysis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    action_number INTEGER NOT NULL,
+    coordinates_x INTEGER,
+    coordinates_y INTEGER,
+    change_type TEXT NOT NULL, -- 'major_movement', 'object_movement', 'small_movement', 'visual_change', 'minor_change'
+    num_pixels_changed INTEGER NOT NULL,
+    change_percentage REAL NOT NULL,
+    movement_detected BOOLEAN DEFAULT FALSE,
+    change_locations TEXT, -- JSON array of (x,y) coordinates
+    classification_confidence REAL DEFAULT 0.0,
+    analysis_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Systematic exploration phases
+CREATE TABLE IF NOT EXISTS exploration_phases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    phase_name TEXT NOT NULL, -- 'corners', 'center', 'edges', 'random'
+    phase_attempts INTEGER DEFAULT 0,
+    successful_attempts INTEGER DEFAULT 0,
+    coordinates_tried TEXT, -- JSON array of (x,y) coordinates
+    phase_start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    phase_end_time TIMESTAMP,
+    phase_success_rate REAL DEFAULT 0.0,
+    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+);
+
+-- Emergency override events
+CREATE TABLE IF NOT EXISTS emergency_overrides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    override_type TEXT NOT NULL, -- 'action_loop_break', 'coordinate_stuck_break', 'stagnation_break'
+    trigger_reason TEXT NOT NULL,
+    actions_before_override INTEGER NOT NULL,
+    override_action INTEGER NOT NULL,
+    override_successful BOOLEAN DEFAULT FALSE,
+    override_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+);
+
+-- Visual-interactive Action6 targeting
+CREATE TABLE IF NOT EXISTS visual_targets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    target_x INTEGER NOT NULL,
+    target_y INTEGER NOT NULL,
+    target_type TEXT NOT NULL, -- 'button', 'object', 'anomaly', 'interactive_element'
+    confidence REAL NOT NULL,
+    detection_method TEXT NOT NULL, -- 'opencv', 'frame_analysis', 'pattern_matching'
+    interaction_successful BOOLEAN DEFAULT FALSE,
+    frame_changes_detected BOOLEAN DEFAULT FALSE,
+    score_impact REAL DEFAULT 0.0,
+    detection_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Action effectiveness detailed tracking
+CREATE TABLE IF NOT EXISTS action_effectiveness_detailed (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    action_number INTEGER NOT NULL,
+    coordinates_x INTEGER,
+    coordinates_y INTEGER,
+    frame_changes INTEGER DEFAULT 0,
+    movement_detected INTEGER DEFAULT 0,
+    score_changes INTEGER DEFAULT 0,
+    action_unlocks INTEGER DEFAULT 0,
+    stagnation_breaks INTEGER DEFAULT 0,
+    success_rate REAL DEFAULT 0.0,
+    efficiency_score REAL DEFAULT 0.0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Governor integration for new features
+CREATE TABLE IF NOT EXISTS governor_decisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    decision_type TEXT NOT NULL, -- 'stagnation_recovery', 'strategy_replication', 'emergency_override', 'exploration_phase'
+    context_data TEXT NOT NULL, -- JSON encoded decision context
+    governor_confidence REAL NOT NULL,
+    decision_outcome TEXT, -- JSON encoded decision result
+    decision_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+);
+
+-- ============================================================================
+-- INDEXES FOR NEW TABLES
+-- ============================================================================
+
+-- Strategy discovery indexes
+CREATE INDEX IF NOT EXISTS idx_winning_strategies_game_type ON winning_strategies(game_type);
+CREATE INDEX IF NOT EXISTS idx_winning_strategies_efficiency ON winning_strategies(efficiency);
+CREATE INDEX IF NOT EXISTS idx_strategy_refinements_strategy ON strategy_refinements(strategy_id);
+CREATE INDEX IF NOT EXISTS idx_strategy_replications_strategy ON strategy_replications(strategy_id);
+
+-- Stagnation detection indexes
+CREATE INDEX IF NOT EXISTS idx_stagnation_events_game ON stagnation_events(game_id);
+CREATE INDEX IF NOT EXISTS idx_stagnation_events_type ON stagnation_events(stagnation_type);
+CREATE INDEX IF NOT EXISTS idx_stagnation_events_timestamp ON stagnation_events(detection_timestamp);
+
+-- Frame analysis indexes
+CREATE INDEX IF NOT EXISTS idx_frame_change_analysis_game ON frame_change_analysis(game_id);
+CREATE INDEX IF NOT EXISTS idx_frame_change_analysis_action ON frame_change_analysis(action_number);
+CREATE INDEX IF NOT EXISTS idx_frame_change_analysis_type ON frame_change_analysis(change_type);
+
+-- Exploration indexes
+CREATE INDEX IF NOT EXISTS idx_exploration_phases_game ON exploration_phases(game_id);
+CREATE INDEX IF NOT EXISTS idx_exploration_phases_phase ON exploration_phases(phase_name);
+
+-- Emergency override indexes
+CREATE INDEX IF NOT EXISTS idx_emergency_overrides_game ON emergency_overrides(game_id);
+CREATE INDEX IF NOT EXISTS idx_emergency_overrides_type ON emergency_overrides(override_type);
+
+-- Visual targeting indexes
+CREATE INDEX IF NOT EXISTS idx_visual_targets_game ON visual_targets(game_id);
+CREATE INDEX IF NOT EXISTS idx_visual_targets_coordinates ON visual_targets(target_x, target_y);
+CREATE INDEX IF NOT EXISTS idx_visual_targets_type ON visual_targets(target_type);
+
+-- Action effectiveness indexes
+CREATE INDEX IF NOT EXISTS idx_action_effectiveness_game ON action_effectiveness_detailed(game_id);
+CREATE INDEX IF NOT EXISTS idx_action_effectiveness_action ON action_effectiveness_detailed(action_number);
+
+-- Governor decision indexes
+CREATE INDEX IF NOT EXISTS idx_governor_decisions_session ON governor_decisions(session_id);
+CREATE INDEX IF NOT EXISTS idx_governor_decisions_type ON governor_decisions(decision_type);
+
 -- GAN indexes for performance
 CREATE INDEX IF NOT EXISTS idx_gan_generated_states_session ON gan_generated_states(session_id);
 CREATE INDEX IF NOT EXISTS idx_gan_generated_states_quality ON gan_generated_states(quality_score);

@@ -27,7 +27,6 @@ class MasterTrainingConfig:
     """Configuration for master training."""
     mode: str = "maximum-intelligence"
     api_key: Optional[str] = None
-    local_mode: bool = False
     debug_mode: bool = False
     verbose: bool = True
     max_games: int = 100
@@ -78,7 +77,7 @@ class MasterARCTrainer:
             self.session_manager = TrainingSessionManager(session_config)
             
             # API management
-            self.api_manager = APIManager(self.config.api_key, self.config.local_mode)
+            self.api_manager = APIManager(self.config.api_key)
             
             # Performance monitoring
             self.performance_monitor = PerformanceMonitor()

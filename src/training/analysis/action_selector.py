@@ -27,6 +27,24 @@ except ImportError:
     EnhancedExplorationSystem = None
     PredictiveCore = None
 
+# Import new advanced action systems
+try:
+    from ...core.visual_interactive_system import VisualInteractiveSystem
+    from ...core.advanced_stagnation_system import AdvancedStagnationSystem
+    from ...core.strategy_discovery_system import StrategyDiscoverySystem
+    from ...core.enhanced_frame_analysis import EnhancedFrameAnalysisSystem
+    from ...core.systematic_exploration_system import SystematicExplorationSystem
+    from ...core.emergency_override_system import EmergencyOverrideSystem
+    ADVANCED_ACTION_SYSTEMS_AVAILABLE = True
+except ImportError:
+    ADVANCED_ACTION_SYSTEMS_AVAILABLE = False
+    VisualInteractiveSystem = None
+    AdvancedStagnationSystem = None
+    StrategyDiscoverySystem = None
+    EnhancedFrameAnalysisSystem = None
+    SystematicExplorationSystem = None
+    EmergencyOverrideSystem = None
+
 logger = logging.getLogger(__name__)
 
 class ActionSelector:
@@ -46,6 +64,22 @@ class ActionSelector:
         self.action_effectiveness = {}
         self.coordinate_success_rates = {}
         self.pattern_matches = []
+        
+        # Initialize new advanced action systems
+        if ADVANCED_ACTION_SYSTEMS_AVAILABLE:
+            self.visual_interactive_system = VisualInteractiveSystem()
+            self.stagnation_system = AdvancedStagnationSystem()
+            self.strategy_discovery_system = StrategyDiscoverySystem()
+            self.frame_analysis_system = EnhancedFrameAnalysisSystem()
+            self.exploration_system = SystematicExplorationSystem()
+            self.emergency_override_system = EmergencyOverrideSystem()
+        else:
+            self.visual_interactive_system = None
+            self.stagnation_system = None
+            self.strategy_discovery_system = None
+            self.frame_analysis_system = None
+            self.exploration_system = None
+            self.emergency_override_system = None
         
         # Action repetition penalty system
         self.action_repetition_penalties = {}  # action_id -> penalty_score
@@ -114,7 +148,7 @@ class ActionSelector:
         """Initialize Bayesian and GAN systems."""
         try:
             # Initialize Bayesian Success Scorer
-            from ...core.bayesian_success_scorer import BayesianSuccessScorer
+            from src.core.bayesian_success_scorer import BayesianSuccessScorer
             self.bayesian_scorer = BayesianSuccessScorer()
             logger.info("✅ Bayesian Success Scorer initialized")
         except Exception as e:
@@ -122,7 +156,7 @@ class ActionSelector:
         
         try:
             # Initialize GAN system
-            from ...core.gan_system import PatternAwareGAN
+            from src.core.gan_system import PatternAwareGAN
             self.gan_system = PatternAwareGAN()
             logger.info("✅ Pattern-Aware GAN initialized")
         except Exception as e:
@@ -131,13 +165,13 @@ class ActionSelector:
     def _initialize_game_type_classifier(self):
         """Initialize game type classifier for game-specific knowledge."""
         try:
-            from ...learning.game_type_classifier import game_type_classifier
-            self.game_type_classifier = game_type_classifier
+            from src.learning.game_type_classifier import get_game_type_classifier
+            self.game_type_classifier = get_game_type_classifier()
             logger.info("✅ Game Type Classifier initialized")
         except Exception as e:
             logger.warning(f"Failed to initialize Game Type Classifier: {e}")
         
-    def select_action(self, game_state: Dict[str, Any], available_actions: List[int]) -> Dict[str, Any]:
+    async def select_action(self, game_state: Dict[str, Any], available_actions: List[int]) -> Dict[str, Any]:
         """Select the best action using advanced OpenCV analysis and pattern matching."""
         
         # Extract frame data and current state
@@ -204,7 +238,7 @@ class ActionSelector:
                     })
         else:
             # Fallback to regular OpenCV detection
-        opencv_suggestions = self._detect_opencv_targets(frame_analysis, available_actions)
+            opencv_suggestions = self._detect_opencv_targets(frame_analysis, available_actions)
         
         # 5. LEARNING-BASED SUGGESTIONS - Use historical success data
         learning_suggestions = self._generate_learning_suggestions(frame_analysis, available_actions)
@@ -238,6 +272,120 @@ class ActionSelector:
             game_state, available_actions, frame_analysis
         )
         
+        # 11. ADVANCED STAGNATION DETECTION - Check for stuck situations
+        stagnation_event = None
+        if self.stagnation_system:
+            try:
+                stagnation_event = await self.stagnation_system.detect_stagnation(
+                    game_id=game_state.get('game_id', 'unknown'),
+                    session_id=game_state.get('session_id', 'unknown'),
+                    current_state=game_state,
+                    performance_history=self.performance_history,
+                    action_history=self.action_history,
+                    frame_change_history=getattr(self, 'frame_change_history', [])
+                )
+            except Exception as e:
+                logger.error(f"Error in stagnation detection: {e}")
+        
+        # 12. EMERGENCY OVERRIDE CHECK - Check for emergency override conditions
+        emergency_override = None
+        if self.emergency_override_system:
+            try:
+                emergency_override = await self.emergency_override_system.check_emergency_override(
+                    game_id=game_state.get('game_id', 'unknown'),
+                    session_id=game_state.get('session_id', 'unknown'),
+                    current_state=game_state,
+                    action_history=self.action_history,
+                    performance_history=self.performance_history,
+                    available_actions=available_actions
+                )
+            except Exception as e:
+                logger.error(f"Error in emergency override check: {e}")
+        
+        # 13. VISUAL-INTERACTIVE ACTION6 TARGETING - Enhanced Action6 targeting
+        visual_targeting_suggestions = []
+        if 6 in available_actions and self.visual_interactive_system:
+            try:
+                visual_analysis = await self.visual_interactive_system.analyze_frame_for_action6_targets(
+                    frame_data, game_state.get('game_id', 'unknown'), available_actions
+                )
+                if visual_analysis.get('recommended_action6_coord'):
+                    x, y = visual_analysis['recommended_action6_coord']
+                    visual_targeting_suggestions.append({
+                        'action': 'ACTION6',
+                        'coordinates': (x, y),
+                        'confidence': visual_analysis.get('confidence', 0.5),
+                        'reason': visual_analysis.get('targeting_reason', 'Visual target detected'),
+                        'source': 'visual_interactive_targeting'
+                    })
+            except Exception as e:
+                logger.error(f"Error in visual interactive targeting: {e}")
+        
+        # 14. SYSTEMATIC EXPLORATION - Use systematic exploration phases
+        exploration_phase_suggestions = []
+        if self.exploration_system:
+            try:
+                grid_dimensions = self._get_grid_dimensions(frame_data)
+                x, y, phase_name = await self.exploration_system.get_exploration_coordinates(
+                    game_id=game_state.get('game_id', 'unknown'),
+                    session_id=game_state.get('session_id', 'unknown'),
+                    grid_dimensions=grid_dimensions,
+                    available_actions=available_actions
+                )
+                exploration_phase_suggestions.append({
+                    'action': 'ACTION6',
+                    'coordinates': (x, y),
+                    'confidence': 0.6,
+                    'reason': f'Systematic exploration - {phase_name} phase',
+                    'source': 'systematic_exploration'
+                })
+            except Exception as e:
+                logger.error(f"Error in systematic exploration: {e}")
+        
+        # 15. STRATEGY DISCOVERY - Check for strategy replication opportunities
+        strategy_suggestions = []
+        if self.strategy_discovery_system:
+            try:
+                game_id = game_state.get('game_id', 'unknown')
+                should_replicate = await self.strategy_discovery_system.should_attempt_strategy_replication(game_id)
+                if should_replicate:
+                    best_strategy = await self.strategy_discovery_system.get_best_strategy_for_game(game_id)
+                    if best_strategy and best_strategy.action_sequence:
+                        # Use the first action from the strategy
+                        first_action = best_strategy.action_sequence[0]
+                        if first_action in available_actions:
+                            strategy_suggestions.append({
+                                'action': f'ACTION{first_action}',
+                                'confidence': best_strategy.efficiency,
+                                'reason': f'Strategy replication - {best_strategy.strategy_id}',
+                                'source': 'strategy_discovery'
+                            })
+            except Exception as e:
+                logger.error(f"Error in strategy discovery: {e}")
+        
+        # 16. ENHANCED FRAME ANALYSIS - Analyze frame changes for better action selection
+        if self.frame_analysis_system and hasattr(self, 'last_frame_data'):
+            try:
+                frame_change_analysis = await self.frame_analysis_system.analyze_frame_changes(
+                    before_frame=self.last_frame_data,
+                    after_frame=frame_data,
+                    game_id=game_state.get('game_id', 'unknown'),
+                    action_number=self.action_history[-1] if self.action_history else 0,
+                    coordinates=getattr(self, 'last_coordinates', None)
+                )
+                if frame_change_analysis:
+                    # Update frame change history for stagnation detection
+                    if not hasattr(self, 'frame_change_history'):
+                        self.frame_change_history = []
+                    self.frame_change_history.append(frame_change_analysis.movement_detected)
+                    if len(self.frame_change_history) > 20:
+                        self.frame_change_history = self.frame_change_history[-20:]
+            except Exception as e:
+                logger.error(f"Error in enhanced frame analysis: {e}")
+        
+        # Store current frame for next analysis
+        self.last_frame_data = frame_data
+        
         # 11. PSEUDO BUTTON SUGGESTIONS - Actions that previously discovered new actions
         pseudo_button_suggestions = self._generate_pseudo_button_suggestions(available_actions)
         
@@ -258,6 +406,9 @@ class ActionSelector:
             gan_suggestions,
             game_specific_suggestions,
             pseudo_button_suggestions,
+            visual_targeting_suggestions,
+            exploration_phase_suggestions,
+            strategy_suggestions,
             action5_suggestions
         )
         
@@ -278,6 +429,10 @@ class ActionSelector:
         # Log coordinates for Action 6
         if action_id == 6 and 'x' in best_action and 'y' in best_action:
             logger.info(f"   Coordinates: ({best_action['x']}, {best_action['y']})")
+        
+        # Store coordinates for next analysis
+        if 'coordinates' in best_action:
+            self.last_coordinates = best_action['coordinates']
         
         # 9. TRACK ACTION AVAILABILITY CHANGES - Monitor pseudo score increases
         if len(self.performance_history) > 0:
@@ -318,6 +473,122 @@ class ActionSelector:
         best_action = self._add_reasoning_to_action(best_action, game_state, frame_analysis, all_suggestions)
         
         return best_action
+    
+    async def handle_action_result(self, 
+                                 game_state: Dict[str, Any], 
+                                 action_result: Dict[str, Any],
+                                 previous_score: float,
+                                 previous_available_actions: List[int]) -> None:
+        """
+        Handle the result of an action and update all systems accordingly.
+        
+        Args:
+            game_state: Current game state after action
+            action_result: Result of the action taken
+            previous_score: Score before the action
+            previous_available_actions: Available actions before the action
+        """
+        try:
+            import time
+            game_id = game_state.get('game_id', 'unknown')
+            session_id = game_state.get('session_id', 'unknown')
+            current_score = game_state.get('score', 0)
+            current_available_actions = game_state.get('available_actions', [])
+            action_number = action_result.get('action', 0)
+            coordinates = action_result.get('coordinates')
+            
+            # Calculate score change
+            score_change = current_score - previous_score
+            
+            # Check for frame changes
+            frame_changes = score_change > 0 or len(current_available_actions) != len(previous_available_actions)
+            
+            # Update performance history
+            self.performance_history.append({
+                'score': current_score,
+                'action': action_number,
+                'coordinates': coordinates,
+                'timestamp': time.time(),
+                'score_change': score_change,
+                'frame_changes': frame_changes
+            })
+            
+            # Keep only recent history
+            if len(self.performance_history) > 100:
+                self.performance_history = self.performance_history[-100:]
+            
+            # Update action history
+            self.action_history.append(action_number)
+            if len(self.action_history) > 50:
+                self.action_history = self.action_history[-50:]
+            
+            # Update visual interactive system
+            if self.visual_interactive_system and coordinates and action_number == 6:
+                try:
+                    # Record target interaction result
+                    await self.visual_interactive_system.record_target_interaction(
+                        game_id=game_id,
+                        target=type('VisualTarget', (), {
+                            'x': coordinates[0],
+                            'y': coordinates[1],
+                            'target_type': 'interactive_element',
+                            'confidence': 0.5,
+                            'detection_method': 'action_result'
+                        })(),
+                        interaction_successful=score_change > 0,
+                        frame_changes_detected=frame_changes,
+                        score_impact=score_change
+                    )
+                except Exception as e:
+                    logger.error(f"Error updating visual interactive system: {e}")
+            
+            # Update exploration system
+            if self.exploration_system and coordinates and action_number == 6:
+                try:
+                    await self.exploration_system.record_exploration_result(
+                        game_id=game_id,
+                        coordinates=coordinates,
+                        success=score_change > 0,
+                        frame_changes=frame_changes,
+                        score_impact=score_change
+                    )
+                except Exception as e:
+                    logger.error(f"Error updating exploration system: {e}")
+            
+            # Update strategy discovery system
+            if self.strategy_discovery_system and score_change > 5:
+                try:
+                    # Check if we should discover a new strategy
+                    recent_actions = self.action_history[-10:] if len(self.action_history) >= 10 else self.action_history
+                    recent_scores = [p['score'] for p in self.performance_history[-10:]] if len(self.performance_history) >= 10 else [p['score'] for p in self.performance_history]
+                    
+                    if len(recent_actions) >= 3 and len(recent_scores) >= 3:
+                        await self.strategy_discovery_system.discover_winning_strategy(
+                            game_id=game_id,
+                            action_sequence=recent_actions,
+                            score_progression=recent_scores
+                        )
+                except Exception as e:
+                    logger.error(f"Error updating strategy discovery system: {e}")
+            
+            logger.debug(f"Action result processed: Action {action_number}, "
+                        f"Score change: {score_change}, Frame changes: {frame_changes}")
+            
+        except Exception as e:
+            logger.error(f"Error handling action result: {e}")
+    
+    def _get_grid_dimensions(self, frame_data: Any) -> Tuple[int, int]:
+        """Get grid dimensions from frame data."""
+        try:
+            if isinstance(frame_data, list) and len(frame_data) > 0:
+                if isinstance(frame_data[0], list):
+                    return (len(frame_data[0]), len(frame_data))
+                else:
+                    return (len(frame_data), 1)
+            return (32, 32)  # Default fallback
+        except Exception as e:
+            logger.error(f"Error getting grid dimensions: {e}")
+            return (32, 32)
     
     def _analyze_patterns(self, frame_analysis: Dict[str, Any], available_actions: List[int]) -> List[Dict[str, Any]]:
         """Analyze patterns from frame data and historical success."""
@@ -1873,6 +2144,25 @@ class ActionSelector:
             self.coordinate_success_rates[coordinate]['success_rate'] = total_successes / attempts if attempts > 0 else 0
             
             # Update penalty decay system with coordinate attempt
+            try:
+                from src.core.coordinate_intelligence_system import CoordinateIntelligenceSystem
+                if not hasattr(self, 'coordinate_intelligence_system'):
+                    self.coordinate_intelligence_system = CoordinateIntelligenceSystem()
+                
+                # Update coordinate intelligence in database (async call)
+                import asyncio
+                asyncio.create_task(self.coordinate_intelligence_system.update_coordinate_intelligence(
+                    game_id=game_state.get('game_id', 'unknown'),
+                    x=coordinate[0],
+                    y=coordinate[1],
+                    action_id=6,
+                    success=current_score > last_score if len(self.performance_history) > 0 else False,
+                    frame_changes=1 if current_score > last_score else 0,
+                    score_change=current_score - last_score if len(self.performance_history) > 0 else 0.0,
+                    context={'action_selector': True}
+                ))
+            except Exception as e:
+                logger.error(f"Failed to update coordinate intelligence: {e}")
             try:
                 # Record coordinate attempt with penalty system (include pseudo success)
                 asyncio.create_task(self.frame_analyzer.record_coordinate_attempt(

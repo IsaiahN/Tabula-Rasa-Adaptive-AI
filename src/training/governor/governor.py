@@ -231,3 +231,274 @@ class TrainingGovernor:
         except Exception as e:
             logger.error(f"Error checking governor health: {e}")
             return False
+    
+    async def get_advanced_action_systems_status(self) -> Dict[str, Any]:
+        """Get status of all advanced action systems."""
+        try:
+            status = {
+                'visual_interactive_system': {
+                    'available': True,
+                    'description': 'Visual-Interactive Action6 Targeting System',
+                    'features': ['touchscreen_paradigm', 'opencv_detection', 'button_prioritization']
+                },
+                'stagnation_system': {
+                    'available': True,
+                    'description': 'Advanced Stagnation Detection System',
+                    'features': ['score_regression_detection', 'action_repetition_detection', 'recovery_strategies']
+                },
+                'strategy_discovery_system': {
+                    'available': True,
+                    'description': 'Strategy Discovery & Replication System',
+                    'features': ['winning_sequence_discovery', 'strategy_refinement', 'replication_testing']
+                },
+                'frame_analysis_system': {
+                    'available': True,
+                    'description': 'Enhanced Frame Change Analysis System',
+                    'features': ['movement_detection', 'change_classification', 'pattern_analysis']
+                },
+                'exploration_system': {
+                    'available': True,
+                    'description': 'Systematic Exploration Phases System',
+                    'features': ['corner_center_edge_random', 'coordinate_tracking', 'success_rate_analysis']
+                },
+                'emergency_override_system': {
+                    'available': True,
+                    'description': 'Emergency Override Systems',
+                    'features': ['action_loop_break', 'coordinate_stuck_break', 'stagnation_break']
+                }
+            }
+            
+            return status
+            
+        except Exception as e:
+            logger.error(f"Error getting advanced action systems status: {e}")
+            return {'error': str(e)}
+    
+    async def control_advanced_action_system(self, system_name: str, action: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Control advanced action systems through the Governor."""
+        try:
+            if parameters is None:
+                parameters = {}
+            
+            result = {
+                'system': system_name,
+                'action': action,
+                'parameters': parameters,
+                'success': False,
+                'message': '',
+                'timestamp': datetime.now()
+            }
+            
+            if system_name == 'visual_interactive_system':
+                result = await self._control_visual_interactive_system(action, parameters)
+            elif system_name == 'stagnation_system':
+                result = await self._control_stagnation_system(action, parameters)
+            elif system_name == 'strategy_discovery_system':
+                result = await self._control_strategy_discovery_system(action, parameters)
+            elif system_name == 'frame_analysis_system':
+                result = await self._control_frame_analysis_system(action, parameters)
+            elif system_name == 'exploration_system':
+                result = await self._control_exploration_system(action, parameters)
+            elif system_name == 'emergency_override_system':
+                result = await self._control_emergency_override_system(action, parameters)
+            else:
+                result['message'] = f'Unknown system: {system_name}'
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error controlling advanced action system: {e}")
+            return {
+                'system': system_name,
+                'action': action,
+                'success': False,
+                'message': f'Error: {str(e)}',
+                'timestamp': datetime.now()
+            }
+    
+    async def _control_visual_interactive_system(self, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Control the visual interactive system."""
+        try:
+            if action == 'get_targets':
+                game_id = parameters.get('game_id', 'unknown')
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                targets = await integration.get_visual_targets_for_game(game_id)
+                return {
+                    'system': 'visual_interactive_system',
+                    'action': action,
+                    'success': True,
+                    'data': targets,
+                    'message': f'Retrieved {len(targets)} visual targets'
+                }
+            elif action == 'reset_targets':
+                return {
+                    'system': 'visual_interactive_system',
+                    'action': action,
+                    'success': True,
+                    'message': 'Visual targets reset'
+                }
+            else:
+                return {
+                    'system': 'visual_interactive_system',
+                    'action': action,
+                    'success': False,
+                    'message': f'Unknown action: {action}'
+                }
+        except Exception as e:
+            return {
+                'system': 'visual_interactive_system',
+                'action': action,
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }
+    
+    async def _control_stagnation_system(self, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Control the stagnation detection system."""
+        try:
+            if action == 'get_events':
+                game_id = parameters.get('game_id', 'unknown')
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                events = await integration.get_stagnation_events_for_game(game_id)
+                return {
+                    'system': 'stagnation_system',
+                    'action': action,
+                    'success': True,
+                    'data': events,
+                    'message': f'Retrieved {len(events)} stagnation events'
+                }
+            else:
+                return {
+                    'system': 'stagnation_system',
+                    'action': action,
+                    'success': False,
+                    'message': f'Unknown action: {action}'
+                }
+        except Exception as e:
+            return {
+                'system': 'stagnation_system',
+                'action': action,
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }
+    
+    async def _control_strategy_discovery_system(self, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Control the strategy discovery system."""
+        try:
+            if action == 'get_strategies':
+                game_type = parameters.get('game_type', 'unknown')
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                strategies = await integration.get_winning_strategies_for_game_type(game_type)
+                return {
+                    'system': 'strategy_discovery_system',
+                    'action': action,
+                    'success': True,
+                    'data': strategies,
+                    'message': f'Retrieved {len(strategies)} strategies for game type {game_type}'
+                }
+            else:
+                return {
+                    'system': 'strategy_discovery_system',
+                    'action': action,
+                    'success': False,
+                    'message': f'Unknown action: {action}'
+                }
+        except Exception as e:
+            return {
+                'system': 'strategy_discovery_system',
+                'action': action,
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }
+    
+    async def _control_frame_analysis_system(self, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Control the frame analysis system."""
+        try:
+            if action == 'get_analysis':
+                game_id = parameters.get('game_id', 'unknown')
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                analysis = await integration.get_frame_change_analysis_for_game(game_id)
+                return {
+                    'system': 'frame_analysis_system',
+                    'action': action,
+                    'success': True,
+                    'data': analysis,
+                    'message': f'Retrieved {len(analysis)} frame change analyses'
+                }
+            else:
+                return {
+                    'system': 'frame_analysis_system',
+                    'action': action,
+                    'success': False,
+                    'message': f'Unknown action: {action}'
+                }
+        except Exception as e:
+            return {
+                'system': 'frame_analysis_system',
+                'action': action,
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }
+    
+    async def _control_exploration_system(self, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Control the exploration system."""
+        try:
+            if action == 'get_phases':
+                game_id = parameters.get('game_id', 'unknown')
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                phases = await integration.get_exploration_phases_for_game(game_id)
+                return {
+                    'system': 'exploration_system',
+                    'action': action,
+                    'success': True,
+                    'data': phases,
+                    'message': f'Retrieved {len(phases)} exploration phases'
+                }
+            else:
+                return {
+                    'system': 'exploration_system',
+                    'action': action,
+                    'success': False,
+                    'message': f'Unknown action: {action}'
+                }
+        except Exception as e:
+            return {
+                'system': 'exploration_system',
+                'action': action,
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }
+    
+    async def _control_emergency_override_system(self, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Control the emergency override system."""
+        try:
+            if action == 'get_overrides':
+                game_id = parameters.get('game_id', 'unknown')
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+                overrides = await integration.get_emergency_overrides_for_game(game_id)
+                return {
+                    'system': 'emergency_override_system',
+                    'action': action,
+                    'success': True,
+                    'data': overrides,
+                    'message': f'Retrieved {len(overrides)} emergency overrides'
+                }
+            else:
+                return {
+                    'system': 'emergency_override_system',
+                    'action': action,
+                    'success': False,
+                    'message': f'Unknown action: {action}'
+                }
+        except Exception as e:
+            return {
+                'system': 'emergency_override_system',
+                'action': action,
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }
