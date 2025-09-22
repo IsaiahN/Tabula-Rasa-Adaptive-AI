@@ -266,7 +266,7 @@ class PatternClassifier:
                 return data, 0.9
         
         # Check for geometric sequences
-        if len(data) > 2 and np.all(data != 0):
+        if len(data) > 2 and np.all(data != 0).item():
             ratios = data[1:] / data[:-1]
             if len(set(ratios)) == 1:  # All ratios are the same
                 return data, 0.8

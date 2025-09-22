@@ -10,6 +10,7 @@ import logging
 import json
 import time
 import random
+import numpy as np
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
@@ -123,9 +124,17 @@ class EmergencyOverrideSystem:
             
             recent_actions = action_history[-8:]  # Last 8 actions
             
+            # Extract action IDs from history (handle both int and dict formats)
+            action_ids = []
+            for action in recent_actions:
+                if isinstance(action, dict):
+                    action_ids.append(action.get('action', action.get('id', 0)))
+                else:
+                    action_ids.append(action)
+            
             # Check for repeated action patterns
             action_counts = {}
-            for action in recent_actions:
+            for action in action_ids:
                 action_counts[action] = action_counts.get(action, 0) + 1
             
             # Check for single action dominating
@@ -152,8 +161,8 @@ class EmergencyOverrideSystem:
                 )
             
             # Check for limited action diversity
-            unique_actions = len(set(recent_actions))
-            if unique_actions <= 2 and len(recent_actions) >= 6:
+            unique_actions = len(set(action_ids))
+            if unique_actions <= 2 and len(action_ids) >= 6:
                 # Force action diversification
                 override_action = random.choice(available_actions)
                 
@@ -320,10 +329,10 @@ class EmergencyOverrideSystem:
         """Get recent coordinate attempts for a game."""
         try:
             query = """
-                SELECT x, y, timestamp
+                SELECT x, y, last_penalty_applied
                 FROM coordinate_penalties
                 WHERE game_id = ?
-                ORDER BY timestamp DESC
+                ORDER BY last_penalty_applied DESC
                 LIMIT 20
             """
             

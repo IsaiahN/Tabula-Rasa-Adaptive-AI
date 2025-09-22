@@ -29,14 +29,18 @@ except ImportError:
 
 # Import new advanced action systems
 try:
-    from ...core.visual_interactive_system import VisualInteractiveSystem
-    from ...core.advanced_stagnation_system import AdvancedStagnationSystem
-    from ...core.strategy_discovery_system import StrategyDiscoverySystem
-    from ...core.enhanced_frame_analysis import EnhancedFrameAnalysisSystem
-    from ...core.systematic_exploration_system import SystematicExplorationSystem
-    from ...core.emergency_override_system import EmergencyOverrideSystem
+    from src.core.visual_interactive_system import VisualInteractiveSystem
+    from src.core.advanced_stagnation_system import AdvancedStagnationSystem
+    from src.core.strategy_discovery_system import StrategyDiscoverySystem
+    from src.core.enhanced_frame_analysis import EnhancedFrameAnalysisSystem
+    from src.core.systematic_exploration_system import SystematicExplorationSystem
+    from src.core.emergency_override_system import EmergencyOverrideSystem
+    from src.core.systematic_button_discovery import SystematicButtonDiscovery
+    from src.core.stagnation_intervention_system import StagnationInterventionSystem
     ADVANCED_ACTION_SYSTEMS_AVAILABLE = True
-except ImportError:
+    print("✅ ADVANCED SYSTEMS IMPORTED SUCCESSFULLY")
+except ImportError as e:
+    print(f"❌ ADVANCED SYSTEMS IMPORT FAILED: {e}")
     ADVANCED_ACTION_SYSTEMS_AVAILABLE = False
     VisualInteractiveSystem = None
     AdvancedStagnationSystem = None
@@ -44,6 +48,19 @@ except ImportError:
     EnhancedFrameAnalysisSystem = None
     SystematicExplorationSystem = None
     EmergencyOverrideSystem = None
+    SystematicButtonDiscovery = None
+    StagnationInterventionSystem = None
+except Exception as e:
+    print(f"❌ ADVANCED SYSTEMS INITIALIZATION FAILED: {e}")
+    ADVANCED_ACTION_SYSTEMS_AVAILABLE = False
+    VisualInteractiveSystem = None
+    AdvancedStagnationSystem = None
+    StrategyDiscoverySystem = None
+    EnhancedFrameAnalysisSystem = None
+    SystematicExplorationSystem = None
+    EmergencyOverrideSystem = None
+    SystematicButtonDiscovery = None
+    StagnationInterventionSystem = None
 
 logger = logging.getLogger(__name__)
 
@@ -66,20 +83,39 @@ class ActionSelector:
         self.pattern_matches = []
         
         # Initialize new advanced action systems
+        logger.info(f"🧠 ADVANCED SYSTEMS STATUS: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
         if ADVANCED_ACTION_SYSTEMS_AVAILABLE:
-            self.visual_interactive_system = VisualInteractiveSystem()
-            self.stagnation_system = AdvancedStagnationSystem()
-            self.strategy_discovery_system = StrategyDiscoverySystem()
-            self.frame_analysis_system = EnhancedFrameAnalysisSystem()
-            self.exploration_system = SystematicExplorationSystem()
-            self.emergency_override_system = EmergencyOverrideSystem()
+            try:
+                self.visual_interactive_system = VisualInteractiveSystem()
+                self.stagnation_system = AdvancedStagnationSystem()
+                self.strategy_discovery_system = StrategyDiscoverySystem()
+                self.frame_analysis_system = EnhancedFrameAnalysisSystem()
+                self.exploration_system = SystematicExplorationSystem()
+                self.emergency_override_system = EmergencyOverrideSystem()
+                self.button_discovery_system = SystematicButtonDiscovery()
+                self.stagnation_intervention_system = StagnationInterventionSystem()
+                logger.info("✅ All advanced systems initialized successfully")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize advanced systems: {e}")
+                # Fallback to None
+                self.visual_interactive_system = None
+                self.stagnation_system = None
+                self.strategy_discovery_system = None
+                self.frame_analysis_system = None
+                self.exploration_system = None
+                self.emergency_override_system = None
+                self.button_discovery_system = None
+                self.stagnation_intervention_system = None
         else:
+            logger.warning("⚠️ Advanced systems not available - setting to None")
             self.visual_interactive_system = None
             self.stagnation_system = None
             self.strategy_discovery_system = None
             self.frame_analysis_system = None
             self.exploration_system = None
             self.emergency_override_system = None
+            self.button_discovery_system = None
+            self.stagnation_intervention_system = None
         
         # Action repetition penalty system
         self.action_repetition_penalties = {}  # action_id -> penalty_score
@@ -159,8 +195,12 @@ class ActionSelector:
             from src.core.gan_system import PatternAwareGAN
             self.gan_system = PatternAwareGAN()
             logger.info("✅ Pattern-Aware GAN initialized")
+        except ImportError as e:
+            logger.warning(f"PyTorch not available, GAN system disabled: {e}")
+            self.gan_system = None
         except Exception as e:
             logger.warning(f"Failed to initialize GAN system: {e}")
+            self.gan_system = None
     
     def _initialize_game_type_classifier(self):
         """Initialize game type classifier for game-specific knowledge."""
@@ -178,6 +218,46 @@ class ActionSelector:
         frame_data = game_state.get('frame', [])
         current_score = game_state.get('score', 0)
         game_state_status = game_state.get('state', 'NOT_FINISHED')
+        game_id = game_state.get('game_id', 'unknown')
+        
+        # 0. STAGNATION INTERVENTION - Check for stagnation and trigger intervention
+        if self.stagnation_intervention_system:
+            logger.info(f"🧠 STAGNATION SYSTEM ACTIVE - Analyzing frame {len(self.stagnation_intervention_system.frame_history) if hasattr(self.stagnation_intervention_system, 'frame_history') else 'unknown'}")
+            stagnation_event = await self.stagnation_intervention_system.analyze_frame(frame_data, game_state)
+            if stagnation_event and stagnation_event.intervention_required:
+                logger.warning(f"🚨 STAGNATION DETECTED: {stagnation_event.type.value} (severity: {stagnation_event.severity:.2f})")
+                
+                # Trigger multi-system intervention
+                intervention = await self.stagnation_intervention_system.trigger_intervention(stagnation_event)
+                
+                # Use emergency actions to break stagnation
+                if intervention.get('emergency_actions'):
+                    emergency_action = intervention['emergency_actions'][0]  # Use first emergency action
+                    logger.warning(f"🚨 EMERGENCY INTERVENTION: {emergency_action['reason']}")
+                    return emergency_action
+        else:
+            logger.warning(f"🚨 STAGNATION SYSTEM NOT AVAILABLE - Advanced systems: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
+        
+        # 0.5. SYSTEMATIC BUTTON DISCOVERY - Test every object with Action 6 (only if no stagnation)
+        if self.button_discovery_system and 6 in available_actions and not self.stagnation_intervention_system.is_intervention_active():
+            # Initialize button discovery for new games
+            if not hasattr(self, '_current_game_id') or self._current_game_id != game_id:
+                await self.button_discovery_system.start_new_game(game_id, frame_data)
+                self._current_game_id = game_id
+                logger.info(f"🎯 BUTTON DISCOVERY INITIALIZED for game {game_id}")
+            
+            # Get next coordinate to test
+            next_test_coord = await self.button_discovery_system.get_next_test_coordinate()
+            if next_test_coord:
+                logger.info(f"🎯 SYSTEMATIC TESTING: Testing coordinate {next_test_coord}")
+                return {
+                    'id': 6,
+                    'x': next_test_coord[0],
+                    'y': next_test_coord[1],
+                    'reason': f"Systematic button discovery - testing coordinate {next_test_coord}",
+                    'confidence': 0.9,
+                    'source': 'button_discovery'
+                }
         
         # 1. ADVANCED FRAME ANALYSIS - OpenCV-based visual analysis
         frame_analysis = self.frame_analyzer.analyze_frame(frame_data)
@@ -394,6 +474,13 @@ class ActionSelector:
         if self._detect_stuck_situation(game_state, available_actions):
             action5_suggestions = self._generate_action5_fallback_suggestions(available_actions)
         
+        # 12.5. BUTTON DISCOVERY SUGGESTIONS - Use discovered buttons
+        button_discovery_suggestions = []
+        if self.button_discovery_system and 6 in available_actions:
+            button_discovery_suggestions = self.button_discovery_system.get_button_suggestions(limit=3)
+            if button_discovery_suggestions:
+                logger.info(f"🎯 BUTTON DISCOVERY: Found {len(button_discovery_suggestions)} button suggestions")
+        
         # 13. COMBINE ALL SUGGESTIONS - Multi-source decision making
         all_suggestions = self._combine_suggestions(
             pattern_suggestions,
@@ -409,7 +496,8 @@ class ActionSelector:
             visual_targeting_suggestions,
             exploration_phase_suggestions,
             strategy_suggestions,
-            action5_suggestions
+            action5_suggestions,
+            button_discovery_suggestions
         )
         
         # 8. INTELLIGENT SELECTION - Multi-factor scoring
@@ -502,6 +590,36 @@ class ActionSelector:
             
             # Check for frame changes
             frame_changes = score_change > 0 or len(current_available_actions) != len(previous_available_actions)
+            
+            # Update button discovery system for Action 6
+            if self.button_discovery_system and action_number == 6 and coordinates:
+                try:
+                    action_unlocks = len(current_available_actions) - len(previous_available_actions)
+                    visual_changes = 1 if frame_changes else 0
+                    
+                    await self.button_discovery_system.record_test_result(
+                        coordinate=coordinates,
+                        score_change=score_change,
+                        action_unlocks=action_unlocks,
+                        visual_changes=visual_changes,
+                        frame_changed=frame_changes
+                    )
+                    
+                    logger.info(f"🎯 BUTTON TEST RESULT: {coordinates} - Score: {score_change:+.2f}, Actions: {action_unlocks:+d}, Visual: {visual_changes}")
+                except Exception as e:
+                    logger.error(f"Error updating button discovery system: {e}")
+            
+            # Update stagnation intervention system
+            if self.stagnation_intervention_system:
+                try:
+                    action_data = {
+                        'id': action_number,
+                        'x': coordinates[0] if coordinates else None,
+                        'y': coordinates[1] if coordinates else None
+                    }
+                    self.stagnation_intervention_system.record_action(action_data, coordinates)
+                except Exception as e:
+                    logger.error(f"Error updating stagnation intervention system: {e}")
             
             # Update performance history
             self.performance_history.append({
@@ -1480,6 +1598,7 @@ class ActionSelector:
                 def __init__(self, actions, state_features):
                     self.actions = actions
                     self.state_features = state_features
+                    self.nodes = []  # Add missing nodes attribute
             
             # Generate suggestions for each available action
             for action_id in available_actions:

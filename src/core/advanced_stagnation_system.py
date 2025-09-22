@@ -164,14 +164,19 @@ class AdvancedStagnationSystem:
             logger.error(f"Error checking score regression: {e}")
             return None
     
-    async def _check_action_repetition(self, action_history: List[int]) -> Optional[StagnationEvent]:
+    async def _check_action_repetition(self, action_history: List[Any]) -> Optional[StagnationEvent]:
         """Check for excessive action repetition."""
         try:
             if len(action_history) < 5:
                 return None
             
-            # Check for repeated actions in recent history
-            recent_actions = action_history[-10:]  # Last 10 actions
+            # Extract action IDs from history (handle both int and dict formats)
+            recent_actions = []
+            for action in action_history[-10:]:  # Last 10 actions
+                if isinstance(action, dict):
+                    recent_actions.append(action.get('action', action.get('id', 0)))
+                else:
+                    recent_actions.append(action)
             
             # Count consecutive repetitions
             consecutive_count = 1
@@ -313,8 +318,15 @@ class AdvancedStagnationSystem:
             score_trend = np.polyfit(range(len(recent_scores)), recent_scores, 1)[0]
             
             # Check for low action diversity
-            unique_actions = len(set(action_history[-8:]))
-            action_diversity_ratio = unique_actions / len(action_history[-8:])
+            recent_actions = []
+            for action in action_history[-8:]:
+                if isinstance(action, dict):
+                    recent_actions.append(action.get('action', action.get('id', 0)))
+                else:
+                    recent_actions.append(action)
+            
+            unique_actions = len(set(recent_actions))
+            action_diversity_ratio = unique_actions / len(recent_actions)
             
             # Calculate stagnation score
             stagnation_score = 0.0
@@ -374,10 +386,10 @@ class AdvancedStagnationSystem:
         """Get recent coordinate attempts for a game."""
         try:
             query = """
-                SELECT x, y, timestamp
+                SELECT x, y, last_penalty_applied
                 FROM coordinate_penalties
                 WHERE game_id = ?
-                ORDER BY timestamp DESC
+                ORDER BY last_penalty_applied DESC
                 LIMIT 20
             """
             
@@ -398,7 +410,8 @@ class AdvancedStagnationSystem:
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
                 event.game_id, event.session_id, event.stagnation_type.value,
-                event.severity, event.consecutive_count, json.dumps(event.context_data),
+                event.severity, event.consecutive_count, 
+                json.dumps(event.context_data, default=str, ensure_ascii=False),
                 event.detection_timestamp
             ))
             

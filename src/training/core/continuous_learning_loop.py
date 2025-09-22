@@ -207,11 +207,15 @@ class ContinuousLearningLoop:
                         if hasattr(action_result, 'score'):
                             # GameState object
                             new_score = action_result.score
-                            game_state = action_result.state
+                            game_state_str = action_result.state
+                            available_actions = action_result.available_actions
+                            frame = action_result.frame
                         else:
                             # Dictionary
                             new_score = action_result.get('score', current_score)
-                            game_state = action_result.get('state', 'NOT_FINISHED')
+                            game_state_str = action_result.get('state', 'NOT_FINISHED')
+                            available_actions = action_result.get('available_actions', [])
+                            frame = action_result.get('frame', [])
                         
                         
                         # Ensure both scores are numbers
@@ -229,8 +233,17 @@ class ContinuousLearningLoop:
                             action_display += f" ({action_to_take['reason']})"
                         print(f"   {action_display} → Score: {total_score} (+{score_change})")
                         
+                        # Update game state for next iteration
+                        game_state = {
+                            'game_id': real_game_id,
+                            'frame': frame,
+                            'state': game_state_str,
+                            'score': new_score,
+                            'available_actions': available_actions
+                        }
+                        
                         # Check for win condition
-                        if game_state == 'WIN':
+                        if game_state_str == 'WIN':
                             game_won = True
                             print(f"🎉 GAME WON! Final score: {total_score}")
                             break

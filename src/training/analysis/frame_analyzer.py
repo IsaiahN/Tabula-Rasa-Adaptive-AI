@@ -149,7 +149,7 @@ class FrameAnalyzer:
         bright_colors = [1, 5, 6, 7, 15]  # White, Yellow, Magenta, Cyan, Light Gray
         for color in bright_colors:
             mask = (grid == color)
-            if np.any(mask):
+            if np.any(mask).item():  # Convert to Python bool to avoid ambiguous truth value
                 # Find connected components
                 contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 for contour in contours:

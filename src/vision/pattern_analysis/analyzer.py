@@ -29,13 +29,20 @@ class PatternAnalyzer:
         unique_colors = np.unique(frame_array.reshape(-1, frame_array.shape[-1]), axis=0)
         
         for color in unique_colors:
-            # Create mask for this color
-            mask = np.all(frame_array == color, axis=2)
-            
-            # Ensure mask is single channel
-            mask_uint8 = mask.astype(np.uint8)
-            if len(mask_uint8.shape) == 3:
-                mask_uint8 = cv2.cvtColor(mask_uint8, cv2.COLOR_RGB2GRAY)
+            # Create mask for this color - use explicit comparison to avoid ambiguous truth value
+            try:
+                # Compare each pixel with the color
+                color_match = (frame_array == color)
+                # Use np.all with explicit axis to avoid ambiguous truth value
+                mask = np.all(color_match, axis=2)
+                
+                # Ensure mask is single channel
+                mask_uint8 = mask.astype(np.uint8)
+                if len(mask_uint8.shape) == 3:
+                    mask_uint8 = cv2.cvtColor(mask_uint8, cv2.COLOR_RGB2GRAY)
+            except Exception as e:
+                # Fallback: skip this color if there's an error
+                continue
             
             # Find contours
             contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

@@ -279,11 +279,12 @@ class PenaltyLoggingSystem:
             await self.integration.db.execute(
                 """
                 INSERT INTO system_logs 
-                (event_type, message, data, timestamp)
-                VALUES (?, ?, ?, ?)
+                (log_level, component, message, data, timestamp)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
-                    event.event_type.value,
+                    "INFO",  # log_level
+                    "PENALTY_SYSTEM",  # component
                     f"Penalty event: {event.event_type.value}",
                     json.dumps(asdict(event), default=str),
                     event.timestamp

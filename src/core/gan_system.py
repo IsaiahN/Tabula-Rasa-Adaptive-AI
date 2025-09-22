@@ -114,7 +114,13 @@ class GANTrainingConfig:
     checkpoint_frequency: int = 50
     synthetic_data_ratio: float = 0.2  # 20% of training data should be synthetic
 
-class GameStateGenerator(nn.Module):
+class GameStateGenerator:
+    def __init__(self, *args, **kwargs):
+        torch = _get_torch()
+        if torch is None:
+            raise ImportError("PyTorch not available")
+        # Initialize as a proper nn.Module
+        super().__init__()
     """
     Generator network that creates synthetic ARC-AGI-3 game states.
     
@@ -213,7 +219,7 @@ class GameStateGenerator(nn.Module):
             'success_probability': success_prob
         }
 
-class GameStateDiscriminator(nn.Module):
+class GameStateDiscriminator(_get_torch().nn.Module):
     """
     Discriminator network that distinguishes real from synthetic game states.
     
@@ -323,26 +329,49 @@ class PatternAwareGAN:
         self.pattern_learning_system = pattern_learning_system
         self.db = get_database()
         
-        # Initialize models
-        self.generator = GameStateGenerator(
-            latent_dim=self.config.latent_dim,
-            pattern_embedding_dim=self.config.pattern_embedding_dim
-        )
-        
-        self.discriminator = GameStateDiscriminator()
-        
-        # Optimizers
-        self.optimizer_g = optim.Adam(
-            self.generator.parameters(),
-            lr=self.config.learning_rate_generator,
-            betas=(self.config.beta1, self.config.beta2)
-        )
-        
-        self.optimizer_d = optim.Adam(
-            self.discriminator.parameters(),
-            lr=self.config.learning_rate_discriminator,
-            betas=(self.config.beta1, self.config.beta2)
-        )
+        # Initialize models with error handling
+        try:
+            # Check if PyTorch is available
+            import torch
+            import torch.nn as nn
+            import torch.optim as optim
+            
+            self.generator = GameStateGenerator(
+                latent_dim=self.config.latent_dim,
+                pattern_embedding_dim=self.config.pattern_embedding_dim
+            )
+            
+            self.discriminator = GameStateDiscriminator()
+            
+            # Initialize optimizers
+            self.optimizer_g = optim.Adam(
+                self.generator.parameters(),
+                lr=self.config.learning_rate_generator,
+                betas=(self.config.beta1, self.config.beta2)
+            )
+            
+            self.optimizer_d = optim.Adam(
+                self.discriminator.parameters(),
+                lr=self.config.learning_rate_discriminator,
+                betas=(self.config.beta1, self.config.beta2)
+            )
+            
+            print("✅ GAN system initialized successfully with PyTorch")
+            
+        except ImportError as e:
+            # PyTorch not available
+            self.generator = None
+            self.discriminator = None
+            self.optimizer_g = None
+            self.optimizer_d = None
+            print(f"Warning: PyTorch not available, GAN models disabled: {e}")
+        except Exception as e:
+            # Other initialization errors
+            self.generator = None
+            self.discriminator = None
+            self.optimizer_g = None
+            self.optimizer_d = None
+            print(f"Warning: GAN models could not be initialized: {e}")
         
         # Training state
         self.current_session_id = None

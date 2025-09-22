@@ -38,6 +38,7 @@ class Component(Enum):
     TASK_PERFORMANCE = "task_performance"
     SUBSYSTEM_MONITOR = "subsystem_monitor"
     FRAME_ANALYSIS = "frame_analysis"
+    GAME_RESULT = "game_result"
 
 @dataclass
 class TrainingSession:

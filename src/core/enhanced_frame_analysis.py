@@ -328,7 +328,7 @@ class EnhancedFrameAnalysisSystem:
                 analysis.coordinates[1] if analysis.coordinates else None,
                 analysis.change_type.value, analysis.num_pixels_changed,
                 analysis.change_percentage, analysis.movement_detected,
-                json.dumps(analysis.change_locations), analysis.classification_confidence,
+                json.dumps(analysis.change_locations, default=str), analysis.classification_confidence,
                 analysis.analysis_timestamp
             ))
             
