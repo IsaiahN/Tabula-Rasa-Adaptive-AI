@@ -18,7 +18,7 @@ from enum import Enum
 import json
 
 from ..core.caching_system import UnifiedCachingSystem, CacheConfig, CacheLevel
-from ..core.performance_monitor import PerformanceMonitor, MetricType, AlertLevel
+from ..core.unified_performance_monitor import UnifiedPerformanceMonitor, AlertLevel
 
 
 class StreamType(Enum):

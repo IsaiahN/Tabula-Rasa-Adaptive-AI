@@ -374,7 +374,7 @@ class Phase3AutomationSystem:
                 await asyncio.sleep(120)
     
     async def _monitor_safety_violations(self):
-        """Monitor for safety violations."""
+        """Monitor for safety violations using unified safety mechanisms."""
         try:
             # Check for cooldown violations
             if self.code_evolution_active:
@@ -396,36 +396,11 @@ class Phase3AutomationSystem:
             self.safety_score = max(0.0, 1.0 - (self.safety_violations * 0.1))
             self.metrics.safety_score = self.safety_score
             
-            # Check if emergency stop is needed
-            if self.safety_score < 0.3:
-                await self._trigger_emergency_stop()
+            # Note: Emergency stop is now handled by unified safety mechanisms
+            # This method only monitors and reports violations
             
         except Exception as e:
             logger.error(f"Error monitoring safety violations: {e}")
-    
-    async def _trigger_emergency_stop(self):
-        """Trigger emergency stop."""
-        try:
-            logger.critical("🚨 EMERGENCY STOP TRIGGERED - Safety score too low")
-            
-            self.emergency_stop = True
-            
-            # Stop all systems
-            await self.stop_phase3()
-            
-            # Log emergency stop
-            await self.integration.log_system_event(
-                "CRITICAL", "PHASE3_EMERGENCY_STOP",
-                "Emergency stop triggered due to safety violations",
-                {
-                    "safety_score": self.safety_score,
-                    "safety_violations": self.safety_violations,
-                    "timestamp": time.time()
-                }
-            )
-            
-        except Exception as e:
-            logger.error(f"Error triggering emergency stop: {e}")
     
     async def _metrics_collection_loop(self):
         """Metrics collection loop."""

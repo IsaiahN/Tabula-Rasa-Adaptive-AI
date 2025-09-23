@@ -359,13 +359,13 @@ class TabulaRasaDatabase:
                 conn.execute("""
                     INSERT OR REPLACE INTO coordinate_intelligence
                     (game_id, x, y, attempts, successes, success_rate,
-                     frame_changes, last_used, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     frame_changes, last_used, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     intelligence.game_id, intelligence.x, intelligence.y,
                     intelligence.attempts, intelligence.successes,
                     intelligence.success_rate, intelligence.frame_changes,
-                    intelligence.last_used, datetime.now()
+                    intelligence.last_used, datetime.now(), datetime.now()
                 ))
                 conn.commit()
                 return True
@@ -428,63 +428,59 @@ class TabulaRasaDatabase:
                 return False
     
     async def log_action_trace(self, session_id: str, game_id: str, action_number: int,
-                              coordinates: Tuple[int, int] = None, frame_before: List = None,
-                              frame_after: List = None, frame_changed: bool = False,
-                              score_before: float = 0.0, score_after: float = 0.0,
-                              response_data: Dict[str, Any] = None) -> bool:
+                             coordinates: Tuple[int, int] = None, frame_before: List = None,
+                             frame_after: List = None, frame_changed: bool = False,
+                             score_before: float = 0.0, score_after: float = 0.0,
+                             response_data: Dict[str, Any] = None) -> bool:
         """Log detailed action trace."""
         async with self.get_connection() as conn:
             try:
                 # Ensure all data is properly serialized
+                def to_serializable(obj):
+                    try:
+                        import numpy as np
+                        if isinstance(obj, np.ndarray):
+                            return obj.tolist()
+                        if hasattr(obj, "item"):
+                            return obj.item()
+                        if isinstance(obj, (set,)):
+                            return list(obj)
+                    except Exception:
+                        pass
+                    return obj
+                
                 coordinates_json = None
-                if coordinates:
-                    if isinstance(coordinates, (list, tuple)):
-                        coordinates_json = json.dumps(list(coordinates))
-                    else:
-                        coordinates_json = json.dumps(coordinates)
+                if coordinates is not None:
+                    coords = list(coordinates) if isinstance(coordinates, (list, tuple)) else coordinates
+                    coordinates_json = json.dumps(coords, default=to_serializable)
                 
                 frame_before_json = None
-                if frame_before:
-                    if isinstance(frame_before, str):
-                        frame_before_json = frame_before  # Already JSON string
-                    else:
-                        frame_before_json = json.dumps(frame_before)
+                if frame_before is not None:
+                    frame_before_json = json.dumps(frame_before, default=to_serializable)
                 
                 frame_after_json = None
-                if frame_after:
-                    if isinstance(frame_after, str):
-                        frame_after_json = frame_after  # Already JSON string
-                    else:
-                        frame_after_json = json.dumps(frame_after)
+                if frame_after is not None:
+                    frame_after_json = json.dumps(frame_after, default=to_serializable)
                 
                 response_data_json = None
-                if response_data:
-                    if isinstance(response_data, str):
-                        response_data_json = response_data  # Already JSON string
-                    else:
-                        response_data_json = json.dumps(response_data)
+                if response_data is not None:
+                    response_data_json = json.dumps(response_data, default=to_serializable)
                 
                 conn.execute("""
                     INSERT INTO action_traces
                     (session_id, game_id, action_number, coordinates, timestamp,
-                     frame_before, frame_after, frame_changed, score_before,
-                     score_after, score_change, response_data)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    frame_before, frame_after, frame_changed, score_before,
+                    score_after, response_data)
+                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)
                 """, (
-                    session_id, game_id, action_number,
-                    coordinates_json,
-                    datetime.now(),
-                    frame_before_json,
-                    frame_after_json,
-                    frame_changed, score_before, score_after,
-                    score_after - score_before,
-                    response_data_json
+                    session_id, game_id, int(action_number), coordinates_json,
+                    frame_before_json, frame_after_json, bool(frame_changed),
+                    float(score_before), float(score_after), response_data_json
                 ))
                 conn.commit()
                 return True
             except Exception as e:
-                self.logger.error(f"Failed to log action trace: {e}")
-                self.logger.error(f"🔍 DEBUG: Column count mismatch - INSERT statement has 12 columns but provided values: {len([session_id, game_id, action_number, coordinates_json, datetime.now(), frame_before_json, frame_after_json, frame_changed, score_before, score_after, score_after - score_before, response_data_json])}")
+                self.logger.warning(f"Database error in log_action_trace: {e}")
                 return False
     
     # ============================================================================

@@ -1,5 +1,5 @@
 # Core agent components
-from .architect_modular import Architect
+from .architect import Architect
 from .system_design import SystemGenome, MutationType, MutationImpact
 from .mutation_system import MutationEngine, SandboxTester, Mutation, TestResult
 from .evolution_engine import EvolutionEngine, FitnessEvaluator, SelectionStrategy

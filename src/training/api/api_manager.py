@@ -232,7 +232,14 @@ class APIManager:
                     y = max(0, min(63, y))
                 game_state = await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid, x=x, y=y)
             else:
-                game_state = await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid)
+                # For actions 1-5 and 7, include reasoning in the payload
+                reasoning = action.get('reasoning', {})
+                if reasoning:
+                    logger.info(f"🧠 Sending {action_str} with reasoning: {reasoning.get('policy', 'unknown')}")
+                    game_state = await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid, reasoning=reasoning)
+                else:
+                    logger.warning(f"⚠️ No reasoning provided for {action_str}")
+                    game_state = await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid)
             if game_state:
                 return {
                     'game_id': game_state.game_id,

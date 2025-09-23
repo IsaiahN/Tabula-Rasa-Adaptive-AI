@@ -5,12 +5,12 @@ Handles performance metrics collection, memory monitoring,
 and optimization.
 """
 
-from .performance_monitor import PerformanceMonitor
+from src.core.unified_performance_monitor import UnifiedPerformanceMonitor
 from .metrics_collector import MetricsCollector
 from .optimization import QueryOptimizer
 
 __all__ = [
-    'PerformanceMonitor',
+    'UnifiedPerformanceMonitor',
     'MetricsCollector',
     'QueryOptimizer'
 ]

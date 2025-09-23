@@ -27,7 +27,7 @@ import numpy as np
 
 # Import caching and performance monitoring
 from .caching_system import get_global_cache, cache_result, cache_async_result, CacheLevel
-from .performance_monitor import get_global_monitor, monitor_performance, monitor_async_performance
+from .unified_performance_monitor import get_performance_monitor, monitor_performance
 
 logger = logging.getLogger(__name__)
 

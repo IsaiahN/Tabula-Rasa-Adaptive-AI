@@ -15,9 +15,9 @@ from pathlib import Path
 try:
     from dotenv import load_dotenv
     load_dotenv()
-    print("✅ Environment variables loaded from .env file in centralized_config")
+    print("[OK] Environment variables loaded from .env file in centralized_config")
 except ImportError:
-    print("⚠️ python-dotenv not available in centralized_config, using system environment variables")
+    print("[WARN] python-dotenv not available in centralized_config, using system environment variables")
 
 
 @dataclass
@@ -198,7 +198,7 @@ class LoggingConfig:
             # Minimal fallback
             logging.basicConfig(level=logging.INFO, format=log_format)
         
-        print("🚀 Enhanced logging initialized - real-time terminal and file output enabled")
+        print("[START] Enhanced logging initialized - real-time terminal and file output enabled")
 
 
 class DatabaseConfig:

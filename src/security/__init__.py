@@ -15,7 +15,7 @@ from .data_validation import DataValidator, ValidationResult, ValidationError
 from .adversarial_protection import AdversarialDetector, AttackDetection, AttackType, ThreatLevel
 from .feedback_loop_protection import FeedbackLoopDetector, LoopType, LoopSeverity
 from .corruption_detection import CorruptionDetector, CorruptionDetection, CorruptionType, CorruptionSeverity
-from .integrity_monitoring import IntegrityMonitor, IntegrityStatus, SecurityEvent
+# Integrity monitoring now integrated into safety mechanisms
 from .threat_intelligence import ThreatIntelligence, ThreatPattern, RiskAssessment, ThreatCategory, RiskLevel
 from .incident_response import IncidentResponseSystem, Incident, IncidentSeverity, IncidentStatus, ResponseAction
 from .security_audit import SecurityAuditSystem, SecurityPolicy, AuditFinding, AuditReport, ComplianceStandard, AuditSeverity, AuditStatus
@@ -44,10 +44,7 @@ __all__ = [
     'CorruptionType',
     'CorruptionSeverity',
     
-    # Integrity monitoring
-    'IntegrityMonitor',
-    'IntegrityStatus',
-    'SecurityEvent',
+    # Integrity monitoring now integrated into safety mechanisms
     
     # Threat intelligence
     'ThreatIntelligence',

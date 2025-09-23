@@ -9,7 +9,7 @@ from .performance_tracking import PerformanceTracker
 from .trend_analysis import TrendAnalyzer
 from .report_generation import ReportGenerator
 from .data_collection import DataCollector
-from .performance_monitor import PerformanceMonitor, performance_monitor, monitor_operation, measure_function, get_memory_usage, get_performance_summary
+from ..core.unified_performance_monitor import UnifiedPerformanceMonitor, get_performance_monitor, monitor_performance
 
 # New enhanced monitoring features
 from .streaming_analytics import get_streaming_analytics, StreamingAnalytics, StreamType, AnalysisType
@@ -25,12 +25,9 @@ __all__ = [
     'TrendAnalyzer',
     'ReportGenerator',
     'DataCollector',
-    'PerformanceMonitor',
-    'performance_monitor',
-    'monitor_operation',
-    'measure_function',
-    'get_memory_usage',
-    'get_performance_summary',
+    'UnifiedPerformanceMonitor',
+    'get_performance_monitor',
+    'monitor_performance',
     
     # Enhanced monitoring features
     'get_streaming_analytics',

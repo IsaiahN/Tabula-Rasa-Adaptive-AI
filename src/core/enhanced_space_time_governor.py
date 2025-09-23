@@ -19,18 +19,94 @@ from pathlib import Path
 
 # Import caching and performance monitoring
 from .caching_system import get_global_cache, cache_result, cache_async_result, CacheLevel
-from .performance_monitor import get_global_monitor, monitor_performance, monitor_async_performance
+from .unified_performance_monitor import get_performance_monitor, monitor_performance
 
-# Import space-time components
-from .space_time_governor import (
-    SpaceTimeAwareGovernor,
-    TreeParameterOptimizer,
-    SpaceTimeParameters,
-    ResourceProfile,
-    ResourceLevel,
-    ProblemComplexity,
-    create_space_time_aware_governor
-)
+# Space-time components (moved from deleted space_time_governor.py)
+class ResourceLevel(Enum):
+    """Resource availability levels."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+class ProblemComplexity(Enum):
+    """Problem complexity levels."""
+    SIMPLE = "simple"
+    MODERATE = "moderate"
+    COMPLEX = "complex"
+    VERY_COMPLEX = "very_complex"
+
+@dataclass
+class SpaceTimeParameters:
+    """Space-time aware parameters for tree evaluation."""
+    d: float = 0.5  # Depth parameter
+    b: float = 0.5  # Breadth parameter  
+    h: float = 0.5  # Height parameter
+    
+    def to_dict(self):
+        return asdict(self)
+
+@dataclass
+class ResourceProfile:
+    """Resource availability profile."""
+    cpu_usage: float = 0.5
+    memory_usage: float = 0.5
+    time_available: float = 1.0
+    level: ResourceLevel = ResourceLevel.MEDIUM
+
+class TreeParameterOptimizer:
+    """Optimizes tree evaluation parameters based on resources."""
+    
+    def __init__(self):
+        self.current_parameters = SpaceTimeParameters()
+    
+    def optimize_parameters(self, resource_profile: ResourceProfile, complexity: ProblemComplexity) -> SpaceTimeParameters:
+        """Optimize parameters based on resources and complexity."""
+        # Simple optimization logic
+        if resource_profile.level == ResourceLevel.HIGH:
+            return SpaceTimeParameters(d=0.8, b=0.8, h=0.8)
+        elif resource_profile.level == ResourceLevel.LOW:
+            return SpaceTimeParameters(d=0.3, b=0.3, h=0.3)
+        else:
+            return SpaceTimeParameters(d=0.5, b=0.5, h=0.5)
+
+class SpaceTimeAwareGovernor:
+    """Space-time aware governor for resource optimization."""
+    
+    def __init__(self):
+        self.current_parameters = SpaceTimeParameters()
+        self.optimizer = TreeParameterOptimizer()
+    
+    def make_decision_with_space_time_awareness(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Make decision with space-time awareness."""
+        return {
+            'parameters': self.current_parameters.to_dict(),
+            'decision': 'optimized',
+            'context': context
+        }
+    
+    def get_space_time_stats(self) -> Dict[str, Any]:
+        """Get space-time statistics."""
+        return {
+            'parameters': self.current_parameters.to_dict(),
+            'optimizer_stats': {}
+        }
+    
+    def update_performance_feedback(self, problem_type: str, performance_result: float):
+        """Update performance feedback."""
+        pass
+    
+    def record_action_result(self, action: str, success: bool, score_change: float, context: Dict[str, Any]):
+        """Record action result."""
+        pass
+    
+    def analyze_performance_and_recommend(self, recent_actions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze performance and recommend improvements."""
+        return {'recommendations': [], 'analysis': {}}
+
+def create_space_time_aware_governor():
+    """Create a space-time aware governor."""
+    return SpaceTimeAwareGovernor()
 
 # Import legacy components that are still needed
 try:

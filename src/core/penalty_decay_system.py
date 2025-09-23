@@ -335,7 +335,7 @@ class PenaltyDecaySystem:
             await self.integration.db.execute(
                 """
                 INSERT OR REPLACE INTO coordinate_intelligence 
-                (game_id, x, y, attempts, successes, success_rate, last_used, created_at)
+                (game_id, x, y, attempts, successes, success_rate, last_used, created_at, updated_at)
                 VALUES (
                     ?, ?, ?, 
                     COALESCE((SELECT attempts FROM coordinate_intelligence WHERE game_id = ? AND x = ? AND y = ?), 0) + 1,

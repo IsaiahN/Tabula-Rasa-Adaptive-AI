@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 
-from .performance_monitor import PerformanceMonitor, PerformanceMetrics
+from ...core.unified_performance_monitor import UnifiedPerformanceMonitor, PerformanceMetrics
 from .metrics_collector import MetricsCollector, MetricType
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class DashboardData:
 class MonitoringDashboard:
     """Monitoring dashboard system."""
     
-    def __init__(self, performance_monitor: PerformanceMonitor, 
+    def __init__(self, performance_monitor: UnifiedPerformanceMonitor, 
                  metrics_collector: MetricsCollector):
         self.performance_monitor = performance_monitor
         self.metrics_collector = metrics_collector

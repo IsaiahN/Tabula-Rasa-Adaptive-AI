@@ -42,10 +42,10 @@ def _get_torch_optim():
         return None
 
 # Global variables for lazy loading
-torch = None
-nn = None
-optim = None
-F = None
+torch = _get_torch()
+nn = _get_torch_nn()
+optim = _get_torch_optim()
+F = _get_torch_functional()
 
 import json
 import logging
@@ -195,8 +195,8 @@ class GameStateGenerator:
             nn.Sigmoid()  # Output probability [0, 1]
         )
     
-    def forward(self, noise: torch.Tensor, pattern_embeddings: torch.Tensor, 
-                context: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(self, noise, pattern_embeddings, 
+                context) -> Dict[str, Any]:
         """Generate synthetic game state."""
         # Combine inputs
         x = torch.cat([noise, pattern_embeddings, context], dim=1)
@@ -219,7 +219,9 @@ class GameStateGenerator:
             'success_probability': success_prob
         }
 
-class GameStateDiscriminator(_get_torch().nn.Module):
+_DiscriminatorBase = nn.Module if nn is not None else object
+
+class GameStateDiscriminator(_DiscriminatorBase):
     """
     Discriminator network that distinguishes real from synthetic game states.
     
@@ -283,8 +285,8 @@ class GameStateDiscriminator(_get_torch().nn.Module):
             nn.Linear(256, 3)  # [real/synthetic, quality, pattern_consistency]
         )
     
-    def forward(self, grid: torch.Tensor, objects: torch.Tensor, 
-                properties: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(self, grid, objects, 
+                properties) -> Dict[str, Any]:
         """Discriminate game state."""
         # Process grid
         grid_features = self.grid_conv(grid)
@@ -360,7 +362,7 @@ class PatternAwareGAN:
                 betas=(self.config.beta1, self.config.beta2)
             )
             
-            print("✅ GAN system initialized successfully with PyTorch")
+            print("[OK] GAN system initialized successfully with PyTorch")
             
         except ImportError as e:
             # PyTorch not available
@@ -635,7 +637,7 @@ class PatternAwareGAN:
                 'gan'
             ))
     
-    async def _prepare_batch(self, states: List[GameState]) -> Dict[str, torch.Tensor]:
+    async def _prepare_batch(self, states: List[GameState]) -> Dict[str, Any]:
         """Prepare batch for training."""
         grids = []
         objects = []
@@ -672,8 +674,8 @@ class PatternAwareGAN:
             properties.get('energy_required', 0.5)
         ])
     
-    async def _train_discriminator(self, real_batch: Dict[str, torch.Tensor], 
-                                 synthetic_batch: Dict[str, torch.Tensor]) -> float:
+    async def _train_discriminator(self, real_batch: Dict[str, Any], 
+                                 synthetic_batch: Dict[str, Any]) -> float:
         """Train discriminator."""
         self.optimizer_d.zero_grad()
         
@@ -706,7 +708,7 @@ class PatternAwareGAN:
         
         return d_loss.item()
     
-    async def _train_generator(self, synthetic_batch: Dict[str, torch.Tensor]) -> float:
+    async def _train_generator(self, synthetic_batch: Dict[str, Any]) -> float:
         """Train generator."""
         self.optimizer_g.zero_grad()
         

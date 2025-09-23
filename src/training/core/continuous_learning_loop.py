@@ -16,7 +16,8 @@ from datetime import datetime
 from ..memory import MemoryManager, ActionMemoryManager, PatternMemoryManager
 from ..sessions import TrainingSessionManager, TrainingSessionConfig
 from ..api import APIManager
-from ..performance import PerformanceMonitor, MetricsCollector
+from src.core.unified_performance_monitor import UnifiedPerformanceMonitor
+from ..performance import MetricsCollector
 from ..governor import TrainingGovernor, MetaCognitiveController
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler, CompatibilityShim
@@ -39,7 +40,7 @@ class ContinuousLearningLoop:
         save_directory: str = "data"
     ):
         """Initialize the continuous learning loop with modular components."""
-        print("🚀 Starting Modular ContinuousLearningLoop initialization...")
+        print("[START] Starting Modular ContinuousLearningLoop initialization...")
         
         # Store basic configuration
         self.arc_agents_path = Path(arc_agents_path)
@@ -57,7 +58,7 @@ class ContinuousLearningLoop:
         # Initialize compatibility shim
         self.compatibility_shim = CompatibilityShim()
         
-        print("✅ Modular ContinuousLearningLoop initialized successfully")
+        print("[OK] Modular ContinuousLearningLoop initialized successfully")
     
     async def _ensure_api_initialized(self) -> None:
         """Ensure API manager is initialized (async)."""
@@ -73,7 +74,7 @@ class ContinuousLearningLoop:
         # The system is already initialized in __init__, but we can add validation here
         if not hasattr(self, 'api_manager'):
             raise RuntimeError("ContinuousLearningLoop not properly initialized")
-        print("✅ System initialization verified")
+        print("[OK] System initialization verified")
     
     async def get_available_games(self) -> List[Dict[str, Any]]:
         """Get list of available games from the real ARC-AGI-3 API."""
@@ -85,7 +86,7 @@ class ContinuousLearningLoop:
                 print(f"🎮 Found {len(games)} real ARC-AGI-3 games available")
                 return games
             else:
-                print("⚠️ No real games available from ARC-AGI-3 API")
+                print("[WARNING] No real games available from ARC-AGI-3 API")
                 return []
         except Exception as e:
             logger.error(f"Error getting available games: {e}")
@@ -95,7 +96,7 @@ class ContinuousLearningLoop:
                                                session_count: int = 1, duration_minutes: int = 15) -> Dict[str, Any]:
         """Start training with direct API control using real ARC-AGI-3 API."""
         try:
-            print(f"🎯 Starting REAL ARC-AGI-3 training for game {game_id}")
+            print(f"[TARGET] Starting REAL ARC-AGI-3 training for game {game_id}")
             print(f"   Max actions: {max_actions_per_game}")
             print(f"   Duration: {duration_minutes} minutes")
             
@@ -142,7 +143,7 @@ class ContinuousLearningLoop:
             game_won = False
             current_state = reset_response.state
             
-            print(f"🎯 Starting real gameplay with {max_actions_per_game} max actions...")
+            print(f"[TARGET] Starting real gameplay with {max_actions_per_game} max actions...")
             
             while actions_taken < max_actions_per_game and current_state == 'NOT_FINISHED':
                 try:
@@ -156,7 +157,7 @@ class ContinuousLearningLoop:
                         print(f"⏸️ Rate limit pause: {pause_duration:.1f}s (usage: {rate_status.get('current_usage', 0)}/{rate_status.get('max_requests', 550)})")
                         await asyncio.sleep(pause_duration)
                     elif warning:
-                        print(f"⚠️ {warning}")
+                        print(f"[WARNING] {warning}")
                         # Small delay when approaching limits
                         await asyncio.sleep(0.5)  # 0.5 second delay
                     
@@ -192,7 +193,7 @@ class ContinuousLearningLoop:
                         action_to_take = self._choose_smart_action(available_actions, current_response)
                     
                     if not action_to_take or not isinstance(action_to_take, dict):
-                        print("⚠️ No valid actions available, ending game")
+                        print("[WARNING] No valid actions available, ending game")
                         break
                     
                     # Execute the action
@@ -286,7 +287,7 @@ class ContinuousLearningLoop:
                 )
                 print(f"💾 Game result saved to database: {real_game_id}")
             except Exception as e:
-                print(f"⚠️ Failed to save game result to database: {e}")
+                print(f"[WARNING] Failed to save game result to database: {e}")
             
             # Create real training result
             result = {
@@ -301,7 +302,7 @@ class ContinuousLearningLoop:
                 'timestamp': datetime.now().isoformat()
             }
             
-            print(f"✅ Real training completed: {actions_taken} actions, score {total_score}, win: {game_won}")
+            print(f"[OK] Real training completed: {actions_taken} actions, score {total_score}, win: {game_won}")
             return result
             
         except Exception as e:
@@ -325,7 +326,7 @@ class ContinuousLearningLoop:
             if 6 in available_actions:
                 # Analyze frame for targeting
                 frame_data = game_response.frame
-                if frame_data:
+                if frame_data is not None and len(frame_data) > 0:
                     target = self._find_target_coordinates(frame_data[0])
                     if target:
                         return {
@@ -380,7 +381,7 @@ class ContinuousLearningLoop:
             self.action_selector = None
             
             # Performance monitoring
-            self.performance_monitor = PerformanceMonitor()
+            self.performance_monitor = UnifiedPerformanceMonitor()
             self.metrics_collector = MetricsCollector()
             
             # Governor and meta-cognitive systems
@@ -406,7 +407,7 @@ class ContinuousLearningLoop:
     async def run_continuous_learning(self, max_games: int = 100) -> Dict[str, Any]:
         """Run continuous learning with modular components."""
         try:
-            print(f"🎯 Starting continuous learning for {max_games} games")
+            print(f"[TARGET] Starting continuous learning for {max_games} games")
             
             # Initialize API if not already done
             if not self.api_manager.is_initialized():
@@ -429,7 +430,7 @@ class ContinuousLearningLoop:
             
             for game_num in range(max_games):
                 if self.shutdown_handler.is_shutdown_requested():
-                    print("🛑 Shutdown requested, stopping continuous learning")
+                    print("[STOP] Shutdown requested, stopping continuous learning")
                     break
                 
                 try:
@@ -468,7 +469,7 @@ class ContinuousLearningLoop:
                     self.performance_monitor.update_metric('total_games_played', 1)
                     self.performance_monitor.update_metric('total_actions_taken', game_result.get('actions_taken', 0))
                     
-                    print(f"✅ Game {game_num + 1}/{max_games} completed: {game_result.get('score', 0.0):.2f} score")
+                    print(f"[OK] Game {game_num + 1}/{max_games} completed: {game_result.get('score', 0.0):.2f} score")
                     
                 except Exception as e:
                     logger.error(f"Error in game {game_num}: {e}")

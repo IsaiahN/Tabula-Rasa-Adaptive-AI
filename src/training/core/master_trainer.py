@@ -15,7 +15,8 @@ from datetime import datetime
 from ..memory import MemoryManager, ActionMemoryManager, PatternMemoryManager
 from ..sessions import TrainingSessionManager, TrainingSessionConfig
 from ..api import APIManager
-from ..performance import PerformanceMonitor, MetricsCollector
+from src.core.unified_performance_monitor import UnifiedPerformanceMonitor
+from ..performance import MetricsCollector
 from ..governor import TrainingGovernor, MetaCognitiveController
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler
@@ -80,7 +81,7 @@ class MasterARCTrainer:
             self.api_manager = APIManager(self.config.api_key)
             
             # Performance monitoring
-            self.performance_monitor = PerformanceMonitor()
+            self.performance_monitor = UnifiedPerformanceMonitor()
             self.metrics_collector = MetricsCollector()
             
             # Governor and meta-cognitive systems

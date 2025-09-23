@@ -30,9 +30,9 @@ import json
 try:
     from dotenv import load_dotenv
     load_dotenv()
-    print("✅ Environment variables loaded from .env file")
+    print("[OK] Environment variables loaded from .env file")
 except ImportError:
-    print("⚠️ python-dotenv not available, using system environment variables")
+    print("[WARNING] python-dotenv not available, using system environment variables")
 
 # Add src to path for database access
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -48,8 +48,8 @@ def signal_handler(signum, frame):
     """Handle graceful shutdown signals."""
     global shutdown_requested, cleanup_handler
     if shutdown_requested:
-        print(f"\n🛑 FORCE EXIT REQUESTED (Signal: {signum})")
-        print("🛑 Exiting immediately...")
+    print(f"\n[STOP] FORCE EXIT REQUESTED (Signal: {signum})")
+    print("[STOP] Exiting immediately...")
         # Try to cleanup before force exit
         if cleanup_handler:
             try:
@@ -59,18 +59,18 @@ def signal_handler(signum, frame):
                 pass
         sys.exit(0)
     
-    print(f"\n🛑 GRACEFUL SHUTDOWN REQUESTED (Signal: {signum})")
+    print(f"\n[STOP] GRACEFUL SHUTDOWN REQUESTED (Signal: {signum})")
     shutdown_requested = True
-    print("🛑 Training will stop after current session completes...")
-    print("🛑 Press Ctrl+C again to force immediate exit")
+    print("[STOP] Training will stop after current session completes...")
+    print("[STOP] Press Ctrl+C again to force immediate exit")
 
 async def run_training_session(session_id: int, duration_minutes: int = 15) -> Dict[str, Any]:
     """Run a single training session with direct API control (no subprocess)."""
-    print(f"🚀 Starting DIRECT API training session #{session_id}")
+    print(f"[START] Starting DIRECT API training session #{session_id}")
     
     # Ensure API key is available
     if 'ARC_API_KEY' not in os.environ:
-        print("❌ ARC_API_KEY not found in environment variables")
+        print("[ERROR] ARC_API_KEY not found in environment variables")
         return {
             'session_id': session_id,
             'return_code': -1,
@@ -79,13 +79,13 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
             'error': 'ARC_API_KEY not found in environment variables'
         }
     else:
-        print(f"✅ ARC_API_KEY found: {os.environ['ARC_API_KEY'][:10]}...")
+        print(f"[OK] ARC_API_KEY found: {os.environ['ARC_API_KEY'][:10]}...")
     
     start_time = time.time()
     
     try:
         # Initialize the continuous learning loop directly
-        print(f"🔧 Initializing ContinuousLearningLoop for session #{session_id}")
+        print(f"[INIT] Initializing ContinuousLearningLoop for session #{session_id}")
         
         # Get the current directory paths
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -102,11 +102,11 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         async def cleanup():
             """Cleanup function for graceful shutdown."""
             try:
-                print("🧹 Cleaning up resources...")
+                print("[CLEANUP] Cleaning up resources...")
                 await learning_loop.close()
-                print("✅ Cleanup completed")
+                print("[OK] Cleanup completed")
             except Exception as e:
-                print(f"⚠️ Error during cleanup: {e}")
+                print(f"[WARN] Error during cleanup: {e}")
         
         cleanup_handler = cleanup
         
@@ -116,7 +116,7 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         # Get available games
         available_games = await learning_loop.get_available_games()
         if not available_games:
-            print("❌ No available games found")
+            print("[ERROR] No available games found")
             return {
                 'session_id': session_id,
                 'return_code': -1,
@@ -128,13 +128,13 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         # Select a single game for this session
         selected_game = available_games[0]  # Always use the first available game
         game_id = selected_game.get('game_id', selected_game)  # Handle both dict and string
-        print(f"🎮 Selected game: {game_id}")
+        print(f"[TARGET] Selected game: {game_id}")
         
         # Run training with direct control for the specified duration
-        print(f"🎯 Starting direct API training for {duration_minutes} minutes...")
+        print(f"[TARGET] Starting direct API training for {duration_minutes} minutes...")
         
         # Run training for the full duration in a single continuous session
-        print(f"🎯 Starting continuous training session for {duration_minutes} minutes...")
+        print(f"[TARGET] Starting continuous training session for {duration_minutes} minutes...")
         
         # Coordinate shutdown between main script and learning loop
         if shutdown_requested:
@@ -163,7 +163,7 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         
     except Exception as e:
         duration = time.time() - start_time
-        print(f"❌ Error in training session #{session_id}: {e}")
+        print(f"[ERROR] Error in training session #{session_id}: {e}")
         return {
             'session_id': session_id,
             'return_code': -1,
@@ -178,7 +178,7 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
             if 'learning_loop' in locals():
                 await learning_loop.close()
         except Exception as e:
-            print(f"⚠️ Error cleaning up session #{session_id}: {e}")
+            print(f"[WARN] Error cleaning up session #{session_id}: {e}")
 
 async def main():
     """Main function for simple 9-hour training with direct API control."""
@@ -192,17 +192,17 @@ async def main():
     print("TABULA RASA - SIMPLE 9 HOUR CONTINUOUS TRAINING")
     print("=" * 80)
     print()
-    print("🚀 Starting DIRECT API sequential training session...")
-    print("⏱️ Duration: 9 hours (540 minutes)")
-    print("🎯 Mode: Sequential with direct API control (NO subprocess parallel execution)")
-    print("✨ Features: Enhanced learning, stable execution, graceful shutdown")
-    print("💾 Database: Enabled (no more JSON files)")
-    print("🔒 GUARANTEED: Single-threaded execution - no parallel _train_on_game calls")
+    print("[START] Starting DIRECT API sequential training session...")
+    print("[INFO] Duration: 9 hours (540 minutes)")
+    print("[INFO] Mode: Sequential with direct API control (NO subprocess parallel execution)")
+    print("[INFO] Features: Enhanced learning, stable execution, graceful shutdown")
+    print("[INFO] Database: Enabled (no more JSON files)")
+    print("[INFO] GUARANTEED: Single-threaded execution - no parallel _train_on_game calls")
     
     # Ensure database is ready before starting training
-    print("🔍 Checking database initialization...")
+    print("[CHECK] Checking database initialization...")
     if not ensure_database_ready():
-        print("❌ Database initialization failed. Training cannot proceed.")
+        print("[ERROR] Database initialization failed. Training cannot proceed.")
         return 1
     
     # Record start time
@@ -218,7 +218,7 @@ async def main():
     sessions_per_hour = 1  # 1 session per hour (focused on single games)
     total_sessions = 9 * sessions_per_hour  # 9 total sessions
     
-    print(f"📊 Training Plan:")
+    print(f"[PLAN] Training Plan:")
     print(f"   • Total sessions: {total_sessions}")
     print(f"   • Session duration: {session_duration} minutes")
     print(f"   • Sessions per hour: {sessions_per_hour}")
@@ -233,7 +233,7 @@ async def main():
         while session_count < total_sessions and not shutdown_requested:
             # Check for shutdown request first
             if shutdown_requested:
-                print(f"\n🛑 SHUTDOWN REQUESTED - Stopping training gracefully")
+                print(f"\n[STOP] SHUTDOWN REQUESTED - Stopping training gracefully")
                 print(f"Completed {session_count} sessions before shutdown")
                 break
                 
@@ -255,9 +255,9 @@ async def main():
             print("=" * 80)
             print(f"TRAINING SESSION #{session_count}")
             print("=" * 80)
-            print(f"⏰ Time remaining: {remaining_hours:.2f} hours")
-            print(f"🕐 Session started: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"🎮 Starting DIRECT API training session...")
+            print(f"[TIME] Time remaining: {remaining_hours:.2f} hours")
+            print(f"[TIME] Session started: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"[START] Starting DIRECT API training session...")
             print()
             
             # Run training session with direct API control
@@ -266,9 +266,9 @@ async def main():
             
             # Display result
             if result['success']:
-                print(f"✅ Session #{session_count} completed successfully in {result['duration']:.1f}s")
+                print(f"[OK] Session #{session_count} completed successfully in {result['duration']:.1f}s")
             else:
-                print(f"❌ Session #{session_count} failed (code: {result['return_code']}) in {result['duration']:.1f}s")
+                print(f"[ERROR] Session #{session_count} failed (code: {result['return_code']}) in {result['duration']:.1f}s")
                 if 'error' in result:
                     print(f"   Error: {result['error']}")
             
@@ -276,13 +276,13 @@ async def main():
             successful_sessions = sum(1 for r in all_results if r['success'])
             success_rate = successful_sessions / len(all_results) * 100
             
-            print(f"📊 Progress: {len(all_results)}/{total_sessions} sessions")
-            print(f"✅ Success rate: {success_rate:.1f}%")
+            print(f"[PROGRESS] {len(all_results)}/{total_sessions} sessions")
+            print(f"[OK] Success rate: {success_rate:.1f}%")
             print()
             
             # Check for shutdown request after each session
             if shutdown_requested:
-                print(f"\n🛑 SHUTDOWN REQUESTED - Stopping training gracefully")
+                print(f"\n[STOP] SHUTDOWN REQUESTED - Stopping training gracefully")
                 print(f"Completed {session_count} sessions before shutdown")
                 break
             
@@ -292,12 +292,12 @@ async def main():
     except KeyboardInterrupt:
         current_time = datetime.now()
         elapsed_seconds = (current_time - start_time).total_seconds()
-        print(f"\n🛑 Training stopped by user (Ctrl+C)")
-        print(f"⏱️ Total duration: {elapsed_seconds/3600:.2f} hours")
-        print(f"📊 Total sessions completed: {session_count}")
+        print(f"\n[STOP] Training stopped by user (Ctrl+C)")
+        print(f"[TIME] Total duration: {elapsed_seconds/3600:.2f} hours")
+        print(f"[PROGRESS] Total sessions completed: {session_count}")
         
     except Exception as e:
-        print(f"\n❌ Error running training: {e}")
+        print(f"\n[ERROR] Error running training: {e}")
         return 1
     
     finally:
@@ -307,7 +307,7 @@ async def main():
                 print("🧹 Cleaning up resources...")
                 await cleanup_handler()
         except Exception as e:
-            print(f"⚠️ Error during cleanup: {e}")
+            print(f"[WARNING] Error during cleanup: {e}")
     
     # Final statistics
     print("\n" + "=" * 80)
@@ -320,14 +320,14 @@ async def main():
         total_duration = sum(r['duration'] for r in all_results)
         avg_duration = total_duration / len(all_results)
         
-        print(f"📊 Overall Results:")
-        print(f"   🎮 Total sessions: {len(all_results)}")
-        print(f"   ✅ Successful: {successful_sessions}")
-        print(f"   ❌ Failed: {failed_sessions}")
-        print(f"   🎯 Success rate: {successful_sessions/len(all_results)*100:.1f}%")
-        print(f"   ⏱️ Total training time: {total_duration/3600:.2f} hours")
-        print(f"   📈 Average session duration: {avg_duration:.1f}s")
-        print(f"   🔒 Execution mode: DIRECT API (single-threaded)")
+        print(f"[SUMMARY] Overall Results:")
+        print(f"   Total sessions: {len(all_results)}")
+        print(f"   Successful: {successful_sessions}")
+        print(f"   Failed: {failed_sessions}")
+        print(f"   Success rate: {successful_sessions/len(all_results)*100:.1f}%")
+        print(f"   [TIME] Total training time: {total_duration/3600:.2f} hours")
+        print(f"   Average session duration: {avg_duration:.1f}s")
+        print(f"   Execution mode: DIRECT API (single-threaded)")
         
         # Database-only mode: No file saving
         print(f"\n💾 Results saved to database")

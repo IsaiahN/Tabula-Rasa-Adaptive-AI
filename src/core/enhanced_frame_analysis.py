@@ -112,16 +112,16 @@ class EnhancedFrameAnalysisSystem:
             
             # Create analysis result
             analysis = FrameChangeAnalysis(
-                game_id=game_id,
-                action_number=action_number,
-                coordinates=coordinates,
+                game_id=str(game_id),
+                action_number=int(action_number),
+                coordinates=(int(coordinates[0]), int(coordinates[1])) if coordinates else None,
                 change_type=change_type,
-                num_pixels_changed=num_pixels_changed,
-                change_percentage=change_percentage,
-                movement_detected=movement_detected,
-                change_locations=change_locations[:20],  # Limit for storage
-                classification_confidence=confidence,
-                analysis_timestamp=time.time()
+                num_pixels_changed=int(num_pixels_changed),
+                change_percentage=float(change_percentage),
+                movement_detected=bool(movement_detected),
+                change_locations=[(int(x), int(y)) for (x, y) in change_locations[:20]],  # Limit for storage
+                classification_confidence=float(confidence),
+                analysis_timestamp=float(time.time())
             )
             
             # Store in database
@@ -186,16 +186,16 @@ class EnhancedFrameAnalysisSystem:
             resize_percentage = (size_change / (before_size[0] * before_size[1])) * 100
             
             analysis = FrameChangeAnalysis(
-                game_id=game_id,
-                action_number=action_number,
-                coordinates=coordinates,
+                game_id=str(game_id),
+                action_number=int(action_number),
+                coordinates=(int(coordinates[0]), int(coordinates[1])) if coordinates else None,
                 change_type=ChangeType.FRAME_RESIZE,
-                num_pixels_changed=size_change,
-                change_percentage=resize_percentage,
+                num_pixels_changed=int(size_change),
+                change_percentage=float(resize_percentage),
                 movement_detected=False,
                 change_locations=[],
-                classification_confidence=1.0,  # High confidence for resize
-                analysis_timestamp=time.time()
+                classification_confidence=float(1.0),  # High confidence for resize
+                analysis_timestamp=float(time.time())
             )
             
             return analysis
@@ -208,7 +208,8 @@ class EnhancedFrameAnalysisSystem:
         """Get coordinates of changed pixels."""
         try:
             y_coords, x_coords = np.where(changed_pixels)
-            return list(zip(x_coords, y_coords))
+            # Convert numpy scalars to regular Python integers for JSON serialization
+            return [(int(x), int(y)) for x, y in zip(x_coords, y_coords)]
             
         except Exception as e:
             logger.error(f"Error getting change locations: {e}")
@@ -328,7 +329,7 @@ class EnhancedFrameAnalysisSystem:
                 analysis.coordinates[1] if analysis.coordinates else None,
                 analysis.change_type.value, analysis.num_pixels_changed,
                 analysis.change_percentage, analysis.movement_detected,
-                json.dumps(analysis.change_locations, default=str), analysis.classification_confidence,
+                json.dumps(analysis.change_locations), analysis.classification_confidence,
                 analysis.analysis_timestamp
             ))
             

@@ -17,7 +17,7 @@ from enum import Enum
 import json
 
 from ..core.caching_system import UnifiedCachingSystem, CacheConfig
-from ..core.performance_monitor import AlertLevel
+from ..core.unified_performance_monitor import AlertLevel
 
 
 class AnomalyType(Enum):

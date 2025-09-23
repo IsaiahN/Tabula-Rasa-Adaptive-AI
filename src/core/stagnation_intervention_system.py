@@ -109,7 +109,7 @@ class StagnationInterventionSystem:
             self.pattern_predictor = PatternDiscoveryCuriosity()
             self.gan_system = None  # Set to None since module doesn't exist
             
-            self.logger.info("✅ Advanced systems initialized for stagnation intervention")
+            self.logger.info("[OK] Advanced systems initialized for stagnation intervention")
         except ImportError as e:
             self.logger.warning(f"Some advanced systems not available: {e}")
             self.governor = None
@@ -120,11 +120,11 @@ class StagnationInterventionSystem:
         """Analyze current frame for stagnation patterns."""
         try:
             # Add debugging for frame_data type and content
-            self.logger.info(f"🔍 STAGNATION DEBUG: analyze_frame called with frame_data type: {type(frame_data)}")
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: analyze_frame called with frame_data type: {type(frame_data)}")
             if hasattr(frame_data, 'shape'):
-                self.logger.info(f"🔍 STAGNATION DEBUG: frame_data shape: {frame_data.shape}")
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: frame_data shape: {frame_data.shape}")
             elif isinstance(frame_data, list):
-                self.logger.info(f"🔍 STAGNATION DEBUG: frame_data length: {len(frame_data)}")
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: frame_data length: {len(frame_data)}")
             
             current_score = game_state.get('score', 0)
             current_actions = game_state.get('available_actions', [])
@@ -134,9 +134,9 @@ class StagnationInterventionSystem:
             # Calculate frame hash for change detection
             frame_hash = self._calculate_frame_hash(frame_data)
         except Exception as e:
-            self.logger.error(f"🔍 STAGNATION DEBUG: Error in analyze_frame: {e}")
+            self.logger.error(f"[CHECK] STAGNATION DEBUG: Error in analyze_frame: {e}")
             import traceback
-            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            self.logger.error(f"[CHECK] STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
             raise
         
         # Update history
@@ -158,9 +158,9 @@ class StagnationInterventionSystem:
         
         # 1. Frame stagnation detection
         try:
-            self.logger.info(f"🔍 STAGNATION DEBUG: About to call _detect_frame_stagnation")
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: About to call _detect_frame_stagnation")
             if self._detect_frame_stagnation():
-                self.logger.info(f"🔍 STAGNATION DEBUG: _detect_frame_stagnation returned True")
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: _detect_frame_stagnation returned True")
                 self.logger.warning(f"🚨 FRAME STAGNATION DETECTED!")
                 stagnation_events.append(StagnationEvent(
                     type=StagnationType.FRAME_STAGNATION,
@@ -177,9 +177,9 @@ class StagnationInterventionSystem:
                     intervention_required=True
                 ))
         except Exception as e:
-            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _detect_frame_stagnation: {e}")
+            self.logger.error(f"[CHECK] STAGNATION DEBUG: Error in _detect_frame_stagnation: {e}")
             import traceback
-            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            self.logger.error(f"[CHECK] STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
             raise
         
         # 2. Score stagnation detection
@@ -287,23 +287,23 @@ class StagnationInterventionSystem:
     def _calculate_frame_hash(self, frame_data: List[List[int]]) -> str:
         """Calculate hash of frame for change detection."""
         try:
-            self.logger.info(f"🔍 STAGNATION DEBUG: _calculate_frame_hash called with frame_data type: {type(frame_data)}")
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: _calculate_frame_hash called with frame_data type: {type(frame_data)}")
             if hasattr(frame_data, 'shape'):
-                self.logger.info(f"🔍 STAGNATION DEBUG: frame_data shape: {frame_data.shape}")
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: frame_data shape: {frame_data.shape}")
             elif isinstance(frame_data, list):
-                self.logger.info(f"🔍 STAGNATION DEBUG: frame_data length: {len(frame_data)}")
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: frame_data length: {len(frame_data)}")
             
             # Convert to numpy array and flatten for hashing
             frame_array = np.array(frame_data)
-            self.logger.info(f"🔍 STAGNATION DEBUG: frame_array type: {type(frame_array)}, shape: {frame_array.shape}")
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: frame_array type: {type(frame_array)}, shape: {frame_array.shape}")
             
             # Use a more robust hashing method to avoid ambiguous truth value errors
             frame_bytes = frame_array.tobytes()
             return str(hash(frame_bytes))
         except Exception as e:
-            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _calculate_frame_hash: {e}")
+            self.logger.error(f"[CHECK] STAGNATION DEBUG: Error in _calculate_frame_hash: {e}")
             import traceback
-            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            self.logger.error(f"[CHECK] STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
             # Fallback to string representation
             try:
                 return str(hash(str(frame_data)))
@@ -313,21 +313,54 @@ class StagnationInterventionSystem:
     
     def _detect_frame_stagnation(self) -> bool:
         """Detect if frames have been stagnant."""
-        if len(self.frame_history) < self.frame_stagnation_threshold:
-            return False
-        
-        # Check if last N frames are identical
-        recent_frames = list(self.frame_history)[-self.frame_stagnation_threshold:]
-        is_stagnant = len(set(recent_frames)) == 1
-        
-        if is_stagnant:
-            self.logger.warning(f"🧠 FRAME STAGNATION DETECTED:")
-            self.logger.warning(f"   Threshold: {self.frame_stagnation_threshold}")
-            self.logger.warning(f"   Recent frames: {len(recent_frames)}")
-            self.logger.warning(f"   Unique frames: {len(set(recent_frames))}")
-            self.logger.warning(f"   Frame hashes: {recent_frames[:3]}...")
-        
-        return is_stagnant
+        try:
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: _detect_frame_stagnation called")
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: frame_history length: {len(self.frame_history)}")
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: frame_stagnation_threshold: {self.frame_stagnation_threshold}")
+            
+            if len(self.frame_history) < self.frame_stagnation_threshold:
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: Not enough frames for stagnation detection")
+                return False
+            
+            # Check if last N frames are identical
+            recent_frames = list(self.frame_history)[-self.frame_stagnation_threshold:]
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: recent_frames length: {len(recent_frames)}")
+            self.logger.info(f"[CHECK] STAGNATION DEBUG: recent_frames types: {[type(f) for f in recent_frames[:3]]}")
+            
+            # Use string comparison to avoid array ambiguity issues
+            try:
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: About to convert frames to strings")
+                frame_strings = [str(f) for f in recent_frames]
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: Converted to strings successfully")
+                
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: About to create set")
+                unique_frames = len(set(frame_strings))
+                self.logger.info(f"[CHECK] STAGNATION DEBUG: Set created successfully, unique_frames: {unique_frames}")
+                
+                is_stagnant = unique_frames == 1
+                self.logger.info(f"🔍 STAGNATION DEBUG: is_stagnant: {is_stagnant}")
+                
+            except Exception as e:
+                self.logger.error(f"🔍 STAGNATION DEBUG: Error in string conversion: {e}")
+                import traceback
+                self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+                # Fallback to simple comparison
+                is_stagnant = all(str(recent_frames[0]) == str(f) for f in recent_frames)
+            
+            if is_stagnant:
+                self.logger.warning(f"🧠 FRAME STAGNATION DETECTED:")
+                self.logger.warning(f"   Threshold: {self.frame_stagnation_threshold}")
+                self.logger.warning(f"   Recent frames: {len(recent_frames)}")
+                self.logger.warning(f"   Unique frames: {unique_frames}")
+                self.logger.warning(f"   Frame hashes: {recent_frames[:3]}...")
+            
+            return is_stagnant
+            
+        except Exception as e:
+            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _detect_frame_stagnation: {e}")
+            import traceback
+            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            raise
     
     def _detect_score_stagnation(self) -> bool:
         """Detect if score has been stagnant."""
@@ -449,7 +482,8 @@ class StagnationInterventionSystem:
         """Calculate severity of frame stagnation."""
         stagnant_frames = 0
         for i in range(len(self.frame_history) - 1, 0, -1):
-            if self.frame_history[i] == self.frame_history[i-1]:
+            # Use string comparison to avoid array ambiguity issues
+            if str(self.frame_history[i]) == str(self.frame_history[i-1]):
                 stagnant_frames += 1
             else:
                 break
@@ -494,7 +528,8 @@ class StagnationInterventionSystem:
         # Check if recent frames show changes
         if len(self.frame_history) >= 3:
             recent_frames = list(self.frame_history)[-3:]
-            if len(set(recent_frames)) > 1:
+            # Use string conversion to avoid array ambiguity issues
+            if len(set(str(f) for f in recent_frames)) > 1:
                 return True
         
         # Check if score has increased
@@ -512,7 +547,8 @@ class StagnationInterventionSystem:
             # Calculate frame change frequency
             if len(self.frame_history) >= 10:
                 recent_frames = list(self.frame_history)[-10:]
-                unique_frames = len(set(recent_frames))
+                # Use string conversion to avoid array ambiguity issues
+                unique_frames = len(set(str(f) for f in recent_frames))
                 self.frame_change_frequency = unique_frames / len(recent_frames)
         except Exception as e:
             self.logger.error(f"🔍 STAGNATION DEBUG: Error in _update_intelligence_metrics: {e}")
@@ -543,40 +579,40 @@ class StagnationInterventionSystem:
                     self.base_frame_stagnation_threshold * 1.5,
                     self.frame_stagnation_threshold + self.learning_rate
                 )
-        elif self.frame_change_frequency < 0.2:  # Low frame change frequency
-            # System is stagnant, be more sensitive
-            self.frame_stagnation_threshold = max(
-                self.base_frame_stagnation_threshold * 0.7,
-                self.frame_stagnation_threshold - self.learning_rate
-            )
+            elif self.frame_change_frequency < 0.2:  # Low frame change frequency
+                # System is stagnant, be more sensitive
+                self.frame_stagnation_threshold = max(
+                    self.base_frame_stagnation_threshold * 0.7,
+                    self.frame_stagnation_threshold - self.learning_rate
+                )
         
-        # Adapt coordinate repetition threshold based on coordinate diversity
-        if self.coordinate_diversity > 0.6:  # High coordinate diversity
-            # System is exploring well, can tolerate some repetition
-            self.coordinate_repetition_threshold = min(
-                self.base_coordinate_repetition_threshold * 1.3,
-                self.coordinate_repetition_threshold + self.learning_rate
-            )
-        elif self.coordinate_diversity < 0.3:  # Low coordinate diversity
-            # System is stuck in same coordinates, be more sensitive
-            self.coordinate_repetition_threshold = max(
-                self.base_coordinate_repetition_threshold * 0.6,
-                self.coordinate_repetition_threshold - self.learning_rate
-            )
+            # Adapt coordinate repetition threshold based on coordinate diversity
+            if self.coordinate_diversity > 0.6:  # High coordinate diversity
+                # System is exploring well, can tolerate some repetition
+                self.coordinate_repetition_threshold = min(
+                    self.base_coordinate_repetition_threshold * 1.3,
+                    self.coordinate_repetition_threshold + self.learning_rate
+                )
+            elif self.coordinate_diversity < 0.3:  # Low coordinate diversity
+                # System is stuck in same coordinates, be more sensitive
+                self.coordinate_repetition_threshold = max(
+                    self.base_coordinate_repetition_threshold * 0.6,
+                    self.coordinate_repetition_threshold - self.learning_rate
+                )
         
-        # Adapt action repetition threshold based on action diversity
-        if self.action_diversity > 0.7:  # High action diversity
-            # System is using diverse actions, can tolerate some repetition
-            self.action_repetition_threshold = min(
-                self.base_action_repetition_threshold * 1.2,
-                self.action_repetition_threshold + self.learning_rate
-            )
-        elif self.action_diversity < 0.4:  # Low action diversity
-            # System is stuck in same actions, be more sensitive
-            self.action_repetition_threshold = max(
-                self.base_action_repetition_threshold * 0.7,
-                self.action_repetition_threshold - self.learning_rate
-            )
+            # Adapt action repetition threshold based on action diversity
+            if self.action_diversity > 0.7:  # High action diversity
+                # System is using diverse actions, can tolerate some repetition
+                self.action_repetition_threshold = min(
+                    self.base_action_repetition_threshold * 1.2,
+                    self.action_repetition_threshold + self.learning_rate
+                )
+            elif self.action_diversity < 0.4:  # Low action diversity
+                # System is stuck in same actions, be more sensitive
+                self.action_repetition_threshold = max(
+                    self.base_action_repetition_threshold * 0.7,
+                    self.action_repetition_threshold - self.learning_rate
+                )
         
             # Log threshold changes for debugging
             if hasattr(self, '_last_logged_thresholds'):
