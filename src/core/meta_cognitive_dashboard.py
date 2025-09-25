@@ -392,7 +392,7 @@ class MetaCognitiveDashboard:
     def _initialize_console(self):
         """Initialize console-based display."""
         print("\n" + "="*80)
-        print("🧠 META-COGNITIVE DASHBOARD - CONSOLE MODE")
+        print(" META-COGNITIVE DASHBOARD - CONSOLE MODE")
         print("="*80)
     
     def _initialize_gui(self):
@@ -713,20 +713,20 @@ class MetaCognitiveDashboard:
                     print(safe_text, flush=False)
             
             safe_console_print("\n" + "="*80)
-            safe_console_print("🧠 META-COGNITIVE DASHBOARD")
+            safe_console_print(" META-COGNITIVE DASHBOARD")
             safe_console_print("="*80)
             
             # Session info
             if self.current_session_id:
                 duration = time.time() - self.session_start_time if self.session_start_time else 0
-                safe_console_print(f"📊 Session: {self.current_session_id}")
-                safe_console_print(f"⏱️  Duration: {duration:.1f}s")
+                safe_console_print(f" Session: {self.current_session_id}")
+                safe_console_print(f"⏱  Duration: {duration:.1f}s")
                 safe_console_print("")
             
             # Quick statistics
             summary = self.get_performance_summary(hours=1)
             
-            safe_console_print("📈 QUICK STATISTICS (Last Hour)")
+            safe_console_print(" QUICK STATISTICS (Last Hour)")
             safe_console_print("-" * 40)
             safe_console_print(f"Governor Decisions: {summary['decisions']['governor']}")
             safe_console_print(f"Architect Evolutions: {summary['decisions']['architect']}")
@@ -735,14 +735,14 @@ class MetaCognitiveDashboard:
             safe_console_print("")
             
             # Recent events
-            safe_console_print("📋 RECENT EVENTS")
+            safe_console_print(" RECENT EVENTS")
             safe_console_print("-" * 40)
             recent_events = list(self.events)[-5:]  # Last 5 events
             
             if recent_events:
                 for event in reversed(recent_events):
                     timestamp = datetime.fromtimestamp(event.timestamp).strftime("%H:%M:%S")
-                    importance_indicator = "🔥" if event.importance > 0.7 else "⚡" if event.importance > 0.4 else "📌"
+                    importance_indicator = "" if event.importance > 0.7 else "" if event.importance > 0.4 else ""
                     
                     # Safe title and description handling
                     safe_title = str(event.title).encode('ascii', errors='replace').decode('ascii')

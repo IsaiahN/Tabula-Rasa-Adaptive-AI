@@ -464,7 +464,7 @@ if __name__ == "__main__":
     test_dnc.test_memory_consolidation()
     test_dnc.test_fragmentation_analysis()
     test_dnc.test_comprehensive_metrics()
-    print("✓ Enhanced DNC Memory tests passed")
+    print(" Enhanced DNC Memory tests passed")
     
     # Test integration compatibility
     print("Testing Integration Compatibility...")
@@ -472,6 +472,6 @@ if __name__ == "__main__":
     test_compat.test_import_compatibility()
     test_compat.test_memory_operation_type_enum()
     test_compat.test_memory_metrics_dataclass()
-    print("✓ Integration compatibility tests passed")
+    print(" Integration compatibility tests passed")
     
     print("All basic tests passed! Use pytest for full async testing.")

@@ -149,7 +149,7 @@ class AutonomousKnowledgeManagementSystem:
             return
         
         self.knowledge_active = True
-        logger.info("🧠 Starting Autonomous Knowledge Management System")
+        logger.info(" Starting Autonomous Knowledge Management System")
         
         # Load existing knowledge
         await self._load_existing_knowledge()
@@ -163,7 +163,7 @@ class AutonomousKnowledgeManagementSystem:
     async def stop_knowledge_management(self):
         """Stop the autonomous knowledge management system."""
         self.knowledge_active = False
-        logger.info("🛑 Stopping Autonomous Knowledge Management System")
+        logger.info(" Stopping Autonomous Knowledge Management System")
     
     async def _load_existing_knowledge(self):
         """Load existing knowledge from database."""
@@ -204,7 +204,7 @@ class AutonomousKnowledgeManagementSystem:
                 self.knowledge_items[knowledge_item.knowledge_id] = knowledge_item
                 self.validated_knowledge.append(knowledge_item)
             
-            logger.info(f"📚 Loaded {len(initial_knowledge)} knowledge items")
+            logger.info(f" Loaded {len(initial_knowledge)} knowledge items")
             
         except Exception as e:
             logger.error(f"Error loading existing knowledge: {e}")
@@ -266,7 +266,7 @@ class AutonomousKnowledgeManagementSystem:
     async def _run_knowledge_processing_cycle(self):
         """Run a complete knowledge processing cycle."""
         try:
-            logger.debug("🔄 Running knowledge processing cycle")
+            logger.debug(" Running knowledge processing cycle")
             
             # 1. Discover new knowledge
             new_knowledge = await self._discover_new_knowledge()
@@ -431,7 +431,7 @@ class AutonomousKnowledgeManagementSystem:
             # Update metrics
             self.metrics.total_knowledge_items += 1
             
-            logger.debug(f"📚 Processed knowledge item: {knowledge.knowledge_id}")
+            logger.debug(f" Processed knowledge item: {knowledge.knowledge_id}")
             
         except Exception as e:
             logger.error(f"Error processing knowledge item: {e}")
@@ -453,12 +453,12 @@ class AutonomousKnowledgeManagementSystem:
                 knowledge.status = KnowledgeStatus.VALIDATED
                 self.validated_knowledge.append(knowledge)
                 self.metrics.validated_items += 1
-                logger.info(f"✅ Knowledge validated: {knowledge.knowledge_id} (score: {validation_score:.2f})")
+                logger.info(f" Knowledge validated: {knowledge.knowledge_id} (score: {validation_score:.2f})")
             else:
                 knowledge.status = KnowledgeStatus.CONFLICTED
                 self.conflicted_knowledge.append(knowledge)
                 self.metrics.conflicted_items += 1
-                logger.warning(f"⚠️ Knowledge validation failed: {knowledge.knowledge_id} (score: {validation_score:.2f})")
+                logger.warning(f" Knowledge validation failed: {knowledge.knowledge_id} (score: {validation_score:.2f})")
             
             self.metrics.validation_cycles += 1
             
@@ -557,12 +557,12 @@ class AutonomousKnowledgeManagementSystem:
                 knowledge.status = KnowledgeStatus.VALIDATED
                 self.validated_knowledge.append(knowledge)
                 self.metrics.conflict_resolutions += 1
-                logger.info(f"✅ Knowledge conflict resolved: {knowledge.knowledge_id}")
+                logger.info(f" Knowledge conflict resolved: {knowledge.knowledge_id}")
             else:
                 knowledge.status = KnowledgeStatus.OBSOLETE
                 self.obsolete_knowledge.append(knowledge)
                 self.metrics.obsolete_items += 1
-                logger.warning(f"⚠️ Knowledge marked as obsolete: {knowledge.knowledge_id}")
+                logger.warning(f" Knowledge marked as obsolete: {knowledge.knowledge_id}")
             
         except Exception as e:
             logger.error(f"Error resolving knowledge conflicts: {e}")

@@ -21,7 +21,7 @@ from database.error_handler import DatabaseErrorHandler
 
 def main():
     """Main function to fix database issues."""
-    print("🔧 TABULA RASA DATABASE FIX SCRIPT")
+    print(" TABULA RASA DATABASE FIX SCRIPT")
     print("=" * 50)
     
     # Set up logging
@@ -30,19 +30,19 @@ def main():
     # Check if database exists
     db_path = "./tabula_rasa.db"
     if not os.path.exists(db_path):
-        print(f"❌ Database not found at {db_path}")
+        print(f" Database not found at {db_path}")
         print("Please run the training system first to create the database.")
         return 1
     
-    print(f"📊 Analyzing database: {db_path}")
+    print(f" Analyzing database: {db_path}")
     
     # Run comprehensive validation
-    print("\n🔍 Running database validation...")
+    print("\n Running database validation...")
     report = validate_and_fix_database(db_path)
     print(report)
     
     # Test the error handler
-    print("\n🧪 Testing error handler...")
+    print("\n Testing error handler...")
     error_handler = DatabaseErrorHandler()
     
     # Test with a problematic query
@@ -57,11 +57,11 @@ def main():
     )
     
     if success:
-        print(f"✅ Error handler test passed: {fix_msg}")
+        print(f" Error handler test passed: {fix_msg}")
     else:
-        print(f"❌ Error handler test failed: {fix_msg}")
+        print(f" Error handler test failed: {fix_msg}")
     
-    print("\n🎯 RECOMMENDATIONS:")
+    print("\n RECOMMENDATIONS:")
     print("1. Use the DatabaseErrorHandler in all database operations")
     print("2. Run this script regularly to catch issues early")
     print("3. Consider implementing database schema versioning")

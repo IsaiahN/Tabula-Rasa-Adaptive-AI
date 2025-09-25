@@ -214,12 +214,12 @@ if __name__ == "__main__":
     # Test schema versioning
     versioning = DatabaseSchemaVersioning()
     
-    print("🔍 Checking schema status...")
+    print(" Checking schema status...")
     status = versioning.check_schema_consistency()
     print(f"Schema Status: {status}")
     
     if status["status"] == "needs_initialization":
-        print("🔧 Initializing schema...")
+        print(" Initializing schema...")
         versioning.initialize_schema()
     
-    print("✅ Schema validation complete")
+    print(" Schema validation complete")

@@ -145,7 +145,7 @@ class StagnationInterventionSystem:
         
         # Debug logging
         if len(self.frame_history) % 10 == 0:  # Log every 10 frames
-            self.logger.info(f"🧠 STAGNATION DEBUG - Frame {len(self.frame_history)}:")
+            self.logger.info(f" STAGNATION DEBUG - Frame {len(self.frame_history)}:")
             self.logger.info(f"   Frame hash: {frame_hash[:20]}...")
             self.logger.info(f"   Score: {current_score}")
             self.logger.info(f"   Actions: {current_actions}")
@@ -161,7 +161,7 @@ class StagnationInterventionSystem:
             self.logger.info(f"[CHECK] STAGNATION DEBUG: About to call _detect_frame_stagnation")
             if self._detect_frame_stagnation():
                 self.logger.info(f"[CHECK] STAGNATION DEBUG: _detect_frame_stagnation returned True")
-                self.logger.warning(f"🚨 FRAME STAGNATION DETECTED!")
+                self.logger.warning(f" FRAME STAGNATION DETECTED!")
                 stagnation_events.append(StagnationEvent(
                     type=StagnationType.FRAME_STAGNATION,
                     severity=self._calculate_frame_stagnation_severity(),
@@ -254,11 +254,15 @@ class StagnationInterventionSystem:
         if stagnation_events:
             most_severe = max(stagnation_events, key=lambda e: e.severity)
             self.current_stagnation = most_severe
+
+            # Log stagnation detection to database
+            self._log_stagnation_detection_to_database(most_severe, stagnation_events)
+
             return most_severe
         
         # Reset stagnation if no issues detected
         if self.current_stagnation and self._is_stagnation_resolved():
-            self.logger.info("🎉 STAGNATION RESOLVED - System back to normal operation")
+            self.logger.info(" STAGNATION RESOLVED - System back to normal operation")
             self.current_stagnation = None
             self.intervention_active = False
         
@@ -338,17 +342,17 @@ class StagnationInterventionSystem:
                 self.logger.info(f"[CHECK] STAGNATION DEBUG: Set created successfully, unique_frames: {unique_frames}")
                 
                 is_stagnant = unique_frames == 1
-                self.logger.info(f"🔍 STAGNATION DEBUG: is_stagnant: {is_stagnant}")
+                self.logger.info(f" STAGNATION DEBUG: is_stagnant: {is_stagnant}")
                 
             except Exception as e:
-                self.logger.error(f"🔍 STAGNATION DEBUG: Error in string conversion: {e}")
+                self.logger.error(f" STAGNATION DEBUG: Error in string conversion: {e}")
                 import traceback
-                self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+                self.logger.error(f" STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
                 # Fallback to simple comparison
                 is_stagnant = all(str(recent_frames[0]) == str(f) for f in recent_frames)
             
             if is_stagnant:
-                self.logger.warning(f"🧠 FRAME STAGNATION DETECTED:")
+                self.logger.warning(f" FRAME STAGNATION DETECTED:")
                 self.logger.warning(f"   Threshold: {self.frame_stagnation_threshold}")
                 self.logger.warning(f"   Recent frames: {len(recent_frames)}")
                 self.logger.warning(f"   Unique frames: {unique_frames}")
@@ -357,9 +361,9 @@ class StagnationInterventionSystem:
             return is_stagnant
             
         except Exception as e:
-            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _detect_frame_stagnation: {e}")
+            self.logger.error(f" STAGNATION DEBUG: Error in _detect_frame_stagnation: {e}")
             import traceback
-            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            self.logger.error(f" STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
             raise
     
     def _detect_score_stagnation(self) -> bool:
@@ -394,7 +398,7 @@ class StagnationInterventionSystem:
         is_stagnant = (repetition_ratio > 0.6) and (diversity_ratio < 0.4)
         
         if is_stagnant:
-            self.logger.warning(f"🧠 COORDINATE STAGNATION DETECTED:")
+            self.logger.warning(f" COORDINATE STAGNATION DETECTED:")
             self.logger.warning(f"   Max repetition: {max_repetition}/{len(recent_coords)}")
             self.logger.warning(f"   Diversity ratio: {diversity_ratio:.2f}")
             self.logger.warning(f"   Repetition ratio: {repetition_ratio:.2f}")
@@ -424,7 +428,7 @@ class StagnationInterventionSystem:
         is_stagnant = (repetition_ratio > 0.7) and (diversity_ratio < 0.5)
         
         if is_stagnant:
-            self.logger.warning(f"🧠 ACTION STAGNATION DETECTED:")
+            self.logger.warning(f" ACTION STAGNATION DETECTED:")
             self.logger.warning(f"   Max repetition: {max_repetition}/{len(recent_actions)}")
             self.logger.warning(f"   Diversity ratio: {diversity_ratio:.2f}")
             self.logger.warning(f"   Repetition ratio: {repetition_ratio:.2f}")
@@ -454,7 +458,7 @@ class StagnationInterventionSystem:
         is_stagnant = (repetition_ratio > 0.5) and (diversity_ratio < 0.5)
         
         if is_stagnant:
-            self.logger.warning(f"🧠 ACTION 6 COORDINATE STAGNATION DETECTED:")
+            self.logger.warning(f" ACTION 6 COORDINATE STAGNATION DETECTED:")
             self.logger.warning(f"   Max repetition: {max_repetition}/{len(recent_coords)}")
             self.logger.warning(f"   Diversity ratio: {diversity_ratio:.2f}")
             self.logger.warning(f"   Repetition ratio: {repetition_ratio:.2f}")
@@ -543,7 +547,7 @@ class StagnationInterventionSystem:
     def _update_intelligence_metrics(self):
         """Update intelligence metrics for dynamic threshold adaptation."""
         try:
-            self.logger.info(f"🔍 STAGNATION DEBUG: About to call _update_intelligence_metrics")
+            self.logger.info(f" STAGNATION DEBUG: About to call _update_intelligence_metrics")
             # Calculate frame change frequency
             if len(self.frame_history) >= 10:
                 recent_frames = list(self.frame_history)[-10:]
@@ -551,9 +555,9 @@ class StagnationInterventionSystem:
                 unique_frames = len(set(str(f) for f in recent_frames))
                 self.frame_change_frequency = unique_frames / len(recent_frames)
         except Exception as e:
-            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _update_intelligence_metrics: {e}")
+            self.logger.error(f" STAGNATION DEBUG: Error in _update_intelligence_metrics: {e}")
             import traceback
-            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            self.logger.error(f" STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
             raise
         
         # Calculate coordinate diversity
@@ -571,7 +575,7 @@ class StagnationInterventionSystem:
     def _adapt_thresholds(self):
         """Dynamically adapt thresholds based on current behavior patterns."""
         try:
-            self.logger.info(f"🔍 STAGNATION DEBUG: About to call _adapt_thresholds")
+            self.logger.info(f" STAGNATION DEBUG: About to call _adapt_thresholds")
             # Adapt frame stagnation threshold based on frame change frequency
             if self.frame_change_frequency > 0.5:  # High frame change frequency
                 # System is active, can tolerate more frames without changes
@@ -620,7 +624,7 @@ class StagnationInterventionSystem:
                     abs(self.coordinate_repetition_threshold - self._last_logged_thresholds[1]) > 0.1 or
                     abs(self.action_repetition_threshold - self._last_logged_thresholds[2]) > 0.1):
                     
-                    self.logger.info(f"🧠 INTELLIGENT THRESHOLDS ADAPTED:")
+                    self.logger.info(f" INTELLIGENT THRESHOLDS ADAPTED:")
                     self.logger.info(f"   Frame stagnation: {self.frame_stagnation_threshold:.1f}")
                     self.logger.info(f"   Coordinate repetition: {self.coordinate_repetition_threshold:.1f}")
                     self.logger.info(f"   Action repetition: {self.action_repetition_threshold:.1f}")
@@ -628,9 +632,9 @@ class StagnationInterventionSystem:
                     self.logger.info(f"   Coordinate diversity: {self.coordinate_diversity:.2f}")
                     self.logger.info(f"   Action diversity: {self.action_diversity:.2f}")
         except Exception as e:
-            self.logger.error(f"🔍 STAGNATION DEBUG: Error in _adapt_thresholds: {e}")
+            self.logger.error(f" STAGNATION DEBUG: Error in _adapt_thresholds: {e}")
             import traceback
-            self.logger.error(f"🔍 STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
+            self.logger.error(f" STAGNATION DEBUG: Traceback: {traceback.format_exc()}")
             raise
         
         self._last_logged_thresholds = (
@@ -641,7 +645,7 @@ class StagnationInterventionSystem:
     
     async def trigger_intervention(self, stagnation_event: StagnationEvent) -> Dict[str, Any]:
         """Trigger multi-system intervention for stagnation."""
-        self.logger.warning(f"🚨 STAGNATION INTERVENTION TRIGGERED: {stagnation_event.type.value}")
+        self.logger.warning(f" STAGNATION INTERVENTION TRIGGERED: {stagnation_event.type.value}")
         self.logger.warning(f"   Severity: {stagnation_event.severity:.2f}")
         self.logger.warning(f"   Duration: {stagnation_event.duration} frames")
         
@@ -675,7 +679,10 @@ class StagnationInterventionSystem:
         
         # Log intervention
         await self._log_intervention(intervention)
-        
+
+        # Log intervention to database
+        await self._log_intervention_to_database(intervention, stagnation_event)
+
         return intervention
     
     async def _get_governor_recommendation(self, stagnation_event: StagnationEvent) -> Dict[str, Any]:
@@ -723,11 +730,15 @@ class StagnationInterventionSystem:
             learning_analysis = await self.director.get_learning_analysis()
             
             # Generate strategy based on stagnation type
+            # Defensive: ensure actions/coordinates are lists (avoid numpy ambiguous truth values)
+            actions_list = list(stagnation_event.actions) if (stagnation_event.actions is not None and getattr(stagnation_event.actions, '__len__', None) is not None) else []
+            coords_list = list(stagnation_event.coordinates) if (stagnation_event.coordinates is not None and getattr(stagnation_event.coordinates, '__len__', None) is not None) else []
+
             strategy = {
                 'strategy_type': 'stagnation_break',
                 'focus': self._get_strategy_focus(stagnation_event),
-                'actions_to_avoid': stagnation_event.actions[-5:] if stagnation_event.actions else [],
-                'coordinates_to_avoid': stagnation_event.coordinates[-3:] if stagnation_event.coordinates else [],
+                'actions_to_avoid': actions_list[-5:],
+                'coordinates_to_avoid': coords_list[-3:],
                 'new_approach': self._get_new_approach(stagnation_event),
                 'system_health': system_overview.get('health_score', 0.0),
                 'learning_insights': learning_analysis.get('key_insights', [])
@@ -788,10 +799,13 @@ class StagnationInterventionSystem:
         emergency_actions = []
         
         # Force different action types
+        # Defensive conversion to list to avoid numpy ambiguous truth-tests or membership issues
+        actions_list = list(stagnation_event.actions) if (stagnation_event.actions is not None and getattr(stagnation_event.actions, '__len__', None) is not None) else []
+
         if stagnation_event.type == StagnationType.ACTION_REPETITION:
             # Suggest different actions
             for action_id in [1, 2, 3, 4, 5, 7, 8, 9, 10]:
-                if action_id not in stagnation_event.actions[-5:]:
+                if action_id not in actions_list[-5:]:
                     emergency_actions.append({
                         'action': f'ACTION{action_id}',
                         'id': action_id,
@@ -803,10 +817,12 @@ class StagnationInterventionSystem:
         # Force different coordinates
         if stagnation_event.type == StagnationType.COORDINATE_REPETITION:
             # Suggest random coordinates
+            coords_list = list(stagnation_event.coordinates) if (stagnation_event.coordinates is not None and getattr(stagnation_event.coordinates, '__len__', None) is not None) else []
+            recent_coords = coords_list[-3:]
             for _ in range(3):
                 x = np.random.randint(0, 50)
                 y = np.random.randint(0, 50)
-                if (x, y) not in stagnation_event.coordinates[-3:]:
+                if (x, y) not in recent_coords:
                     emergency_actions.append({
                         'action': 'ACTION6',
                         'id': 6,
@@ -845,6 +861,72 @@ class StagnationInterventionSystem:
         else:
             return "Multi-system intervention approach"
     
+    def _log_stagnation_detection_to_database(self, stagnation_event: StagnationEvent, all_events: List[StagnationEvent]):
+        """Log stagnation detection to database."""
+        try:
+            import asyncio
+            from src.database.system_integration import get_system_integration
+
+            async def log_stagnation():
+                integration = get_system_integration()
+
+                stagnation_data = {
+                    'stagnation_type': stagnation_event.type.value,
+                    'severity': stagnation_event.severity,
+                    'duration': stagnation_event.duration,
+                    'coordinates': list(stagnation_event.coordinates) if stagnation_event.coordinates else None,
+                    'total_events_detected': len(all_events),
+                    'intervention_required': stagnation_event.intervention_required,
+                    'frame_count': len(self.frame_history),
+                    'component': 'stagnation_detector'
+                }
+
+                await integration.log_system_event(
+                    level="WARNING",
+                    component="stagnation_intervention_system",
+                    message=f"Stagnation detected: {stagnation_event.type.value}",
+                    data=stagnation_data,
+                    session_id='unknown'  # TODO: Add session tracking
+                )
+
+            # Schedule the database logging
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(log_stagnation())
+
+        except Exception as e:
+            self.logger.debug(f"Non-fatal: Failed to log stagnation detection to database: {e}")
+
+    async def _log_intervention_to_database(self, intervention: Dict[str, Any], stagnation_event: StagnationEvent):
+        """Log intervention details to database."""
+        try:
+            from src.database.system_integration import get_system_integration
+
+            integration = get_system_integration()
+
+            intervention_data = {
+                'intervention_type': 'stagnation_intervention',
+                'stagnation_type': stagnation_event.type.value,
+                'severity': stagnation_event.severity,
+                'governor_recommendation': intervention.get('governor_recommendation', {}),
+                'director_strategy': intervention.get('director_strategy', {}),
+                'gan_suggestions': intervention.get('gan_suggestions', {}),
+                'pattern_suggestions': intervention.get('pattern_suggestions', {}),
+                'emergency_actions': intervention.get('emergency_actions', {}),
+                'component': 'intervention_system'
+            }
+
+            await integration.log_system_event(
+                level="ERROR",  # Use ERROR level for interventions as they indicate problems
+                component="stagnation_intervention_system",
+                message=f"Intervention triggered for {stagnation_event.type.value}",
+                data=intervention_data,
+                session_id='unknown'  # TODO: Add session tracking
+            )
+
+        except Exception as e:
+            self.logger.debug(f"Non-fatal: Failed to log intervention to database: {e}")
+
     async def _log_intervention(self, intervention: Dict[str, Any]):
         """Log intervention to database."""
         try:

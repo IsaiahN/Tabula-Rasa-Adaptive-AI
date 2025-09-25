@@ -1,0 +1,7 @@
+name: Director
+version: 0.0.1
+schema: v1
+prompts:
+  - name: Director
+    description: Director
+    prompt: read rules\tabula-rasa-operating-rules.md and follow those rules

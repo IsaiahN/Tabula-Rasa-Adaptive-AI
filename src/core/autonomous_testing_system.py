@@ -156,7 +156,7 @@ class AutonomousTestingSystem:
             return
         
         self.testing_active = True
-        logger.info("🧪 Starting Autonomous Testing System")
+        logger.info(" Starting Autonomous Testing System")
         
         # Load existing test suites
         await self._load_test_suites()
@@ -176,7 +176,7 @@ class AutonomousTestingSystem:
     async def stop_testing(self):
         """Stop the autonomous testing system."""
         self.testing_active = False
-        logger.info("🛑 Stopping Autonomous Testing System")
+        logger.info(" Stopping Autonomous Testing System")
     
     async def _load_test_suites(self):
         """Load existing test suites."""
@@ -193,7 +193,7 @@ class AutonomousTestingSystem:
             # Load regression tests
             await self._load_regression_tests()
             
-            logger.info(f"📋 Loaded {len(self.test_suites)} test suites")
+            logger.info(f" Loaded {len(self.test_suites)} test suites")
             
         except Exception as e:
             logger.error(f"Error loading test suites: {e}")
@@ -489,7 +489,7 @@ class AutonomousTestingSystem:
     async def _run_test_cycle(self):
         """Run a complete test cycle."""
         try:
-            logger.info("🔄 Running test cycle")
+            logger.info(" Running test cycle")
             
             # Select tests to run
             tests_to_run = await self._select_tests_to_run()
@@ -498,7 +498,7 @@ class AutonomousTestingSystem:
             for test_id in tests_to_run:
                 self.test_queue.append(test_id)
             
-            logger.info(f"📋 Added {len(tests_to_run)} tests to queue")
+            logger.info(f" Added {len(tests_to_run)} tests to queue")
             
         except Exception as e:
             logger.error(f"Error in test cycle: {e}")
@@ -578,7 +578,7 @@ class AutonomousTestingSystem:
                 'test_case': test_case
             }
             
-            logger.debug(f"🧪 Executing test: {test_id}")
+            logger.debug(f" Executing test: {test_id}")
             
             # Execute test
             result = await self._run_test_case(test_case)
@@ -866,7 +866,7 @@ class AutonomousTestingSystem:
                     # Test is flaky
                     if test_id not in self.flaky_tests:
                         self.flaky_tests.append(test_id)
-                        logger.warning(f"🔍 Flaky test detected: {test_id}")
+                        logger.warning(f" Flaky test detected: {test_id}")
             
         except Exception as e:
             logger.error(f"Error checking flaky test: {e}")
@@ -919,7 +919,7 @@ class AutonomousTestingSystem:
                 self.performance_regressions.append(regression)
                 self.metrics["performance_regressions"] += 1
                 
-                logger.warning(f"📉 Performance regression detected in {test_id}: {regression['regression_percent']:.1f}% slower")
+                logger.warning(f" Performance regression detected in {test_id}: {regression['regression_percent']:.1f}% slower")
             
         except Exception as e:
             logger.error(f"Error checking performance regression: {e}")
@@ -1003,7 +1003,7 @@ class AutonomousTestingSystem:
                         }
                         
                         self.metrics["bugs_detected"] += 1
-                        logger.warning(f"🐛 Bug detected: {error_message} ({len(failures)} occurrences)")
+                        logger.warning(f" Bug detected: {error_message} ({len(failures)} occurrences)")
             
         except Exception as e:
             logger.error(f"Error detecting bugs: {e}")

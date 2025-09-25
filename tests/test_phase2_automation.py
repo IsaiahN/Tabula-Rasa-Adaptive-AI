@@ -35,17 +35,17 @@ logger = logging.getLogger(__name__)
 async def test_phase2_automation():
     """Test the Phase 2 automation system."""
     try:
-        logger.info("🧪 Starting Phase 2 Automation System Test")
+        logger.info(" Starting Phase 2 Automation System Test")
         
         # Test 1: Start Phase 2 automation system
-        logger.info("\n📋 Test 1: Starting Phase 2 Automation System")
+        logger.info("\n Test 1: Starting Phase 2 Automation System")
         await start_phase2_automation("full_active")
         
         # Wait for systems to initialize
         await asyncio.sleep(5)
         
         # Test 2: Check Phase 2 status
-        logger.info("\n📊 Test 2: Checking Phase 2 Status")
+        logger.info("\n Test 2: Checking Phase 2 Status")
         status = get_phase2_status()
         logger.info(f"Phase 2 Active: {status.get('phase2_active')}")
         logger.info(f"Current Status: {status.get('current_status')}")
@@ -55,7 +55,7 @@ async def test_phase2_automation():
         logger.info(f"Metrics: {status.get('metrics')}")
         
         # Test 3: Check individual system status
-        logger.info("\n🔍 Test 3: Checking Individual System Status")
+        logger.info("\n Test 3: Checking Individual System Status")
         
         # Meta-Learning System
         learning_status = get_phase2_learning_status()
@@ -72,7 +72,7 @@ async def test_phase2_automation():
         logger.info(f"Test Cases: {testing_status.get('test_cases_count')}")
         
         # Test 4: Let systems run autonomously
-        logger.info("\n⏱️ Test 4: Running Systems Autonomously for 120 seconds")
+        logger.info("\n⏱ Test 4: Running Systems Autonomously for 120 seconds")
         start_time = time.time()
         
         while time.time() - start_time < 120:
@@ -90,7 +90,7 @@ async def test_phase2_automation():
                        f"Quality Score: {current_status['metrics'].get('quality_score', 0):.2f}")
         
         # Test 5: Test learning-test coordination
-        logger.info("\n🤝 Test 5: Testing Learning-Test Coordination")
+        logger.info("\n Test 5: Testing Learning-Test Coordination")
         
         # Check coordination metrics
         final_status = get_phase2_status()
@@ -103,7 +103,7 @@ async def test_phase2_automation():
         logger.info(f"Adaptive Adjustments: {adaptive_adjustments}")
         
         # Test 6: Test different integration modes
-        logger.info("\n🔄 Test 6: Testing Different Integration Modes")
+        logger.info("\n Test 6: Testing Different Integration Modes")
         
         # Test learning-only mode
         logger.info("Testing learning-only mode...")
@@ -130,7 +130,7 @@ async def test_phase2_automation():
         logger.info(f"Testing Active: {testing_only_status.get('testing_active')}")
         
         # Test 7: Final status report
-        logger.info("\n📈 Test 7: Final Status Report")
+        logger.info("\n Test 7: Final Status Report")
         
         # Restart full mode for final report
         await stop_phase2_automation()
@@ -170,24 +170,24 @@ async def test_phase2_automation():
         logger.info(f"  Bugs Detected: {testing_final.get('metrics', {}).get('bugs_detected', 0)}")
         
         # Test 8: Stop Phase 2 automation system
-        logger.info("\n🛑 Test 8: Stopping Phase 2 Automation System")
+        logger.info("\n Test 8: Stopping Phase 2 Automation System")
         await stop_phase2_automation()
         
         # Final status after stop
         final_status_after_stop = get_phase2_status()
         logger.info(f"Phase 2 Active After Stop: {final_status_after_stop.get('phase2_active')}")
         
-        logger.info("\n✅ Phase 2 Automation System Test Completed Successfully!")
+        logger.info("\n Phase 2 Automation System Test Completed Successfully!")
         
     except Exception as e:
-        logger.error(f"❌ Test failed with error: {e}")
+        logger.error(f" Test failed with error: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 async def test_individual_phase2_systems():
     """Test individual Phase 2 systems separately."""
     try:
-        logger.info("\n🔧 Testing Individual Phase 2 Systems")
+        logger.info("\n Testing Individual Phase 2 Systems")
         
         # Test Meta-Learning System
         logger.info("Testing Meta-Learning System...")
@@ -219,15 +219,15 @@ async def test_individual_phase2_systems():
         
         await stop_autonomous_testing()
         
-        logger.info("✅ Individual Phase 2 System Tests Completed!")
+        logger.info(" Individual Phase 2 System Tests Completed!")
         
     except Exception as e:
-        logger.error(f"❌ Individual Phase 2 system test failed: {e}")
+        logger.error(f" Individual Phase 2 system test failed: {e}")
 
 async def test_phase2_integration_modes():
     """Test different Phase 2 integration modes."""
     try:
-        logger.info("\n🎯 Testing Phase 2 Integration Modes")
+        logger.info("\n Testing Phase 2 Integration Modes")
         
         # Test Full Active Mode
         logger.info("Testing Full Active Mode...")
@@ -265,15 +265,15 @@ async def test_phase2_integration_modes():
         
         await stop_phase2_automation()
         
-        logger.info("✅ Phase 2 Integration Mode Tests Completed!")
+        logger.info(" Phase 2 Integration Mode Tests Completed!")
         
     except Exception as e:
-        logger.error(f"❌ Phase 2 integration mode test failed: {e}")
+        logger.error(f" Phase 2 integration mode test failed: {e}")
 
 async def test_phase2_coordination():
     """Test Phase 2 coordination between learning and testing."""
     try:
-        logger.info("\n🤝 Testing Phase 2 Coordination")
+        logger.info("\n Testing Phase 2 Coordination")
         
         # Start full Phase 2 system
         await start_phase2_automation("full_active")
@@ -306,14 +306,14 @@ async def test_phase2_coordination():
         
         await stop_phase2_automation()
         
-        logger.info("✅ Phase 2 Coordination Test Completed!")
+        logger.info(" Phase 2 Coordination Test Completed!")
         
     except Exception as e:
-        logger.error(f"❌ Phase 2 coordination test failed: {e}")
+        logger.error(f" Phase 2 coordination test failed: {e}")
 
 async def main():
     """Main test function."""
-    logger.info("🚀 Starting Phase 2 Automation System Test Suite")
+    logger.info(" Starting Phase 2 Automation System Test Suite")
     
     # Test individual systems first
     await test_individual_phase2_systems()
@@ -327,7 +327,7 @@ async def main():
     # Test integrated system
     await test_phase2_automation()
     
-    logger.info("🎉 All Phase 2 automation tests completed!")
+    logger.info(" All Phase 2 automation tests completed!")
 
 if __name__ == "__main__":
     asyncio.run(main())

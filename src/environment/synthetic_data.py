@@ -302,9 +302,9 @@ class LPValidationSuite:
             try:
                 test_result = test_func(lp_drive)
                 results[test_name] = test_result
-                print(f"  ✓ {test_name}: {test_result['score']:.3f}")
+                print(f"   {test_name}: {test_result['score']:.3f}")
             except Exception as e:
-                print(f"  ✗ {test_name}: FAILED - {e}")
+                print(f"   {test_name}: FAILED - {e}")
                 results[test_name] = {'score': 0.0, 'error': str(e)}
                 
         return results

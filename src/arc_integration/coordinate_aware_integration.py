@@ -65,7 +65,7 @@ class CoordinateAwareTrainingManager:
         Returns:
             Training results with coordinate system metrics
         """
-        logger.info(f"🚀 Starting coordinate-aware training session for {game_id}")
+        logger.info(f" Starting coordinate-aware training session for {game_id}")
         
         try:
             # Initialize coordinate-aware agent for this game
@@ -171,7 +171,7 @@ class CoordinateAwareTrainingManager:
             results['coordinate_intelligence'] = self._generate_coordinate_intelligence_report(game_id)
             results['action_effectiveness'] = self._calculate_action_effectiveness(results)
             
-            logger.info(f"✅ Coordinate-aware training completed: {results['actions_taken']} actions, "
+            logger.info(f" Coordinate-aware training completed: {results['actions_taken']} actions, "
                        f"{results['coordinate_actions']} coordinate actions, "
                        f"{results['coordinate_successes']} coordinate successes")
             
@@ -282,7 +282,7 @@ class CoordinateAwareTrainingManager:
         }
         
         for game_id in games:
-            logger.info(f"🧪 Benchmarking coordinate system on {game_id}")
+            logger.info(f" Benchmarking coordinate system on {game_id}")
             
             # Test coordinate-aware approach
             coord_results = await self.run_enhanced_training_session(

@@ -117,7 +117,7 @@ class UnifiedPerformanceMonitor:
         self._monitor_thread = None
         self._stop_event = threading.Event()
         
-        logger.info("🔍 Unified Performance Monitor initialized")
+        logger.info(" Unified Performance Monitor initialized")
     
     def _default_config(self) -> Dict[str, Any]:
         """Default monitoring configuration."""
@@ -146,7 +146,7 @@ class UnifiedPerformanceMonitor:
             self._monitor_thread = threading.Thread(target=self._monitoring_loop, daemon=True)
             self._monitor_thread.start()
             
-            logger.info("🔍 Performance monitoring started")
+            logger.info(" Performance monitoring started")
             return True
             
         except Exception as e:
@@ -167,7 +167,7 @@ class UnifiedPerformanceMonitor:
             if self._monitor_thread and self._monitor_thread.is_alive():
                 self._monitor_thread.join(timeout=5.0)
             
-            logger.info("🔍 Performance monitoring stopped")
+            logger.info(" Performance monitoring stopped")
             return True
             
         except Exception as e:
@@ -338,7 +338,7 @@ class UnifiedPerformanceMonitor:
             except Exception as e:
                 logger.error(f"Error in alert callback: {e}")
         
-        logger.warning(f"🚨 Performance Alert: {message}")
+        logger.warning(f" Performance Alert: {message}")
     
     def add_alert_callback(self, callback: Callable[[PerformanceAlert], None]):
         """Add alert callback function."""
@@ -412,7 +412,7 @@ class UnifiedPerformanceMonitor:
             [m for m in self.metrics_history if m.timestamp > cutoff_time],
             maxlen=self.metrics_history.maxlen
         )
-        logger.info(f"🧹 Cleared metrics older than {hours} hours")
+        logger.info(f" Cleared metrics older than {hours} hours")
     
     def performance_timer(self, name: str):
         """Context manager for performance timing."""

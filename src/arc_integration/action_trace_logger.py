@@ -93,7 +93,7 @@ def log_action_trace(record: dict) -> None:
         
     except Exception as e:
         try:
-            print(f"⚠️ Failed to log action trace: {e}")
+            print(f" Failed to log action trace: {e}")
         except Exception:
             pass
 
@@ -126,7 +126,7 @@ def write_session_trace(game_id: str, session_result: dict, raw_output: str = No
         
     except Exception as e:
         try:
-            print(f"⚠️ Failed to write session trace for {game_id}: {e}")
+            print(f" Failed to write session trace for {game_id}: {e}")
         except Exception:
             pass
 
@@ -143,6 +143,6 @@ def cleanup_old_traces(max_age_days: int = 7) -> None:
         pass
     except Exception as e:
         try:
-            print(f"⚠️ Failed to cleanup old traces: {e}")
+            print(f" Failed to cleanup old traces: {e}")
         except Exception:
             pass

@@ -113,7 +113,7 @@ class GovernorArchitectBridge:
             return
         
         self.communication_active = True
-        logger.info("🌉 Starting Governor-Architect communication bridge")
+        logger.info(" Starting Governor-Architect communication bridge")
         
         # Start message processing loop
         asyncio.create_task(self._message_processing_loop())
@@ -130,7 +130,7 @@ class GovernorArchitectBridge:
     async def stop_communication(self):
         """Stop the communication bridge."""
         self.communication_active = False
-        logger.info("🛑 Stopping Governor-Architect communication bridge")
+        logger.info(" Stopping Governor-Architect communication bridge")
     
     async def _message_processing_loop(self):
         """Main message processing loop."""
@@ -225,7 +225,7 @@ class GovernorArchitectBridge:
             # Update metrics
             self.metrics["messages_exchanged"] += 1
             
-            logger.debug(f"📨 Message sent: {sender} -> {receiver} ({message_type.value})")
+            logger.debug(f" Message sent: {sender} -> {receiver} ({message_type.value})")
             
             return message_id
             
@@ -236,7 +236,7 @@ class GovernorArchitectBridge:
     async def _process_message(self, message: GovernorArchitectMessage):
         """Process a message between Governor and Architect."""
         try:
-            logger.debug(f"📨 Processing message: {message.message_id}")
+            logger.debug(f" Processing message: {message.message_id}")
             
             # Route message to appropriate handler
             if message.message_type == CommunicationType.REQUEST:
@@ -381,7 +381,7 @@ class GovernorArchitectBridge:
             if original_message.message_id in self.pending_responses:
                 del self.pending_responses[original_message.message_id]
             
-            logger.debug(f"📨 Response sent: {response_message.message_id}")
+            logger.debug(f" Response sent: {response_message.message_id}")
             
         except Exception as e:
             logger.error(f"Error sending response: {e}")
@@ -404,7 +404,7 @@ class GovernorArchitectBridge:
             constraint_type = content.get("constraint_type")
             constraint_value = content.get("constraint_value")
             
-            logger.info(f"🔧 Governor reporting resource constraint: {constraint_type} = {constraint_value}")
+            logger.info(f" Governor reporting resource constraint: {constraint_type} = {constraint_value}")
             
             # Architect should respond with optimization suggestions
             response = {
@@ -429,7 +429,7 @@ class GovernorArchitectBridge:
             issue_type = content.get("issue_type")
             performance_metrics = content.get("performance_metrics", {})
             
-            logger.info(f"📊 Governor reporting performance issue: {issue_type}")
+            logger.info(f" Governor reporting performance issue: {issue_type}")
             
             # Architect should respond with architectural improvements
             response = {
@@ -455,7 +455,7 @@ class GovernorArchitectBridge:
             change_type = content.get("change_type")
             affected_components = content.get("affected_components", [])
             
-            logger.info(f"🏗️ Architect notifying architecture change: {change_type}")
+            logger.info(f" Architect notifying architecture change: {change_type}")
             
             # Governor should respond with resource allocation adjustments
             response = {
@@ -480,7 +480,7 @@ class GovernorArchitectBridge:
             opportunity_type = content.get("opportunity_type")
             potential_improvement = content.get("potential_improvement", 0)
             
-            logger.info(f"💡 Optimization opportunity identified: {opportunity_type}")
+            logger.info(f" Optimization opportunity identified: {opportunity_type}")
             
             # Both should collaborate on this
             response = {
@@ -505,7 +505,7 @@ class GovernorArchitectBridge:
             emergency_type = content.get("emergency_type")
             severity = content.get("severity", "high")
             
-            logger.warning(f"🚨 Emergency situation: {emergency_type} (severity: {severity})")
+            logger.warning(f" Emergency situation: {emergency_type} (severity: {severity})")
             
             # Immediate response required
             response = {
@@ -539,7 +539,7 @@ class GovernorArchitectBridge:
                 "status": "active"
             }
             
-            logger.info(f"🤝 Started collaboration: {collaboration_id} ({collaboration_type})")
+            logger.info(f" Started collaboration: {collaboration_id} ({collaboration_type})")
             
         except Exception as e:
             logger.error(f"Error starting collaboration: {e}")
@@ -598,7 +598,7 @@ class GovernorArchitectBridge:
             # End collaboration
             await self._end_collaboration({"collaboration_id": collaboration_id})
             
-            logger.info(f"🤝 Collaborative decision made: {decision.decision_id}")
+            logger.info(f" Collaborative decision made: {decision.decision_id}")
             
         except Exception as e:
             logger.error(f"Error making collaborative decision: {e}")
@@ -637,7 +637,7 @@ class GovernorArchitectBridge:
                 # Remove from active collaborations
                 del self.active_collaborations[collaboration_id]
                 
-                logger.info(f"🤝 Ended collaboration: {collaboration_id}")
+                logger.info(f" Ended collaboration: {collaboration_id}")
             
         except Exception as e:
             logger.error(f"Error ending collaboration: {e}")
@@ -797,7 +797,7 @@ class GovernorArchitectBridge:
             emergency_type = emergency["type"]
             severity = emergency["severity"]
             
-            logger.warning(f"🚨 Handling emergency: {emergency_type} (severity: {severity})")
+            logger.warning(f" Handling emergency: {emergency_type} (severity: {severity})")
             
             # Send emergency message to both systems
             await self.send_message(
@@ -825,28 +825,28 @@ class GovernorArchitectBridge:
     # Notification processing methods
     async def _process_architecture_change_notification(self, content: Dict[str, Any]):
         """Process architecture change notification."""
-        logger.info(f"🏗️ Processing architecture change: {content.get('change_type')}")
+        logger.info(f" Processing architecture change: {content.get('change_type')}")
     
     async def _process_performance_update_notification(self, content: Dict[str, Any]):
         """Process performance update notification."""
-        logger.info(f"📊 Processing performance update: {content.get('performance_type')}")
+        logger.info(f" Processing performance update: {content.get('performance_type')}")
     
     async def _process_resource_update_notification(self, content: Dict[str, Any]):
         """Process resource update notification."""
-        logger.info(f"💾 Processing resource update: {content.get('resource_type')}")
+        logger.info(f" Processing resource update: {content.get('resource_type')}")
     
     # Emergency handling methods
     async def _handle_system_failure_emergency(self, content: Dict[str, Any]):
         """Handle system failure emergency."""
-        logger.warning("🚨 Handling system failure emergency")
+        logger.warning(" Handling system failure emergency")
     
     async def _handle_performance_crash_emergency(self, content: Dict[str, Any]):
         """Handle performance crash emergency."""
-        logger.warning("🚨 Handling performance crash emergency")
+        logger.warning(" Handling performance crash emergency")
     
     async def _handle_resource_exhaustion_emergency(self, content: Dict[str, Any]):
         """Handle resource exhaustion emergency."""
-        logger.warning("🚨 Handling resource exhaustion emergency")
+        logger.warning(" Handling resource exhaustion emergency")
     
     def get_bridge_status(self) -> Dict[str, Any]:
         """Get current bridge status."""

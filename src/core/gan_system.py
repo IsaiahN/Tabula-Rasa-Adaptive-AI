@@ -113,28 +113,24 @@ class GANTrainingConfig:
     validation_frequency: int = 10
     checkpoint_frequency: int = 50
     synthetic_data_ratio: float = 0.2  # 20% of training data should be synthetic
+_GeneratorBase = nn.Module if nn is not None else object
 
-class GameStateGenerator:
-    def __init__(self, *args, **kwargs):
-        torch = _get_torch()
-        if torch is None:
-            raise ImportError("PyTorch not available")
-        # Initialize as a proper nn.Module
-        super().__init__()
+class GameStateGenerator(_GeneratorBase):
     """
     Generator network that creates synthetic ARC-AGI-3 game states.
-    
+
     Architecture:
     - Input: Noise vector + Pattern embeddings + Game context
     - Output: Synthetic game state (grid, objects, properties)
     """
-    
+
     def __init__(self, 
                  latent_dim: int = 100,
                  pattern_embedding_dim: int = 256,
                  context_dim: int = 64,
                  grid_size: Tuple[int, int] = (64, 64),
                  num_channels: int = 3):
+        # Ensure proper super init for nn.Module or fallback object
         super().__init__()
         
         self.latent_dim = latent_dim
@@ -487,7 +483,10 @@ class PatternAwareGAN:
         
         # Store metrics in database
         await self._store_training_metrics(g_loss, d_loss, pattern_accuracy, synthetic_quality)
-        
+
+        # Log training decisions to database
+        await self._log_training_epoch_to_database(g_loss, d_loss, pattern_accuracy, synthetic_quality, len(real_states))
+
         return {
             'generator_loss': g_loss,
             'discriminator_loss': d_loss,
@@ -527,7 +526,10 @@ class PatternAwareGAN:
             discovered_rules.get('confidence', 0.0),
             discovered_rules.get('mechanics_understood', 0.0)
         ))
-        
+
+        # Log reverse engineering to database
+        await self._log_reverse_engineering_to_database(game_id, discovered_rules)
+
         return discovered_rules
     
     async def get_training_status(self) -> Dict[str, Any]:
@@ -557,7 +559,7 @@ class PatternAwareGAN:
     
     # Private helper methods
     
-    async def _get_pattern_embeddings(self, count: int) -> torch.Tensor:
+    async def _get_pattern_embeddings(self, count: int) -> Any:
         """Get pattern embeddings from existing pattern learning system."""
         if self.pattern_learning_system:
             # Get learned patterns
@@ -570,7 +572,7 @@ class PatternAwareGAN:
         
         return embeddings
     
-    def _create_context_tensor(self, context: Dict[str, Any], count: int) -> torch.Tensor:
+    def _create_context_tensor(self, context: Dict[str, Any], count: int) -> Any:
         """Create context tensor for generation."""
         # Simplified context encoding - ensure we have the right dimension
         context_vector = np.array([
@@ -813,5 +815,63 @@ class PatternAwareGAN:
                 'success_correlation': 0.7
             }
         }
-        
+
         return discovered_rules
+
+    async def _log_training_epoch_to_database(self, g_loss: float, d_loss: float,
+                                           pattern_accuracy: float, synthetic_quality: float,
+                                           batch_size: int) -> None:
+        """Log GAN training epoch to database."""
+        try:
+            from src.database.system_integration import get_system_integration
+
+            integration = get_system_integration()
+
+            training_data = {
+                'generator_loss': g_loss,
+                'discriminator_loss': d_loss,
+                'pattern_accuracy': pattern_accuracy,
+                'synthetic_quality': synthetic_quality,
+                'batch_size': batch_size,
+                'session_id': self.current_session_id,
+                'component': 'gan_trainer'
+            }
+
+            await integration.log_system_event(
+                level="INFO",
+                component="gan_system",
+                message="GAN training epoch completed",
+                data=training_data,
+                session_id=self.current_session_id or 'unknown'
+            )
+
+        except Exception as e:
+            logger.debug(f"Non-fatal: Failed to log GAN training epoch to database: {e}")
+
+    async def _log_reverse_engineering_to_database(self, game_id: str, discovered_rules: Dict[str, Any]) -> None:
+        """Log reverse engineering results to database."""
+        try:
+            from src.database.system_integration import get_system_integration
+
+            integration = get_system_integration()
+
+            engineering_data = {
+                'game_id': game_id,
+                'confidence': discovered_rules.get('confidence', 0.0),
+                'mechanics_understood': discovered_rules.get('mechanics_understood', 0.0),
+                'rules_discovered': len(discovered_rules.get('rules', [])),
+                'patterns_analyzed': len(discovered_rules.get('patterns', {})),
+                'session_id': self.current_session_id,
+                'component': 'gan_reverse_engineer'
+            }
+
+            await integration.log_system_event(
+                level="INFO",
+                component="gan_system",
+                message=f"Game mechanics reverse engineered for {game_id}",
+                data=engineering_data,
+                session_id=self.current_session_id or 'unknown'
+            )
+
+        except Exception as e:
+            logger.debug(f"Non-fatal: Failed to log reverse engineering to database: {e}")

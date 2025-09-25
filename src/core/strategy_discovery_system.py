@@ -111,7 +111,7 @@ class StrategyDiscoverySystem:
                 self.active_strategies[game_type] = []
             self.active_strategies[game_type].append(strategy)
             
-            logger.info(f"🎯 WINNING STRATEGY DISCOVERED: {strategy_id} - "
+            logger.info(f" WINNING STRATEGY DISCOVERED: {strategy_id} - "
                        f"{len(action_sequence)} actions, +{score_increase:.1f} score, "
                        f"efficiency: {efficiency:.2f}")
             
@@ -168,7 +168,7 @@ class StrategyDiscoverySystem:
                 self.refinement_history[strategy.strategy_id] = []
             self.refinement_history[strategy.strategy_id].append(refinement)
             
-            logger.info(f"🔧 STRATEGY REFINED: {strategy.strategy_id} - "
+            logger.info(f" STRATEGY REFINED: {strategy.strategy_id} - "
                        f"New efficiency: {new_efficiency:.2f} "
                        f"(was {refinement.original_efficiency:.2f}, "
                        f"improvement: +{refinement.improvement:.2f})")
@@ -252,7 +252,7 @@ class StrategyDiscoverySystem:
             strategy.replication_attempts += 1
             await self._update_strategy_replication_count(strategy)
             
-            logger.info(f"🔄 REPLICATING STRATEGY: {strategy.strategy_id} - "
+            logger.info(f" REPLICATING STRATEGY: {strategy.strategy_id} - "
                        f"Attempt {strategy.replication_attempts}")
             
             return replication_data

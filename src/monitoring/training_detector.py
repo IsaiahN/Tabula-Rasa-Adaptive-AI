@@ -173,13 +173,13 @@ class TrainingDetector:
     
     def monitor_training_continuously(self, interval_seconds: int = 30) -> None:
         """Continuously monitor training processes."""
-        print(f"🔍 Starting continuous training monitoring (interval: {interval_seconds}s)")
+        print(f" Starting continuous training monitoring (interval: {interval_seconds}s)")
         
         try:
             while True:
                 summary = self.get_training_summary()
                 
-                print(f"\n📊 TRAINING MONITOR - {summary['timestamp']}")
+                print(f"\n TRAINING MONITOR - {summary['timestamp']}")
                 print(f"   Total processes: {summary['total_processes']}")
                 print(f"   Total CPU: {summary['total_cpu']:.1f}%")
                 print(f"   Total Memory: {summary['total_memory_mb']:.1f} MB")
@@ -194,7 +194,7 @@ class TrainingDetector:
                 time.sleep(interval_seconds)
                 
         except KeyboardInterrupt:
-            print("\n🛑 Training monitoring stopped")
+            print("\n Training monitoring stopped")
         except Exception as e:
             self.logger.error(f"Monitoring error: {e}")
 

@@ -32,7 +32,7 @@ async def test_penalty_decay_system():
         from src.core.coordinate_intelligence_system import create_coordinate_intelligence_system
         from src.core.penalty_logging_system import get_penalty_logging_system
         
-        logger.info("🚀 Starting Penalty Decay System Test")
+        logger.info(" Starting Penalty Decay System Test")
         logger.info("=" * 60)
         
         # Initialize systems
@@ -45,7 +45,7 @@ async def test_penalty_decay_system():
         test_game_id = "penalty_test_game"
         
         # Test 1: Penalty Application
-        logger.info("📊 Test 1: Penalty Application")
+        logger.info(" Test 1: Penalty Application")
         logger.info("-" * 30)
         
         # Simulate various coordinate attempts
@@ -86,7 +86,7 @@ async def test_penalty_decay_system():
                           f"penalty_score={result.get('penalty_score', 0):.3f}")
         
         # Test 2: Avoidance Recommendations
-        logger.info("\n🎯 Test 2: Avoidance Recommendations")
+        logger.info("\n Test 2: Avoidance Recommendations")
         logger.info("-" * 30)
         
         candidate_coords = [(10, 10), (15, 15), (20, 20), (25, 25), (30, 30)]
@@ -99,7 +99,7 @@ async def test_penalty_decay_system():
             logger.info(f"  {coord}: {score:.3f}")
         
         # Test 3: Coordinate Diversity
-        logger.info("\n🎨 Test 3: Coordinate Diversity")
+        logger.info("\n Test 3: Coordinate Diversity")
         logger.info("-" * 30)
         
         diverse_recommendations = await coordinate_system.get_diverse_coordinate_recommendations(
@@ -142,7 +142,7 @@ async def test_penalty_decay_system():
             logger.info(f"  ({x},{y}): {old_penalty:.3f} -> {new_penalty:.3f} (change: {change:+.3f})")
         
         # Test 5: System Status
-        logger.info("\n📊 Test 5: System Status")
+        logger.info("\n Test 5: System Status")
         logger.info("-" * 30)
         
         status = await penalty_system.get_system_status()
@@ -152,7 +152,7 @@ async def test_penalty_decay_system():
         logger.info(f"  Failure stats: {status.get('failure_stats', {})}")
         
         # Test 6: Logging System
-        logger.info("\n📝 Test 6: Logging System")
+        logger.info("\n Test 6: Logging System")
         logger.info("-" * 30)
         
         # Get recent events
@@ -163,10 +163,10 @@ async def test_penalty_decay_system():
         
         # Generate penalty report
         report = await logging_system.generate_penalty_report(test_game_id)
-        logger.info("\n📋 Penalty Report:")
+        logger.info("\n Penalty Report:")
         logger.info(report)
         
-        logger.info("\n✅ All tests completed successfully!")
+        logger.info("\n All tests completed successfully!")
         logger.info("=" * 60)
         
         return True
@@ -182,9 +182,9 @@ async def main():
     """Main test function."""
     success = await test_penalty_decay_system()
     if success:
-        logger.info("🎉 Penalty Decay System test completed successfully!")
+        logger.info(" Penalty Decay System test completed successfully!")
     else:
-        logger.error("❌ Penalty Decay System test failed!")
+        logger.error(" Penalty Decay System test failed!")
     
     return success
 

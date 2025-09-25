@@ -33,26 +33,36 @@ class FrameAnalyzer:
             14: (0, 128, 128), # Dark Cyan
             15: (192, 192, 192) # Light Gray
         }
+        # Penalty / position tracking integration
+        try:
+            from src.vision.position_tracking.tracker import PositionTracker
+            self.position_tracker = PositionTracker()
+        except Exception:
+            # If position tracker isn't available, keep a minimal fallback
+            self.position_tracker = None
+
+        # Local avoidance score cache (string key "x,y" -> float)
+        self.avoidance_scores = {}
     
     def analyze_frame(self, frame_data: List[List[List[int]]]) -> Dict[str, Any]:
         """Analyze a game frame and extract visual information."""
         try:
-            logger.info(f"🔍 DEBUG: FrameAnalyzer.analyze_frame called with frame_data type: {type(frame_data)}")
+            logger.info(f" DEBUG: FrameAnalyzer.analyze_frame called with frame_data type: {type(frame_data)}")
             if hasattr(frame_data, 'shape'):
-                logger.info(f"🔍 DEBUG: frame_data shape: {frame_data.shape}")
+                logger.info(f" DEBUG: frame_data shape: {frame_data.shape}")
             elif isinstance(frame_data, list):
-                logger.info(f"🔍 DEBUG: frame_data length: {len(frame_data)}")
+                logger.info(f" DEBUG: frame_data length: {len(frame_data)}")
             
             if frame_data is None or len(frame_data) == 0:
                 return self._empty_analysis()
             
             # Get the most recent frame
             current_frame = frame_data[0] if isinstance(frame_data[0], list) else frame_data
-            logger.info(f"🔍 DEBUG: current_frame type: {type(current_frame)}")
+            logger.info(f" DEBUG: current_frame type: {type(current_frame)}")
         except Exception as e:
-            logger.error(f"🔍 DEBUG: Error in FrameAnalyzer.analyze_frame: {e}")
+            logger.error(f" DEBUG: Error in FrameAnalyzer.analyze_frame: {e}")
             import traceback
-            logger.error(f"🔍 DEBUG: FrameAnalyzer traceback: {traceback.format_exc()}")
+            logger.error(f" DEBUG: FrameAnalyzer traceback: {traceback.format_exc()}")
             raise
         
         # Convert to numpy array
@@ -303,11 +313,46 @@ class FrameAnalyzer:
         return None
     
     # Penalty Decay System Integration
-    def get_penalty_aware_avoidance_scores(self) -> Dict[Tuple[int, int], float]:
-        """Get penalty-aware avoidance scores for coordinates."""
-        # For now, return empty dict - this would be implemented with actual penalty system
-        # In a full implementation, this would integrate with the penalty decay system
-        return {}
+    async def get_penalty_aware_avoidance_scores(self, candidate_coordinates: List[Tuple[int, int]] = None, game_id: str = "unknown") -> Dict[Tuple[int, int], float]:
+        """Get penalty-aware avoidance scores for coordinates by delegating to PositionTracker.
+
+        Args:
+            candidate_coordinates: list of (x,y) tuples to score. If None, uses tracked avoidance_scores keys.
+            game_id: game identifier passed through to penalty system.
+        Returns:
+            Dict mapping (x,y) -> avoidance score (0.0-1.0)
+        """
+        # If no specific candidates given, return local avoidance_scores mapping
+        try:
+            if candidate_coordinates is None:
+                # Return current local avoidance scores as a mapping
+                return {tuple(map(int, k.split(','))): float(v) for k, v in self.avoidance_scores.items()}
+
+            # Lazily ensure we have a PositionTracker instance
+            if getattr(self, 'position_tracker', None) is None:
+                try:
+                    from src.vision.position_tracking.tracker import PositionTracker
+                    self.position_tracker = PositionTracker()
+                except Exception as ie:
+                    logger.debug(f"Could not instantiate PositionTracker lazily: {ie}")
+                    self.position_tracker = None
+
+            if self.position_tracker is not None:
+                try:
+                    return await self.position_tracker.get_penalty_aware_avoidance_scores(candidate_coordinates, game_id)
+                except Exception as e:
+                    logger.error(f"PositionTracker failed to provide avoidance scores: {e}")
+
+            # Fallback to local avoidance scores when PositionTracker unavailable or failed
+            return {(x, y): float(self.avoidance_scores.get(f"{x},{y}", 0.0)) for x, y in (candidate_coordinates or [])}
+
+        except Exception as e:
+            logger.error(f"Failed to get penalty-aware avoidance scores: {e}")
+            # Final fallback
+            try:
+                return {(x, y): float(self.avoidance_scores.get(f"{x},{y}", 0.0)) for x, y in (candidate_coordinates or [])}
+            except Exception:
+                return {}
     
     async def record_coordinate_attempt(self, x: int, y: int, success: bool, game_id: str) -> None:
         """Record a coordinate attempt for penalty tracking."""

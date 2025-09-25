@@ -30,37 +30,37 @@ def initialize_database() -> bool:
     
     # Check if main database exists
     if os.path.exists(main_db):
-        print(f"✅ Database found: {main_db}")
+        print(f" Database found: {main_db}")
         return True
     
     # Check if template database exists
     if not os.path.exists(template_db):
-        print(f"❌ Error: Neither {main_db} nor {template_db} found!")
+        print(f" Error: Neither {main_db} nor {template_db} found!")
         print("   Please ensure tabula_rasa_template.db exists in the project root.")
         return False
     
     # Ask user if they want to copy template
-    print(f"🔍 Main database not found: {main_db}")
-    print(f"📋 Template database found: {template_db}")
+    print(f" Main database not found: {main_db}")
+    print(f" Template database found: {template_db}")
     print()
     
     while True:
-        response = input("🤔 Would you like to copy the template to create a new database instance? (y/n): ").strip().lower()
+        response = input(" Would you like to copy the template to create a new database instance? (y/n): ").strip().lower()
         
         if response in ['y', 'yes']:
             try:
                 # Copy template to main database
                 shutil.copy2(template_db, main_db)
-                print(f"✅ Successfully copied {template_db} to {main_db}")
-                print("🚀 Database initialized and ready for training!")
+                print(f" Successfully copied {template_db} to {main_db}")
+                print(" Database initialized and ready for training!")
                 return True
                 
             except Exception as e:
-                print(f"❌ Error copying template database: {e}")
+                print(f" Error copying template database: {e}")
                 return False
                 
         elif response in ['n', 'no']:
-            print("❌ Database initialization cancelled by user.")
+            print(" Database initialization cancelled by user.")
             print("   Training cannot proceed without a database.")
             return False
             
@@ -92,7 +92,7 @@ def check_database_ready() -> bool:
             # Try to connect to verify database is working
             return True
         except Exception as e:
-            print(f"❌ Database exists but is not accessible: {e}")
+            print(f" Database exists but is not accessible: {e}")
             return False
     
     return False
@@ -113,10 +113,10 @@ def ensure_database_ready() -> bool:
 
 if __name__ == "__main__":
     # Test the database initialization
-    print("🧪 Testing database initialization...")
+    print(" Testing database initialization...")
     
     if ensure_database_ready():
-        print("✅ Database is ready!")
+        print(" Database is ready!")
     else:
-        print("❌ Database initialization failed!")
+        print(" Database initialization failed!")
         sys.exit(1)

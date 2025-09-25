@@ -116,7 +116,7 @@ class AutonomousArchitect(Architect):
             return
         
         self.autonomous_cycle_active = True
-        logger.info("🏗️ Starting autonomous Architect cycle")
+        logger.info(" Starting autonomous Architect cycle")
         
         # Start autonomous evolution loop
         asyncio.create_task(self._autonomous_evolution_loop())
@@ -133,7 +133,7 @@ class AutonomousArchitect(Architect):
     async def stop_autonomous_cycle(self):
         """Stop the autonomous evolution cycle."""
         self.autonomous_cycle_active = False
-        logger.info("🛑 Stopping autonomous Architect cycle")
+        logger.info(" Stopping autonomous Architect cycle")
     
     async def _autonomous_evolution_loop(self):
         """Main autonomous evolution loop."""
@@ -415,7 +415,7 @@ class AutonomousArchitect(Architect):
     async def _implement_evolution(self, evolution: AutonomousEvolution):
         """Implement an autonomous evolution."""
         try:
-            logger.info(f"🔧 Implementing autonomous evolution: {evolution.evolution_type}")
+            logger.info(f" Implementing autonomous evolution: {evolution.evolution_type}")
             
             # Implement based on evolution type
             if evolution.evolution_type == "low_system_performance":
@@ -444,7 +444,7 @@ class AutonomousArchitect(Architect):
             # Store evolution
             self.evolution_history.append(evolution)
             
-            logger.info(f"✅ Successfully implemented evolution: {evolution.evolution_type}")
+            logger.info(f" Successfully implemented evolution: {evolution.evolution_type}")
             
         except Exception as e:
             logger.error(f"Failed to implement evolution {evolution.evolution_id}: {e}")
@@ -453,7 +453,7 @@ class AutonomousArchitect(Architect):
     
     async def _implement_system_performance_optimization(self, changes: Dict[str, Any]):
         """Implement system performance optimization."""
-        logger.info(f"📈 Implementing system performance optimization: {changes}")
+        logger.info(f" Implementing system performance optimization: {changes}")
         
         if changes.get("optimize_learning_parameters"):
             await self._optimize_learning_parameters()
@@ -469,7 +469,7 @@ class AutonomousArchitect(Architect):
     
     async def _implement_component_optimization(self, changes: Dict[str, Any]):
         """Implement component optimization."""
-        logger.info(f"🔧 Implementing component optimization: {changes}")
+        logger.info(f" Implementing component optimization: {changes}")
         
         component_opt = changes.get("component_optimization", {})
         if component_opt:
@@ -481,7 +481,7 @@ class AutonomousArchitect(Architect):
     
     async def _implement_learning_enhancement(self, changes: Dict[str, Any]):
         """Implement learning enhancement."""
-        logger.info(f"🧠 Implementing learning enhancement: {changes}")
+        logger.info(f" Implementing learning enhancement: {changes}")
         
         if changes.get("enhance_learning_system"):
             await self._enhance_learning_system()
@@ -497,7 +497,7 @@ class AutonomousArchitect(Architect):
     
     async def _implement_memory_optimization(self, changes: Dict[str, Any]):
         """Implement memory optimization."""
-        logger.info(f"🧠 Implementing memory optimization: {changes}")
+        logger.info(f" Implementing memory optimization: {changes}")
         
         if changes.get("optimize_memory_usage"):
             await self._optimize_memory_usage()
@@ -510,7 +510,7 @@ class AutonomousArchitect(Architect):
     
     async def _implement_error_reduction(self, changes: Dict[str, Any]):
         """Implement error reduction measures."""
-        logger.info(f"🛠️ Implementing error reduction: {changes}")
+        logger.info(f" Implementing error reduction: {changes}")
         
         if changes.get("improve_error_handling"):
             await self._improve_error_handling()
@@ -524,7 +524,7 @@ class AutonomousArchitect(Architect):
     async def _perform_component_optimization(self):
         """Perform autonomous component optimization."""
         try:
-            logger.info("🔧 Performing autonomous component optimization")
+            logger.info(" Performing autonomous component optimization")
             
             # Get component performance
             component_performance = await self._get_component_performance()
@@ -542,7 +542,7 @@ class AutonomousArchitect(Architect):
     async def _optimize_component_autonomously(self, component: str, performance: Dict[str, Any]):
         """Optimize a component autonomously."""
         try:
-            logger.info(f"🔧 Optimizing component {component} autonomously")
+            logger.info(f" Optimizing component {component} autonomously")
             
             # Create optimization
             optimization = ComponentOptimization(
@@ -632,7 +632,7 @@ class AutonomousArchitect(Architect):
     async def _test_and_integrate_component(self, component: Dict[str, Any]):
         """Test and integrate a new component."""
         try:
-            logger.info(f"🧪 Testing and integrating component: {component['component_name']}")
+            logger.info(f" Testing and integrating component: {component['component_name']}")
             
             # Test component
             test_result = await self._test_component(component)
@@ -645,9 +645,9 @@ class AutonomousArchitect(Architect):
                 self.performance_metrics["new_components_discovered"] += 1
                 self.discovered_components.append(component)
                 
-                logger.info(f"✅ Successfully integrated component: {component['component_name']}")
+                logger.info(f" Successfully integrated component: {component['component_name']}")
             else:
-                logger.warning(f"❌ Component test failed: {component['component_name']}")
+                logger.warning(f" Component test failed: {component['component_name']}")
                 
         except Exception as e:
             logger.error(f"Error testing and integrating component: {e}")
@@ -721,7 +721,7 @@ class AutonomousArchitect(Architect):
                 summary
             )
             
-            logger.info(f"📊 Architect report to Director: {summary}")
+            logger.info(f" Architect report to Director: {summary}")
             
         except Exception as e:
             logger.error(f"Error reporting to Director: {e}")

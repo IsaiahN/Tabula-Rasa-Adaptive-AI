@@ -33,7 +33,33 @@ class DatabaseErrorHandler:
         
         # Identify error type
         if "values for" in error_msg and "columns" in error_msg:
-            return self._handle_column_mismatch(error, query, params, table_name)
+                # If column-count mismatch, log SQL and params for tracing
+                logger.warning(f"Column count mismatch detected: {error_msg}")
+                logger.debug(f'Failing SQL: {query}')
+                logger.debug(f'Failing params: {json.dumps(params, default=str)}')
+                # Also write to a lightweight debug table if it exists to persist details across runs
+                try:
+                    conn = sqlite3.connect("./tabula_rasa.db")
+                    cur = conn.cursor()
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS db_error_debug (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            error_message TEXT,
+                            sql TEXT,
+                            params TEXT,
+                            traceback TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+                    cur.execute(
+                        'INSERT INTO db_error_debug (error_message, sql, params, traceback) VALUES (?, ?, ?, ?)',
+                        (error_msg, query, json.dumps(params, default=str), traceback.format_exc())
+                    )
+                    conn.commit()
+                    conn.close()
+                except Exception:
+                    logger.exception('Failed to record DB error debug row')
+                return False, "Column count mismatch detected and logged"
         elif "binding parameter" in error_msg and "type" in error_msg:
             return self._handle_parameter_binding(error, query, params)
         elif "type" in error_msg and "not supported" in error_msg:
@@ -170,14 +196,51 @@ def safe_database_execute(cursor, query: str, params: tuple = None,
             logger.warning(f"Database error (attempt {attempt + 1}/{max_retries}): {e}")
             
             if attempt < max_retries - 1:
-                # Try to fix the error
+                # First try a conservative parameter sanitization pass (convert dict/list to JSON)
+                try:
+                    if params:
+                        safe_params = []
+                        for param in params:
+                            if isinstance(param, dict) or isinstance(param, list):
+                                safe_params.append(json.dumps(param))
+                            elif hasattr(param, '__dict__'):
+                                try:
+                                    safe_params.append(json.dumps(param.__dict__))
+                                except Exception:
+                                    safe_params.append(str(param))
+                            else:
+                                safe_params.append(param)
+                        # Attempt immediate retry with sanitized params
+                        try:
+                            cursor.execute(query, tuple(safe_params))
+                            return True
+                        except Exception as retry_error:
+                            logger.debug(f"Sanitization retry failed: {retry_error}")
+                    # If sanitization didn't help, fall back to the error handler
+                except Exception as sanitization_exc:
+                    logger.debug(f"Error during param sanitization: {sanitization_exc}")
+
+                # Try to fix the error using the handler
                 success, fix_msg = error_handler.handle_database_error(e, query, params or (), table_name)
-                
+
                 if success:
                     logger.info(f"Applied fix: {fix_msg}")
                     try:
+                        # Try to execute again using sanitized params from the handler approach
                         if params:
-                            cursor.execute(query, params)
+                            # Recreate sanitized params as a best-effort
+                            handler_safe_params = []
+                            for param in params:
+                                if isinstance(param, dict) or isinstance(param, list):
+                                    handler_safe_params.append(json.dumps(param))
+                                elif hasattr(param, '__dict__'):
+                                    try:
+                                        handler_safe_params.append(json.dumps(param.__dict__))
+                                    except Exception:
+                                        handler_safe_params.append(str(param))
+                                else:
+                                    handler_safe_params.append(param)
+                            cursor.execute(query, tuple(handler_safe_params))
                         else:
                             cursor.execute(query)
                         return True

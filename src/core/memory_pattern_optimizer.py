@@ -428,8 +428,8 @@ if __name__ == "__main__":
     recommendations = optimizer.get_governor_recommendations()
     summary = optimizer.get_pattern_summary()
     
-    print("🧠 Memory Pattern Optimizer Test Results:")
-    print(f"✅ Detected {summary['total_patterns']} patterns")
-    print(f"✅ Generated {len(recommendations['immediate_actions'])} recommendations")
-    print(f"✅ Current efficiency: {recommendations['efficiency_status']['current_efficiency']:.3f}")
-    print(f"✅ Top optimization potential: {summary['top_optimization_potential']:.3f}")
+    print(" Memory Pattern Optimizer Test Results:")
+    print(f" Detected {summary['total_patterns']} patterns")
+    print(f" Generated {len(recommendations['immediate_actions'])} recommendations")
+    print(f" Current efficiency: {recommendations['efficiency_status']['current_efficiency']:.3f}")
+    print(f" Top optimization potential: {summary['top_optimization_potential']:.3f}")

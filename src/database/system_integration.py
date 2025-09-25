@@ -273,13 +273,33 @@ class SystemIntegration:
         """Save learned pattern."""
         async with self.db.get_connection() as conn:
             try:
+                # Defensive sanitization: sqlite3 does not accept dict/list types directly.
+                # Ensure pattern_data and any dict/list/game_context are JSON-serialized.
+                safe_pattern_data = json.dumps(pattern_data)
+
+                # success_rate should normally be a number; if it's a dict/list, serialize it.
+                if isinstance(success_rate, (dict, list)):
+                    safe_success_rate = json.dumps(success_rate)
+                else:
+                    # coerce None -> 0.0, otherwise keep numeric as-is
+                    safe_success_rate = 0.0 if success_rate is None else float(success_rate)
+
+                # game_context may be a dict in some callsites; serialize if needed
+                if isinstance(game_context, (dict, list)):
+                    safe_game_context = json.dumps(game_context)
+                else:
+                    safe_game_context = game_context
+
+                # created_at: store an ISO formatted string to keep storage consistent
+                created_at_str = datetime.now().isoformat()
+
                 conn.execute("""
                     INSERT INTO learned_patterns
                     (pattern_type, pattern_data, confidence, frequency, success_rate, game_context, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    pattern_type, json.dumps(pattern_data), confidence,
-                    frequency, success_rate, game_context, datetime.now()
+                    pattern_type, safe_pattern_data, float(confidence), int(frequency),
+                    safe_success_rate, safe_game_context, created_at_str
                 ))
                 conn.commit()
                 return True

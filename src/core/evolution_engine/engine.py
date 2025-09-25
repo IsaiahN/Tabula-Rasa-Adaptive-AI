@@ -70,7 +70,7 @@ class EvolutionEngine:
     def execute_autonomous_evolution(self) -> Dict[str, Any]:
         """Execute autonomous evolution cycle."""
         try:
-            self.logger.info(f"🧬 Executing autonomous evolution cycle {self.generation}")
+            self.logger.info(f" Executing autonomous evolution cycle {self.generation}")
             
             # Generate new population if empty
             if not self.population:

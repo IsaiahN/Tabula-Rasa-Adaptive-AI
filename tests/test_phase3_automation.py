@@ -37,17 +37,17 @@ logger = logging.getLogger(__name__)
 async def test_phase3_automation():
     """Test the Phase 3 automation system."""
     try:
-        logger.info("🧪 Starting Phase 3 Automation System Test")
+        logger.info(" Starting Phase 3 Automation System Test")
         
         # Test 1: Start Phase 3 automation system
-        logger.info("\n📋 Test 1: Starting Phase 3 Automation System")
+        logger.info("\n Test 1: Starting Phase 3 Automation System")
         await start_phase3_automation("full_active")
         
         # Wait for systems to initialize
         await asyncio.sleep(5)
         
         # Test 2: Check Phase 3 status
-        logger.info("\n📊 Test 2: Checking Phase 3 Status")
+        logger.info("\n Test 2: Checking Phase 3 Status")
         status = get_phase3_status()
         logger.info(f"Phase 3 Active: {status.get('phase3_active')}")
         logger.info(f"Current Status: {status.get('current_status')}")
@@ -62,7 +62,7 @@ async def test_phase3_automation():
         logger.info(f"Metrics: {status.get('metrics')}")
         
         # Test 3: Check individual system status
-        logger.info("\n🔍 Test 3: Checking Individual System Status")
+        logger.info("\n Test 3: Checking Individual System Status")
         
         # Code Evolution System
         code_status = get_phase3_code_evolution_status()
@@ -100,7 +100,7 @@ async def test_phase3_automation():
         logger.info(f"  Knowledge Consistency: {knowledge_status.get('metrics', {}).get('knowledge_consistency', 0):.3f}")
         
         # Test 4: Let systems run autonomously
-        logger.info("\n⏱️ Test 4: Running Systems Autonomously for 180 seconds")
+        logger.info("\n⏱ Test 4: Running Systems Autonomously for 180 seconds")
         start_time = time.time()
         
         while time.time() - start_time < 180:
@@ -121,7 +121,7 @@ async def test_phase3_automation():
                        f"Safety Score: {current_status.get('safety_score', 0):.2f}")
         
         # Test 5: Test different modes
-        logger.info("\n🔄 Test 5: Testing Different Modes")
+        logger.info("\n Test 5: Testing Different Modes")
         
         # Test code evolution only mode
         logger.info("Testing code evolution only mode...")
@@ -177,7 +177,7 @@ async def test_phase3_automation():
         logger.info(f"Knowledge Active: {safety_status.get('knowledge_active')}")
         
         # Test 6: Test safety mechanisms
-        logger.info("\n🛡️ Test 6: Testing Safety Mechanisms")
+        logger.info("\n Test 6: Testing Safety Mechanisms")
         
         # Restart full mode for safety testing
         await stop_phase3_automation()
@@ -193,7 +193,7 @@ async def test_phase3_automation():
         logger.info(f"  Emergency Stop: {safety_status.get('emergency_stop')}")
         
         # Test 7: Final status report
-        logger.info("\n📈 Test 7: Final Status Report")
+        logger.info("\n Test 7: Final Status Report")
         
         final_status = get_phase3_status()
         final_code = get_phase3_code_evolution_status()
@@ -244,24 +244,24 @@ async def test_phase3_automation():
         logger.info(f"  Knowledge Consistency: {knowledge_final.get('metrics', {}).get('knowledge_consistency', 0):.3f}")
         
         # Test 8: Stop Phase 3 automation system
-        logger.info("\n🛑 Test 8: Stopping Phase 3 Automation System")
+        logger.info("\n Test 8: Stopping Phase 3 Automation System")
         await stop_phase3_automation()
         
         # Final status after stop
         final_status_after_stop = get_phase3_status()
         logger.info(f"Phase 3 Active After Stop: {final_status_after_stop.get('phase3_active')}")
         
-        logger.info("\n✅ Phase 3 Automation System Test Completed Successfully!")
+        logger.info("\n Phase 3 Automation System Test Completed Successfully!")
         
     except Exception as e:
-        logger.error(f"❌ Test failed with error: {e}")
+        logger.error(f" Test failed with error: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 async def test_individual_phase3_systems():
     """Test individual Phase 3 systems separately."""
     try:
-        logger.info("\n🔧 Testing Individual Phase 3 Systems")
+        logger.info("\n Testing Individual Phase 3 Systems")
         
         # Test Self-Evolving Code System
         logger.info("Testing Self-Evolving Code System...")
@@ -311,15 +311,15 @@ async def test_individual_phase3_systems():
         
         await stop_autonomous_knowledge_management()
         
-        logger.info("✅ Individual Phase 3 System Tests Completed!")
+        logger.info(" Individual Phase 3 System Tests Completed!")
         
     except Exception as e:
-        logger.error(f"❌ Individual Phase 3 system test failed: {e}")
+        logger.error(f" Individual Phase 3 system test failed: {e}")
 
 async def test_phase3_safety_mechanisms():
     """Test Phase 3 safety mechanisms."""
     try:
-        logger.info("\n🛡️ Testing Phase 3 Safety Mechanisms")
+        logger.info("\n Testing Phase 3 Safety Mechanisms")
         
         # Start full Phase 3 system
         await start_phase3_automation("full_active")
@@ -352,14 +352,14 @@ async def test_phase3_safety_mechanisms():
         
         await stop_phase3_automation()
         
-        logger.info("✅ Phase 3 Safety Mechanisms Test Completed!")
+        logger.info(" Phase 3 Safety Mechanisms Test Completed!")
         
     except Exception as e:
-        logger.error(f"❌ Phase 3 safety mechanisms test failed: {e}")
+        logger.error(f" Phase 3 safety mechanisms test failed: {e}")
 
 async def main():
     """Main test function."""
-    logger.info("🚀 Starting Phase 3 Automation System Test Suite")
+    logger.info(" Starting Phase 3 Automation System Test Suite")
     
     # Test individual systems first
     await test_individual_phase3_systems()
@@ -370,7 +370,7 @@ async def main():
     # Test integrated system
     await test_phase3_automation()
     
-    logger.info("🎉 All Phase 3 automation tests completed!")
+    logger.info(" All Phase 3 automation tests completed!")
 
 if __name__ == "__main__":
     asyncio.run(main())

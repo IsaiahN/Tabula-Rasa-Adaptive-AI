@@ -63,11 +63,11 @@ class TestBasicFunctionality:
             restored = energy_system.add_energy(10.0)
             assert restored <= 100.0
             
-            logger.info("✅ Energy System test passed!")
+            logger.info(" Energy System test passed!")
             assert True
             
         except Exception as e:
-            logger.error(f"❌ Energy System test failed: {e}")
+            logger.error(f" Energy System test failed: {e}")
             assert False, f"Energy System test failed: {e}"
     
     @patch('core.agent.torch.load')  # Mock model loading
@@ -102,11 +102,11 @@ class TestBasicFunctionality:
             # Modern API: check predictive_core.hidden_size
             assert getattr(agent, 'predictive_core').hidden_size == 64
             
-            logger.info("✅ Adaptive Learning Agent test passed!")
+            logger.info(" Adaptive Learning Agent test passed!")
             assert True
             
         except Exception as e:
-            logger.error(f"❌ Adaptive Learning Agent test failed: {e}")
+            logger.error(f" Adaptive Learning Agent test failed: {e}")
             assert False, f"Adaptive Learning Agent test failed: {e}"
     
     def test_salience_system_basic(self):
@@ -145,11 +145,11 @@ class TestBasicFunctionality:
             assert processed is not None
             assert processed.shape == memory_matrix.shape
             
-            logger.info("✅ Salience System test passed!")
+            logger.info(" Salience System test passed!")
             assert True
             
         except Exception as e:
-            logger.error(f"❌ Salience System test failed: {e}")
+            logger.error(f" Salience System test failed: {e}")
             assert False, f"Salience System test failed: {e}"
     
     def test_agent_state_basic(self):
@@ -175,11 +175,11 @@ class TestBasicFunctionality:
             assert isinstance(agent_state.active_goals, list)
             assert agent_state.memory_state.shape == (32, 8)
             
-            logger.info("✅ Agent State test passed!")
+            logger.info(" Agent State test passed!")
             assert True
             
         except Exception as e:
-            logger.error(f"❌ Agent State test failed: {e}")
+            logger.error(f" Agent State test failed: {e}")
             assert False, f"Agent State test failed: {e}"
     
     def test_integration_basic(self):
@@ -207,11 +207,11 @@ class TestBasicFunctionality:
             processed_memory = (test_memory * importance_scores.view(-1,1)) if hasattr(test_memory, 'dim') else test_memory
             assert processed_memory is not None
             
-            logger.info("✅ Basic Integration test passed!")
+            logger.info(" Basic Integration test passed!")
             assert True
             
         except Exception as e:
-            logger.error(f"❌ Basic Integration test failed: {e}")
+            logger.error(f" Basic Integration test failed: {e}")
             assert False, f"Basic Integration test failed: {e}"
 
 

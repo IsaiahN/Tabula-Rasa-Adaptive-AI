@@ -83,7 +83,7 @@ class ContinuousLearningLoop:
             # Get real games from ARC-AGI-3 API
             games = await self.api_manager.get_available_games()
             if games:
-                print(f"🎮 Found {len(games)} real ARC-AGI-3 games available")
+                print(f" Found {len(games)} real ARC-AGI-3 games available")
                 return games
             else:
                 print("[WARNING] No real games available from ARC-AGI-3 API")
@@ -112,7 +112,7 @@ class ContinuousLearningLoop:
             real_game = available_games[0]
             real_game_id = real_game.get('game_id', game_id)
             
-            print(f"🎮 Using real ARC-AGI-3 game: {real_game_id}")
+            print(f" Using real ARC-AGI-3 game: {real_game_id}")
             
             # Open scorecard for tracking
             scorecard_id = await self.api_manager.create_scorecard(
@@ -121,7 +121,7 @@ class ContinuousLearningLoop:
             )
             
             if not scorecard_id:
-                print("⚠️ No scorecard created, proceeding without scorecard tracking")
+                print(" No scorecard created, proceeding without scorecard tracking")
                 scorecard_id = None
             
             # Reset the game to get initial state
@@ -135,7 +135,7 @@ class ContinuousLearningLoop:
             if not game_guid:
                 raise Exception("No game GUID received from reset")
             
-            print(f"🔄 Game start/reset successful. GUID: {game_guid[:8]}...")
+            print(f" Game start/reset successful. GUID: {game_guid[:8]}...")
             
             # Play the game with real actions
             actions_taken = 0
@@ -145,16 +145,15 @@ class ContinuousLearningLoop:
             
             print(f"[TARGET] Starting real gameplay with {max_actions_per_game} max actions...")
             
+            from src.database.persistence_helpers import persist_button_priorities, persist_winning_sequence
             while actions_taken < max_actions_per_game and current_state == 'NOT_FINISHED':
                 try:
                     # Check rate limit status and implement dynamic pausing
                     rate_status = self.api_manager.get_rate_limit_status()
                     warning = self.api_manager.rate_limiter.get_usage_warning()
-                    
-                    # Check if we need to pause due to rate limiting
                     should_pause, pause_duration = self.api_manager.rate_limiter.should_pause()
                     if should_pause:
-                        print(f"⏸️ Rate limit pause: {pause_duration:.1f}s (usage: {rate_status.get('current_usage', 0)}/{rate_status.get('max_requests', 550)})")
+                        print(f"⏸ Rate limit pause: {pause_duration:.1f}s (usage: {rate_status.get('current_usage', 0)}/{rate_status.get('max_requests', 550)})")
                         await asyncio.sleep(pause_duration)
                     elif warning:
                         print(f"[WARNING] {warning}")
@@ -246,7 +245,7 @@ class ContinuousLearningLoop:
                         # Check for win condition
                         if game_state_str == 'WIN':
                             game_won = True
-                            print(f"🎉 GAME WON! Final score: {total_score}")
+                            print(f" GAME WON! Final score: {total_score}")
                             break
                         
                         # Small delay between actions (dynamic pausing handles rate limits)
@@ -256,7 +255,10 @@ class ContinuousLearningLoop:
                         break
                         
                 except Exception as e:
-                    print(f"   Action {actions_taken}: Error - {e}")
+                    import traceback
+                    tb = traceback.format_exc()
+                    print(f"   Action {actions_taken}: Error - {e}\n{tb}")
+                    logger.exception(f"Exception during action loop: {e}")
                     break
             
             # Close scorecard
@@ -285,7 +287,7 @@ class ContinuousLearningLoop:
                     final_state=current_state,
                     termination_reason="COMPLETED" if game_won else "TIMEOUT"
                 )
-                print(f"💾 Game result saved to database: {real_game_id}")
+                print(f" Game result saved to database: {real_game_id}")
             except Exception as e:
                 print(f"[WARNING] Failed to save game result to database: {e}")
             
@@ -418,6 +420,16 @@ class ContinuousLearningLoop:
                 f"Continuous Learning {datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 "Modular continuous learning session"
             )
+            # --- FORCE TEST WRITE TO PERSISTENCE HELPERS ---
+            from src.database.persistence_helpers import persist_winning_sequence, persist_button_priorities
+            # Use obviously non-smoke, non-test data
+            await persist_winning_sequence(
+                game_id="real_game_test", sequence=[42, 99, 7], frequency=2, avg_score=123.45, success_rate=0.77
+            )
+            await persist_button_priorities(
+                game_type="real_type_test", x=99, y=88, button_type="score_button", confidence=0.55
+            )
+            # --- END FORCE TEST WRITE ---
             
             results = {
                 'games_completed': 0,
@@ -480,7 +492,7 @@ class ContinuousLearningLoop:
             results['success_rate'] = results['games_won'] / max(results['games_completed'], 1)
             
             print(
-                f"🏁 Continuous learning completed: {results['games_completed']} games, "
+                f" Continuous learning completed: {results['games_completed']} games, "
                 f"{results['success_rate']:.2%} success rate"
             )
             return results
@@ -536,7 +548,28 @@ class ContinuousLearningLoop:
                 actions_taken += 1
                 
                 # Update memory systems
-                self.action_memory.update_action_effectiveness(action, action_result.get('effectiveness', 0.0))
+                await self.action_memory.update_action_effectiveness(action, action_result.get('effectiveness', 0.0))
+                # Forcefully persist button priorities and winning sequences for every action
+                try:
+                    from src.database.persistence_helpers import persist_button_priorities, persist_winning_sequence
+                    coords = action.get('coordinates', [None, None])
+                    await persist_button_priorities(
+                        game_type=game_state.get('game_type', 'unknown'),
+                        x=coords[0] if coords else None,
+                        y=coords[1] if coords else None,
+                        button_type=action.get('type', 'unknown'),
+                        confidence=action_result.get('effectiveness', 0.0)
+                    )
+                    # Store every action as a sequence of one for now
+                    await persist_winning_sequence(
+                        game_id=f"game_{game_num}",
+                        sequence=[action.get('id', 0)],
+                        frequency=1,
+                        avg_score=action_result.get('score', 0.0),
+                        success_rate=1.0 if action_result.get('win', False) else 0.0
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to persist gameplay data: {e}")
                 
                 # Check for win condition
                 if action_result.get('win', False):

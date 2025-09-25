@@ -196,27 +196,27 @@ class DatabaseValidator:
         info_issues = [i for i in self.issues_found if i.severity == 'info']
         
         if critical_issues:
-            report.append("🚨 CRITICAL ISSUES:")
+            report.append(" CRITICAL ISSUES:")
             for issue in critical_issues:
                 report.append(f"  • {issue.table_name}: {issue.description}")
                 report.append(f"    Fix: {issue.fix_suggestion}")
                 report.append("")
         
         if warning_issues:
-            report.append("⚠️  WARNING ISSUES:")
+            report.append("  WARNING ISSUES:")
             for issue in warning_issues:
                 report.append(f"  • {issue.table_name}: {issue.description}")
                 report.append(f"    Fix: {issue.fix_suggestion}")
                 report.append("")
         
         if info_issues:
-            report.append("ℹ️  INFO ISSUES:")
+            report.append("ℹ  INFO ISSUES:")
             for issue in info_issues:
                 report.append(f"  • {issue.table_name}: {issue.description}")
                 report.append("")
         
         if self.fixes_applied:
-            report.append("✅ FIXES APPLIED:")
+            report.append(" FIXES APPLIED:")
             for fix in self.fixes_applied:
                 report.append(f"  • {fix}")
             report.append("")

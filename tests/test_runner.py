@@ -194,7 +194,7 @@ class TestRunner:
     
     def run_tests(self) -> Dict[str, Any]:
         """Run all tests and return results."""
-        print("🧪 RUNNING AUTOMATED TEST SUITE")
+        print(" RUNNING AUTOMATED TEST SUITE")
         print("=" * 40)
         
         # Create test suite
@@ -219,7 +219,7 @@ class TestRunner:
     
     def run_performance_benchmark(self) -> Dict[str, Any]:
         """Run performance benchmark."""
-        print("\\n📊 RUNNING PERFORMANCE BENCHMARK")
+        print("\\n RUNNING PERFORMANCE BENCHMARK")
         print("=" * 40)
         
         start_time = time.time()
@@ -255,12 +255,12 @@ class TestRunner:
     def generate_report(self, test_results: Dict[str, Any], benchmark_results: Dict[str, Any]) -> str:
         """Generate test report."""
         report = []
-        report.append("🧪 AUTOMATED TEST REPORT")
+        report.append(" AUTOMATED TEST REPORT")
         report.append("=" * 50)
         report.append("")
         
         # Test results
-        report.append("📋 TEST RESULTS:")
+        report.append(" TEST RESULTS:")
         report.append(f"  Total Tests: {test_results['total_tests']}")
         report.append(f"  Failures: {test_results['failures']}")
         report.append(f"  Errors: {test_results['errors']}")
@@ -268,7 +268,7 @@ class TestRunner:
         report.append("")
         
         # Performance results
-        report.append("📊 PERFORMANCE BENCHMARK:")
+        report.append(" PERFORMANCE BENCHMARK:")
         report.append(f"  Import Time: {benchmark_results['import_time']:.3f}s")
         report.append(f"  Memory Usage: {benchmark_results['memory_usage_mb']:.1f} MB")
         report.append(f"  Memory Delta: {benchmark_results['memory_delta_mb']:+.1f} MB")
@@ -278,13 +278,13 @@ class TestRunner:
         
         # Overall status
         if test_results['success_rate'] >= 95:
-            report.append("✅ STATUS: EXCELLENT - System is highly reliable")
+            report.append(" STATUS: EXCELLENT - System is highly reliable")
         elif test_results['success_rate'] >= 90:
-            report.append("✅ STATUS: GOOD - System is reliable with minor issues")
+            report.append(" STATUS: GOOD - System is reliable with minor issues")
         elif test_results['success_rate'] >= 80:
-            report.append("⚠️ STATUS: FAIR - System has some issues that need attention")
+            report.append(" STATUS: FAIR - System has some issues that need attention")
         else:
-            report.append("❌ STATUS: POOR - System has significant issues")
+            report.append(" STATUS: POOR - System has significant issues")
         
         return "\\n".join(report)
 
@@ -311,7 +311,7 @@ def main():
             'timestamp': time.time()
         }, f, indent=2)
     
-    print("\\n📄 Report saved to test_report.json")
+    print("\\n Report saved to test_report.json")
     
     return test_results['success_rate'] >= 90
 

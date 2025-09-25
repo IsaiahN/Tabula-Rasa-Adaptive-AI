@@ -158,7 +158,7 @@ class HierarchicalMemoryClusterer:
             'cross_session_persistence_threshold': 0.5
         }
         
-        logger.info("🗂️ HierarchicalMemoryClusterer initialized for Phase 2")
+        logger.info(" HierarchicalMemoryClusterer initialized for Phase 2")
     
     def create_intelligent_clusters(self, memories: List[Dict], 
                                    access_patterns: List[Dict] = None) -> Dict[str, MemoryCluster]:
@@ -204,7 +204,7 @@ class HierarchicalMemoryClusterer:
         self.clusters = new_clusters
         self._rebuild_memory_to_cluster_mapping()
         
-        logger.info(f"🧠 Intelligent clustering complete: {len(new_clusters)} total clusters created")
+        logger.info(f" Intelligent clustering complete: {len(new_clusters)} total clusters created")
         
         return new_clusters
     
@@ -755,9 +755,9 @@ if __name__ == "__main__":
     summary = clusterer.get_clustering_summary()
     recommendations = clusterer.get_cluster_optimization_recommendations()
     
-    print("🗂️ Hierarchical Memory Clustering Test Results:")
-    print(f"✅ Created {summary['total_clusters']} intelligent clusters")
-    print(f"✅ Cluster types: {summary['cluster_types']}")
-    print(f"✅ Average cluster health: {summary['cluster_health']['avg_health_score']:.3f}")
-    print(f"✅ Optimization recommendations: {len(recommendations)}")
-    print("✅ Phase 2 hierarchical clustering operational!")
+    print(" Hierarchical Memory Clustering Test Results:")
+    print(f" Created {summary['total_clusters']} intelligent clusters")
+    print(f" Cluster types: {summary['cluster_types']}")
+    print(f" Average cluster health: {summary['cluster_health']['avg_health_score']:.3f}")
+    print(f" Optimization recommendations: {len(recommendations)}")
+    print(" Phase 2 hierarchical clustering operational!")

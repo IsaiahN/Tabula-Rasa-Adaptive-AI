@@ -169,9 +169,9 @@ class LogRotator:
         if failed_logs:
             self.logger.warning(f"Log rotation partially failed for: {', '.join(failed_logs)}")
             if self.is_windows:
-                self.logger.info("💡 On Windows, this is often due to file locking. The system will continue normally.")
+                self.logger.info(" On Windows, this is often due to file locking. The system will continue normally.")
         else:
-            self.logger.info("✅ All log files rotated successfully")
+            self.logger.info(" All log files rotated successfully")
         
         return success
     

@@ -104,7 +104,7 @@ class Phase2AutomationSystem:
             return
         
         self.phase2_active = True
-        logger.info(f"🧠 Starting Phase 2 Automation System - {mode}")
+        logger.info(f" Starting Phase 2 Automation System - {mode}")
         
         # Set status based on mode
         if mode == "learning_only":
@@ -125,12 +125,12 @@ class Phase2AutomationSystem:
         # Start metrics collection
         asyncio.create_task(self._metrics_collection_loop())
         
-        logger.info("✅ Phase 2 Automation System started successfully")
+        logger.info(" Phase 2 Automation System started successfully")
     
     async def stop_phase2(self):
         """Stop Phase 2 automation system."""
         self.phase2_active = False
-        logger.info("🛑 Stopping Phase 2 Automation System")
+        logger.info(" Stopping Phase 2 Automation System")
         
         # Stop all systems
         if self.learning_active:
@@ -142,14 +142,14 @@ class Phase2AutomationSystem:
             self.testing_active = False
         
         self.current_status = Phase2Status.INACTIVE
-        logger.info("✅ Phase 2 Automation System stopped")
+        logger.info(" Phase 2 Automation System stopped")
     
     async def _start_learning_only(self):
         """Start learning-only mode."""
         try:
             await start_meta_learning()
             self.learning_active = True
-            logger.info("🧠 Meta-Learning System started")
+            logger.info(" Meta-Learning System started")
             
         except Exception as e:
             logger.error(f"Error starting learning-only mode: {e}")
@@ -160,7 +160,7 @@ class Phase2AutomationSystem:
         try:
             await start_autonomous_testing()
             self.testing_active = True
-            logger.info("🧪 Autonomous Testing System started")
+            logger.info(" Autonomous Testing System started")
             
         except Exception as e:
             logger.error(f"Error starting testing-only mode: {e}")
@@ -176,8 +176,8 @@ class Phase2AutomationSystem:
             await start_autonomous_testing()
             self.testing_active = True
             
-            logger.info("🧠 Meta-Learning System started")
-            logger.info("🧪 Autonomous Testing System started")
+            logger.info(" Meta-Learning System started")
+            logger.info(" Autonomous Testing System started")
             
         except Exception as e:
             logger.error(f"Error starting full Phase 2: {e}")
@@ -337,7 +337,7 @@ class Phase2AutomationSystem:
             for i in range(min(test_failures, 5)):  # Limit to 5 learning experiences
                 await self._create_test_failure_learning_experience()
             
-            logger.info(f"🧠 Generated learning experiences from {test_failures} test failures")
+            logger.info(f" Generated learning experiences from {test_failures} test failures")
             
         except Exception as e:
             logger.error(f"Error generating learning from test failures: {e}")
@@ -356,7 +356,7 @@ class Phase2AutomationSystem:
         """Increase learning to improve test coverage."""
         try:
             # This would increase learning activities to improve test coverage
-            logger.info("🧠 Increasing learning activities for better test coverage")
+            logger.info(" Increasing learning activities for better test coverage")
             
         except Exception as e:
             logger.error(f"Error increasing learning for coverage: {e}")
@@ -365,7 +365,7 @@ class Phase2AutomationSystem:
         """Generate complex tests based on learning insights."""
         try:
             # This would generate complex tests based on learning insights
-            logger.info("🧪 Generating complex tests from learning insights")
+            logger.info(" Generating complex tests from learning insights")
             
         except Exception as e:
             logger.error(f"Error generating complex tests from learning: {e}")
@@ -374,7 +374,7 @@ class Phase2AutomationSystem:
         """Generate tests based on learned patterns."""
         try:
             # This would generate tests based on learned patterns
-            logger.info("🧪 Generating pattern-based tests")
+            logger.info(" Generating pattern-based tests")
             
         except Exception as e:
             logger.error(f"Error generating pattern-based tests: {e}")
@@ -383,7 +383,7 @@ class Phase2AutomationSystem:
         """Increase test complexity based on learning performance."""
         try:
             # This would increase test complexity
-            logger.info("🧪 Increasing test complexity based on learning performance")
+            logger.info(" Increasing test complexity based on learning performance")
             
         except Exception as e:
             logger.error(f"Error increasing test complexity: {e}")
@@ -392,7 +392,7 @@ class Phase2AutomationSystem:
         """Increase learning exploration based on testing performance."""
         try:
             # This would increase learning exploration
-            logger.info("🧠 Increasing learning exploration based on testing performance")
+            logger.info(" Increasing learning exploration based on testing performance")
             
         except Exception as e:
             logger.error(f"Error increasing learning exploration: {e}")
@@ -401,7 +401,7 @@ class Phase2AutomationSystem:
         """Maintain current system settings."""
         try:
             # This would maintain current settings
-            logger.debug("🔄 Maintaining current Phase 2 settings")
+            logger.debug(" Maintaining current Phase 2 settings")
             
         except Exception as e:
             logger.error(f"Error maintaining current settings: {e}")
@@ -410,7 +410,7 @@ class Phase2AutomationSystem:
         """Make minor adjustments to system settings."""
         try:
             # This would make minor adjustments
-            logger.info("🔧 Making minor Phase 2 adjustments")
+            logger.info(" Making minor Phase 2 adjustments")
             
         except Exception as e:
             logger.error(f"Error making minor adjustments: {e}")
@@ -419,7 +419,7 @@ class Phase2AutomationSystem:
         """Make major adjustments to system settings."""
         try:
             # This would make major adjustments
-            logger.info("🔧 Making major Phase 2 adjustments")
+            logger.info(" Making major Phase 2 adjustments")
             
         except Exception as e:
             logger.error(f"Error making major adjustments: {e}")

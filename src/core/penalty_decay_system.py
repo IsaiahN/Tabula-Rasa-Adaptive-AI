@@ -307,8 +307,8 @@ class PenaltyDecaySystem:
                     )
                 )
             except Exception as e:
-                self.logger.error(f"🔍 DEBUG: Error in coordinate_penalties insert: {e}")
-                self.logger.error(f"🔍 DEBUG: Provided 9 values for 9 columns - this should be correct")
+                self.logger.error(f" DEBUG: Error in coordinate_penalties insert: {e}")
+                self.logger.error(f" DEBUG: Provided 9 values for 9 columns - this should be correct")
                 raise
             
             # Log penalty application

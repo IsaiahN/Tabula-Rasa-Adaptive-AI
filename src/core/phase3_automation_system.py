@@ -114,7 +114,7 @@ class Phase3AutomationSystem:
             return
         
         self.phase3_active = True
-        logger.info(f"🧬 Starting Phase 3 Automation System - {mode}")
+        logger.info(f" Starting Phase 3 Automation System - {mode}")
         
         # Set status based on mode
         if mode == "code_evolution_only":
@@ -144,12 +144,12 @@ class Phase3AutomationSystem:
         # Start metrics collection
         asyncio.create_task(self._metrics_collection_loop())
         
-        logger.info("✅ Phase 3 Automation System started successfully")
+        logger.info(" Phase 3 Automation System started successfully")
     
     async def stop_phase3(self):
         """Stop Phase 3 automation system."""
         self.phase3_active = False
-        logger.info("🛑 Stopping Phase 3 Automation System")
+        logger.info(" Stopping Phase 3 Automation System")
         
         # Stop all systems
         if self.code_evolution_active:
@@ -165,14 +165,14 @@ class Phase3AutomationSystem:
             self.knowledge_active = False
         
         self.current_status = Phase3Status.INACTIVE
-        logger.info("✅ Phase 3 Automation System stopped")
+        logger.info(" Phase 3 Automation System stopped")
     
     async def _start_code_evolution_only(self):
         """Start code evolution only mode."""
         try:
             await start_self_evolving_code()
             self.code_evolution_active = True
-            logger.info("🧬 Self-Evolving Code System started")
+            logger.info(" Self-Evolving Code System started")
             
         except Exception as e:
             logger.error(f"Error starting code evolution only mode: {e}")
@@ -183,7 +183,7 @@ class Phase3AutomationSystem:
         try:
             await start_self_improving_architecture()
             self.architecture_active = True
-            logger.info("🏗️ Self-Improving Architecture System started")
+            logger.info(" Self-Improving Architecture System started")
             
         except Exception as e:
             logger.error(f"Error starting architecture only mode: {e}")
@@ -194,7 +194,7 @@ class Phase3AutomationSystem:
         try:
             await start_autonomous_knowledge_management()
             self.knowledge_active = True
-            logger.info("🧠 Autonomous Knowledge Management System started")
+            logger.info(" Autonomous Knowledge Management System started")
             
         except Exception as e:
             logger.error(f"Error starting knowledge only mode: {e}")
@@ -213,9 +213,9 @@ class Phase3AutomationSystem:
             await start_autonomous_knowledge_management()
             self.knowledge_active = True
             
-            logger.info("🧬 Self-Evolving Code System started")
-            logger.info("🏗️ Self-Improving Architecture System started")
-            logger.info("🧠 Autonomous Knowledge Management System started")
+            logger.info(" Self-Evolving Code System started")
+            logger.info(" Self-Improving Architecture System started")
+            logger.info(" Autonomous Knowledge Management System started")
             
         except Exception as e:
             logger.error(f"Error starting full Phase 3: {e}")
@@ -229,7 +229,7 @@ class Phase3AutomationSystem:
             self.knowledge_active = True
             
             self.safety_mode = True
-            logger.info("🛡️ Safety Mode activated - Limited functionality")
+            logger.info(" Safety Mode activated - Limited functionality")
             
         except Exception as e:
             logger.error(f"Error starting safety mode: {e}")
@@ -284,7 +284,7 @@ class Phase3AutomationSystem:
             arch_changes = arch_status.get('metrics', {}).get('total_changes', 0)
             
             if code_changes > 10 and arch_changes < 5:
-                logger.info("🔄 Coordinating: Code evolution is active, ensuring architecture can handle changes")
+                logger.info(" Coordinating: Code evolution is active, ensuring architecture can handle changes")
                 # This would trigger architecture adjustments
             
         except Exception as e:
@@ -301,7 +301,7 @@ class Phase3AutomationSystem:
             knowledge_items = knowledge_status.get('metrics', {}).get('total_knowledge_items', 0)
             
             if arch_changes > 5 and knowledge_items < 100:
-                logger.info("🔄 Coordinating: Architecture is changing, ensuring knowledge is updated")
+                logger.info(" Coordinating: Architecture is changing, ensuring knowledge is updated")
                 # This would trigger knowledge updates
             
         except Exception as e:
@@ -318,7 +318,7 @@ class Phase3AutomationSystem:
             knowledge_quality = knowledge_status.get('metrics', {}).get('knowledge_quality', 0.0)
             
             if code_changes > 5 and knowledge_quality < 0.8:
-                logger.info("🔄 Coordinating: Code is evolving, ensuring knowledge quality is maintained")
+                logger.info(" Coordinating: Code is evolving, ensuring knowledge quality is maintained")
                 # This would trigger knowledge quality improvements
             
         except Exception as e:
@@ -382,7 +382,7 @@ class Phase3AutomationSystem:
                 cooldown_violations = code_status.get('metrics', {}).get('cooldown_violations', 0)
                 if cooldown_violations > 0:
                     self.safety_violations += cooldown_violations
-                    logger.warning(f"⚠️ Safety violation: {cooldown_violations} cooldown violations detected")
+                    logger.warning(f" Safety violation: {cooldown_violations} cooldown violations detected")
             
             # Check for frequency violations
             if self.architecture_active:
@@ -390,7 +390,7 @@ class Phase3AutomationSystem:
                 freq_violations = arch_status.get('metrics', {}).get('change_frequency_violations', 0)
                 if freq_violations > 0:
                     self.safety_violations += freq_violations
-                    logger.warning(f"⚠️ Safety violation: {freq_violations} frequency violations detected")
+                    logger.warning(f" Safety violation: {freq_violations} frequency violations detected")
             
             # Update safety score
             self.safety_score = max(0.0, 1.0 - (self.safety_violations * 0.1))

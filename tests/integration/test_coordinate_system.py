@@ -19,31 +19,31 @@ from api.enhanced_client import ArcAgiApiClient
 
 def test_coordinate_system_imports():
     """Test that all coordinate system components can be imported."""
-    print("🧪 Testing coordinate system imports...")
+    print(" Testing coordinate system imports...")
     
     try:
         # Test frame analyzer
         frame_analyzer = FrameAnalyzer()
-        print("✅ FrameAnalyzer imported successfully")
+        print(" FrameAnalyzer imported successfully")
         
         # Test pathway system
         pathway_system = PathwayLearningSystem()
-        print("✅ PathwayLearningSystem imported successfully")
+        print(" PathwayLearningSystem imported successfully")
         
         # Test API client (without API key)
         try:
             api_client = ArcAgiApiClient("test_key")
-            print("✅ ArcAgiApiClient imported successfully")
+            print(" ArcAgiApiClient imported successfully")
         except Exception as e:
-            print(f"⚠️ ArcAgiApiClient import warning: {e}")
+            print(f" ArcAgiApiClient import warning: {e}")
         
         # Test training manager (without API key)
         try:
             manager = CoordinateAwareTrainingManager("test_key")
-            print("✅ CoordinateAwareTrainingManager imported successfully")
+            print(" CoordinateAwareTrainingManager imported successfully")
         except Exception as e:
-            print(f"⚠️ CoordinateAwareTrainingManager import warning: {e}")
-        print("✅ All coordinate system imports successful!")
+            print(f" CoordinateAwareTrainingManager import warning: {e}")
+        print(" All coordinate system imports successful!")
         assert True
     except Exception as e:
         pytest.fail(f"Import test failed: {e}")
@@ -51,7 +51,7 @@ def test_coordinate_system_imports():
 
 def test_coordinate_system_components():
     """Test individual component functionality."""
-    print("\n🧪 Testing coordinate system components...")
+    print("\n Testing coordinate system components...")
     
     try:
         # Test FrameAnalyzer
@@ -59,7 +59,7 @@ def test_coordinate_system_components():
         # Use simple 2D integer grid (color indices) instead of 3-channel tuples
         test_frame = np.array([[1 for _ in range(10)] for _ in range(10)], dtype=int)
         analysis = frame_analyzer.analyze_frame(test_frame)
-        print(f"✅ FrameAnalyzer analysis: {type(analysis)}")
+        print(f" FrameAnalyzer analysis: {type(analysis)}")
         
         # Test PathwayLearningSystem
         pathway_system = PathwayLearningSystem()
@@ -72,15 +72,15 @@ def test_coordinate_system_components():
             game_id="test_game"
         )
         recommendations = pathway_system.get_pathway_recommendations([1, 2, 3, 4, 5, 6, 7], 0, "test_game")
-        print(f"✅ PathwayLearningSystem recommendations: {type(recommendations)}")
+        print(f" PathwayLearningSystem recommendations: {type(recommendations)}")
         
         # Test coordinate manager
         from src.api.enhanced_client import CoordinateManager
         coord_manager = CoordinateManager()
         center_coords = coord_manager.get_center_coordinates()
-        print(f"✅ CoordinateManager center coordinates: {center_coords}")
+        print(f" CoordinateManager center coordinates: {center_coords}")
         
-        print("✅ All component tests successful!")
+        print(" All component tests successful!")
         assert True
     except Exception as e:
         import traceback
@@ -91,7 +91,7 @@ def test_coordinate_system_components():
 @pytest.mark.asyncio
 async def test_integration_without_api():
     """Test integration components without requiring API access."""
-    print("\n🧪 Testing integration without API...")
+    print("\n Testing integration without API...")
     
     try:
         # Create mock frame data
@@ -104,7 +104,7 @@ async def test_integration_without_api():
         # Test frame analysis
         frame_analyzer = FrameAnalyzer()
         analysis = frame_analyzer.analyze_frame(mock_frame_data['frame'])
-        print(f"✅ Frame analysis completed: movement_detected={analysis.get('movement_detected', False)}")
+        print(f" Frame analysis completed: movement_detected={analysis.get('movement_detected', False)}")
         
         # Test pathway learning
         pathway_system = PathwayLearningSystem()
@@ -119,7 +119,7 @@ async def test_integration_without_api():
             )
         
         recommendations = pathway_system.get_pathway_recommendations([1, 2, 3, 4, 5, 6, 7], 50, "integration_test")
-        print(f"✅ Pathway recommendations generated: {len(recommendations)} actions")
+        print(f" Pathway recommendations generated: {len(recommendations)} actions")
         
         # Test coordinate selection
         from src.api.enhanced_client import CoordinateManager
@@ -127,17 +127,17 @@ async def test_integration_without_api():
         
         # Test center coordinates
         coords = coord_manager.get_center_coordinates()
-        print(f"✅ center_start coordinates: {coords}")
+        print(f" center_start coordinates: {coords}")
         
         # Test corner coordinates
         coords = coord_manager.get_corner_coordinates()
-        print(f"✅ corner_exploration coordinates: {coords}")
+        print(f" corner_exploration coordinates: {coords}")
         
         # Test strategic positions
         coords = coord_manager.get_strategic_positions()
-        print(f"✅ strategic positions coordinates: {coords[:3]}")  # Show first 3
+        print(f" strategic positions coordinates: {coords[:3]}")  # Show first 3
         
-        print("✅ Integration test successful!")
+        print(" Integration test successful!")
         assert True
     except Exception as e:
         import traceback
@@ -147,7 +147,7 @@ async def test_integration_without_api():
 
 def main():
     """Run all coordinate system tests."""
-    print("🚀 Starting Coordinate System Test Suite")
+    print(" Starting Coordinate System Test Suite")
     print("=" * 50)
     
     tests_passed = 0
@@ -175,14 +175,14 @@ def main():
         pass
     
     print("\n" + "=" * 50)
-    print(f"📊 Test Results: {tests_passed}/{total_tests} tests passed")
+    print(f" Test Results: {tests_passed}/{total_tests} tests passed")
     
     if tests_passed == total_tests:
-        print("🎉 All coordinate system tests passed!")
-        print("✅ System is ready for coordinate-aware training")
+        print(" All coordinate system tests passed!")
+        print(" System is ready for coordinate-aware training")
         assert True
     else:
-        print("❌ Some tests failed. Check error messages above.")
+        print(" Some tests failed. Check error messages above.")
         pytest.fail(f"{total_tests - tests_passed} coordinate system tests failed")
 
 

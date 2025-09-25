@@ -219,7 +219,7 @@ class PositionTracker:
                     
                     # Log penalty application
                     if penalty_info.get('penalty_applied', False):
-                        print(f"🎯 PENALTY APPLIED: ({x},{y}) - {penalty_info.get('penalty_reason', 'unknown')} "
+                        print(f" PENALTY APPLIED: ({x},{y}) - {penalty_info.get('penalty_reason', 'unknown')} "
                               f"(score: {penalty_info['penalty_score']:.3f})")
                 
             except Exception as e:

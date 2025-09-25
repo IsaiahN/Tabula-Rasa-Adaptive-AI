@@ -167,7 +167,7 @@ class SelfEvolvingCodeSystem:
             return
         
         self.evolution_active = True
-        logger.info("🧬 Starting Self-Evolving Code System")
+        logger.info(" Starting Self-Evolving Code System")
         
         # Load current game count
         await self._load_current_game_count()
@@ -181,7 +181,7 @@ class SelfEvolvingCodeSystem:
     async def stop_evolution(self):
         """Stop the self-evolving code system."""
         self.evolution_active = False
-        logger.info("🛑 Stopping Self-Evolving Code System")
+        logger.info(" Stopping Self-Evolving Code System")
     
     async def _load_current_game_count(self):
         """Load current game count from database."""
@@ -196,8 +196,8 @@ class SelfEvolvingCodeSystem:
             # Calculate games since last architectural change
             self.metrics.games_since_last_architectural_change = self.current_game_count - self.last_architectural_change
             
-            logger.info(f"📊 Current game count: {self.current_game_count}")
-            logger.info(f"📊 Games since last architectural change: {self.metrics.games_since_last_architectural_change}")
+            logger.info(f" Current game count: {self.current_game_count}")
+            logger.info(f" Games since last architectural change: {self.metrics.games_since_last_architectural_change}")
             
         except Exception as e:
             logger.error(f"Error loading current game count: {e}")
@@ -260,7 +260,7 @@ class SelfEvolvingCodeSystem:
     async def _run_evolution_cycle(self):
         """Run a complete evolution cycle."""
         try:
-            logger.debug("🔄 Running code evolution cycle")
+            logger.debug(" Running code evolution cycle")
             
             # 1. Update game count
             await self._update_game_count()
@@ -292,7 +292,7 @@ class SelfEvolvingCodeSystem:
                     self.current_game_count = new_game_count
                     self.metrics.games_since_last_architectural_change = self.current_game_count - self.last_architectural_change
                     
-                    logger.debug(f"📊 Game count updated: {self.current_game_count}")
+                    logger.debug(f" Game count updated: {self.current_game_count}")
             
         except Exception as e:
             logger.error(f"Error updating game count: {e}")
@@ -307,7 +307,7 @@ class SelfEvolvingCodeSystem:
                 has_sufficient_data = await self._has_sufficient_data_for_architectural_change()
                 
                 if has_sufficient_data:
-                    logger.info(f"✅ Can make architectural changes: {games_since_last_change} games since last change")
+                    logger.info(f" Can make architectural changes: {games_since_last_change} games since last change")
                     return True
                 else:
                     logger.info(f"⏳ Need more data for architectural changes: {games_since_last_change} games since last change")
@@ -597,11 +597,11 @@ class SelfEvolvingCodeSystem:
     async def _process_evolution_proposal(self, proposal: EvolutionProposal):
         """Process an evolution proposal."""
         try:
-            logger.info(f"📋 Processing evolution proposal: {proposal.proposal_id}")
+            logger.info(f" Processing evolution proposal: {proposal.proposal_id}")
             
             # Check safety requirements
             if not await self._check_safety_requirements(proposal):
-                logger.warning(f"⚠️ Safety requirements not met for proposal: {proposal.proposal_id}")
+                logger.warning(f" Safety requirements not met for proposal: {proposal.proposal_id}")
                 return
             
             # Generate code changes for the proposal
@@ -611,7 +611,7 @@ class SelfEvolvingCodeSystem:
             for change in code_changes:
                 self.pending_changes.append(change)
             
-            logger.info(f"✅ Generated {len(code_changes)} code changes for proposal: {proposal.proposal_id}")
+            logger.info(f" Generated {len(code_changes)} code changes for proposal: {proposal.proposal_id}")
             
         except Exception as e:
             logger.error(f"Error processing evolution proposal: {e}")
@@ -737,13 +737,13 @@ class SelfEvolvingCodeSystem:
                 if await self._apply_code_change(change):
                     self.applied_changes.append(change)
                     self.metrics.successful_changes += 1
-                    logger.info(f"✅ Applied code change: {change.change_id}")
+                    logger.info(f" Applied code change: {change.change_id}")
                 else:
                     self.metrics.failed_changes += 1
-                    logger.error(f"❌ Failed to apply code change: {change.change_id}")
+                    logger.error(f" Failed to apply code change: {change.change_id}")
             else:
                 self.metrics.failed_changes += 1
-                logger.error(f"❌ Code change failed testing: {change.change_id}")
+                logger.error(f" Code change failed testing: {change.change_id}")
             
             self.metrics.total_changes += 1
             
@@ -853,7 +853,7 @@ class SelfEvolvingCodeSystem:
                 arch_changes = [c for c in self.pending_changes if c.evolution_type == EvolutionType.ARCHITECTURAL_CHANGE]
                 if arch_changes:
                     self.metrics.cooldown_violations += 1
-                    logger.warning(f"⚠️ Cooldown violation: {len(arch_changes)} architectural changes pending during cooldown")
+                    logger.warning(f" Cooldown violation: {len(arch_changes)} architectural changes pending during cooldown")
             
             # Check for safety threshold violations
             for change in self.pending_changes:
@@ -862,7 +862,7 @@ class SelfEvolvingCodeSystem:
                 
                 if self.metrics.games_since_last_architectural_change < requirements["min_games"]:
                     self.metrics.safety_violations += 1
-                    logger.warning(f"⚠️ Safety violation: {change.change_id} requires {requirements['min_games']} games")
+                    logger.warning(f" Safety violation: {change.change_id} requires {requirements['min_games']} games")
             
         except Exception as e:
             logger.error(f"Error monitoring safety violations: {e}")

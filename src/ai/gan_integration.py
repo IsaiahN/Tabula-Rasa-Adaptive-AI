@@ -65,7 +65,7 @@ class GANEnhancedLearning:
         self.continuous_learning_loop._select_next_action = self._enhanced_select_action
         
         self.is_integrated = True
-        logger.info("✅ GAN integration activated")
+        logger.info(" GAN integration activated")
     
     def deintegrate(self):
         """Remove GAN integration and restore original methods."""
@@ -76,7 +76,7 @@ class GANEnhancedLearning:
         self.continuous_learning_loop._select_next_action = self.original_select_action
         
         self.is_integrated = False
-        logger.info("❌ GAN integration deactivated")
+        logger.info(" GAN integration deactivated")
     
     async def _enhanced_execute_action(self, action: int, coordinates: Tuple[int, int], game_id: str) -> Dict[str, Any]:
         """Enhanced action execution that feeds transition data to GAN."""
@@ -165,7 +165,7 @@ class GANEnhancedLearning:
                         self._used_gan_prediction = True
                         self.gan_predictions_used += 1
                         
-                        logger.info(f"🧠 GAN PREDICTION: Action {gan_action} at {gan_coords} "
+                        logger.info(f" GAN PREDICTION: Action {gan_action} at {gan_coords} "
                                   f"(confidence: {confidence:.3f}, quality: {gan_quality:.3f})")
                         
                         return gan_action, gan_coords
@@ -195,7 +195,7 @@ class GANEnhancedLearning:
             metrics = await loop.run_in_executor(None, self.gan_mimicker.train_step, 32)
             
             if 'error' not in metrics:
-                logger.info(f"🧠 GAN TRAINING: D_loss={metrics['discriminator_loss']:.3f}, "
+                logger.info(f" GAN TRAINING: D_loss={metrics['discriminator_loss']:.3f}, "
                           f"G_loss={metrics['generator_loss']:.3f}, "
                           f"A_loss={metrics['action_predictor_loss']:.3f}, "
                           f"D_acc={metrics['discriminator_accuracy']:.3f}")
@@ -292,7 +292,7 @@ async def monitor_gan_performance(gan_system: GANEnhancedLearning, interval: int
         try:
             summary = gan_system.get_performance_summary()
             
-            logger.info(f"🧠 GAN PERFORMANCE UPDATE:")
+            logger.info(f" GAN PERFORMANCE UPDATE:")
             logger.info(f"   Transitions: {summary['total_transitions_collected']}")
             logger.info(f"   Training Steps: {summary['total_training_steps']}")
             logger.info(f"   GAN Usage Rate: {summary['action_distribution']['gan_usage_rate']:.1%}")

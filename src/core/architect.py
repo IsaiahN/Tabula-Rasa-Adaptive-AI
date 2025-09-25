@@ -52,7 +52,7 @@ class Architect:
         self.human_approval_required = True
         self.auto_merge_threshold = 0.15
         
-        self.logger.info("🔬 Modular Architect initialized - Zeroth Brain online")
+        self.logger.info(" Modular Architect initialized - Zeroth Brain online")
     
     def _load_current_genome(self) -> SystemGenome:
         """Load current system genome from configuration."""
@@ -62,14 +62,14 @@ class Architect:
     
     async def autonomous_evolution_cycle(self) -> Dict[str, Any]:
         """Run one cycle of autonomous evolution."""
-        self.logger.info(f"🧬 Starting evolution cycle {self.generation}")
+        self.logger.info(f" Starting evolution cycle {self.generation}")
         
         try:
             # Use evolution engine for autonomous evolution
             evolution_result = self.evolution_engine.execute_autonomous_evolution()
             
             if evolution_result.get('success'):
-                self.logger.info("🚀 Evolution Engine executed autonomous evolution")
+                self.logger.info(" Evolution Engine executed autonomous evolution")
                 return evolution_result
             
             # Fallback to traditional mutation approach
@@ -86,7 +86,7 @@ class Architect:
             improvement = test_result.get_overall_improvement()
             
             if test_result.success and improvement > 0.02:
-                self.logger.info(f"✅ Beneficial mutation found: {improvement:.3f} improvement")
+                self.logger.info(f" Beneficial mutation found: {improvement:.3f} improvement")
                 
                 return {
                     'success': True,
@@ -95,7 +95,7 @@ class Architect:
                     'mutation_id': mutation.id
                 }
             else:
-                self.logger.debug(f"📊 Mutation tested: {improvement:.3f} improvement (below threshold)")
+                self.logger.debug(f" Mutation tested: {improvement:.3f} improvement (below threshold)")
                 
                 return {
                     'success': False,
@@ -105,7 +105,7 @@ class Architect:
                 }
             
         except Exception as e:
-            self.logger.error(f"❌ Error in evolution cycle: {e}")
+            self.logger.error(f" Error in evolution cycle: {e}")
             return {
                 'success': False, 
                 'error': str(e),

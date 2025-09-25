@@ -154,7 +154,7 @@ class AutonomousSystemMonitor:
             return
         
         self.monitoring_active = True
-        logger.info("📊 Starting Autonomous System Monitor")
+        logger.info(" Starting Autonomous System Monitor")
         
         # Start monitoring loop
         asyncio.create_task(self._monitoring_loop())
@@ -168,7 +168,7 @@ class AutonomousSystemMonitor:
     async def stop_monitoring(self):
         """Stop the monitoring system."""
         self.monitoring_active = False
-        logger.info("🛑 Stopping Autonomous System Monitor")
+        logger.info(" Stopping Autonomous System Monitor")
     
     async def _monitoring_loop(self):
         """Main monitoring loop."""
@@ -363,7 +363,7 @@ class AutonomousSystemMonitor:
     async def _handle_emergency_threshold(self, metric_name: str, value: float, threshold: HealthThreshold):
         """Handle emergency threshold violation."""
         try:
-            logger.critical(f"🚨 EMERGENCY: {metric_name} = {value:.2f} (threshold: {threshold.emergency_threshold})")
+            logger.critical(f" EMERGENCY: {metric_name} = {value:.2f} (threshold: {threshold.emergency_threshold})")
             
             # Take emergency action
             if threshold.auto_action == ActionType.EMERGENCY_SHUTDOWN:
@@ -387,7 +387,7 @@ class AutonomousSystemMonitor:
     async def _handle_critical_threshold(self, metric_name: str, value: float, threshold: HealthThreshold):
         """Handle critical threshold violation."""
         try:
-            logger.warning(f"⚠️ CRITICAL: {metric_name} = {value:.2f} (threshold: {threshold.critical_threshold})")
+            logger.warning(f" CRITICAL: {metric_name} = {value:.2f} (threshold: {threshold.critical_threshold})")
             
             # Take critical action
             await self._execute_action(threshold.auto_action, metric_name, value)
@@ -407,7 +407,7 @@ class AutonomousSystemMonitor:
     async def _handle_warning_threshold(self, metric_name: str, value: float, threshold: HealthThreshold):
         """Handle warning threshold violation."""
         try:
-            logger.info(f"⚠️ WARNING: {metric_name} = {value:.2f} (threshold: {threshold.warning_threshold})")
+            logger.info(f" WARNING: {metric_name} = {value:.2f} (threshold: {threshold.warning_threshold})")
             
             # Take warning action (less aggressive)
             await self._execute_action(threshold.auto_action, metric_name, value, aggressive=False)
@@ -427,7 +427,7 @@ class AutonomousSystemMonitor:
     async def _execute_action(self, action_type: ActionType, metric_name: str, value: float, aggressive: bool = True):
         """Execute an automatic action."""
         try:
-            logger.info(f"🔧 Executing action: {action_type.value} for {metric_name} = {value:.2f}")
+            logger.info(f" Executing action: {action_type.value} for {metric_name} = {value:.2f}")
             
             if action_type == ActionType.OPTIMIZE_PROCESSING:
                 await self._optimize_processing(aggressive)
@@ -458,11 +458,11 @@ class AutonomousSystemMonitor:
         try:
             if aggressive:
                 # More aggressive optimization
-                logger.info("🔧 Aggressive processing optimization")
+                logger.info(" Aggressive processing optimization")
                 # Implement aggressive optimization
             else:
                 # Gentle optimization
-                logger.info("🔧 Gentle processing optimization")
+                logger.info(" Gentle processing optimization")
                 # Implement gentle optimization
                 
         except Exception as e:
@@ -476,11 +476,11 @@ class AutonomousSystemMonitor:
             if aggressive:
                 # Force garbage collection
                 collected = gc.collect()
-                logger.info(f"🗑️ Aggressive garbage collection: {collected} objects collected")
+                logger.info(f" Aggressive garbage collection: {collected} objects collected")
             else:
                 # Gentle garbage collection
                 collected = gc.collect()
-                logger.info(f"🗑️ Gentle garbage collection: {collected} objects collected")
+                logger.info(f" Gentle garbage collection: {collected} objects collected")
                 
         except Exception as e:
             logger.error(f"Error triggering garbage collection: {e}")
@@ -489,10 +489,10 @@ class AutonomousSystemMonitor:
         """Increase input validation."""
         try:
             if aggressive:
-                logger.info("🛡️ Aggressive validation increase")
+                logger.info(" Aggressive validation increase")
                 # Implement aggressive validation
             else:
-                logger.info("🛡️ Gentle validation increase")
+                logger.info(" Gentle validation increase")
                 # Implement gentle validation
                 
         except Exception as e:
@@ -502,10 +502,10 @@ class AutonomousSystemMonitor:
         """Optimize database queries."""
         try:
             if aggressive:
-                logger.info("📊 Aggressive query optimization")
+                logger.info(" Aggressive query optimization")
                 # Implement aggressive query optimization
             else:
-                logger.info("📊 Gentle query optimization")
+                logger.info(" Gentle query optimization")
                 # Implement gentle query optimization
                 
         except Exception as e:
@@ -515,10 +515,10 @@ class AutonomousSystemMonitor:
         """Reduce concurrent operations."""
         try:
             if aggressive:
-                logger.info("🔄 Aggressive concurrency reduction")
+                logger.info(" Aggressive concurrency reduction")
                 # Implement aggressive concurrency reduction
             else:
-                logger.info("🔄 Gentle concurrency reduction")
+                logger.info(" Gentle concurrency reduction")
                 # Implement gentle concurrency reduction
                 
         except Exception as e:
@@ -528,10 +528,10 @@ class AutonomousSystemMonitor:
         """Clear system caches."""
         try:
             if aggressive:
-                logger.info("🧹 Aggressive cache clearing")
+                logger.info(" Aggressive cache clearing")
                 # Implement aggressive cache clearing
             else:
-                logger.info("🧹 Gentle cache clearing")
+                logger.info(" Gentle cache clearing")
                 # Implement gentle cache clearing
                 
         except Exception as e:
@@ -541,10 +541,10 @@ class AutonomousSystemMonitor:
         """Restart a system component."""
         try:
             if aggressive:
-                logger.info("🔄 Aggressive component restart")
+                logger.info(" Aggressive component restart")
                 # Implement aggressive component restart
             else:
-                logger.info("🔄 Gentle component restart")
+                logger.info(" Gentle component restart")
                 # Implement gentle component restart
                 
         except Exception as e:
@@ -553,7 +553,7 @@ class AutonomousSystemMonitor:
     async def _emergency_shutdown(self):
         """Emergency system shutdown."""
         try:
-            logger.critical("🚨 EMERGENCY SHUTDOWN INITIATED")
+            logger.critical(" EMERGENCY SHUTDOWN INITIATED")
             
             # Save critical state
             await self._save_critical_state()
@@ -590,7 +590,7 @@ class AutonomousSystemMonitor:
             # Stop other systems
             # This would stop other system components
             
-            logger.info("🛑 Graceful shutdown completed")
+            logger.info(" Graceful shutdown completed")
             
         except Exception as e:
             logger.error(f"Error in graceful shutdown: {e}")
@@ -612,10 +612,10 @@ class AutonomousSystemMonitor:
                     trend = self._calculate_trend(values)
                     
                     if trend > 0.1:  # Increasing trend
-                        logger.warning(f"📈 Increasing trend detected for {metric_name}: {trend:.3f}")
+                        logger.warning(f" Increasing trend detected for {metric_name}: {trend:.3f}")
                         await self._handle_trend_warning(metric_name, trend)
                     elif trend < -0.1:  # Decreasing trend
-                        logger.info(f"📉 Decreasing trend detected for {metric_name}: {trend:.3f}")
+                        logger.info(f" Decreasing trend detected for {metric_name}: {trend:.3f}")
                         self.metrics["health_improvements"] += 1
             
         except Exception as e:
@@ -684,7 +684,7 @@ class AutonomousSystemMonitor:
                         threshold = self.thresholds[metric_name]
                         
                         if predicted_value >= threshold.warning_threshold:
-                            logger.warning(f"🔮 PREDICTION: {metric_name} may reach {predicted_value:.2f} in 5 minutes")
+                            logger.warning(f" PREDICTION: {metric_name} may reach {predicted_value:.2f} in 5 minutes")
                             await self._handle_predictive_warning(metric_name, predicted_value, threshold)
             
         except Exception as e:
@@ -698,7 +698,7 @@ class AutonomousSystemMonitor:
                 await self._execute_action(threshold.auto_action, metric_name, predicted_value, aggressive=False)
                 threshold.last_action_time = time.time()
                 
-                logger.info(f"🔮 Preventive action taken for predicted {metric_name} = {predicted_value:.2f}")
+                logger.info(f" Preventive action taken for predicted {metric_name} = {predicted_value:.2f}")
             
         except Exception as e:
             logger.error(f"Error handling predictive warning: {e}")

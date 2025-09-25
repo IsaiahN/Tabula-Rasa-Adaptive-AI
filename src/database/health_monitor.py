@@ -27,7 +27,7 @@ class DatabaseHealthMonitor:
         
     async def start_monitoring(self):
         """Start the database health monitoring loop."""
-        logger.info("🔍 Starting database health monitoring...")
+        logger.info(" Starting database health monitoring...")
         
         while True:
             try:
@@ -40,17 +40,17 @@ class DatabaseHealthMonitor:
     async def _run_health_check(self):
         """Run a comprehensive database health check."""
         try:
-            logger.info("🔍 Running scheduled database health check...")
+            logger.info(" Running scheduled database health check...")
             
             # Run the database fix script
             result = await self._run_fix_script()
             
             if result["success"]:
                 self.health_status = "healthy"
-                logger.info("✅ Database health check passed")
+                logger.info(" Database health check passed")
             else:
                 self.health_status = "issues_found"
-                logger.warning(f"⚠️ Database health check found issues: {result['message']}")
+                logger.warning(f" Database health check found issues: {result['message']}")
             
             self.last_check = datetime.now()
             

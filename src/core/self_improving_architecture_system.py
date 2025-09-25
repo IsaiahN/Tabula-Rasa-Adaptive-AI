@@ -155,7 +155,7 @@ class SelfImprovingArchitectureSystem:
             return
         
         self.architecture_active = True
-        logger.info("🏗️ Starting Self-Improving Architecture System")
+        logger.info(" Starting Self-Improving Architecture System")
         
         # Load current architecture
         await self._load_current_architecture()
@@ -169,7 +169,7 @@ class SelfImprovingArchitectureSystem:
     async def stop_architecture_evolution(self):
         """Stop the self-improving architecture system."""
         self.architecture_active = False
-        logger.info("🛑 Stopping Self-Improving Architecture System")
+        logger.info(" Stopping Self-Improving Architecture System")
     
     async def _load_current_architecture(self):
         """Load current system architecture."""
@@ -194,7 +194,7 @@ class SelfImprovingArchitectureSystem:
                 }
             }
             
-            logger.info("📋 Current architecture loaded")
+            logger.info(" Current architecture loaded")
             
         except Exception as e:
             logger.error(f"Error loading current architecture: {e}")
@@ -257,7 +257,7 @@ class SelfImprovingArchitectureSystem:
     async def _run_architecture_evolution_cycle(self):
         """Run a complete architecture evolution cycle."""
         try:
-            logger.debug("🔄 Running architecture evolution cycle")
+            logger.debug(" Running architecture evolution cycle")
             
             # 1. Analyze current architecture
             analysis = await self._analyze_current_architecture()
@@ -437,7 +437,7 @@ class SelfImprovingArchitectureSystem:
             daily_limit = self.frequency_limits[change_type]['max_per_day']
             
             if daily_count >= daily_limit:
-                logger.warning(f"⚠️ Daily limit reached for {change_type.value}: {daily_count}/{daily_limit}")
+                logger.warning(f" Daily limit reached for {change_type.value}: {daily_count}/{daily_limit}")
                 return False
             
             # Check minimum interval
@@ -448,7 +448,7 @@ class SelfImprovingArchitectureSystem:
                 
                 if current_time - last_change < min_interval:
                     remaining_time = min_interval - (current_time - last_change)
-                    logger.warning(f"⚠️ Minimum interval not met for {change_type.value}: {remaining_time:.0f}s remaining")
+                    logger.warning(f" Minimum interval not met for {change_type.value}: {remaining_time:.0f}s remaining")
                     return False
             
             return True
@@ -514,15 +514,15 @@ class SelfImprovingArchitectureSystem:
     async def _process_architecture_proposal(self, proposal: ArchitectureChange):
         """Process an architecture change proposal."""
         try:
-            logger.info(f"📋 Processing architecture proposal: {proposal.change_id}")
+            logger.info(f" Processing architecture proposal: {proposal.change_id}")
             
             # Validate the proposal
             if await self._validate_architecture_proposal(proposal):
                 # Add to pending changes
                 self.pending_changes.append(proposal)
-                logger.info(f"✅ Architecture proposal validated: {proposal.change_id}")
+                logger.info(f" Architecture proposal validated: {proposal.change_id}")
             else:
-                logger.warning(f"⚠️ Architecture proposal validation failed: {proposal.change_id}")
+                logger.warning(f" Architecture proposal validation failed: {proposal.change_id}")
             
         except Exception as e:
             logger.error(f"Error processing architecture proposal: {e}")
@@ -533,18 +533,18 @@ class SelfImprovingArchitectureSystem:
             # Check if all affected components exist
             for component in proposal.affected_components:
                 if component not in self.current_architecture.get('components', {}):
-                    logger.warning(f"⚠️ Component {component} not found in current architecture")
+                    logger.warning(f" Component {component} not found in current architecture")
                     return False
             
             # Check if all dependencies are satisfied
             for dependency in proposal.dependencies:
                 if dependency not in self.current_architecture.get('components', {}):
-                    logger.warning(f"⚠️ Dependency {dependency} not found in current architecture")
+                    logger.warning(f" Dependency {dependency} not found in current architecture")
                     return False
             
             # Check confidence threshold
             if proposal.confidence < 0.6:
-                logger.warning(f"⚠️ Confidence too low: {proposal.confidence}")
+                logger.warning(f" Confidence too low: {proposal.confidence}")
                 return False
             
             return True
@@ -581,13 +581,13 @@ class SelfImprovingArchitectureSystem:
                     else:
                         self.metrics.critical_changes += 1
                     
-                    logger.info(f"✅ Applied architecture change: {change.change_id}")
+                    logger.info(f" Applied architecture change: {change.change_id}")
                 else:
                     self.metrics.failed_changes += 1
-                    logger.error(f"❌ Failed to apply architecture change: {change.change_id}")
+                    logger.error(f" Failed to apply architecture change: {change.change_id}")
             else:
                 self.metrics.failed_changes += 1
-                logger.error(f"❌ Architecture change failed testing: {change.change_id}")
+                logger.error(f" Architecture change failed testing: {change.change_id}")
             
             self.metrics.total_changes += 1
             

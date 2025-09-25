@@ -20,7 +20,7 @@ async def simple_arc_api_test():
     api_key = os.getenv('ARC_API_KEY')
     
     if not api_key or api_key == 'your_api_key_here':
-        print("❌ ARC_API_KEY not configured properly")
+        print(" ARC_API_KEY not configured properly")
         return False
     
     # Test direct API connection
@@ -30,7 +30,7 @@ async def simple_arc_api_test():
         "Content-Type": "application/json"
     }
     
-    print("🔗 Testing direct connection to ARC-AGI-3 API...")
+    print(" Testing direct connection to ARC-AGI-3 API...")
     print(f"   URL: {url}")
     print(f"   API Key: {api_key[:8]}...{api_key[-4:]}")
     
@@ -40,34 +40,34 @@ async def simple_arc_api_test():
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
                     data = await response.json()
-                    print(f"✅ SUCCESS: Connected to real ARC-AGI-3 API")
+                    print(f" SUCCESS: Connected to real ARC-AGI-3 API")
                     print(f"   Response: {len(data)} games available")
                     if data:
                         print(f"   Sample game: {data[0].get('title', 'Unknown')} ({data[0].get('game_id', 'Unknown')})")
                     return True
                 elif response.status == 401:
-                    print(f"❌ AUTHENTICATION FAILED: Invalid API key")
+                    print(f" AUTHENTICATION FAILED: Invalid API key")
                     return False
                 elif response.status == 429:
-                    print(f"⚠️ RATE LIMITED: Too many requests")
+                    print(f" RATE LIMITED: Too many requests")
                     return True  # Still proves real API
                 else:
-                    print(f"❌ API ERROR: Status {response.status}")
+                    print(f" API ERROR: Status {response.status}")
                     text = await response.text()
                     print(f"   Response: {text[:200]}")
                     return False
     except Exception as e:
-        print(f"❌ CONNECTION FAILED: {e}")
+        print(f" CONNECTION FAILED: {e}")
         return False
 
 def check_code_for_real_api():
     """Check if the code is actually using real API endpoints."""
-    print("\n🔍 Checking code for real API integration...")
+    print("\n Checking code for real API integration...")
     
     continuous_learning_file = Path("src/arc_integration/continuous_learning_loop.py")
     
     if not continuous_learning_file.exists():
-        print("❌ continuous_learning_loop.py not found")
+        print(" continuous_learning_loop.py not found")
         return False
     
     with open(continuous_learning_file, 'r', encoding='utf-8') as f:
@@ -77,42 +77,42 @@ def check_code_for_real_api():
     real_api_evidence = []
     
     if 'three.arcprize.org' in content:
-        real_api_evidence.append("✅ Uses three.arcprize.org endpoint")
+        real_api_evidence.append(" Uses three.arcprize.org endpoint")
     
     if 'aiohttp' in content and 'session.post' in content:
-        real_api_evidence.append("✅ Makes real HTTP requests with aiohttp")
+        real_api_evidence.append(" Makes real HTTP requests with aiohttp")
     
     if 'X-API-Key' in content:
-        real_api_evidence.append("✅ Uses API key authentication")
+        real_api_evidence.append(" Uses API key authentication")
     
     if '/api/cmd/ACTION' in content:
-        real_api_evidence.append("✅ Calls real ARC action endpoints")
+        real_api_evidence.append(" Calls real ARC action endpoints")
     
     if '/api/cmd/RESET' in content:
-        real_api_evidence.append("✅ Calls real ARC reset endpoints")
+        real_api_evidence.append(" Calls real ARC reset endpoints")
     
     if 'guid' in content.lower() and 'scorecard' in content.lower():
-        real_api_evidence.append("✅ Uses real ARC session management")
+        real_api_evidence.append(" Uses real ARC session management")
     
     # Look for simulation indicators (but ignore harmless internal usage)
     simulation_evidence = []
     
     if 'mock_response' in content.lower():
-        simulation_evidence.append("⚠️ Contains 'mock_response' references")
+        simulation_evidence.append(" Contains 'mock_response' references")
     
     if 'fake_api' in content.lower():
-        simulation_evidence.append("⚠️ Contains 'fake_api' references")
+        simulation_evidence.append(" Contains 'fake_api' references")
     
     if 'simulate_arc' in content.lower():
-        simulation_evidence.append("⚠️ Contains 'simulate_arc' references")
+        simulation_evidence.append(" Contains 'simulate_arc' references")
     
     if 'localhost' in content or '127.0.0.1' in content:
-        simulation_evidence.append("⚠️ Contains localhost references")
+        simulation_evidence.append(" Contains localhost references")
     
     if 'unittest.mock' in content:
-        simulation_evidence.append("⚠️ Contains unittest.mock references")
+        simulation_evidence.append(" Contains unittest.mock references")
     
-    print(f"\n📋 Code Analysis Results:")
+    print(f"\n Code Analysis Results:")
     print(f"   Real API Evidence: {len(real_api_evidence)}")
     for evidence in real_api_evidence:
         print(f"      {evidence}")
@@ -127,9 +127,9 @@ def check_code_for_real_api():
     return len(real_api_evidence) >= 4 and len(simulation_evidence) == 0
 
 async def main():
-    print("🧪 =============================================================")
-    print("🧪 SIMPLE ARC API REALITY CHECK")
-    print("🧪 =============================================================")
+    print(" =============================================================")
+    print(" SIMPLE ARC API REALITY CHECK")
+    print(" =============================================================")
     
     # Test 1: Direct API call
     api_works = await simple_arc_api_test()
@@ -138,21 +138,21 @@ async def main():
     code_good = check_code_for_real_api()
     
     # Summary
-    print(f"\n🏆 FINAL ASSESSMENT:")
-    print(f"   Direct API Test: {'✅ PASS' if api_works else '❌ FAIL'}")
-    print(f"   Code Analysis: {'✅ PASS' if code_good else '❌ FAIL'}")
+    print(f"\n FINAL ASSESSMENT:")
+    print(f"   Direct API Test: {' PASS' if api_works else ' FAIL'}")
+    print(f"   Code Analysis: {' PASS' if code_good else ' FAIL'}")
     
     if api_works and code_good:
-        print(f"\n🎉 CONCLUSION: ARC INTEGRATION IS REAL!")
+        print(f"\n CONCLUSION: ARC INTEGRATION IS REAL!")
         print(f"   The system connects to authentic ARC-AGI-3 servers.")
         print(f"   No simulation or mock behavior detected.")
         return True
     elif api_works or code_good:
-        print(f"\n⚠️ CONCLUSION: PARTIALLY VERIFIED")
+        print(f"\n CONCLUSION: PARTIALLY VERIFIED")
         print(f"   Some evidence of real API usage, but issues detected.")
         return False
     else:
-        print(f"\n❌ CONCLUSION: ISSUES DETECTED")
+        print(f"\n CONCLUSION: ISSUES DETECTED")
         print(f"   System may not be using real ARC APIs.")
         return False
 

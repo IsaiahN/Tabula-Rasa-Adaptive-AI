@@ -556,15 +556,15 @@ class CrossSessionLearningManager:
                     self.patterns_by_type[pattern.knowledge_type].append(pattern.pattern_id)
                     
                 except Exception as e:
-                    self.logger.warning(f"⚠️ Failed to load pattern {pattern_data.get('id', 'unknown')}: {e}")
+                    self.logger.warning(f" Failed to load pattern {pattern_data.get('id', 'unknown')}: {e}")
                     
-            self.logger.info(f"📁 Loaded {len(patterns)} learned patterns from database")
+            self.logger.info(f" Loaded {len(patterns)} learned patterns from database")
             
         except Exception as e:
-            self.logger.warning(f"⚠️ Failed to load learned patterns from database: {e}")
+            self.logger.warning(f" Failed to load learned patterns from database: {e}")
         
         # Note: Session history is now handled by the database through other managers
-        self.logger.info("📁 Session history now managed by database")
+        self.logger.info(" Session history now managed by database")
     
     def _save_persistent_state(self):
         """Save persistent state to database."""
@@ -597,16 +597,16 @@ class CrossSessionLearningManager:
                         saved_count += 1
                         
                 except Exception as e:
-                    self.logger.warning(f"⚠️ Failed to save pattern {pattern_id}: {e}")
+                    self.logger.warning(f" Failed to save pattern {pattern_id}: {e}")
                     continue
             
-            self.logger.info(f"💾 Saved {saved_count} learned patterns to database")
+            self.logger.info(f" Saved {saved_count} learned patterns to database")
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to save learned patterns to database: {e}")
+            self.logger.error(f" Failed to save learned patterns to database: {e}")
         
         # Note: Session history is now handled by the database through other managers
-        self.logger.info("💾 Session history now managed by database")
+        self.logger.info(" Session history now managed by database")
         
     def _start_auto_save(self):
         """Start auto-save thread."""

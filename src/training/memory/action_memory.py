@@ -22,13 +22,23 @@ class ActionMemoryManager:
         self.action_effectiveness_threshold = 0.1
         self.sequence_learning_threshold = 0.7
     
-    def update_action_effectiveness(self, action: Dict[str, Any], effectiveness: float) -> None:
-        """Update action effectiveness tracking."""
+    async def update_action_effectiveness(self, action: Dict[str, Any], effectiveness: float) -> None:
+        """Update action effectiveness tracking and persist to DB."""
         action_id = self._get_action_id(action)
         if action_id:
             current_effectiveness = self.memory_manager.get_memory_key('action_effectiveness', {})
             current_effectiveness[action_id] = effectiveness
             self.memory_manager.update_memory_key('action_effectiveness', current_effectiveness)
+            # Persist to database
+            try:
+                from src.database.api import get_database
+                db = get_database()
+                # Use a generic game_id for now, or extract from action if available
+                game_id = action.get('game_id', 'unknown')
+                action_number = action.get('id', 0)
+                await db.update_action_effectiveness(game_id, action_number, 1, int(effectiveness > 0.5), effectiveness)
+            except Exception as e:
+                logger.error(f"Failed to persist action effectiveness: {e}")
     
     def get_action_effectiveness(self, action: Dict[str, Any]) -> float:
         """Get effectiveness score for an action."""
@@ -53,8 +63,8 @@ class ActionMemoryManager:
         """Get all winning action sequences."""
         return self.memory_manager.get_memory_key('winning_action_sequences', [])
     
-    def add_winning_sequence(self, game_id: str, sequence: List[int]) -> None:
-        """Add a winning sequence to memory."""
+    async def add_winning_sequence(self, game_id: str, sequence: List[int]) -> None:
+        """Add a winning sequence to memory and persist to DB."""
         winning_sequences = self.memory_manager.get_memory_key('winning_action_sequences', [])
         winning_sequences.append({
             'game_id': game_id,
@@ -62,6 +72,12 @@ class ActionMemoryManager:
             'timestamp': self._get_timestamp()
         })
         self.memory_manager.update_memory_key('winning_action_sequences', winning_sequences)
+        # Persist to database and log errors
+        try:
+            from src.database.persistence_helpers import persist_winning_sequence
+            await persist_winning_sequence(game_id, sequence)
+        except Exception as e:
+            logger.error(f"Failed to persist winning sequence: {e}")
     
     def update_action_learning_stats(self, stat_name: str, increment: int = 1) -> None:
         """Update action learning statistics."""

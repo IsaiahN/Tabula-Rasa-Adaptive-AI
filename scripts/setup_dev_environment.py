@@ -24,10 +24,10 @@ def run_command(cmd: List[str], description: str, check: bool = True) -> Tuple[b
             text=True,
             cwd=Path(__file__).parent.parent
         )
-        print(f"✅ {description} completed successfully")
+        print(f" {description} completed successfully")
         return True, result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"❌ {description} failed:")
+        print(f" {description} failed:")
         print(e.stdout)
         print(e.stderr)
         return False, e.stderr
@@ -37,9 +37,9 @@ def check_python_version() -> bool:
     """Check if Python version is compatible."""
     print("Checking Python version...")
     if sys.version_info < (3, 8):
-        print(f"❌ Python 3.8+ required, found {sys.version}")
+        print(f" Python 3.8+ required, found {sys.version}")
         return False
-    print(f"✅ Python {sys.version.split()[0]} is compatible")
+    print(f" Python {sys.version.split()[0]} is compatible")
     return True
 
 
@@ -87,7 +87,7 @@ def validate_environment() -> bool:
     
     # Test imports
     success &= run_command(
-        ["python", "-c", "from src.training import ContinuousLearningLoop, MasterARCTrainer; print('✅ Core imports working')"],
+        ["python", "-c", "from src.training import ContinuousLearningLoop, MasterARCTrainer; print(' Core imports working')"],
         "Testing core imports"
     )[0]
     
@@ -138,7 +138,7 @@ def create_git_hooks() -> bool:
     """Create additional git hooks if needed."""
     git_hooks_dir = Path(".git/hooks")
     if not git_hooks_dir.exists():
-        print("⚠️  Git repository not found, skipping git hooks")
+        print("  Git repository not found, skipping git hooks")
         return True
     
     # Create pre-push hook
@@ -160,16 +160,16 @@ echo "Pre-push checks completed"
         with open(pre_push_hook, "w") as f:
             f.write(pre_push_content)
         pre_push_hook.chmod(0o755)
-        print("✅ Created pre-push git hook")
+        print(" Created pre-push git hook")
         return True
     except Exception as e:
-        print(f"⚠️  Could not create git hooks: {e}")
+        print(f"  Could not create git hooks: {e}")
         return True  # Not critical
 
 
 def main():
     """Main setup function."""
-    print("🚀 Setting up Tabula Rasa development environment...")
+    print(" Setting up Tabula Rasa development environment...")
     print("=" * 60)
     
     success = True
@@ -178,14 +178,14 @@ def main():
     success &= check_python_version()
     
     if not success:
-        print("\n❌ Setup failed due to Python version incompatibility")
+        print("\n Setup failed due to Python version incompatibility")
         sys.exit(1)
     
     # Install dependencies
     success &= install_dependencies()
     
     if not success:
-        print("\n❌ Setup failed during dependency installation")
+        print("\n Setup failed during dependency installation")
         sys.exit(1)
     
     # Set up pre-commit
@@ -203,7 +203,7 @@ def main():
     print("\n" + "=" * 60)
     
     if success:
-        print("🎉 Development environment setup completed successfully!")
+        print(" Development environment setup completed successfully!")
         print("\nNext steps:")
         print("1. Run 'make check' to verify everything is working")
         print("2. Run 'make test' to run the test suite")
@@ -215,7 +215,7 @@ def main():
         print("- make check      : Run all checks")
         print("- make clean      : Clean up temporary files")
     else:
-        print("❌ Setup completed with some issues")
+        print(" Setup completed with some issues")
         print("Please check the output above for details")
         sys.exit(1)
 

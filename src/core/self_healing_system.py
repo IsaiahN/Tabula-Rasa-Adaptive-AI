@@ -108,7 +108,7 @@ class SelfHealingSystem:
             return
         
         self.healing_active = True
-        logger.info("🩺 Starting Self-Healing System")
+        logger.info(" Starting Self-Healing System")
         
         # Load existing patterns and strategies
         await self._load_learned_patterns()
@@ -126,7 +126,7 @@ class SelfHealingSystem:
     async def stop_healing_system(self):
         """Stop the self-healing system."""
         self.healing_active = False
-        logger.info("🛑 Stopping Self-Healing System")
+        logger.info(" Stopping Self-Healing System")
     
     async def _healing_loop(self):
         """Main healing loop that monitors for errors."""
@@ -339,7 +339,7 @@ class SelfHealingSystem:
     async def _handle_error(self, error: Dict[str, Any]):
         """Handle a detected error."""
         try:
-            logger.info(f"🔍 Handling error: {error['type'].value} - {error['message']}")
+            logger.info(f" Handling error: {error['type'].value} - {error['message']}")
             
             # Update metrics
             self.metrics["errors_detected"] += 1
@@ -381,12 +381,12 @@ class SelfHealingSystem:
                 if success:
                     self.metrics["errors_auto_fixed"] += 1
                     best_strategy.success_count += 1
-                    logger.info(f"✅ Auto-fixed error using strategy: {best_strategy.strategy_id}")
+                    logger.info(f" Auto-fixed error using strategy: {best_strategy.strategy_id}")
                 else:
                     best_strategy.failure_count += 1
-                    logger.warning(f"❌ Auto-fix failed for strategy: {best_strategy.strategy_id}")
+                    logger.warning(f" Auto-fix failed for strategy: {best_strategy.strategy_id}")
             else:
-                logger.info(f"⚠️ No confident fix strategy available for error: {error['message']}")
+                logger.info(f" No confident fix strategy available for error: {error['message']}")
                 
         except Exception as e:
             logger.error(f"Error handling known error: {e}")
@@ -405,13 +405,13 @@ class SelfHealingSystem:
                     
                     if success:
                         self.metrics["errors_auto_fixed"] += 1
-                        logger.info(f"✅ Auto-fixed new error using generated strategy: {strategy.strategy_id}")
+                        logger.info(f" Auto-fixed new error using generated strategy: {strategy.strategy_id}")
                         
                         # Create pattern for this error
                         await self._create_error_pattern(error, strategy)
                         break
                     else:
-                        logger.warning(f"❌ Generated strategy failed: {strategy.strategy_id}")
+                        logger.warning(f" Generated strategy failed: {strategy.strategy_id}")
             
         except Exception as e:
             logger.error(f"Error handling unknown error: {e}")
@@ -1088,7 +1088,7 @@ class SelfHealingSystem:
                 self.metrics["fix_success_rate"] = learning_rate
             
             # Log health status
-            logger.debug(f"🩺 Healing system health: "
+            logger.debug(f" Healing system health: "
                         f"Errors detected: {self.metrics['errors_detected']}, "
                         f"Auto-fixed: {self.metrics['errors_auto_fixed']}, "
                         f"Success rate: {self.metrics['fix_success_rate']:.2f}")

@@ -65,16 +65,16 @@ class UnifiedAutomationSystem:
         # Initialize performance monitoring
         self.performance_monitor = get_performance_monitor()
         
-        logger.info("🤖 Unified Automation System initialized")
+        logger.info(" Unified Automation System initialized")
     
     async def start_automation(self, mode: AutomationMode = AutomationMode.FULL_AUTOMATION) -> bool:
         """Start the unified automation system."""
-        logger.info(f"🚀 Starting unified automation system in {mode.value} mode")
+        logger.info(f" Starting unified automation system in {mode.value} mode")
         
         try:
             # Safety check
             if not await self._safety_check():
-                logger.error("🚨 Safety check failed - cannot start automation")
+                logger.error(" Safety check failed - cannot start automation")
                 return False
             
             # Set mode and update status
@@ -85,16 +85,16 @@ class UnifiedAutomationSystem:
             self.status.mode = mode
             await self._update_status()
             
-            logger.info(f"✅ Unified automation system started in {mode.value} mode")
+            logger.info(f" Unified automation system started in {mode.value} mode")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to start automation system: {e}")
+            logger.error(f" Failed to start automation system: {e}")
             return False
     
     async def stop_automation(self, graceful: bool = True) -> bool:
         """Stop the unified automation system."""
-        logger.info(f"🛑 Stopping unified automation system (graceful={graceful})")
+        logger.info(f" Stopping unified automation system (graceful={graceful})")
         
         try:
             # Stop performance monitoring
@@ -104,16 +104,16 @@ class UnifiedAutomationSystem:
             self.mode = AutomationMode.DISABLED
             await self._update_status()
             
-            logger.info("✅ Unified automation system stopped")
+            logger.info(" Unified automation system stopped")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to stop automation system: {e}")
+            logger.error(f" Failed to stop automation system: {e}")
             return False
     
     async def emergency_stop(self, reason: str = "Manual emergency stop") -> bool:
         """Trigger emergency stop of all automation."""
-        logger.critical(f"🚨 EMERGENCY STOP: {reason}")
+        logger.critical(f" EMERGENCY STOP: {reason}")
         
         try:
             # Stop all automation
@@ -127,16 +127,16 @@ class UnifiedAutomationSystem:
             self.status.mode = AutomationMode.DISABLED
             await self._update_status()
             
-            logger.critical("🛑 Emergency stop completed")
+            logger.critical(" Emergency stop completed")
             return True
             
         except Exception as e:
-            logger.critical(f"🚨 Emergency stop failed: {e}")
+            logger.critical(f" Emergency stop failed: {e}")
             return False
     
     async def switch_mode(self, new_mode: AutomationMode) -> bool:
         """Switch automation mode."""
-        logger.info(f"🔄 Switching automation mode from {self.mode.value} to {new_mode.value}")
+        logger.info(f" Switching automation mode from {self.mode.value} to {new_mode.value}")
         
         try:
             # Stop current mode
@@ -146,28 +146,28 @@ class UnifiedAutomationSystem:
             success = await self.start_automation(new_mode)
             
             if success:
-                logger.info(f"✅ Successfully switched to {new_mode.value} mode")
+                logger.info(f" Successfully switched to {new_mode.value} mode")
             else:
-                logger.error(f"❌ Failed to switch to {new_mode.value} mode")
+                logger.error(f" Failed to switch to {new_mode.value} mode")
             
             return success
             
         except Exception as e:
-            logger.error(f"❌ Error switching mode: {e}")
+            logger.error(f" Error switching mode: {e}")
             return False
     
     async def resume_automation(self, mode: Optional[AutomationMode] = None) -> bool:
         """Resume automation after emergency stop."""
         if not self.status.emergency_stop and not self.safety_mechanisms.emergency_stop_active:
-            logger.warning("⚠️ No emergency stop active - nothing to resume")
+            logger.warning(" No emergency stop active - nothing to resume")
             return False
         
-        logger.info("🔄 Resuming automation after emergency stop")
+        logger.info(" Resuming automation after emergency stop")
         
         try:
             # Safety check
             if not await self._safety_check():
-                logger.error("🚨 Safety check failed - cannot resume automation")
+                logger.error(" Safety check failed - cannot resume automation")
                 return False
             
             # Resume safety mechanisms
@@ -180,14 +180,14 @@ class UnifiedAutomationSystem:
             if success:
                 self.status.emergency_stop = False
                 await self._update_status()
-                logger.info("✅ Automation resumed successfully")
+                logger.info(" Automation resumed successfully")
             else:
-                logger.error("❌ Failed to resume automation")
+                logger.error(" Failed to resume automation")
             
             return success
             
         except Exception as e:
-            logger.error(f"❌ Error resuming automation: {e}")
+            logger.error(f" Error resuming automation: {e}")
             return False
     
     async def get_system_status(self) -> SystemStatus:
@@ -201,13 +201,13 @@ class UnifiedAutomationSystem:
             # Check safety mechanisms
             safety_status = self.safety_mechanisms.get_safety_status()
             if safety_status["emergency_stop_active"]:
-                logger.warning("⚠️ Emergency stop is active")
+                logger.warning(" Emergency stop is active")
                 return False
             
             return True
             
         except Exception as e:
-            logger.error(f"❌ Safety check failed: {e}")
+            logger.error(f" Safety check failed: {e}")
             return False
     
     async def _update_status(self):

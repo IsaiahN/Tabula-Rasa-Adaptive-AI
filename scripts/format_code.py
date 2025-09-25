@@ -18,10 +18,10 @@ def run_command(cmd: List[str], description: str) -> bool:
     print(f"Running {description}...")
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print(f"✅ {description} completed successfully")
+        print(f" {description} completed successfully")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ {description} failed:")
+        print(f" {description} failed:")
         print(e.stdout)
         print(e.stderr)
         return False
@@ -168,10 +168,10 @@ def main():
         )
     
     if success:
-        print("\n🎉 All operations completed successfully!")
+        print("\n All operations completed successfully!")
         sys.exit(0)
     else:
-        print("\n❌ Some operations failed!")
+        print("\n Some operations failed!")
         sys.exit(1)
 
 

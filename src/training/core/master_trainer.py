@@ -48,7 +48,7 @@ class MasterARCTrainer:
         self.config = config
         self.logger = logging.getLogger('MasterARCTrainer')
         
-        print("🚀 Starting Modular MasterARCTrainer initialization...")
+        print(" Starting Modular MasterARCTrainer initialization...")
         
         # Initialize modular components
         self._initialize_components()
@@ -57,7 +57,7 @@ class MasterARCTrainer:
         self.shutdown_handler = ShutdownHandler()
         self.shutdown_handler.add_shutdown_callback(self._cleanup)
         
-        print("✅ Modular MasterARCTrainer initialized successfully")
+        print(" Modular MasterARCTrainer initialized successfully")
     
     def _initialize_components(self) -> None:
         """Initialize all modular components."""
@@ -161,6 +161,13 @@ class MasterARCTrainer:
             f"Maximum Intelligence {datetime.now().strftime('%Y%m%d_%H%M%S')}",
             "Maximum intelligence training session"
         )
+
+        # Log training strategy to database
+        await self._log_training_strategy_to_database('maximum-intelligence', {
+            'scorecard_id': scorecard_id,
+            'max_games': self.config.max_games,
+            'training_components': ['governor', 'meta_cognitive', 'pattern_learner', 'learning_engine']
+        })
         
         for game_num in range(self.config.max_games):
             if self.shutdown_handler.is_shutdown_requested():
@@ -295,7 +302,10 @@ class MasterARCTrainer:
                 'session_id': session_id
             }
             learning_result = self.learning_engine.learn_from_experience(experience)
-            
+
+            # Log learning application to database
+            self._log_learning_application_to_database(patterns, learning_result, session_id)
+
             # Generate action based on learning
             if patterns and patterns[0]['similarity'] > 0.8:
                 # Use learned pattern
@@ -319,15 +329,18 @@ class MasterARCTrainer:
             self.logger.error(f"Error generating intelligent action: {e}")
             return {'type': 'noop'}
     
-    def _update_all_systems(self, session_id: str, action: Dict[str, Any], action_result: Dict[str, Any], game_state: Dict[str, Any]) -> None:
-        """Update all learning and memory systems."""
+    async def _update_all_systems(self, session_id: str, action: Dict[str, Any], action_result: Dict[str, Any], game_state: Dict[str, Any]) -> None:
+        """Update all learning and memory systems, and persist to DB."""
         try:
             # Update session
             self.session_manager.update_session_action(session_id, action)
+
+            # Log system update to database
+            await self._log_system_update_to_database(session_id, action, action_result, game_state)
             
-            # Update action memory
+            # Update action memory (persist effectiveness)
             effectiveness = action_result.get('effectiveness', 0.0)
-            self.action_memory.update_action_effectiveness(action, effectiveness)
+            await self.action_memory.update_action_effectiveness(action, effectiveness)
             
             # Update pattern memory
             if 'patterns' in action_result:
@@ -424,6 +437,92 @@ class MasterARCTrainer:
             self.logger.info("Cleanup completed")
         except Exception as e:
             self.logger.error(f"Error during cleanup: {e}")
+
+    async def _log_training_strategy_to_database(self, strategy_name: str, strategy_data: Dict[str, Any]) -> None:
+        """Log training strategy decisions to database."""
+        try:
+            from src.database.system_integration import get_system_integration
+
+            integration = get_system_integration()
+
+            training_strategy_data = {
+                'strategy_name': strategy_name,
+                'strategy_configuration': strategy_data,
+                'component': 'master_trainer'
+            }
+
+            await integration.log_system_event(
+                level="INFO",
+                component="master_trainer",
+                message=f"Training strategy '{strategy_name}' initiated",
+                data=training_strategy_data,
+                session_id=strategy_data.get('scorecard_id', 'unknown')
+            )
+
+        except Exception as e:
+            self.logger.debug(f"Non-fatal: Failed to log training strategy to database: {e}")
+
+    def _log_learning_application_to_database(self, patterns: List[Dict[str, Any]], learning_result: Dict[str, Any], session_id: str) -> None:
+        """Log learning application to database."""
+        try:
+            import asyncio
+            from src.database.system_integration import get_system_integration
+
+            async def log_learning():
+                integration = get_system_integration()
+
+                learning_data = {
+                    'patterns_found': len(patterns) if patterns else 0,
+                    'patterns_used': len([p for p in patterns if p.get('similarity', 0) > 0.8]) if patterns else 0,
+                    'learning_result': learning_result,
+                    'component': 'intelligent_action_generator',
+                    'session_id': session_id
+                }
+
+                await integration.log_system_event(
+                    level="INFO",
+                    component="master_trainer",
+                    message="Learning application for action generation",
+                    data=learning_data,
+                    session_id=session_id
+                )
+
+            # Schedule the database logging
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(log_learning())
+
+        except Exception as e:
+            self.logger.debug(f"Non-fatal: Failed to log learning application to database: {e}")
+
+    async def _log_system_update_to_database(self, session_id: str, action: Dict[str, Any],
+                                           action_result: Dict[str, Any], game_state: Dict[str, Any]) -> None:
+        """Log system update to database."""
+        try:
+            from src.database.system_integration import get_system_integration
+
+            integration = get_system_integration()
+
+            system_update_data = {
+                'action_type': action.get('type', 'unknown'),
+                'action_effectiveness': action_result.get('effectiveness', 0.0),
+                'score_change': action_result.get('score', 0.0),
+                'success': action_result.get('win', False),
+                'game_state_size': len(str(game_state)),
+                'component': 'system_updater',
+                'session_id': session_id
+            }
+
+            await integration.log_system_event(
+                level="INFO",
+                component="master_trainer",
+                message="All systems updated with action result",
+                data=system_update_data,
+                session_id=session_id
+            )
+
+        except Exception as e:
+            self.logger.debug(f"Non-fatal: Failed to log system update to database: {e}")
     
     async def close(self) -> None:
         """Close the master trainer."""

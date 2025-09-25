@@ -178,7 +178,7 @@ class MetaLearningSystem:
             return
         
         self.learning_active = True
-        logger.info("🧠 Starting Meta-Learning System")
+        logger.info(" Starting Meta-Learning System")
         
         # Start learning loops
         asyncio.create_task(self._learning_loop())
@@ -189,7 +189,7 @@ class MetaLearningSystem:
     async def stop_meta_learning(self):
         """Stop the meta-learning system."""
         self.learning_active = False
-        logger.info("🛑 Stopping Meta-Learning System")
+        logger.info(" Stopping Meta-Learning System")
     
     async def _learning_loop(self):
         """Main learning loop."""
@@ -252,7 +252,7 @@ class MetaLearningSystem:
     async def _run_learning_cycle(self):
         """Run a complete learning cycle."""
         try:
-            logger.debug("🔄 Running meta-learning cycle")
+            logger.debug(" Running meta-learning cycle")
             
             # 1. Analyze current learning state
             learning_state = await self._analyze_learning_state()
@@ -400,7 +400,7 @@ class MetaLearningSystem:
     async def _execute_learning(self, strategy: LearningStrategy, learning_state: Dict[str, Any]):
         """Execute learning with selected strategy."""
         try:
-            logger.debug(f"🧠 Executing learning with strategy: {strategy.value}")
+            logger.debug(f" Executing learning with strategy: {strategy.value}")
             
             if strategy == LearningStrategy.EXPLORATION:
                 await self._execute_exploration_learning(learning_state)

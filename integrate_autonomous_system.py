@@ -32,34 +32,34 @@ logger = logging.getLogger(__name__)
 async def integrate_with_existing_system():
     """Integrate autonomous system with existing Tabula Rasa system."""
     try:
-        logger.info("🔗 Integrating Autonomous System with Tabula Rasa")
+        logger.info(" Integrating Autonomous System with Tabula Rasa")
         
         # 1. Start autonomous system in collaborative mode
-        logger.info("📋 Starting autonomous system in collaborative mode...")
+        logger.info(" Starting autonomous system in collaborative mode...")
         await start_autonomous_system("collaborative")
         
         # 2. Check integration status
-        logger.info("📊 Checking integration status...")
+        logger.info(" Checking integration status...")
         status = await get_autonomous_system_status()
         
-        logger.info(f"✅ System Active: {status.get('system_active')}")
-        logger.info(f"✅ Current Mode: {status.get('current_mode')}")
-        logger.info(f"✅ Overall Health: {status.get('overall_health', 0):.2f}")
-        logger.info(f"✅ Autonomy Level: {status.get('autonomy_level', 0):.2f}")
+        logger.info(f" System Active: {status.get('system_active')}")
+        logger.info(f" Current Mode: {status.get('current_mode')}")
+        logger.info(f" Overall Health: {status.get('overall_health', 0):.2f}")
+        logger.info(f" Autonomy Level: {status.get('autonomy_level', 0):.2f}")
         
         # 3. Show autonomy capabilities
-        logger.info("🎯 Autonomy Capabilities:")
+        logger.info(" Autonomy Capabilities:")
         summary = get_autonomy_summary()
         
-        logger.info(f"  🧠 Governor: {summary['governor_autonomy']['active']} "
+        logger.info(f"   Governor: {summary['governor_autonomy']['active']} "
                    f"(Decisions: {summary['governor_autonomy']['decisions_made']})")
-        logger.info(f"  🏗️ Architect: {summary['architect_autonomy']['active']} "
+        logger.info(f"   Architect: {summary['architect_autonomy']['active']} "
                    f"(Evolutions: {summary['architect_autonomy']['evolutions_made']})")
-        logger.info(f"  🌉 Collaboration: {summary['collaboration']['active']} "
+        logger.info(f"   Collaboration: {summary['collaboration']['active']} "
                    f"(Decisions: {summary['collaboration']['collaborative_decisions']})")
         
         # 4. Demonstrate autonomous operation
-        logger.info("⏱️ Running autonomous operation for 60 seconds...")
+        logger.info("⏱ Running autonomous operation for 60 seconds...")
         start_time = asyncio.get_event_loop().time()
         
         while asyncio.get_event_loop().time() - start_time < 60:
@@ -69,13 +69,13 @@ async def integrate_with_existing_system():
             current_status = await get_autonomous_system_status()
             current_summary = get_autonomy_summary()
             
-            logger.info(f"📈 Health: {current_status.get('overall_health', 0):.2f}, "
+            logger.info(f" Health: {current_status.get('overall_health', 0):.2f}, "
                        f"Governor Decisions: {current_summary['governor_autonomy']['decisions_made']}, "
                        f"Architect Evolutions: {current_summary['architect_autonomy']['evolutions_made']}, "
                        f"Collaborations: {current_summary['collaboration']['collaborative_decisions']}")
         
         # 5. Demonstrate mode switching
-        logger.info("🔄 Demonstrating mode switching...")
+        logger.info(" Demonstrating mode switching...")
         
         # Switch to full autonomous mode
         logger.info("  Switching to full autonomous mode...")
@@ -93,39 +93,39 @@ async def integrate_with_existing_system():
         await asyncio.sleep(5)
         
         # 6. Final status report
-        logger.info("📊 Final Integration Report:")
+        logger.info(" Final Integration Report:")
         final_status = await get_autonomous_system_status()
         final_summary = get_autonomy_summary()
         
-        logger.info(f"  🎯 System Health: {final_status.get('overall_health', 0):.2f}")
-        logger.info(f"  🎯 Autonomy Level: {final_status.get('autonomy_level', 0):.2f}")
-        logger.info(f"  🎯 Total Governor Decisions: {final_summary['governor_autonomy']['decisions_made']}")
-        logger.info(f"  🎯 Total Architect Evolutions: {final_summary['architect_autonomy']['evolutions_made']}")
-        logger.info(f"  🎯 Total Collaborative Decisions: {final_summary['collaboration']['collaborative_decisions']}")
-        logger.info(f"  🎯 Total Messages Exchanged: {final_summary['collaboration']['messages_exchanged']}")
+        logger.info(f"   System Health: {final_status.get('overall_health', 0):.2f}")
+        logger.info(f"   Autonomy Level: {final_status.get('autonomy_level', 0):.2f}")
+        logger.info(f"   Total Governor Decisions: {final_summary['governor_autonomy']['decisions_made']}")
+        logger.info(f"   Total Architect Evolutions: {final_summary['architect_autonomy']['evolutions_made']}")
+        logger.info(f"   Total Collaborative Decisions: {final_summary['collaboration']['collaborative_decisions']}")
+        logger.info(f"   Total Messages Exchanged: {final_summary['collaboration']['messages_exchanged']}")
         
         # 7. Stop autonomous system
-        logger.info("🛑 Stopping autonomous system...")
+        logger.info(" Stopping autonomous system...")
         await stop_autonomous_system()
         
-        logger.info("✅ Integration completed successfully!")
-        logger.info("🎉 The Director can now focus on high-level strategy while Governor and Architect handle tactical operations!")
+        logger.info(" Integration completed successfully!")
+        logger.info(" The Director can now focus on high-level strategy while Governor and Architect handle tactical operations!")
         
     except Exception as e:
-        logger.error(f"❌ Integration failed: {e}")
+        logger.error(f" Integration failed: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 async def demonstrate_director_interface():
     """Demonstrate the Director interface for controlling the autonomous system."""
     try:
-        logger.info("🎯 Demonstrating Director Interface")
+        logger.info(" Demonstrating Director Interface")
         
         # Start system
         await start_autonomous_system("directed")
         
         # Show Director commands
-        logger.info("📋 Available Director Commands:")
+        logger.info(" Available Director Commands:")
         
         commands = [
             ("start_autonomous", "Start full autonomous mode"),
@@ -136,10 +136,10 @@ async def demonstrate_director_interface():
         ]
         
         for command, description in commands:
-            logger.info(f"  🔧 {command}: {description}")
+            logger.info(f"   {command}: {description}")
         
         # Demonstrate commands
-        logger.info("\n🧪 Testing Director Commands:")
+        logger.info("\n Testing Director Commands:")
         
         # Get status
         logger.info("  Getting system status...")
@@ -164,14 +164,14 @@ async def demonstrate_director_interface():
         result = await execute_director_command("stop_autonomous")
         logger.info(f"    Result: {result.get('status')} - Mode: {result.get('mode')}")
         
-        logger.info("✅ Director interface demonstration completed!")
+        logger.info(" Director interface demonstration completed!")
         
     except Exception as e:
-        logger.error(f"❌ Director interface demonstration failed: {e}")
+        logger.error(f" Director interface demonstration failed: {e}")
 
 async def main():
     """Main integration function."""
-    logger.info("🚀 Starting Tabula Rasa Autonomous System Integration")
+    logger.info(" Starting Tabula Rasa Autonomous System Integration")
     
     # Demonstrate Director interface
     await demonstrate_director_interface()
@@ -179,7 +179,7 @@ async def main():
     # Integrate with existing system
     await integrate_with_existing_system()
     
-    logger.info("🎉 Integration demonstration completed!")
+    logger.info(" Integration demonstration completed!")
 
 if __name__ == "__main__":
     asyncio.run(main())

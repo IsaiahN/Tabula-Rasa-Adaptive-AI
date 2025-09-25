@@ -85,7 +85,7 @@ class AutonomousSystemManager:
     async def start_autonomous_system(self, mode: SystemMode = SystemMode.AUTONOMOUS):
         """Start the autonomous system in the specified mode."""
         try:
-            logger.info(f"🚀 Starting autonomous system in {mode.value} mode")
+            logger.info(f" Starting autonomous system in {mode.value} mode")
             
             # Set mode
             self.current_mode = mode
@@ -95,23 +95,23 @@ class AutonomousSystemManager:
             if mode in [SystemMode.AUTONOMOUS, SystemMode.COLLABORATIVE]:
                 # Start Governor
                 await start_autonomous_governor()
-                logger.info("✅ Autonomous Governor started")
+                logger.info(" Autonomous Governor started")
                 
                 # Start Architect
                 await start_autonomous_architect()
-                logger.info("✅ Autonomous Architect started")
+                logger.info(" Autonomous Architect started")
                 
                 # Start communication bridge
                 await start_governor_architect_communication()
-                logger.info("✅ Governor-Architect bridge started")
+                logger.info(" Governor-Architect bridge started")
                 
             elif mode == SystemMode.DIRECTED:
                 # In directed mode, components are available but not autonomous
-                logger.info("📋 System in directed mode - components available but not autonomous")
+                logger.info(" System in directed mode - components available but not autonomous")
                 
             elif mode == SystemMode.EMERGENCY:
                 # Emergency mode - minimal functionality
-                logger.info("🚨 System in emergency mode - minimal functionality")
+                logger.info(" System in emergency mode - minimal functionality")
             
             # Start health monitoring
             asyncio.create_task(self._health_monitoring_loop())
@@ -125,7 +125,7 @@ class AutonomousSystemManager:
             # Update metrics
             self.performance_metrics["mode_switches"] += 1
             
-            logger.info(f"🎯 Autonomous system started successfully in {mode.value} mode")
+            logger.info(f" Autonomous system started successfully in {mode.value} mode")
             
         except Exception as e:
             logger.error(f"Failed to start autonomous system: {e}")
@@ -134,7 +134,7 @@ class AutonomousSystemManager:
     async def stop_autonomous_system(self):
         """Stop the autonomous system."""
         try:
-            logger.info("🛑 Stopping autonomous system")
+            logger.info(" Stopping autonomous system")
             
             # Stop components
             if self.current_mode in [SystemMode.AUTONOMOUS, SystemMode.COLLABORATIVE]:
@@ -145,7 +145,7 @@ class AutonomousSystemManager:
             # Update state
             self.system_active = False
             
-            logger.info("✅ Autonomous system stopped")
+            logger.info(" Autonomous system stopped")
             
         except Exception as e:
             logger.error(f"Error stopping autonomous system: {e}")
@@ -153,7 +153,7 @@ class AutonomousSystemManager:
     async def switch_mode(self, new_mode: SystemMode):
         """Switch system mode."""
         try:
-            logger.info(f"🔄 Switching from {self.current_mode.value} to {new_mode.value} mode")
+            logger.info(f" Switching from {self.current_mode.value} to {new_mode.value} mode")
             
             # Stop current mode
             if self.system_active:
@@ -165,7 +165,7 @@ class AutonomousSystemManager:
             # Update metrics
             self.performance_metrics["mode_switches"] += 1
             
-            logger.info(f"✅ Successfully switched to {new_mode.value} mode")
+            logger.info(f" Successfully switched to {new_mode.value} mode")
             
         except Exception as e:
             logger.error(f"Error switching mode: {e}")
@@ -244,7 +244,7 @@ class AutonomousSystemManager:
             await self._check_health_issues(health_status)
             
             # Log health status
-            logger.debug(f"🏥 Health check: overall={overall_health:.2f}, autonomy={autonomy_level:.2f}")
+            logger.debug(f" Health check: overall={overall_health:.2f}, autonomy={autonomy_level:.2f}")
             
         except Exception as e:
             logger.error(f"Error performing health check: {e}")
@@ -307,7 +307,7 @@ class AutonomousSystemManager:
     async def _handle_critical_health_issue(self, health_status: SystemStatus):
         """Handle critical health issues."""
         try:
-            logger.warning(f"🚨 Critical health issue detected: overall_health={health_status.overall_health:.2f}")
+            logger.warning(f" Critical health issue detected: overall_health={health_status.overall_health:.2f}")
             
             # Switch to emergency mode
             if self.current_mode != SystemMode.EMERGENCY:
@@ -331,7 +331,7 @@ class AutonomousSystemManager:
     async def _handle_component_failure(self, component: str, health_status: SystemStatus):
         """Handle component failure."""
         try:
-            logger.warning(f"⚠️ Component failure detected: {component}")
+            logger.warning(f" Component failure detected: {component}")
             
             # Notify Director
             await self._notify_director({
@@ -351,7 +351,7 @@ class AutonomousSystemManager:
     async def _attempt_component_recovery(self, component: str):
         """Attempt to recover a failed component."""
         try:
-            logger.info(f"🔧 Attempting recovery for component: {component}")
+            logger.info(f" Attempting recovery for component: {component}")
             
             if component == "governor":
                 await start_autonomous_governor()
@@ -360,7 +360,7 @@ class AutonomousSystemManager:
             elif component == "bridge":
                 await start_governor_architect_communication()
             
-            logger.info(f"✅ Recovery attempted for component: {component}")
+            logger.info(f" Recovery attempted for component: {component}")
             
         except Exception as e:
             logger.error(f"Error attempting component recovery: {e}")
@@ -415,7 +415,7 @@ class AutonomousSystemManager:
         """Send notification to Director."""
         try:
             # This would integrate with actual Director notification system
-            logger.info(f"📢 Director notification: {notification.get('type')} - {notification.get('severity', 'info')}")
+            logger.info(f" Director notification: {notification.get('type')} - {notification.get('severity', 'info')}")
             
         except Exception as e:
             logger.error(f"Error sending director notification: {e}")
@@ -489,7 +489,7 @@ class AutonomousSystemManager:
     async def execute_director_command(self, command: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a command from Director."""
         try:
-            logger.info(f"🎯 Executing Director command: {command}")
+            logger.info(f" Executing Director command: {command}")
             
             if command == "switch_mode":
                 new_mode = SystemMode(parameters.get("mode", "directed"))

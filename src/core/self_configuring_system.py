@@ -115,7 +115,7 @@ class SelfConfiguringSystem:
             return
         
         self.configuring_active = True
-        logger.info("⚙️ Starting Self-Configuring System")
+        logger.info(" Starting Self-Configuring System")
         
         # Load current configuration
         await self._load_current_configuration()
@@ -132,7 +132,7 @@ class SelfConfiguringSystem:
     async def stop_configuring(self):
         """Stop the self-configuring system."""
         self.configuring_active = False
-        logger.info("🛑 Stopping Self-Configuring System")
+        logger.info(" Stopping Self-Configuring System")
     
     async def _configuration_loop(self):
         """Main configuration loop."""
@@ -179,7 +179,7 @@ class SelfConfiguringSystem:
     async def _run_configuration_cycle(self):
         """Run a complete configuration cycle."""
         try:
-            logger.info("🔄 Running configuration cycle")
+            logger.info(" Running configuration cycle")
             
             # 1. Analyze current performance
             current_performance = await self._analyze_current_performance()
@@ -200,7 +200,7 @@ class SelfConfiguringSystem:
             # 5. Update metrics
             self.metrics["config_cycles"] += 1
             
-            logger.info(f"✅ Configuration cycle completed: {len(changes)} changes processed")
+            logger.info(f" Configuration cycle completed: {len(changes)} changes processed")
             
         except Exception as e:
             logger.error(f"Error in configuration cycle: {e}")
@@ -236,7 +236,7 @@ class SelfConfiguringSystem:
                 'log_level': 'INFO'
             }
             
-            logger.info("📋 Current configuration loaded")
+            logger.info(" Current configuration loaded")
             
         except Exception as e:
             logger.error(f"Error loading configuration: {e}")
@@ -665,7 +665,7 @@ class SelfConfiguringSystem:
     async def _test_configuration_change(self, change: ConfigurationChange) -> bool:
         """Test a configuration change in a safe environment."""
         try:
-            logger.info(f"🧪 Testing configuration change: {change.change_id}")
+            logger.info(f" Testing configuration change: {change.change_id}")
             
             # Create rollback point
             rollback_config = dict(self.current_config)
@@ -704,7 +704,7 @@ class SelfConfiguringSystem:
     async def _apply_configuration_change(self, change: ConfigurationChange):
         """Apply a configuration change."""
         try:
-            logger.info(f"⚙️ Applying configuration change: {change.change_id}")
+            logger.info(f" Applying configuration change: {change.change_id}")
             
             # Apply each configuration item
             for item in change.changes:
@@ -725,7 +725,7 @@ class SelfConfiguringSystem:
             # Log the change
             await self._log_configuration_change(change)
             
-            logger.info(f"✅ Configuration change applied: {change.change_id}")
+            logger.info(f" Configuration change applied: {change.change_id}")
             
         except Exception as e:
             logger.error(f"Error applying configuration change: {e}")
@@ -773,10 +773,10 @@ class SelfConfiguringSystem:
                 
                 if improvement > 0.1:  # 10% improvement
                     self.metrics["performance_improvements"] += 1
-                    logger.info(f"📈 Performance improved by {improvement:.2%}")
+                    logger.info(f" Performance improved by {improvement:.2%}")
                 elif improvement < -0.1:  # 10% degradation
                     self.metrics["performance_degradations"] += 1
-                    logger.warning(f"📉 Performance degraded by {abs(improvement):.2%}")
+                    logger.warning(f" Performance degraded by {abs(improvement):.2%}")
                     
                     # Consider rollback
                     if improvement < -self.rollback_threshold:
@@ -812,7 +812,7 @@ class SelfConfiguringSystem:
             # Get the most recent change
             recent_change = self.applied_changes[-1]
             
-            logger.warning(f"🔄 Considering rollback for change: {recent_change.change_id}")
+            logger.warning(f" Considering rollback for change: {recent_change.change_id}")
             
             # Rollback the change
             await self._rollback_configuration_change(recent_change)
@@ -823,7 +823,7 @@ class SelfConfiguringSystem:
     async def _rollback_configuration_change(self, change: ConfigurationChange):
         """Rollback a configuration change."""
         try:
-            logger.info(f"🔄 Rolling back configuration change: {change.change_id}")
+            logger.info(f" Rolling back configuration change: {change.change_id}")
             
             # Restore original values
             for item in change.changes:
@@ -838,7 +838,7 @@ class SelfConfiguringSystem:
             # Update metrics
             self.metrics["config_changes_rolled_back"] += 1
             
-            logger.info(f"✅ Configuration change rolled back: {change.change_id}")
+            logger.info(f" Configuration change rolled back: {change.change_id}")
             
         except Exception as e:
             logger.error(f"Error rolling back configuration change: {e}")
@@ -898,7 +898,7 @@ class SelfConfiguringSystem:
             for key, values in common_items.items():
                 if len(values) > 1:  # Only if we have multiple examples
                     avg_value = sum(values) / len(values)
-                    logger.info(f"📚 Learned pattern for {key}: average value = {avg_value}")
+                    logger.info(f" Learned pattern for {key}: average value = {avg_value}")
             
         except Exception as e:
             logger.error(f"Error learning type patterns: {e}")

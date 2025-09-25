@@ -195,7 +195,7 @@ class PerformanceOptimizationEngine:
         if self.enable_real_time_optimization:
             self._start_real_time_optimization()
         
-        logger.info("⚡ Performance Optimization Engine initialized for Phase 4")
+        logger.info(" Performance Optimization Engine initialized for Phase 4")
         logger.info(f"   Real-time optimization: {'enabled' if enable_real_time_optimization else 'disabled'}")
         logger.info(f"   Optimization interval: {optimization_interval}s")
         logger.info(f"   Loaded {len(self.optimization_history)} optimization history entries")
@@ -250,7 +250,7 @@ class PerformanceOptimizationEngine:
         if self.enable_real_time_optimization:
             self._check_optimization_opportunities(component, metrics)
         
-        logger.debug(f"⚡ Performance metrics recorded for {component}: {throughput:.2f} ops/s, {latency:.2f}ms latency")
+        logger.debug(f" Performance metrics recorded for {component}: {throughput:.2f} ops/s, {latency:.2f}ms latency")
         
         return metric_id
     
@@ -266,7 +266,7 @@ class PerformanceOptimizationEngine:
         Phase 4: Leverage pattern recognition, clustering, and architectural
         insights to identify comprehensive performance optimization opportunities.
         """
-        logger.info("⚡ Analyzing system performance with Phase 1-3 intelligence")
+        logger.info(" Analyzing system performance with Phase 1-3 intelligence")
         
         analysis_timestamp = time.time()
         
@@ -322,7 +322,7 @@ class PerformanceOptimizationEngine:
             "performance_predictions": self._generate_performance_predictions(recent_metrics, optimization_opportunities)
         }
         
-        logger.info(f"⚡ Performance analysis complete: {len(optimization_opportunities)} opportunities, {len(optimization_strategies)} strategies")
+        logger.info(f" Performance analysis complete: {len(optimization_opportunities)} opportunities, {len(optimization_strategies)} strategies")
         
         return result
     
@@ -601,7 +601,7 @@ class PerformanceOptimizationEngine:
                 "message": f"Optimization strategy {optimization_id} not found"
             }
         
-        logger.info(f"⚡ Executing performance optimization: {optimization_id}")
+        logger.info(f" Executing performance optimization: {optimization_id}")
         logger.info(f"   Type: {strategy.optimization_type}")
         logger.info(f"   Target: {strategy.target_component}")
         logger.info(f"   Priority: {strategy.priority:.3f}")
@@ -635,7 +635,7 @@ class PerformanceOptimizationEngine:
             # CRITICAL FIX: Save performance state after adding optimization
             try:
                 self.save_performance_state()
-                logger.debug(f"💾 Performance optimization state saved: {len(self.optimization_history)} optimizations")
+                logger.debug(f" Performance optimization state saved: {len(self.optimization_history)} optimizations")
             except Exception as e:
                 logger.warning(f"Failed to save performance optimization state: {e}")
             
@@ -652,7 +652,7 @@ class PerformanceOptimizationEngine:
                 "message": f"Performance optimization {optimization_id} executed successfully"
             }
             
-            logger.info(f"⚡ Performance optimization complete: {optimization_id} ({total_duration:.3f}s)")
+            logger.info(f" Performance optimization complete: {optimization_id} ({total_duration:.3f}s)")
             return result
             
         except Exception as e:
@@ -822,13 +822,13 @@ class PerformanceOptimizationEngine:
         """Check for immediate optimization opportunities."""
         # Simple threshold-based optimization triggers
         if metrics.resource_utilization > 0.9:
-            logger.warning(f"⚡ High resource utilization detected for {component}: {metrics.resource_utilization:.2f}")
+            logger.warning(f" High resource utilization detected for {component}: {metrics.resource_utilization:.2f}")
         
         if metrics.error_rate > 0.05:
-            logger.warning(f"⚡ High error rate detected for {component}: {metrics.error_rate:.2%}")
+            logger.warning(f" High error rate detected for {component}: {metrics.error_rate:.2%}")
         
         if metrics.latency > 1000:  # 1 second threshold
-            logger.warning(f"⚡ High latency detected for {component}: {metrics.latency:.1f}ms")
+            logger.warning(f" High latency detected for {component}: {metrics.latency:.1f}ms")
     
     def _initialize_adaptive_configurations(self):
         """Initialize default adaptive configurations."""
@@ -855,7 +855,7 @@ class PerformanceOptimizationEngine:
             adaptation_count=0
         )
         
-        logger.info(f"⚡ Initialized {len(self.adaptive_configs)} adaptive configurations")
+        logger.info(f" Initialized {len(self.adaptive_configs)} adaptive configurations")
     
     def _generate_performance_predictions(self, metrics: List[PerformanceMetrics], opportunities: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Generate performance predictions based on current trends and optimization opportunities."""
@@ -885,7 +885,7 @@ class PerformanceOptimizationEngine:
         self.optimization_running = True
         self.optimization_thread = threading.Thread(target=self._real_time_optimization_loop, daemon=True)
         self.optimization_thread.start()
-        logger.info("⚡ Real-time optimization thread started")
+        logger.info(" Real-time optimization thread started")
     
     def _real_time_optimization_loop(self):
         """Real-time optimization loop."""
@@ -973,14 +973,14 @@ class PerformanceOptimizationEngine:
                 }
                 json.dump(config_data, f, indent=2)
             
-            logger.info("💾 Performance optimization state saved successfully")
+            logger.info(" Performance optimization state saved successfully")
             
         except Exception as e:
             logger.error(f"Failed to save performance state: {e}")
     
     def shutdown(self):
         """Shutdown the performance optimization engine."""
-        logger.info("⚡ Shutting down Performance Optimization Engine")
+        logger.info(" Shutting down Performance Optimization Engine")
         
         # Stop real-time optimization
         self.optimization_running = False
@@ -990,7 +990,7 @@ class PerformanceOptimizationEngine:
         # Save state
         self.save_performance_state()
         
-        logger.info("⚡ Performance Optimization Engine shutdown complete")
+        logger.info(" Performance Optimization Engine shutdown complete")
 
 
 if __name__ == "__main__":
@@ -1000,7 +1000,7 @@ if __name__ == "__main__":
     engine = PerformanceOptimizationEngine(enable_real_time_optimization=False)
     
     # Test recording performance metrics
-    print("⚡ Testing Performance Optimization Engine")
+    print(" Testing Performance Optimization Engine")
     
     # Record some test metrics
     for i in range(10):
@@ -1042,20 +1042,20 @@ if __name__ == "__main__":
     # Analyze performance with intelligence
     analysis = engine.analyze_performance_with_intelligence(test_patterns, test_clusters, test_architect)
     
-    print(f"\n📊 Performance Analysis Results:")
+    print(f"\n Performance Analysis Results:")
     print(f"   Status: {analysis.get('status')}")
     print(f"   Optimization opportunities: {analysis.get('optimization_opportunities', 0)}")
     print(f"   Optimization strategies: {analysis.get('optimization_strategies', 0)}")
     
     if analysis.get('recommended_optimizations'):
-        print(f"\n💡 Top Recommendations:")
+        print(f"\n Top Recommendations:")
         for i, rec in enumerate(analysis['recommended_optimizations'][:3], 1):
             print(f"   {i}. {rec.optimization_type} (Priority: {rec.priority:.3f})")
     
     # Test optimization execution
     if analysis.get('recommended_optimizations'):
         opt_to_execute = analysis['recommended_optimizations'][0]
-        print(f"\n⚡ Testing optimization execution: {opt_to_execute.optimization_id}")
+        print(f"\n Testing optimization execution: {opt_to_execute.optimization_id}")
         
         execution_result = engine.execute_performance_optimization(opt_to_execute.optimization_id)
         print(f"Execution result: {execution_result.get('success', False)}")
@@ -1064,13 +1064,13 @@ if __name__ == "__main__":
     
     # Get status
     status = engine.get_performance_status()
-    print(f"\n📈 Performance Engine Status:")
+    print(f"\n Performance Engine Status:")
     print(f"   Average throughput: {status['performance_overview']['average_throughput']:.2f}")
     print(f"   Average latency: {status['performance_overview']['average_latency']:.2f}ms")
     print(f"   Optimization potential: {status['performance_overview']['optimization_potential']:.3f}")
     print(f"   Active optimizations: {status['optimization_status']['active_optimizations']}")
     
-    print(f"\n⚡ Performance Optimization Engine Phase 4 test complete!")
+    print(f"\n Performance Optimization Engine Phase 4 test complete!")
     
     # Shutdown
     engine.shutdown()

@@ -77,5 +77,5 @@ def get_opencv_extractor():
         except ImportError:
             _opencv_available = False
             _opencv_extractor = False
-            print("⚠️ OpenCV feature extractor not available - falling back to basic analysis")
+            print(" OpenCV feature extractor not available - falling back to basic analysis")
     return _opencv_extractor if _opencv_extractor is not False else None

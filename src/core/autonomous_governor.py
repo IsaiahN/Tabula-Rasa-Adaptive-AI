@@ -92,7 +92,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
             return
         
         self.autonomous_cycle_active = True
-        logger.info("🚀 Starting autonomous Governor cycle")
+        logger.info(" Starting autonomous Governor cycle")
         
         # Start autonomous decision loop
         asyncio.create_task(self._autonomous_decision_loop())
@@ -106,7 +106,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
     async def stop_autonomous_cycle(self):
         """Stop the autonomous decision-making cycle."""
         self.autonomous_cycle_active = False
-        logger.info("🛑 Stopping autonomous Governor cycle")
+        logger.info(" Stopping autonomous Governor cycle")
     
     async def _autonomous_decision_loop(self):
         """Main autonomous decision-making loop."""
@@ -337,7 +337,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
     async def _implement_decision(self, decision: AutonomousDecision):
         """Implement an autonomous decision."""
         try:
-            logger.info(f"🔧 Implementing autonomous decision: {decision.decision_type}")
+            logger.info(f" Implementing autonomous decision: {decision.decision_type}")
             
             # Implement based on decision type
             if decision.decision_type == "low_success_rate":
@@ -363,7 +363,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
             # Store decision
             self.decision_history.append(decision)
             
-            logger.info(f"✅ Successfully implemented decision: {decision.decision_type}")
+            logger.info(f" Successfully implemented decision: {decision.decision_type}")
             
         except Exception as e:
             logger.error(f"Failed to implement decision {decision.decision_id}: {e}")
@@ -373,7 +373,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
     async def _implement_success_rate_improvement(self, parameters: Dict[str, Any]):
         """Implement success rate improvement measures."""
         # This would integrate with the actual learning system
-        logger.info(f"📈 Implementing success rate improvement: {parameters}")
+        logger.info(f" Implementing success rate improvement: {parameters}")
         
         # Example implementation - would need to integrate with actual systems
         if "exploration_rate" in parameters:
@@ -387,7 +387,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
     
     async def _implement_memory_optimization(self, parameters: Dict[str, Any]):
         """Implement memory optimization measures."""
-        logger.info(f"🧠 Implementing memory optimization: {parameters}")
+        logger.info(f" Implementing memory optimization: {parameters}")
         
         if parameters.get("memory_consolidation"):
             await self._trigger_memory_consolidation()
@@ -400,7 +400,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
     
     async def _implement_learning_mode_switch(self, parameters: Dict[str, Any]):
         """Implement learning mode switch."""
-        logger.info(f"🔄 Implementing learning mode switch: {parameters}")
+        logger.info(f" Implementing learning mode switch: {parameters}")
         
         if parameters.get("learning_mode"):
             await self._switch_learning_mode(parameters["learning_mode"])
@@ -413,7 +413,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
     
     async def _implement_error_handling_improvement(self, parameters: Dict[str, Any]):
         """Implement error handling improvements."""
-        logger.info(f"🛠️ Implementing error handling improvement: {parameters}")
+        logger.info(f" Implementing error handling improvement: {parameters}")
         
         if parameters.get("error_handling_improvement"):
             await self._improve_error_handling()
@@ -427,7 +427,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
     async def _perform_autonomous_optimization(self):
         """Perform autonomous system optimization."""
         try:
-            logger.info("🔧 Performing autonomous optimization")
+            logger.info(" Performing autonomous optimization")
             
             # Get current system state
             system_state = await self._analyze_system_state()
@@ -451,7 +451,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
             
             if optimizations:
                 self.performance_metrics["autonomous_optimizations"] += 1
-                logger.info(f"✅ Completed optimizations: {optimizations}")
+                logger.info(f" Completed optimizations: {optimizations}")
             
         except Exception as e:
             logger.error(f"Error in autonomous optimization: {e}")
@@ -522,7 +522,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
             issue_type = prediction["issue_type"]
             confidence = prediction["confidence"]
             
-            logger.info(f"🛡️ Taking preventive action for {issue_type} (confidence: {confidence:.2f})")
+            logger.info(f" Taking preventive action for {issue_type} (confidence: {confidence:.2f})")
             
             if issue_type == "declining_performance":
                 await self._prevent_performance_decline()
@@ -558,7 +558,7 @@ class AutonomousGovernor(EnhancedSpaceTimeGovernor):
                 summary
             )
             
-            logger.info(f"📊 Governor report to Director: {summary}")
+            logger.info(f" Governor report to Director: {summary}")
             
         except Exception as e:
             logger.error(f"Error reporting to Director: {e}")

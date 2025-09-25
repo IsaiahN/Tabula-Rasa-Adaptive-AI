@@ -26,7 +26,7 @@ os.environ['ARC_AGENTS_PATH'] = str(Path.cwd() / "arc-agents")
 
 def test_action_limit_fix():
     """Test that MAX_ACTIONS has been increased from 200 to 100,000."""
-    print("\n🧪 TEST 1: Action Limit Fix")
+    print("\n TEST 1: Action Limit Fix")
     print("=" * 50)
     
     try:
@@ -36,23 +36,23 @@ def test_action_limit_fix():
             content = adapter_file.read_text()
             
             if "MAX_ACTIONS = 100000" in content:
-                print("✅ PASS: MAX_ACTIONS increased to 100,000")
+                print(" PASS: MAX_ACTIONS increased to 100,000")
                 assert True
             elif "MAX_ACTIONS = 200" in content:
                 pytest.fail("MAX_ACTIONS still at 200 - fix not applied")
             else:
                 pytest.fail("MAX_ACTIONS not found in expected format")
         else:
-            print("❌ FAIL: arc_agent_adapter.py not found")
+            print(" FAIL: arc_agent_adapter.py not found")
             assert False, "arc_agent_adapter.py not found"
             
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
         assert False, f"test_action_limit_fix error: {e}"
 
 def test_enhanced_boredom_detection():
     """Test that enhanced boredom detection with strategy switching is implemented."""
-    print("\n🧪 TEST 2: Enhanced Boredom Detection")
+    print("\n TEST 2: Enhanced Boredom Detection")
     print("=" * 50)
     
     try:
@@ -72,23 +72,23 @@ def test_enhanced_boredom_detection():
             passed = 0
             for name, check in checks:
                 if check:
-                    print(f"✅ {name}: IMPLEMENTED")
+                    print(f" {name}: IMPLEMENTED")
                     passed += 1
                 else:
-                    print(f"❌ {name}: MISSING")
+                    print(f" {name}: MISSING")
             
             assert passed == len(checks)
         else:
-            print("❌ FAIL: continuous_learning_loop.py not found")
+            print(" FAIL: continuous_learning_loop.py not found")
             assert False, "continuous_learning_loop.py not found"
             
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
         assert False, f"test_enhanced_boredom_detection error: {e}"
 
 def test_success_weighted_memory():
     """Test that success-weighted memory prioritization (10x for wins) is implemented."""
-    print("\n🧪 TEST 3: Success-Weighted Memory Prioritization")
+    print("\n TEST 3: Success-Weighted Memory Prioritization")
     print("=" * 50)
     
     try:
@@ -107,23 +107,23 @@ def test_success_weighted_memory():
             passed = 0
             for name, check in checks:
                 if check:
-                    print(f"✅ {name}: IMPLEMENTED")
+                    print(f" {name}: IMPLEMENTED")
                     passed += 1
                 else:
-                    print(f"❌ {name}: MISSING")
+                    print(f" {name}: MISSING")
             
             assert passed == len(checks)
         else:
-            print("❌ FAIL: continuous_learning_loop.py not found")
+            print(" FAIL: continuous_learning_loop.py not found")
             assert False, "continuous_learning_loop.py not found"
             
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
         assert False, f"test_success_weighted_memory error: {e}"
 
 def test_mid_game_consolidation():
     """Test that mid-game consolidation is implemented."""
-    print("\n🧪 TEST 4: Mid-Game Consolidation")
+    print("\n TEST 4: Mid-Game Consolidation")
     print("=" * 50)
     
     try:
@@ -142,23 +142,23 @@ def test_mid_game_consolidation():
             passed = 0
             for name, check in checks:
                 if check:
-                    print(f"✅ {name}: IMPLEMENTED")
+                    print(f" {name}: IMPLEMENTED")
                     passed += 1
                 else:
-                    print(f"❌ {name}: MISSING")
+                    print(f" {name}: MISSING")
             
             assert passed == len(checks)
         else:
-            print("❌ FAIL: continuous_learning_loop.py not found")
+            print(" FAIL: continuous_learning_loop.py not found")
             assert False, "continuous_learning_loop.py not found"
             
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
         assert False, f"test_mid_game_consolidation error: {e}"
 
 def test_continuous_learning_metrics():
     """Test that enhanced continuous learning metrics are tracked."""
-    print("\n🧪 TEST 5: Continuous Learning Metrics")
+    print("\n TEST 5: Continuous Learning Metrics")
     print("=" * 50)
     
     try:
@@ -178,23 +178,23 @@ def test_continuous_learning_metrics():
             passed = 0
             for name, check in checks:
                 if check:
-                    print(f"✅ {name}: IMPLEMENTED")
+                    print(f" {name}: IMPLEMENTED")
                     passed += 1
                 else:
-                    print(f"❌ {name}: MISSING")
+                    print(f" {name}: MISSING")
             
             assert passed == len(checks)
         else:
-            print("❌ FAIL: continuous_learning_loop.py not found")
+            print(" FAIL: continuous_learning_loop.py not found")
             assert False, "continuous_learning_loop.py not found"
             
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
         assert False, f"test_continuous_learning_metrics error: {e}"
 
 def main():
     """Run all performance fix tests."""
-    print("🚀 TESTING COMPREHENSIVE PERFORMANCE FIXES")
+    print(" TESTING COMPREHENSIVE PERFORMANCE FIXES")
     print("=" * 60)
     print("Critical fixes to match top leaderboard performance:")
     print("- Action limit: 200 → 100,000")
@@ -224,17 +224,17 @@ def main():
     
     # Summary
     print("\n" + "=" * 60)
-    print("🏆 PERFORMANCE FIXES TEST SUMMARY")
+    print(" PERFORMANCE FIXES TEST SUMMARY")
     print("=" * 60)
     
     passed = sum(results)
     total = len(results)
     
-    print(f"✅ Tests Passed: {passed}/{total}")
-    print(f"⏱️  Test Duration: {time.time() - start_time:.2f}s")
+    print(f" Tests Passed: {passed}/{total}")
+    print(f"⏱  Test Duration: {time.time() - start_time:.2f}s")
     
     if passed == total:
-        print("\n🎉 ALL CRITICAL PERFORMANCE FIXES IMPLEMENTED!")
+        print("\n ALL CRITICAL PERFORMANCE FIXES IMPLEMENTED!")
         print("   Agent can now match top leaderboard performance:")
         print("   - 100,000+ actions like StochasticGoose (255,964 actions)")
         print("   - Continuous learning with mid-game consolidation")

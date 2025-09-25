@@ -25,7 +25,7 @@ from gameplay import (
 
 async def test_error_automation():
     """Test the error automation system."""
-    print("🧪 Testing Error Automation System...")
+    print(" Testing Error Automation System...")
     
     # Mock game state
     game_state = {
@@ -56,17 +56,17 @@ async def test_error_automation():
     # Process errors
     result = await process_gameplay_errors(game_state, action_history, frame_data, api_responses)
     
-    print(f"✅ Errors detected: {result['errors_detected']}")
-    print(f"✅ Fixes applied: {result['fixes_applied']}")
-    print(f"✅ System health: {result['system_health']['status']}")
+    print(f" Errors detected: {result['errors_detected']}")
+    print(f" Fixes applied: {result['fixes_applied']}")
+    print(f" System health: {result['system_health']['status']}")
     
     if result['errors']:
-        print("🔍 Detected errors:")
+        print(" Detected errors:")
         for error in result['errors'][:3]:  # Show first 3
             print(f"  - {error['type']}: {error['description']}")
     
     if result['fixes']:
-        print("🔧 Applied fixes:")
+        print(" Applied fixes:")
         for fix in result['fixes'][:3]:  # Show first 3
             print(f"  - {fix['error_type']}: {fix['fix_applied']}")
     
@@ -74,7 +74,7 @@ async def test_error_automation():
 
 def test_action_correction():
     """Test the action correction system."""
-    print("\n🧪 Testing Action Correction System...")
+    print("\n Testing Action Correction System...")
     
     # Mock problematic actions
     problematic_actions = [
@@ -93,19 +93,19 @@ def test_action_correction():
     corrections_made = []
     
     for i, action in enumerate(problematic_actions):
-        print(f"\n🔍 Testing action {i+1}: {action}")
+        print(f"\n Testing action {i+1}: {action}")
         
         correction = correct_action(action, game_state, frame_data)
         corrections_made.append(correction)
         
-        print(f"✅ Correction applied: {correction.reason}")
-        print(f"✅ Confidence: {correction.confidence:.2f}")
-        print(f"✅ Original: {correction.original_action}")
-        print(f"✅ Corrected: {correction.corrected_action}")
+        print(f" Correction applied: {correction.reason}")
+        print(f" Confidence: {correction.confidence:.2f}")
+        print(f" Original: {correction.original_action}")
+        print(f" Corrected: {correction.corrected_action}")
     
     # Get correction stats
     stats = get_correction_stats()
-    print(f"\n📊 Correction Statistics:")
+    print(f"\n Correction Statistics:")
     print(f"  Total corrections: {stats['total_corrections']}")
     print(f"  Average confidence: {stats['average_confidence']:.2f}")
     
@@ -113,7 +113,7 @@ def test_action_correction():
 
 async def test_realtime_monitoring():
     """Test the real-time monitoring system."""
-    print("\n🧪 Testing Real-time Monitoring System...")
+    print("\n Testing Real-time Monitoring System...")
     
     # Mock game state callback
     game_state_data = {
@@ -128,7 +128,7 @@ async def test_realtime_monitoring():
         return game_state_data
     
     # Start monitoring
-    print("🔍 Starting real-time monitoring...")
+    print(" Starting real-time monitoring...")
     monitoring_task = asyncio.create_task(start_gameplay_monitoring(game_state_callback))
     
     # Let it run for a few seconds
@@ -136,11 +136,11 @@ async def test_realtime_monitoring():
     
     # Get monitoring status
     status = get_monitoring_status()
-    print(f"✅ Monitoring status: {status}")
+    print(f" Monitoring status: {status}")
     
     # Get recent events
     events = get_gameplay_events(5)
-    print(f"✅ Recent events: {len(events)}")
+    print(f" Recent events: {len(events)}")
     
     # Stop monitoring
     stop_gameplay_monitoring()
@@ -151,13 +151,13 @@ async def test_realtime_monitoring():
     except asyncio.CancelledError:
         pass
     
-    print("✅ Monitoring stopped")
+    print(" Monitoring stopped")
     
     return status
 
 async def test_integration():
     """Test integration of all systems."""
-    print("\n🧪 Testing System Integration...")
+    print("\n Testing System Integration...")
     
     # Create a comprehensive test scenario
     game_state = {
@@ -176,13 +176,13 @@ async def test_integration():
         "reason": "Test action"
     }
     
-    print(f"🔍 Original action: {problematic_action}")
+    print(f" Original action: {problematic_action}")
     
     # Correct the action
     correction = correct_action(problematic_action, game_state, None)
     corrected_action = correction.corrected_action
     
-    print(f"✅ Corrected action: {corrected_action}")
+    print(f" Corrected action: {corrected_action}")
     
     # Process with error automation
     action_history = [corrected_action]
@@ -191,7 +191,7 @@ async def test_integration():
     
     error_result = await process_gameplay_errors(game_state, action_history, frame_data, api_responses)
     
-    print(f"✅ Error processing result: {error_result['errors_detected']} errors, {error_result['fixes_applied']} fixes")
+    print(f" Error processing result: {error_result['errors_detected']} errors, {error_result['fixes_applied']} fixes")
     
     return {
         "original_action": problematic_action,
@@ -201,7 +201,7 @@ async def test_integration():
 
 async def main():
     """Run all tests."""
-    print("🚀 GAMEPLAY AUTOMATION TEST SUITE")
+    print(" GAMEPLAY AUTOMATION TEST SUITE")
     print("=" * 50)
     
     try:
@@ -217,20 +217,20 @@ async def main():
         # Test integration
         integration_result = await test_integration()
         
-        print("\n🎉 ALL TESTS COMPLETED SUCCESSFULLY!")
+        print("\n ALL TESTS COMPLETED SUCCESSFULLY!")
         print("=" * 50)
         
         # Summary
-        print("📊 TEST SUMMARY:")
-        print(f"  Error automation: ✅ {error_result['errors_detected']} errors detected")
-        print(f"  Action correction: ✅ {len(correction_result)} corrections made")
-        print(f"  Real-time monitoring: ✅ {monitoring_result['is_monitoring']} status")
-        print(f"  System integration: ✅ All systems working together")
+        print(" TEST SUMMARY:")
+        print(f"  Error automation:  {error_result['errors_detected']} errors detected")
+        print(f"  Action correction:  {len(correction_result)} corrections made")
+        print(f"  Real-time monitoring:  {monitoring_result['is_monitoring']} status")
+        print(f"  System integration:  All systems working together")
         
         return True
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f" Test failed: {e}")
         import traceback
         traceback.print_exc()
         return False

@@ -6,7 +6,7 @@ def analyze_errors():
     conn = sqlite3.connect('tabula_rasa.db')
     cursor = conn.cursor()
     
-    print('🔍 RUNTIME ERROR ANALYSIS')
+    print(' RUNTIME ERROR ANALYSIS')
     print('=' * 50)
     
     # Get recent error logs
@@ -20,12 +20,12 @@ def analyze_errors():
     ''')
     
     errors = cursor.fetchall()
-    print(f'📊 Recent Errors/Warnings (last 2 hours): {len(errors)}')
+    print(f' Recent Errors/Warnings (last 2 hours): {len(errors)}')
     print()
     
     for error in errors:
         level, component, message, timestamp, session_id, game_id = error
-        print(f'🚨 {level} | {component} | {timestamp}')
+        print(f' {level} | {component} | {timestamp}')
         print(f'   Message: {message[:100]}...' if len(message) > 100 else f'   Message: {message}')
         if session_id:
             print(f'   Session: {session_id}')
@@ -34,7 +34,7 @@ def analyze_errors():
         print()
     
     # Check system health
-    print('🏥 SYSTEM HEALTH CHECK')
+    print(' SYSTEM HEALTH CHECK')
     print('=' * 50)
     
     # Count errors by type
@@ -48,7 +48,7 @@ def analyze_errors():
     
     error_counts = cursor.fetchall()
     for level, count in error_counts:
-        print(f'📈 {level}: {count} occurrences')
+        print(f' {level}: {count} occurrences')
     
     print()
     
@@ -65,15 +65,15 @@ def analyze_errors():
     
     error_patterns = cursor.fetchall()
     if error_patterns:
-        print('🔍 TOP ERROR PATTERNS:')
+        print(' TOP ERROR PATTERNS:')
         for message, count in error_patterns:
             print(f'   {count}x: {message[:80]}...' if len(message) > 80 else f'   {count}x: {message}')
     else:
-        print('✅ No error patterns found in the last 2 hours')
+        print(' No error patterns found in the last 2 hours')
     
     # Check recent game results
     print()
-    print('🎮 RECENT GAME RESULTS')
+    print(' RECENT GAME RESULTS')
     print('=' * 50)
     
     cursor.execute('''
@@ -86,16 +86,16 @@ def analyze_errors():
     
     games = cursor.fetchall()
     if games:
-        print(f'📊 Recent Games (last 2 hours): {len(games)}')
+        print(f' Recent Games (last 2 hours): {len(games)}')
         for game in games:
             game_id, score, actions, win, levels, status = game
             print(f'   {game_id}: Score={score}, Actions={actions}, Win={win}, Levels={levels}, Status={status}')
     else:
-        print('📊 No recent games found in the last 2 hours')
+        print(' No recent games found in the last 2 hours')
     
     # Check error_logs table specifically
     print()
-    print('🚨 ERROR LOGS TABLE')
+    print(' ERROR LOGS TABLE')
     print('=' * 50)
     
     cursor.execute('''
@@ -108,7 +108,7 @@ def analyze_errors():
     
     error_logs = cursor.fetchall()
     if error_logs:
-        print(f'📊 Error Logs (last 2 hours): {len(error_logs)}')
+        print(f' Error Logs (last 2 hours): {len(error_logs)}')
         for error in error_logs:
             error_type, message, last_seen, context, count = error
             print(f'   {error_type} | {last_seen} | Count: {count}')
@@ -117,7 +117,7 @@ def analyze_errors():
                 print(f'   Context: {context[:100]}...' if len(context) > 100 else f'   Context: {context}')
             print()
     else:
-        print('📊 No error logs found in the last 2 hours')
+        print(' No error logs found in the last 2 hours')
     
     conn.close()
 

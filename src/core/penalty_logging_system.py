@@ -109,7 +109,7 @@ class PenaltyLoggingSystem:
             }
         )
         
-        self.logger.info(f"🎯 PENALTY APPLIED: {coordinate} - {penalty_reason} (score: {penalty_score:.3f})")
+        self.logger.info(f" PENALTY APPLIED: {coordinate} - {penalty_reason} (score: {penalty_score:.3f})")
     
     async def log_penalty_decayed(
         self,
@@ -169,7 +169,7 @@ class PenaltyLoggingSystem:
         
         await self._log_event(event)
         
-        self.logger.info(f"🚫 COORDINATE AVOIDED: {coordinate} - {reason} (score: {avoidance_score:.3f})")
+        self.logger.info(f" COORDINATE AVOIDED: {coordinate} - {reason} (score: {avoidance_score:.3f})")
     
     async def log_recovery_attempted(
         self,
@@ -190,7 +190,7 @@ class PenaltyLoggingSystem:
         await self._log_event(event)
         
         status = "SUCCESS" if success else "FAILED"
-        self.logger.info(f"🔄 RECOVERY {status}: {coordinate} - {recovery_type}")
+        self.logger.info(f" RECOVERY {status}: {coordinate} - {recovery_type}")
     
     async def log_failure_learned(
         self,
@@ -212,9 +212,9 @@ class PenaltyLoggingSystem:
         
         await self._log_event(event)
         
-        self.logger.info(f"🧠 FAILURE LEARNED: {coordinate} - {failure_type}")
+        self.logger.info(f" FAILURE LEARNED: {coordinate} - {failure_type}")
         for insight in learned_insights.get('recommendations', []):
-            self.logger.info(f"  💡 {insight}")
+            self.logger.info(f"   {insight}")
     
     async def log_diversity_promoted(
         self,
@@ -235,7 +235,7 @@ class PenaltyLoggingSystem:
         
         await self._log_event(event)
         
-        self.logger.info(f"🎨 DIVERSITY PROMOTED: {coordinate} - {reason} (factor: {diversity_factor:.3f})")
+        self.logger.info(f" DIVERSITY PROMOTED: {coordinate} - {reason} (factor: {diversity_factor:.3f})")
     
     async def log_system_status_update(
         self,
@@ -252,7 +252,7 @@ class PenaltyLoggingSystem:
         
         await self._log_event(event)
         
-        self.logger.info(f"📊 SYSTEM STATUS UPDATE: {game_id}")
+        self.logger.info(f" SYSTEM STATUS UPDATE: {game_id}")
         for key, value in status_data.items():
             if isinstance(value, (int, float)):
                 self.logger.info(f"  {key}: {value}")
@@ -365,7 +365,7 @@ class PenaltyLoggingSystem:
             
             # Penalty statistics
             penalty_stats = summary.get('penalty_statistics', {})
-            report.append("📊 PENALTY STATISTICS:")
+            report.append(" PENALTY STATISTICS:")
             report.append(f"  Total penalties: {penalty_stats.get('total_penalties', 0)}")
             report.append(f"  Average penalty: {penalty_stats.get('avg_penalty', 0):.3f}")
             report.append(f"  Max penalty: {penalty_stats.get('max_penalty', 0):.3f}")
@@ -376,7 +376,7 @@ class PenaltyLoggingSystem:
             # Failure statistics
             failure_stats = summary.get('failure_statistics', {})
             if failure_stats:
-                report.append("❌ FAILURE STATISTICS:")
+                report.append(" FAILURE STATISTICS:")
                 for failure_type, stats in failure_stats.items():
                     report.append(f"  {failure_type}: {stats['count']} occurrences (avg: {stats['avg_failures']:.1f})")
                 report.append("")
@@ -384,7 +384,7 @@ class PenaltyLoggingSystem:
             # Recent events
             recent_events = summary.get('recent_events', [])
             if recent_events:
-                report.append("📝 RECENT EVENTS:")
+                report.append(" RECENT EVENTS:")
                 for event in recent_events[-10:]:  # Last 10 events
                     event_type = event['event_type']
                     coordinate = event.get('coordinate')
@@ -398,7 +398,7 @@ class PenaltyLoggingSystem:
             
             # Logging metrics
             metrics = summary.get('logging_metrics', {})
-            report.append("📈 LOGGING METRICS:")
+            report.append(" LOGGING METRICS:")
             for key, value in metrics.items():
                 report.append(f"  {key}: {value}")
             

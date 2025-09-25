@@ -9,6 +9,7 @@ import random
 import logging
 import numpy as np
 import asyncio
+import inspect
 from typing import Dict, List, Optional, Any, Tuple
 from .frame_analyzer import FrameAnalyzer
 from ..api.api_manager import APIManager
@@ -83,7 +84,7 @@ class ActionSelector:
         self.pattern_matches = []
         
         # Initialize new advanced action systems
-        logger.info(f"🧠 ADVANCED SYSTEMS STATUS: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
+        logger.info(f" ADVANCED SYSTEMS STATUS: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
         if ADVANCED_ACTION_SYSTEMS_AVAILABLE:
             try:
                 self.visual_interactive_system = VisualInteractiveSystem()
@@ -121,6 +122,8 @@ class ActionSelector:
         self.action_repetition_penalties = {}  # action_id -> penalty_score
         self.recent_actions = []  # Track recent actions for repetition detection
         self.max_recent_actions = 20  # Keep last 20 actions
+        # Available buttons list (coordinates) - similar to available_actions but for Action 6
+        self.available_buttons = []
         
         # OpenCV object testing system
         self.tested_objects = {}  # coordinate -> {'interactive': bool, 'test_count': int, 'frame_changes': int}
@@ -152,7 +155,7 @@ class ActionSelector:
             try:
                 # Initialize Tree Evaluation Simulation Engine
                 self.tree_evaluation_engine = TreeEvaluationSimulationEngine()
-                logger.info("🌳 Tree Evaluation Simulation Engine initialized")
+                logger.info(" Tree Evaluation Simulation Engine initialized")
                 
                 # Initialize Action Sequence Optimizer
                 self.action_sequence_optimizer = ActionSequenceOptimizer()
@@ -169,7 +172,7 @@ class ActionSelector:
                     output_size=8,  # Number of actions
                     memory_size=1000
                 )
-                logger.info("🔮 Predictive Core initialized")
+                logger.info(" Predictive Core initialized")
                 
             except Exception as e:
                 logger.warning(f"Failed to initialize advanced systems: {e}")
@@ -178,7 +181,7 @@ class ActionSelector:
                 self.exploration_system = None
                 self.predictive_core = None
         
-        logger.info("🧠 Advanced Action Selector initialized with OpenCV, pattern matching, and cognitive systems")
+        logger.info(" Advanced Action Selector initialized with OpenCV, pattern matching, and cognitive systems")
     
     def _initialize_advanced_systems(self):
         """Initialize Bayesian and GAN systems."""
@@ -235,12 +238,12 @@ class ActionSelector:
         # 0. STAGNATION INTERVENTION - Check for stagnation and trigger intervention
         if self.stagnation_intervention_system:
             try:
-                logger.info(f"🧠 STAGNATION SYSTEM ACTIVE - Analyzing frame {len(self.stagnation_intervention_system.frame_history) if hasattr(self.stagnation_intervention_system, 'frame_history') else 'unknown'}")
+                logger.info(f" STAGNATION SYSTEM ACTIVE - Analyzing frame {len(self.stagnation_intervention_system.frame_history) if hasattr(self.stagnation_intervention_system, 'frame_history') else 'unknown'}")
                 logger.info(f"[CHECK] DEBUG: About to call stagnation_intervention_system.analyze_frame with frame_data type: {type(frame_data)}")
                 stagnation_event = await self.stagnation_intervention_system.analyze_frame(frame_data, game_state)
                 
                 if stagnation_event and stagnation_event.intervention_required:
-                    logger.warning(f"🚨 STAGNATION DETECTED: {stagnation_event.type.value} (severity: {stagnation_event.severity:.2f})")
+                    logger.warning(f" STAGNATION DETECTED: {stagnation_event.type.value} (severity: {stagnation_event.severity:.2f})")
                     
                     # Trigger multi-system intervention
                     intervention = await self.stagnation_intervention_system.trigger_intervention(stagnation_event)
@@ -248,16 +251,16 @@ class ActionSelector:
                     # Use emergency actions to break stagnation
                     if intervention.get('emergency_actions'):
                         emergency_action = intervention['emergency_actions'][0]  # Use first emergency action
-                        logger.warning(f"🚨 EMERGENCY INTERVENTION: {emergency_action['reason']}")
+                        logger.warning(f" EMERGENCY INTERVENTION: {emergency_action['reason']}")
                         return emergency_action
             except Exception as e:
                 logger.error(f"[CHECK] DEBUG: Error in stagnation analysis: {e}")
                 import traceback
                 logger.error(f"[CHECK] DEBUG: Stagnation analysis traceback: {traceback.format_exc()}")
                 # Don't raise - continue with normal action selection
-                logger.warning(f"🚨 STAGNATION SYSTEM ERROR - Continuing with normal action selection")
+                logger.warning(f" STAGNATION SYSTEM ERROR - Continuing with normal action selection")
         else:
-            logger.warning(f"🚨 STAGNATION SYSTEM NOT AVAILABLE - Advanced systems: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
+            logger.warning(f" STAGNATION SYSTEM NOT AVAILABLE - Advanced systems: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
         
         # 0.5. SYSTEMATIC BUTTON DISCOVERY - Test every object with Action 6 (only if no stagnation)
         if self.button_discovery_system and 6 in available_actions and not self.stagnation_intervention_system.is_intervention_active():
@@ -279,16 +282,57 @@ class ActionSelector:
                     'confidence': 0.9,
                     'source': 'button_discovery'
                 }
+
+        # NEW: BUTTON-FIRST DISCOVERY PASS
+        # Discover all candidate button coordinates early and prioritize them for Action 6 suggestions
+        discovered_button_suggestions = []
+        try:
+            if 6 in available_actions:
+                # Gather candidates from frame analyzer, persistent button_priorities, and learned coordinates
+                frame_buttons = self._gather_buttons_from_frame(self.last_frame_analysis or self.frame_analyzer.analyze_frame(game_state.get('frame', [])))
+                # Load persisted button priorities if available via a coordinate_intelligence_system
+                persisted_buttons = []
+                try:
+                    from src.core.coordinate_intelligence_system import CoordinateIntelligenceSystem
+                    if not hasattr(self, 'coordinate_intelligence_system'):
+                        self.coordinate_intelligence_system = CoordinateIntelligenceSystem()
+                    persisted_buttons = await self.coordinate_intelligence_system.get_top_buttons(game_state.get('game_id', 'unknown'))
+                except Exception:
+                    # If persistent system not available, ignore
+                    persisted_buttons = []
+
+                # Merge and prioritize: frame buttons first, then persisted, then learned coordinates
+                seen = set()
+                for b in frame_buttons + persisted_buttons + list(self.coordinate_success_rates.keys()):
+                    if isinstance(b, tuple):
+                        coord = b
+                    elif isinstance(b, dict) and 'coordinate' in b:
+                        coord = tuple(b['coordinate'])
+                    else:
+                        continue
+                    if coord in seen:
+                        continue
+                    seen.add(coord)
+                    discovered_button_suggestions.append({
+                        'action': 'ACTION6',
+                        'x': coord[0],
+                        'y': coord[1],
+                        'confidence': 0.9 if coord in frame_buttons else 0.75,
+                        'reason': 'Discovered button candidate',
+                        'source': 'button_first_discovery'
+                    })
+        except Exception as e:
+            logger.debug(f"Button-first discovery failed: {e}")
         
         # 1. ADVANCED FRAME ANALYSIS - OpenCV-based visual analysis
         frame_analysis = self.frame_analyzer.analyze_frame(frame_data)
         self.last_frame_analysis = frame_analysis
-        
+
         # 2. PATTERN MATCHING - Learn from successful patterns
         pattern_suggestions = self._analyze_patterns(frame_analysis, available_actions)
-        
+
         # 3. COORDINATE INTELLIGENCE - Learn from successful coordinates
-        coordinate_suggestions = self._get_intelligent_coordinates(frame_analysis, available_actions)
+        coordinate_suggestions = await self._get_intelligent_coordinates(frame_analysis, available_actions, game_state)
         
         # 4. OPENCV OBJECT TESTING - Test objects for interactivity (PRIMARY for Action 6)
         if 6 in available_actions:
@@ -351,7 +395,7 @@ class ActionSelector:
         if 6 in available_actions and not opencv_suggestions:
             coordinate_exploration_suggestions = self._get_exploration_coordinates(frame_analysis)
             exploration_suggestions.extend(coordinate_exploration_suggestions)
-            logger.info("🚨 Using coordinate exploration as LAST RESORT for Action 6 - no OpenCV objects found")
+            logger.info(" Using coordinate exploration as LAST RESORT for Action 6 - no OpenCV objects found")
         
         # 7. ADVANCED COGNITIVE SYSTEMS - Tree evaluation and sequence optimization
         advanced_suggestions = self._generate_advanced_suggestions(
@@ -364,9 +408,20 @@ class ActionSelector:
         )
         
         # 9. GAN-GENERATED SUGGESTIONS - Use GAN for synthetic action generation
-        gan_suggestions = self._generate_gan_suggestions(
-            frame_analysis, available_actions, current_score, game_state
-        )
+        # _generate_gan_suggestions may be async (it awaits GAN internals). Await it.
+        gan_suggestions = []
+        try:
+            gan_suggestions = await self._generate_gan_suggestions(
+                frame_analysis, available_actions, current_score, game_state
+            )
+        except AttributeError:
+            # If _generate_gan_suggestions is not async for some reason, fall back
+            try:
+                gan_suggestions = self._generate_gan_suggestions(
+                    frame_analysis, available_actions, current_score, game_state
+                )
+            except Exception as e:
+                logger.warning(f"GAN suggestion generation failed: {e}")
         
         # 10. GAME-SPECIFIC KNOWLEDGE - Use knowledge from similar game types
         game_specific_suggestions = self._generate_game_specific_suggestions(
@@ -510,6 +565,7 @@ class ActionSelector:
         
         # 13. COMBINE ALL SUGGESTIONS - Multi-source decision making
         all_suggestions = self._combine_suggestions(
+            discovered_button_suggestions,
             pattern_suggestions,
             coordinate_suggestions, 
             opencv_suggestions,
@@ -526,6 +582,28 @@ class ActionSelector:
             action5_suggestions,
             button_discovery_suggestions
         )
+
+        # Build an available_buttons list similar to available_actions (only when Action 6 is available)
+        try:
+            if 6 in available_actions:
+                buttons = []
+                for s in all_suggestions:
+                    if isinstance(s, dict):
+                        # Accept suggestions formatted with 'action' or 'id' and coordinates
+                        action_name = s.get('action') or f"ACTION{s.get('id', '')}"
+                        if action_name == 'ACTION6' or s.get('id') == 6:
+                            x = s.get('x') if 'x' in s else (s.get('coordinates')[0] if 'coordinates' in s and s.get('coordinates') else None)
+                            y = s.get('y') if 'y' in s else (s.get('coordinates')[1] if 'coordinates' in s and s.get('coordinates') else None)
+                            if x is not None and y is not None:
+                                coord = (int(x), int(y))
+                                if coord not in buttons:
+                                    buttons.append(coord)
+                self.available_buttons = buttons
+                logger.info(f" Available Buttons detected: {len(self.available_buttons)}")
+            else:
+                self.available_buttons = []
+        except Exception as e:
+            logger.debug(f"Failed to build available_buttons: {e}")
         
         # 8. INTELLIGENT SELECTION - Multi-factor scoring
         best_action = self._select_best_action_intelligent(
@@ -556,16 +634,16 @@ class ActionSelector:
             
             # If we discovered new actions, treat as pseudo score increase
             if availability_changes['pseudo_score_increase']:
-                logger.info(f"🎉 PSEUDO SCORE INCREASE: Discovered {len(availability_changes['newly_available'])} new actions!")
+                logger.info(f" PSEUDO SCORE INCREASE: Discovered {len(availability_changes['newly_available'])} new actions!")
         
         # Always log available actions for visibility
-        logger.info(f"📋 Available Actions: {available_actions}")
+        logger.info(f" Available Actions: {available_actions}")
         
         # Log current game state summary
         current_score = game_state.get('score', 0)
         game_state_status = game_state.get('state', 'UNKNOWN')
         logger.info(f"[STATS] Game State: Score={current_score}, Status={game_state_status}")
-        logger.info("─" * 80)  # Separator line for readability
+        logger.info("" * 80)  # Separator line for readability
         
         # 10. LEARNING UPDATE - Update all learning systems
         self._update_learning_systems(best_action, game_state, frame_analysis)
@@ -632,7 +710,7 @@ class ActionSelector:
                         frame_changed=frame_changes
                     )
                     
-                    logger.info(f"🎯 BUTTON TEST RESULT: {coordinates} - Score: {score_change:+.2f}, Actions: {action_unlocks:+d}, Visual: {visual_changes}")
+                    logger.info(f" BUTTON TEST RESULT: {coordinates} - Score: {score_change:+.2f}, Actions: {action_unlocks:+d}, Visual: {visual_changes}")
                 except Exception as e:
                     logger.error(f"Error updating button discovery system: {e}")
             
@@ -769,29 +847,38 @@ class ActionSelector:
         
         return suggestions
     
-    def _get_intelligent_coordinates(self, frame_analysis: Dict[str, Any], available_actions: List[int]) -> List[Dict[str, Any]]:
+    async def _get_intelligent_coordinates(self, frame_analysis: Dict[str, Any], available_actions: List[int], game_state: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get intelligent coordinate suggestions based on learning and penalty avoidance."""
         suggestions = []
         
         if 6 not in available_actions:
             return suggestions
         
-        # Get penalty-aware avoidance scores from frame analyzer
+        # Get penalty-aware avoidance scores from frame analyzer (async)
         try:
-            avoidance_scores = self.frame_analyzer.get_penalty_aware_avoidance_scores()
+            # Build candidate list from known coordinates or exploration grid
+            candidate_coords = list(self.coordinate_success_rates.keys())
+            # If we have no learned coordinates, use a small exploration grid around center
+            if not candidate_coords:
+                candidate_coords = [(32, 32), (16, 16), (48, 32), (32, 48)]
+
+            avoidance_scores = await self.frame_analyzer.get_penalty_aware_avoidance_scores(candidate_coords, game_state.get('game_id', 'unknown'))
             if avoidance_scores:
                 # Filter out heavily penalized coordinates
                 for coord, penalty_score in avoidance_scores.items():
-                    if penalty_score < 0.5:  # Avoid coordinates with high penalty scores
-                        x, y = coord
-                        suggestions.append({
-                            'action': 'ACTION6',
-                            'x': x,
-                            'y': y,
-                            'confidence': 1.0 - penalty_score,  # Higher confidence for lower penalties
-                            'reason': f"Penalty-aware coordinate (penalty: {penalty_score:.2f})",
-                            'source': 'penalty_aware_intelligence'
-                        })
+                    try:
+                        if penalty_score < 0.5:  # Avoid coordinates with high penalty scores
+                            x, y = coord
+                            suggestions.append({
+                                'action': 'ACTION6',
+                                'x': x,
+                                'y': y,
+                                'confidence': 1.0 - penalty_score,  # Higher confidence for lower penalties
+                                'reason': f"Penalty-aware coordinate (penalty: {penalty_score:.2f})",
+                                'source': 'penalty_aware_intelligence'
+                            })
+                    except Exception:
+                        continue
         except Exception as e:
             logger.warning(f"Failed to get penalty-aware coordinates: {e}")
         
@@ -1134,15 +1221,69 @@ class ActionSelector:
         if not valid_suggestions:
             return self._get_fallback_action(available_actions)
         
-        # Multi-factor scoring system
+        # Normalize suggestion coordinate fields: accept 'coordinates' tuples as 'x'/'y'
+        for s in valid_suggestions:
+            if 'coordinates' in s and ('x' not in s or 'y' not in s):
+                try:
+                    coord = s.get('coordinates')
+                    if coord and isinstance(coord, (list, tuple)) and len(coord) >= 2:
+                        s['x'] = int(coord[0])
+                        s['y'] = int(coord[1])
+                except Exception:
+                    pass
+
+        # Multi-factor scoring system with breakdowns
         scored_suggestions = []
-        
+        breakdowns = []
+
+        # If a coordinate for ACTION6 has a very high repetition penalty, treat it as temporarily blacklisted
+        REPETITION_EXCLUDE_THRESHOLD = 0.6
+
         for suggestion in valid_suggestions:
-            score = self._calculate_intelligent_score(suggestion, current_score, frame_analysis)
+            score, breakdown = self._score_with_breakdown(suggestion, current_score, frame_analysis)
+            # If breakdown reports a high repetition penalty for a coordinate, exclude it from consideration
+            try:
+                repetition_penalty = breakdown.get('repetition_penalty', 0.0)
+            except Exception:
+                repetition_penalty = 0.0
+
+            if repetition_penalty >= REPETITION_EXCLUDE_THRESHOLD:
+                # Log exclusion for diagnostics
+                try:
+                    coord = (suggestion.get('x'), suggestion.get('y')) if 'x' in suggestion and 'y' in suggestion else suggestion.get('coordinates', None)
+                    logger.info(f"Excluding suggestion due to high repetition penalty (threshold={REPETITION_EXCLUDE_THRESHOLD}): action={suggestion.get('action')} coord={coord} penalty={repetition_penalty:.2f}")
+                except Exception:
+                    logger.info(f"Excluding suggestion due to high repetition penalty: action={suggestion.get('action')} penalty={repetition_penalty:.2f}")
+                continue
+
             scored_suggestions.append((score, suggestion))
+            breakdowns.append((score, suggestion, breakdown))
         
         # Sort by score (highest first)
         scored_suggestions.sort(key=lambda x: x[0], reverse=True)
+
+        # Filter out suggestions with extremely low score (likely heavily penalized)
+        SCORE_CUTOFF = 0.05
+        filtered_scored_suggestions = [s for s in scored_suggestions if s[0] > SCORE_CUTOFF]
+        if not filtered_scored_suggestions:
+            logger.warning(f"All suggestions filtered by SCORE_CUTOFF={SCORE_CUTOFF:.2f}; using fallback action")
+            return self._get_fallback_action(available_actions)
+
+        # Use the filtered list for subsequent selection and breakdown logging
+        scored_suggestions = filtered_scored_suggestions
+
+        # Log top-5 breakdowns for debugging reasons
+        try:
+            top_breakdowns = sorted(breakdowns, key=lambda x: x[0], reverse=True)[:5]
+            logger.info("--- Top 5 suggestion score breakdowns ---")
+            for sc, sug, br in top_breakdowns:
+                src = sug.get('source', 'unknown')
+                coord = (sug.get('x'), sug.get('y')) if 'x' in sug and 'y' in sug else sug.get('coordinates', None)
+                logger.info(f"SCORE={sc:.3f} | action={sug.get('action', sug.get('id'))} | source={src} | coord={coord}")
+                logger.info(f"   breakdown: confidence={br.get('confidence_factor'):.3f}, source={br.get('source_factor'):.3f}, learning={br.get('learning_factor'):.3f}, frame={br.get('frame_factor'):.3f}, penalty={br.get('penalty_factor'):.3f}, repetition_penalty={br.get('repetition_penalty'):.3f}, repetition_factor={br.get('repetition_factor'):.3f}")
+            logger.info("--- end breakdown ---")
+        except Exception:
+            pass
         
         # Select the best suggestion
         best_score, best_suggestion = scored_suggestions[0]
@@ -1225,15 +1366,24 @@ class ActionSelector:
         penalty_factor = 1.0
         if 'x' in suggestion and 'y' in suggestion:
             try:
-                # Get penalty-aware avoidance scores
-                avoidance_scores = self.frame_analyzer.get_penalty_aware_avoidance_scores()
-                if avoidance_scores:
-                    coord = (suggestion['x'], suggestion['y'])
+                # Synchronous fallback: use local avoidance score cache exposed on frame_analyzer
+                avoidance_scores = getattr(self.frame_analyzer, 'avoidance_scores', None)
+                if not avoidance_scores:
+                    avoidance_scores = {}
+
+                coord = (suggestion['x'], suggestion['y'])
+                # Keys in avoidance_scores may be strings like 'x,y' or tuples
+                penalty_score = 0.0
+                if coord in avoidance_scores:
                     penalty_score = avoidance_scores.get(coord, 0.0)
-                    # Higher penalty score = lower factor (avoid heavily penalized coordinates)
-                    penalty_factor = 1.0 - penalty_score
-                    # Ensure minimum factor to avoid completely blocking coordinates
-                    penalty_factor = max(penalty_factor, 0.1)
+                else:
+                    coord_key = f"{coord[0]},{coord[1]}"
+                    penalty_score = avoidance_scores.get(coord_key, 0.0)
+
+                # Higher penalty score = lower factor (avoid heavily penalized coordinates)
+                penalty_factor = 1.0 - penalty_score
+                # Ensure minimum factor to avoid completely blocking coordinates
+                penalty_factor = max(penalty_factor, 0.1)
             except Exception as e:
                 logger.warning(f"Failed to get penalty scores: {e}")
         
@@ -1254,9 +1404,9 @@ class ActionSelector:
         # Factor 7: Exploration vs exploitation balance
         exploration_factor = 0.8 if source == 'exploration' else 1.0
         
-        # Hard cutoff for heavily penalized actions
-        if repetition_penalty > 0.8:  # 80%+ penalty = almost block
-            return 0.1  # Very low score
+        # Hard cutoff for heavily penalized actions (lowered threshold to be more responsive)
+        if repetition_penalty > 0.7:  # 70%+ penalty = almost block
+            return 0.05  # Very low score
         
         # Weighted combination with penalty avoidance and repetition penalties
         intelligent_score = (
@@ -1265,15 +1415,139 @@ class ActionSelector:
             learning_factor * 0.1 +
             frame_factor * 0.1 +
             penalty_factor * 0.1 +  # Coordinate penalty avoidance
-            repetition_factor * 0.35  # Increased action repetition penalty weight
+            repetition_factor * 0.45  # Increased action repetition penalty weight (more influence)
         ) * exploration_factor
         
         return min(intelligent_score, 1.0)
+
+    def _score_with_breakdown(self, suggestion: Dict[str, Any], current_score: int, frame_analysis: Dict[str, Any]) -> tuple:
+        """Return (score, breakdown_dict) similar to _calculate_intelligent_score but with factor breakdowns for debugging."""
+        # Reuse the same logic but capture intermediate factors
+        base_score = suggestion.get('confidence', 0.5)
+        if isinstance(base_score, (int, float)):
+            confidence_factor = float(base_score)
+        else:
+            confidence_factor = 0.5
+
+        source = suggestion.get('source', 'unknown')
+        source_weights = {
+            'confirmed_interactive': 1.0,
+            'game_specific_knowledge': 0.95,
+            'pseudo_button': 0.9,
+            'action5_stuck_fallback': 0.95,
+            'bayesian_pattern': 0.95,
+            'opencv_detection': 0.9,
+            'object_testing': 0.85,
+            'pattern_matching': 0.8,
+            'coordinate_intelligence': 0.7,
+            'gan_synthetic': 0.75,
+            'action5_fallback': 0.7,
+            'learning': 0.6,
+            'exploration': 0.5,
+            'coordinate_exploration': 0.3,
+            'random_fallback': 0.4
+        }
+        source_factor = source_weights.get(source, 0.5)
+
+        learning_factor = 1.0
+        if source == 'coordinate_intelligence' and 'x' in suggestion and 'y' in suggestion:
+            coord = (suggestion['x'], suggestion['y'])
+            if coord in self.coordinate_success_rates:
+                success_data = self.coordinate_success_rates[coord]
+                if isinstance(success_data, dict):
+                    learning_factor = success_data.get('success_rate', 0.5)
+                else:
+                    learning_factor = float(success_data) if success_data is not None else 0.5
+
+        frame_factor = 1.0
+        if 'x' in suggestion and 'y' in suggestion:
+            x, y = suggestion['x'], suggestion['y']
+            for obj in frame_analysis.get('objects', []):
+                obj_x, obj_y = obj.get('centroid', (0, 0))
+                distance = np.sqrt((x - obj_x)**2 + (y - obj_y)**2)
+                if distance < 10:
+                    frame_factor = 1.2
+                    break
+
+        # Penalty avoidance
+        penalty_factor = 1.0
+        penalty_score = 0.0
+        try:
+            avoidance_scores = getattr(self.frame_analyzer, 'avoidance_scores', None) or {}
+            coord = (suggestion.get('x'), suggestion.get('y')) if 'x' in suggestion and 'y' in suggestion else None
+            if coord:
+                if coord in avoidance_scores:
+                    penalty_score = avoidance_scores.get(coord, 0.0)
+                else:
+                    coord_key = f"{coord[0]},{coord[1]}"
+                    penalty_score = avoidance_scores.get(coord_key, 0.0)
+            penalty_factor = max(0.1, 1.0 - penalty_score)
+        except Exception:
+            penalty_score = 0.0
+            penalty_factor = 1.0
+
+        # Action repetition penalty
+        action_id = self._get_action_id(suggestion.get('action', 'ACTION1'))
+        if action_id == 6 and 'x' in suggestion and 'y' in suggestion:
+            coordinate = (suggestion['x'], suggestion['y'])
+            repetition_penalty = self._get_action_repetition_penalty(action_id, coordinate)
+        else:
+            repetition_penalty = self._get_action_repetition_penalty(action_id)
+        repetition_factor = max(0.1, 1.0 - repetition_penalty)
+
+        # Hard cutoff: if repetition penalty is very high, short-circuit and return very low score
+        if repetition_penalty > 0.7:
+            breakdown = {
+                'confidence_factor': confidence_factor,
+                'source_factor': source_factor,
+                'learning_factor': learning_factor,
+                'frame_factor': frame_factor,
+                'penalty_factor': penalty_factor,
+                'penalty_score': penalty_score,
+                'repetition_penalty': repetition_penalty,
+                'repetition_factor': repetition_factor
+            }
+            return 0.01, breakdown
+
+        # Weighted combination (match _calculate_intelligent_score weights)
+        intelligent_score = (
+            confidence_factor * 0.2 +
+            source_factor * 0.15 +
+            learning_factor * 0.1 +
+            frame_factor * 0.1 +
+            penalty_factor * 0.1 +
+            repetition_factor * 0.45
+        )
+
+        intelligent_score = intelligent_score * (0.8 if suggestion.get('source') == 'exploration' else 1.0)
+        intelligent_score = min(intelligent_score, 1.0)
+
+        breakdown = {
+            'confidence_factor': confidence_factor,
+            'source_factor': source_factor,
+            'learning_factor': learning_factor,
+            'frame_factor': frame_factor,
+            'penalty_factor': penalty_factor,
+            'penalty_score': penalty_score,
+            'repetition_penalty': repetition_penalty,
+            'repetition_factor': repetition_factor
+        }
+
+        return intelligent_score, breakdown
     
     def _test_object_interactivity(self, coordinate: tuple, frame_before: List, frame_after: List) -> bool:
         """Test if an object at a coordinate is interactive by checking for frame changes."""
-        if not frame_before or not frame_after:
+        # Avoid ambiguous truth-value checks for numpy arrays by using explicit None/len checks
+        if frame_before is None or frame_after is None:
             return False
+        try:
+            if getattr(frame_before, '__len__', None) is not None and len(frame_before) == 0:
+                return False
+            if getattr(frame_after, '__len__', None) is not None and len(frame_after) == 0:
+                return False
+        except Exception:
+            # If length checks fail for some exotic type, fall back to non-empty assumption
+            pass
         
         # Convert frames to numpy arrays for comparison
         try:
@@ -1330,7 +1604,7 @@ class ActionSelector:
             self.tested_objects[coordinate]['score_changes'] += 1
             positive_signal = True
             signal_type = 'score_button'
-            logger.info(f"🎯 BUTTON DETECTED: Object at {coordinate} caused SCORE INCREASE: {previous_score} -> {current_score}")
+            logger.info(f" BUTTON DETECTED: Object at {coordinate} caused SCORE INCREASE: {previous_score} -> {current_score}")
         
         # 2. Action unlock (new actions available - strategic progress)
         elif current_actions != previous_actions:
@@ -1339,14 +1613,14 @@ class ActionSelector:
                 self.tested_objects[coordinate]['action_unlocks'] += 1
                 positive_signal = True
                 signal_type = 'action_button'
-                logger.info(f"🔓 BUTTON DETECTED: Object at {coordinate} UNLOCKED NEW ACTIONS: {new_actions}")
+                logger.info(f" BUTTON DETECTED: Object at {coordinate} UNLOCKED NEW ACTIONS: {new_actions}")
         
         # 3. Frame movement/visual change (any change indicates interactivity)
         elif current_score != previous_score or current_actions != previous_actions:
             self.tested_objects[coordinate]['movement_detected'] += 1
             positive_signal = True
             signal_type = 'visual_button'
-            logger.info(f"🔄 BUTTON DETECTED: Object at {coordinate} caused VISUAL/FRAME CHANGE")
+            logger.info(f" BUTTON DETECTED: Object at {coordinate} caused VISUAL/FRAME CHANGE")
 
         # Update frame changes counter (any positive signal)
         if positive_signal:
@@ -1382,19 +1656,19 @@ class ActionSelector:
                 self.interactive_objects.add(coordinate)
                 
                 button_type = self.tested_objects[coordinate]['button_type']
-                logger.info(f"✅ CONFIRMED BUTTON: Object at {coordinate} is a {button_type.upper()}")
+                logger.info(f" CONFIRMED BUTTON: Object at {coordinate} is a {button_type.upper()}")
                 logger.info(f"   - Confidence: {button_confidence:.2f}")
                 logger.info(f"   - Score changes: {score_changes}, Action unlocks: {action_unlocks}")
                 logger.info(f"   - Total changes: {frame_changes}/{test_count} tests")
                 
                 # Mark as high-priority button for Action 6 centric games
                 if button_type in ['score_button', 'action_button']:
-                    logger.info(f"🎯 HIGH-PRIORITY BUTTON: {coordinate} should be prioritized for score/action progress")
+                    logger.info(f" HIGH-PRIORITY BUTTON: {coordinate} should be prioritized for score/action progress")
             else:
                 # Object never caused positive signals - it's not a button
                 self.tested_objects[coordinate]['interactive'] = False
                 self.non_interactive_objects.add(coordinate)
-                logger.info(f"❌ NOT A BUTTON: Object at {coordinate} never caused changes ({frame_changes}/{test_count} tests)")
+                logger.info(f" NOT A BUTTON: Object at {coordinate} never caused changes ({frame_changes}/{test_count} tests)")
     
     def _get_interactive_objects(self, frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get confirmed interactive objects from frame analysis - prioritize button types."""
@@ -1458,7 +1732,7 @@ class ActionSelector:
         # Log button prioritization
         if suggestions:
             button_types = [s.get('button_type', 'unknown') for s in suggestions]
-            logger.info(f"🎯 Interactive objects prioritized: {button_types}")
+            logger.info(f" Interactive objects prioritized: {button_types}")
         
         return suggestions
     
@@ -1562,6 +1836,39 @@ class ActionSelector:
                 })
         
         return suggestions
+
+    def _gather_buttons_from_frame(self, frame_analysis: Dict[str, Any]) -> List[tuple]:
+        """Return a list of candidate button coordinates found in a frame analysis."""
+        coords = []
+        try:
+            if not frame_analysis:
+                return coords
+
+            # Favor interactive_elements, then objects with sufficient area, then centroids
+            interactive = frame_analysis.get('interactive_elements', [])
+            for el in interactive:
+                centroid = el.get('centroid')
+                if centroid and isinstance(centroid, (list, tuple)):
+                    coords.append((int(centroid[0]), int(centroid[1])))
+
+            # Add large object centroids
+            for obj in frame_analysis.get('objects', []):
+                if obj.get('area', 0) > 20:
+                    centroid = obj.get('centroid')
+                    if centroid and isinstance(centroid, (list, tuple)):
+                        coords.append((int(centroid[0]), int(centroid[1])))
+
+            # Deduplicate while preserving order
+            seen = set()
+            unique = []
+            for c in coords:
+                if c not in seen:
+                    seen.add(c)
+                    unique.append(c)
+
+            return unique
+        except Exception:
+            return coords
     
     def _get_exploration_coordinates(self, frame_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Get exploration coordinates for Action 6 that grow incrementally."""
@@ -1663,16 +1970,18 @@ class ActionSelector:
         
         return suggestions
     
-    def _generate_gan_suggestions(self, frame_analysis: Dict[str, Any], 
+    async def _generate_gan_suggestions(self, frame_analysis: Dict[str, Any], 
                                 available_actions: List[int], 
                                 current_score: int, 
                                 game_state: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate suggestions using GAN system."""
+        """Generate suggestions using GAN system. This method is async because
+        GAN internals may expose async coroutines (e.g., GPU calls or remote inference).
+        """
         suggestions = []
-        
+
         if not self.gan_system:
             return suggestions
-        
+
         try:
             # Generate synthetic game states using GAN
             context = {
@@ -1680,32 +1989,46 @@ class ActionSelector:
                 'frame_objects': len(frame_analysis.get('objects', [])),
                 'available_actions': available_actions
             }
-            
+
             # Generate a few synthetic states
             synthetic_states = self.gan_system.generate_synthetic_states(3, context)
-            
+
+            # If the GAN returned a coroutine/awaitable, await it
+            if inspect.isawaitable(synthetic_states):
+                synthetic_states = await synthetic_states
+
+            # Now iterate synthetic states safely
             for state in synthetic_states:
-                if state.success_probability > 0.5:  # Only use high-probability synthetic states
+                # Some GAN implementations might return dicts; normalize access
+                prob = getattr(state, 'success_probability', None)
+                if prob is None and isinstance(state, dict):
+                    prob = state.get('success_probability', 0)
+
+                if prob and prob > 0.5:  # Only use high-probability synthetic states
                     # Extract action suggestions from synthetic state
                     for action_id in available_actions:
                         suggestion = {
                             'action': f'ACTION{action_id}',
-                            'confidence': state.success_probability,
-                            'reason': f'GAN-generated synthetic state (prob: {state.success_probability:.2f})',
+                            'confidence': prob,
+                            'reason': f'GAN-generated synthetic state (prob: {prob:.2f})',
                             'source': 'gan_synthetic'
                         }
-                        
+
                         # Add coordinates for Action 6
                         if action_id == 6:
                             # Use coordinates from synthetic state or default
-                            suggestion['x'] = 16
-                            suggestion['y'] = 16
-                        
+                            if isinstance(state, dict):
+                                suggestion['x'] = state.get('x', 16)
+                                suggestion['y'] = state.get('y', 16)
+                            else:
+                                suggestion['x'] = getattr(state, 'x', 16)
+                                suggestion['y'] = getattr(state, 'y', 16)
+
                         suggestions.append(suggestion)
-        
+
         except Exception as e:
             logger.warning(f"GAN suggestion generation failed: {e}")
-        
+
         return suggestions
     
     def _detect_stuck_situation(self, game_state: Dict[str, Any], available_actions: List[int]) -> bool:
@@ -1785,9 +2108,9 @@ class ActionSelector:
                 # If this action caused new actions to become available, it's a pseudo button
                 if change_info['pseudo_score_increase']:
                     self.pseudo_buttons.add(action_id)
-                    logger.info(f"🎯 Action {action_id} discovered new available actions: {newly_available} - PSEUDO BUTTON!")
+                    logger.info(f" Action {action_id} discovered new available actions: {newly_available} - PSEUDO BUTTON!")
                 
-                logger.info(f"📊 Action availability changed: +{len(newly_available)} -{len(newly_unavailable)} (Action {action_id})")
+                logger.info(f" Action availability changed: +{len(newly_available)} -{len(newly_unavailable)} (Action {action_id})")
                 logger.info(f"   Newly available: {newly_available}")
                 if newly_unavailable:
                     logger.info(f"   Newly unavailable: {newly_unavailable}")
@@ -1872,6 +2195,18 @@ class ActionSelector:
                 "coordinate_penalty": 0.0  # Will be calculated if Action 6
             }
         }
+
+        # Ensure action repetition penalty uses coordinate-keyed penalty for ACTION6
+        try:
+            action_id_val = action.get('id')
+            if action_id_val == 6 and 'x' in action and 'y' in action:
+                coord_key = f"6_{action['x']}_{action['y']}"
+                reasoning["penalty_data"]["action_repetition_penalty"] = self.action_repetition_penalties.get(coord_key, 0.0)
+            else:
+                reasoning["penalty_data"]["action_repetition_penalty"] = self.action_repetition_penalties.get(action_id_val, 0.0)
+        except Exception:
+            # If anything goes wrong, keep the existing penalty value
+            pass
         
         # Add coordinate-specific data for Action 6
         if action.get('id') == 6 and 'x' in action and 'y' in action:
@@ -1896,7 +2231,7 @@ class ActionSelector:
         action['reasoning'] = reasoning
         
         # Log the reasoning for debugging
-        logger.info(f"🧠 Action Reasoning: {reasoning['policy']} | Confidence: {reasoning['confidence']:.2f}")
+        logger.info(f" Action Reasoning: {reasoning['policy']} | Confidence: {reasoning['confidence']:.2f}")
         logger.info(f"   Sources used: {', '.join(reasoning['suggestion_analysis']['sources_used'])}")
         logger.info(f"   Learning cycles: {reasoning['learning_data']['learning_cycles']}")
         
@@ -1918,16 +2253,16 @@ class ActionSelector:
             recommendations = self.game_type_classifier.get_recommendations_for_game(game_id)
             game_type = recommendations.get('primary_game_type', 'unknown')
             
-            logger.info(f"🎮 Game Type: {game_type} | Success Rate: {recommendations.get('success_rate', 0):.2f}")
+            logger.info(f" Game Type: {game_type} | Success Rate: {recommendations.get('success_rate', 0):.2f}")
             
             # Log Action 6 centric status
             if recommendations.get('is_action6_centric', False):
-                logger.info(f"🎯 Action 6 Centric Game: {recommendations.get('action6_centric_count', 0)} previous games")
+                logger.info(f" Action 6 Centric Game: {recommendations.get('action6_centric_count', 0)} previous games")
             
             # Log button priorities available
             button_priorities = recommendations.get('button_priorities', [])
             if button_priorities:
-                logger.info(f"🎯 Button Priorities Available: {len(button_priorities)} saved buttons")
+                logger.info(f" Button Priorities Available: {len(button_priorities)} saved buttons")
                 score_buttons = [bp for bp in button_priorities if bp.get('button_type') == 'score_button']
                 action_buttons = [bp for bp in button_priorities if bp.get('button_type') == 'action_button']
                 visual_buttons = [bp for bp in button_priorities if bp.get('button_type') == 'visual_button']
@@ -2003,7 +2338,7 @@ class ActionSelector:
                         })
             
             if suggestions:
-                logger.info(f"🎯 Generated {len(suggestions)} game-specific suggestions for {game_type}")
+                logger.info(f" Generated {len(suggestions)} game-specific suggestions for {game_type}")
         
         except Exception as e:
             logger.warning(f"Failed to generate game-specific suggestions: {e}")
@@ -2096,10 +2431,10 @@ class ActionSelector:
                 )
                 
                 if success:
-                    logger.info(f"💾 Saved game-specific knowledge for {game_id}: {len(patterns)} patterns, {len(successful_coordinates)} coordinates")
+                    logger.info(f" Saved game-specific knowledge for {game_id}: {len(patterns)} patterns, {len(successful_coordinates)} coordinates")
                 
                 if game_complete:
-                    logger.info(f"🏁 Game {game_id} completed with status {game_status} - knowledge saved")
+                    logger.info(f" Game {game_id} completed with status {game_status} - knowledge saved")
         
         except Exception as e:
             logger.warning(f"Failed to track game result: {e}")
@@ -2250,7 +2585,7 @@ class ActionSelector:
             # Track pseudo score increases (action availability changes)
             if pseudo_score_increase:
                 self.action_effectiveness[action_id]['pseudo_successes'] += 1
-                logger.info(f"🎯 Action {action_id} marked as pseudo-successful (discovered new actions)")
+                logger.info(f" Action {action_id} marked as pseudo-successful (discovered new actions)")
         
         # Update coordinate intelligence for ACTION6
         if action.get('id') == 6:
@@ -2280,7 +2615,7 @@ class ActionSelector:
             # Track pseudo score increases for coordinates
             if pseudo_score_increase:
                 self.coordinate_success_rates[coordinate]['pseudo_successes'] += 1
-                logger.info(f"🎯 Coordinate {coordinate} marked as pseudo-successful (discovered new actions)")
+                logger.info(f" Coordinate {coordinate} marked as pseudo-successful (discovered new actions)")
             
             # Calculate success rate (include pseudo successes)
             attempts = self.coordinate_success_rates[coordinate]['attempts']
@@ -2375,7 +2710,7 @@ class ActionSelector:
                     game_context=game_state.get('game_id', 'unknown')
                 ))
             
-            logger.info(f"💾 Saved learning patterns at cycle {self.learning_cycles}")
+            logger.info(f" Saved learning patterns at cycle {self.learning_cycles}")
             
         except Exception as e:
             logger.warning(f"Failed to save learning patterns: {e}")

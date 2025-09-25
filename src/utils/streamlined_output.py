@@ -107,7 +107,7 @@ class StreamlinedOutput:
         self.status['training'] = True
         
         if self._should_show(OutputLevel.MINIMAL):
-            self._print(f"🚀 Starting {mode.upper()} session: {session_id[:8]}...", 
+            self._print(f" Starting {mode.upper()} session: {session_id[:8]}...", 
                        OutputLevel.MINIMAL, self.Fore.GREEN)
     
     def update_score(self, score: int, game_id: str = None, actions: int = 0):
@@ -119,22 +119,22 @@ class StreamlinedOutput:
         if self._should_show(OutputLevel.MINIMAL):
             game_info = f" (Game: {game_id[:8]})" if game_id else ""
             action_info = f" [Actions: {actions}]" if actions > 0 else ""
-            self._print(f"📊 Score: {score}{game_info}{action_info}", 
+            self._print(f" Score: {score}{game_info}{action_info}", 
                        OutputLevel.MINIMAL, self.Fore.CYAN)
     
     def game_start(self, game_id: str, level: int = 1):
         """Game started."""
         if self._should_show(OutputLevel.NORMAL):
-            self._print(f"🎮 Starting game {game_id[:8]} (Level {level})", 
+            self._print(f" Starting game {game_id[:8]} (Level {level})", 
                        OutputLevel.NORMAL, self.Fore.BLUE)
     
     def game_end(self, game_id: str, final_score: int, win: bool = False, 
                  actions_taken: int = 0, duration: float = 0):
         """Game ended."""
         if self._should_show(OutputLevel.MINIMAL):
-            status = "✅ WIN" if win else "❌ LOSS"
+            status = " WIN" if win else " LOSS"
             duration_str = f" ({duration:.1f}s)" if duration > 0 else ""
-            self._print(f"🏁 Game {game_id[:8]}: {final_score} points {status} [{actions_taken} actions]{duration_str}", 
+            self._print(f" Game {game_id[:8]}: {final_score} points {status} [{actions_taken} actions]{duration_str}", 
                        OutputLevel.MINIMAL, self.Fore.GREEN if win else self.Fore.RED)
     
     def error(self, message: str, exception: Exception = None, component: str = ""):
@@ -145,7 +145,7 @@ class StreamlinedOutput:
         if self._should_show(OutputLevel.MINIMAL):
             comp_info = f" [{component}]" if component else ""
             exc_info = f" - {type(exception).__name__}: {str(exception)}" if exception else ""
-            self._print(f"❌ ERROR{comp_info}: {message}{exc_info}", 
+            self._print(f" ERROR{comp_info}: {message}{exc_info}", 
                        OutputLevel.MINIMAL, self.Fore.RED)
     
     def warning(self, message: str, component: str = ""):
@@ -154,40 +154,40 @@ class StreamlinedOutput:
         
         if self._should_show(OutputLevel.NORMAL):
             comp_info = f" [{component}]" if component else ""
-            self._print(f"⚠️ WARNING{comp_info}: {message}", 
+            self._print(f" WARNING{comp_info}: {message}", 
                        OutputLevel.NORMAL, self.Fore.YELLOW)
     
     def fallback(self, original: str, fallback: str, component: str = ""):
         """Log fallback usage."""
         if self._should_show(OutputLevel.NORMAL):
             comp_info = f" [{component}]" if component else ""
-            self._print(f"🔄 FALLBACK{comp_info}: {original} → {fallback}", 
+            self._print(f" FALLBACK{comp_info}: {original} → {fallback}", 
                        OutputLevel.NORMAL, self.Fore.MAGENTA)
     
     def system_status(self, status: str, details: str = ""):
         """Log system status changes."""
         if self._should_show(OutputLevel.NORMAL):
             details_str = f" - {details}" if details else ""
-            self._print(f"🔧 {status.upper()}{details_str}", 
+            self._print(f" {status.upper()}{details_str}", 
                        OutputLevel.NORMAL, self.Fore.BLUE)
     
     def progress(self, current: int, total: int, item: str = "items"):
         """Log progress."""
         if self._should_show(OutputLevel.NORMAL):
             percentage = (current / total * 100) if total > 0 else 0
-            self._print(f"📈 Progress: {current}/{total} {item} ({percentage:.1f}%)", 
+            self._print(f" Progress: {current}/{total} {item} ({percentage:.1f}%)", 
                        OutputLevel.NORMAL, self.Fore.CYAN)
     
     def debug(self, message: str, component: str = ""):
         """Debug message (only shown in debug mode)."""
         comp_info = f" [{component}]" if component else ""
-        self._print(f"🐛 DEBUG{comp_info}: {message}", 
+        self._print(f" DEBUG{comp_info}: {message}", 
                    OutputLevel.DEBUG, self.Fore.MAGENTA)
     
     def verbose(self, message: str, component: str = ""):
         """Verbose message (only shown in verbose mode)."""
         comp_info = f" [{component}]" if component else ""
-        self._print(f"📝 {component.upper() if component else 'INFO'}: {message}", 
+        self._print(f" {component.upper() if component else 'INFO'}: {message}", 
                    OutputLevel.VERBOSE, "")
     
     def session_summary(self):
@@ -197,13 +197,13 @@ class StreamlinedOutput:
         
         duration = self._format_time()
         print(f"\n{'='*60}")
-        print(f"📊 SESSION SUMMARY")
+        print(f" SESSION SUMMARY")
         print(f"{'='*60}")
         print(f"Duration: {duration}")
         print(f"Final Score: {self.current_score}")
         print(f"Errors: {self.errors_count}")
         print(f"Warnings: {self.warnings_count}")
-        print(f"Status: {'✅ SUCCESS' if not self.status['error'] else '❌ ERRORS DETECTED'}")
+        print(f"Status: {' SUCCESS' if not self.status['error'] else ' ERRORS DETECTED'}")
         print(f"{'='*60}")
     
     def set_level(self, level: OutputLevel):

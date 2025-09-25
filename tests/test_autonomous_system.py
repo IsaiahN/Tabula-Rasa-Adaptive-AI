@@ -27,17 +27,17 @@ logger = logging.getLogger(__name__)
 async def test_autonomous_system():
     """Test the autonomous system functionality."""
     try:
-        logger.info("🧪 Starting Autonomous System Test")
+        logger.info(" Starting Autonomous System Test")
         
         # Test 1: Start autonomous system
-        logger.info("\n📋 Test 1: Starting Autonomous System")
+        logger.info("\n Test 1: Starting Autonomous System")
         await start_autonomous_system("autonomous")
         
         # Wait for system to initialize
         await asyncio.sleep(5)
         
         # Test 2: Check system status
-        logger.info("\n📊 Test 2: Checking System Status")
+        logger.info("\n Test 2: Checking System Status")
         status = await get_autonomous_system_status()
         logger.info(f"System Active: {status.get('system_active')}")
         logger.info(f"Current Mode: {status.get('current_mode')}")
@@ -45,7 +45,7 @@ async def test_autonomous_system():
         logger.info(f"Autonomy Level: {status.get('autonomy_level', 0):.2f}")
         
         # Test 3: Get autonomy summary
-        logger.info("\n🎯 Test 3: Getting Autonomy Summary")
+        logger.info("\n Test 3: Getting Autonomy Summary")
         summary = get_autonomy_summary()
         logger.info(f"Governor Active: {summary['governor_autonomy']['active']}")
         logger.info(f"Architect Active: {summary['architect_autonomy']['active']}")
@@ -55,7 +55,7 @@ async def test_autonomous_system():
         logger.info(f"Collaborative Decisions: {summary['collaboration']['collaborative_decisions']}")
         
         # Test 4: Let system run autonomously
-        logger.info("\n⏱️ Test 4: Running System Autonomously for 30 seconds")
+        logger.info("\n⏱ Test 4: Running System Autonomously for 30 seconds")
         start_time = time.time()
         while time.time() - start_time < 30:
             # Check status every 5 seconds
@@ -66,7 +66,7 @@ async def test_autonomous_system():
                        f"Architect Evolutions: {current_status.get('architect_status', {}).get('evolutions_made', 0)}")
         
         # Test 5: Test mode switching
-        logger.info("\n🔄 Test 5: Testing Mode Switching")
+        logger.info("\n Test 5: Testing Mode Switching")
         
         # Switch to collaborative mode
         logger.info("Switching to collaborative mode...")
@@ -84,7 +84,7 @@ async def test_autonomous_system():
         await asyncio.sleep(2)
         
         # Test 6: Test emergency mode
-        logger.info("\n🚨 Test 6: Testing Emergency Mode")
+        logger.info("\n Test 6: Testing Emergency Mode")
         await execute_director_command("emergency_mode")
         await asyncio.sleep(2)
         
@@ -93,7 +93,7 @@ async def test_autonomous_system():
         await asyncio.sleep(2)
         
         # Test 7: Final status check
-        logger.info("\n📈 Test 7: Final Status Check")
+        logger.info("\n Test 7: Final Status Check")
         final_status = await get_autonomous_system_status()
         final_summary = get_autonomy_summary()
         
@@ -105,24 +105,24 @@ async def test_autonomous_system():
         logger.info(f"Total Messages Exchanged: {final_summary['collaboration']['messages_exchanged']}")
         
         # Test 8: Stop system
-        logger.info("\n🛑 Test 8: Stopping System")
+        logger.info("\n Test 8: Stopping System")
         await stop_autonomous_system()
         
         # Final status after stop
         final_status = await get_autonomous_system_status()
         logger.info(f"System Active After Stop: {final_status.get('system_active')}")
         
-        logger.info("\n✅ Autonomous System Test Completed Successfully!")
+        logger.info("\n Autonomous System Test Completed Successfully!")
         
     except Exception as e:
-        logger.error(f"❌ Test failed with error: {e}")
+        logger.error(f" Test failed with error: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 async def test_individual_components():
     """Test individual components separately."""
     try:
-        logger.info("\n🔧 Testing Individual Components")
+        logger.info("\n Testing Individual Components")
         
         # Test Governor
         logger.info("Testing Autonomous Governor...")
@@ -163,16 +163,16 @@ async def test_individual_components():
         
         await stop_governor_architect_communication()
         
-        logger.info("✅ Individual Component Tests Completed!")
+        logger.info(" Individual Component Tests Completed!")
         
     except Exception as e:
-        logger.error(f"❌ Individual component test failed: {e}")
+        logger.error(f" Individual component test failed: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 async def main():
     """Main test function."""
-    logger.info("🚀 Starting Autonomous System Test Suite")
+    logger.info(" Starting Autonomous System Test Suite")
     
     # Test individual components first
     await test_individual_components()
@@ -180,7 +180,7 @@ async def main():
     # Test integrated system
     await test_autonomous_system()
     
-    logger.info("🎉 All tests completed!")
+    logger.info(" All tests completed!")
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -107,7 +107,7 @@ class ArchitectEvolutionEngine:
         # Load existing evolution data
         self._load_evolution_state()
         
-        logger.info("🏗️ Architect Evolution Engine initialized for Phase 3")
+        logger.info(" Architect Evolution Engine initialized for Phase 3")
         logger.info(f"   Autonomous evolution: {'enabled' if enable_autonomous_evolution else 'disabled'}")
         logger.info(f"   Loaded {len(self.insights)} existing insights")
         logger.info(f"   Loaded {len(self.evolution_strategies)} evolution strategies")
@@ -122,7 +122,7 @@ class ArchitectEvolutionEngine:
         Analyze Governor's pattern recognition and clustering intelligence
         to generate architectural insights for system evolution.
         """
-        logger.info("🧠 Architect analyzing Governor intelligence for evolution opportunities")
+        logger.info(" Architect analyzing Governor intelligence for evolution opportunities")
         
         new_insights = []
         current_time = time.time()
@@ -154,23 +154,23 @@ class ArchitectEvolutionEngine:
             new_strategies = self._generate_evolution_strategies(new_insights)
             self.evolution_strategies.extend(new_strategies)
             
-            logger.info(f"🏗️ Generated {len(new_strategies)} new evolution strategies")
+            logger.info(f" Generated {len(new_strategies)} new evolution strategies")
             
             # If no high-confidence insights, generate basic strategies for testing
             if len(new_strategies) == 0 and len(new_insights) > 0:
-                logger.info("🔄 No high-confidence insights found, generating basic evolution strategies")
+                logger.info(" No high-confidence insights found, generating basic evolution strategies")
                 basic_strategies = self._generate_basic_evolution_strategies(new_insights)
                 self.evolution_strategies.extend(basic_strategies)
-                logger.info(f"🏗️ Generated {len(basic_strategies)} basic evolution strategies")
+                logger.info(f" Generated {len(basic_strategies)} basic evolution strategies")
         
         # CRITICAL FIX: Save evolution state after analysis
         try:
             self.save_evolution_state()
-            logger.debug(f"💾 Architect evolution state saved: {len(self.insights)} insights, {len(self.evolution_strategies)} strategies")
+            logger.debug(f" Architect evolution state saved: {len(self.insights)} insights, {len(self.evolution_strategies)} strategies")
         except Exception as e:
             logger.warning(f"Failed to save architect evolution state: {e}")
         
-        logger.info(f"🧠 Governor analysis complete: {len(new_insights)} new insights identified")
+        logger.info(f" Governor analysis complete: {len(new_insights)} new insights identified")
         
         return new_insights
     
@@ -656,7 +656,7 @@ class ArchitectEvolutionEngine:
     
     def _execute_evolution_strategy(self, strategy: EvolutionStrategy) -> Dict[str, Any]:
         """Execute a specific evolution strategy."""
-        logger.info(f"🏗️ Executing evolution strategy: {strategy.strategy_id}")
+        logger.info(f" Executing evolution strategy: {strategy.strategy_id}")
         logger.info(f"   Type: {strategy.strategy_type}")
         logger.info(f"   Target subsystems: {strategy.target_subsystems}")
         logger.info(f"   Estimated duration: {strategy.estimated_duration}s")
@@ -831,7 +831,7 @@ class ArchitectEvolutionEngine:
             with open(history_file, 'w') as f:
                 json.dump(self.evolution_history, f, indent=2)
                 
-            logger.info("💾 Evolution state saved successfully")
+            logger.info(" Evolution state saved successfully")
             
         except Exception as e:
             logger.error(f"Failed to save evolution state: {e}")
@@ -897,11 +897,11 @@ if __name__ == "__main__":
     # Test analysis
     insights = architect.analyze_governor_intelligence(test_patterns, test_clusters, test_memory)
     
-    print(f"\n🧠 Analysis Results:")
+    print(f"\n Analysis Results:")
     print(f"   Generated {len(insights)} architectural insights")
     
     for insight in insights:
-        print(f"\n🏗️ Insight: {insight.insight_type}")
+        print(f"\n Insight: {insight.insight_type}")
         print(f"   Priority: {insight.priority:.2f}")
         print(f"   Confidence: {insight.confidence:.2f}")
         print(f"   Description: {insight.description}")
@@ -909,11 +909,11 @@ if __name__ == "__main__":
     # Test autonomous evolution
     if architect.enable_autonomous_evolution:
         evolution_result = architect.execute_autonomous_evolution()
-        print(f"\n🚀 Evolution Result: {evolution_result}")
+        print(f"\n Evolution Result: {evolution_result}")
     
     # Show status
     status = architect.get_evolution_status()
-    print(f"\n📊 Evolution Status:")
+    print(f"\n Evolution Status:")
     print(f"   Total insights: {status['insights']['total_insights']}")
     print(f"   High confidence: {status['insights']['high_confidence_insights']}")
     print(f"   Evolution strategies: {status['evolution_strategies']['total_strategies']}")
@@ -921,8 +921,8 @@ if __name__ == "__main__":
     
     # Show recommendations
     recommendations = architect.get_architect_recommendations()
-    print(f"\n💡 Architect Recommendations ({len(recommendations)}):")
+    print(f"\n Architect Recommendations ({len(recommendations)}):")
     for rec in recommendations[:3]:
         print(f"   {rec['title']}: {rec['description'][:100]}...")
         
-    print(f"\n🏗️ Architect Evolution Engine Phase 3 test complete!")
+    print(f"\n Architect Evolution Engine Phase 3 test complete!")

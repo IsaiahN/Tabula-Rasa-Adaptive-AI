@@ -35,7 +35,7 @@ from database.db_initializer import ensure_database_ready
 
 def analyze_system_resources() -> Dict[str, Any]:
     """Analyze system resources and determine optimal concurrent session count."""
-    print("🔍 Analyzing system resources...")
+    print(" Analyzing system resources...")
     
     # Get system information
     memory = psutil.virtual_memory()
@@ -48,7 +48,7 @@ def analyze_system_resources() -> Dict[str, Any]:
     used_ram_gb = memory.used / (1024**3)
     ram_usage_percent = memory.percent
     
-    print(f"💾 Memory Analysis:")
+    print(f" Memory Analysis:")
     print(f"   • Total RAM: {total_ram_gb:.1f} GB")
     print(f"   • Available RAM: {available_ram_gb:.1f} GB")
     print(f"   • Used RAM: {used_ram_gb:.1f} GB ({ram_usage_percent:.1f}%)")
@@ -84,12 +84,12 @@ def analyze_system_resources() -> Dict[str, Any]:
     # Adjust based on current CPU usage
     if cpu_percent > 80:
         max_concurrent_sessions = max(1, max_concurrent_sessions // 2)
-        print(f"⚠️ High CPU usage detected, reducing concurrent sessions")
+        print(f" High CPU usage detected, reducing concurrent sessions")
     elif cpu_percent > 60:
         max_concurrent_sessions = max(1, int(max_concurrent_sessions * 0.8))
-        print(f"⚠️ Moderate CPU usage, slightly reducing concurrent sessions")
+        print(f" Moderate CPU usage, slightly reducing concurrent sessions")
     
-    print(f"\n🧠 Intelligent Resource Analysis:")
+    print(f"\n Intelligent Resource Analysis:")
     print(f"   • Max sessions by RAM: {max_sessions_by_ram}")
     print(f"   • Max sessions by CPU: {max_sessions_by_cpu}")
     print(f"   • Max sessions by RAM usage: {max_sessions_by_ram_usage}")
@@ -110,7 +110,7 @@ def analyze_system_resources() -> Dict[str, Any]:
 
 def run_single_training_session(session_id: int, duration_minutes: int = 30) -> Dict[str, Any]:
     """Run a single training session with specific parameters."""
-    print(f"🚀 Starting training session #{session_id}")
+    print(f" Starting training session #{session_id}")
     
     # Set environment variables for optimal performance
     env = os.environ.copy()
@@ -176,9 +176,9 @@ def run_single_training_session(session_id: int, duration_minutes: int = 30) -> 
 
 def run_parallel_training_sessions(num_sessions: int = 20, session_duration: int = 30) -> List[Dict[str, Any]]:
     """Run multiple training sessions in parallel."""
-    print(f"🔥 Starting {num_sessions} parallel training sessions")
-    print(f"⏱️ Each session duration: {session_duration} minutes")
-    print(f"🎯 Total concurrent games: {num_sessions}")
+    print(f" Starting {num_sessions} parallel training sessions")
+    print(f"⏱ Each session duration: {session_duration} minutes")
+    print(f" Total concurrent games: {num_sessions}")
     print()
     
     results = []
@@ -187,7 +187,7 @@ def run_parallel_training_sessions(num_sessions: int = 20, session_duration: int
     max_workers = min(num_sessions, 20)  # Cap at 20 for safety, but respect intelligent detection
     
     if num_sessions > max_workers:
-        print(f"⚠️ Limiting to {max_workers} concurrent workers for system stability")
+        print(f" Limiting to {max_workers} concurrent workers for system stability")
         print(f"   (Requested: {num_sessions}, Using: {max_workers})")
         print()
     
@@ -206,12 +206,12 @@ def run_parallel_training_sessions(num_sessions: int = 20, session_duration: int
                 results.append(result)
                 
                 if result['success']:
-                    print(f"✅ Session #{session_id} completed successfully in {result['duration']:.1f}s")
+                    print(f" Session #{session_id} completed successfully in {result['duration']:.1f}s")
                 else:
-                    print(f"❌ Session #{session_id} failed (code: {result['return_code']}) in {result['duration']:.1f}s")
+                    print(f" Session #{session_id} failed (code: {result['return_code']}) in {result['duration']:.1f}s")
                     
             except Exception as e:
-                print(f"💥 Session #{session_id} crashed: {e}")
+                print(f" Session #{session_id} crashed: {e}")
                 results.append({
                     'session_id': session_id,
                     'return_code': -1,
@@ -228,16 +228,16 @@ async def main():
     print("TABULA RASA - INTELLIGENT SCALED 9 HOUR CONTINUOUS TRAINING")
     print("=" * 80)
     print()
-    print("🚀 Starting intelligent parallel training session...")
-    print("⏱️ Duration: 9 hours (540 minutes)")
-    print("🎮 Mode: Intelligent parallel with dynamic resource optimization")
-    print("🧠 Features: RAM-aware scaling, CPU optimization, adaptive learning")
-    print("💾 Database: Enabled (no more JSON files)")
+    print(" Starting intelligent parallel training session...")
+    print("⏱ Duration: 9 hours (540 minutes)")
+    print(" Mode: Intelligent parallel with dynamic resource optimization")
+    print(" Features: RAM-aware scaling, CPU optimization, adaptive learning")
+    print(" Database: Enabled (no more JSON files)")
     
     # Ensure database is ready before starting training
-    print("🔍 Checking database initialization...")
+    print(" Checking database initialization...")
     if not ensure_database_ready():
-        print("❌ Database initialization failed. Training cannot proceed.")
+        print(" Database initialization failed. Training cannot proceed.")
         return
     
     # Initialize database integration
@@ -248,7 +248,7 @@ async def main():
     
     # Record start time
     start_time = datetime.now()
-    print(f"🕐 Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f" Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print()
     print("Press Ctrl+C to stop gracefully (will close all games)")
     print()
@@ -260,7 +260,7 @@ async def main():
     round_duration = session_duration * 60  # Dynamic round duration
     
     total_rounds = total_duration // round_duration
-    print(f"📊 Intelligent Training Plan:")
+    print(f" Intelligent Training Plan:")
     print(f"   • Total rounds: {total_rounds}")
     print(f"   • Sessions per round: {sessions_per_round} (auto-detected based on {resource_analysis['total_ram_gb']:.1f}GB RAM)")
     print(f"   • Session duration: {session_duration} minutes (optimized for {resource_analysis['total_ram_gb']:.1f}GB RAM)")
@@ -280,7 +280,7 @@ async def main():
             remaining_seconds = total_duration - elapsed_seconds
             
             if remaining_seconds <= 0:
-                print(f"\n🎉 9 HOUR TRAINING COMPLETE!")
+                print(f"\n 9 HOUR TRAINING COMPLETE!")
                 print(f"Total duration: {elapsed_seconds/3600:.2f} hours")
                 print(f"Total rounds: {round_count}")
                 print(f"Total sessions: {len(all_results)}")
@@ -294,7 +294,7 @@ async def main():
             print(f"TRAINING ROUND #{round_count}")
             print("=" * 80)
             print(f"⏰ Time remaining: {remaining_hours:.2f} hours")
-            print(f"🕐 Round started: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f" Round started: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
             
             # Check current resource usage and adjust if needed
             current_memory = psutil.virtual_memory()
@@ -303,21 +303,21 @@ async def main():
             # Dynamic adjustment based on current resource usage
             if current_memory.percent > 90:
                 sessions_per_round = max(1, sessions_per_round // 2)
-                print(f"⚠️ High memory usage ({current_memory.percent:.1f}%), reducing to {sessions_per_round} concurrent sessions")
+                print(f" High memory usage ({current_memory.percent:.1f}%), reducing to {sessions_per_round} concurrent sessions")
             elif current_memory.percent > 80:
                 sessions_per_round = max(1, int(sessions_per_round * 0.8))
-                print(f"⚠️ Moderate memory usage ({current_memory.percent:.1f}%), reducing to {sessions_per_round} concurrent sessions")
+                print(f" Moderate memory usage ({current_memory.percent:.1f}%), reducing to {sessions_per_round} concurrent sessions")
             
             if current_cpu > 90:
                 sessions_per_round = max(1, sessions_per_round // 2)
-                print(f"⚠️ High CPU usage ({current_cpu:.1f}%), reducing to {sessions_per_round} concurrent sessions")
+                print(f" High CPU usage ({current_cpu:.1f}%), reducing to {sessions_per_round} concurrent sessions")
             elif current_cpu > 80:
                 sessions_per_round = max(1, int(sessions_per_round * 0.8))
-                print(f"⚠️ Moderate CPU usage ({current_cpu:.1f}%), reducing to {sessions_per_round} concurrent sessions")
+                print(f" Moderate CPU usage ({current_cpu:.1f}%), reducing to {sessions_per_round} concurrent sessions")
             
-            print(f"🎮 Starting {sessions_per_round} concurrent training sessions...")
-            print(f"💾 Current memory usage: {current_memory.percent:.1f}%")
-            print(f"🖥️ Current CPU usage: {current_cpu:.1f}%")
+            print(f" Starting {sessions_per_round} concurrent training sessions...")
+            print(f" Current memory usage: {current_memory.percent:.1f}%")
+            print(f" Current CPU usage: {current_cpu:.1f}%")
             print()
             
             # Run parallel training sessions
@@ -330,11 +330,11 @@ async def main():
             avg_duration = sum(r['duration'] for r in round_results) / len(round_results)
             
             print()
-            print(f"📊 Round #{round_count} Results:")
-            print(f"   ✅ Successful sessions: {successful_sessions}/{len(round_results)}")
-            print(f"   ❌ Failed sessions: {failed_sessions}")
-            print(f"   ⏱️ Average duration: {avg_duration:.1f}s")
-            print(f"   🎯 Success rate: {successful_sessions/len(round_results)*100:.1f}%")
+            print(f" Round #{round_count} Results:")
+            print(f"    Successful sessions: {successful_sessions}/{len(round_results)}")
+            print(f"    Failed sessions: {failed_sessions}")
+            print(f"   ⏱ Average duration: {avg_duration:.1f}s")
+            print(f"    Success rate: {successful_sessions/len(round_results)*100:.1f}%")
             
             # Check if we still have time remaining
             current_time = datetime.now()
@@ -344,11 +344,11 @@ async def main():
             if remaining_seconds > 0:
                 remaining_hours = remaining_seconds / 3600
                 print(f"\n⏰ Time remaining: {remaining_hours:.2f} hours")
-                print("🔄 Starting next round...")
+                print(" Starting next round...")
                 print()
                 time.sleep(5)  # Brief pause between rounds
             else:
-                print(f"\n🎉 9 HOUR TRAINING COMPLETE!")
+                print(f"\n 9 HOUR TRAINING COMPLETE!")
                 print(f"Total duration: {elapsed_seconds/3600:.2f} hours")
                 print(f"Total rounds: {round_count}")
                 print(f"Total sessions: {len(all_results)}")
@@ -358,18 +358,18 @@ async def main():
     except KeyboardInterrupt:
         current_time = datetime.now()
         elapsed_seconds = (current_time - start_time).total_seconds()
-        print(f"\n🛑 Training stopped by user (Ctrl+C)")
-        print(f"⏱️ Total duration: {elapsed_seconds/3600:.2f} hours")
-        print(f"📊 Total rounds completed: {round_count}")
-        print(f"🎮 Total sessions completed: {len(all_results)}")
+        print(f"\n Training stopped by user (Ctrl+C)")
+        print(f"⏱ Total duration: {elapsed_seconds/3600:.2f} hours")
+        print(f" Total rounds completed: {round_count}")
+        print(f" Total sessions completed: {len(all_results)}")
         
         # Graceful shutdown - close all scorecards
-        print("\n🛑 Initiating graceful shutdown...")
-        print("📋 Closing all active scorecards...")
+        print("\n Initiating graceful shutdown...")
+        print(" Closing all active scorecards...")
         # Note: The graceful shutdown is handled by the signal handlers in the continuous learning loop
         
     except Exception as e:
-        print(f"\n❌ Error running scaled training: {e}")
+        print(f"\n Error running scaled training: {e}")
         return 1
     
     # Final statistics
@@ -383,18 +383,18 @@ async def main():
         total_duration = sum(r['duration'] for r in all_results)
         avg_duration = total_duration / len(all_results)
         
-        print(f"📊 Overall Results:")
-        print(f"   🎮 Total sessions: {len(all_results)}")
-        print(f"   ✅ Successful: {successful_sessions}")
-        print(f"   ❌ Failed: {failed_sessions}")
-        print(f"   🎯 Success rate: {successful_sessions/len(all_results)*100:.1f}%")
-        print(f"   ⏱️ Total training time: {total_duration/3600:.2f} hours")
-        print(f"   📈 Average session duration: {avg_duration:.1f}s")
-        print(f"   🚀 Concurrent games per round: {sessions_per_round}")
-        print(f"   🔄 Total rounds: {round_count}")
+        print(f" Overall Results:")
+        print(f"    Total sessions: {len(all_results)}")
+        print(f"    Successful: {successful_sessions}")
+        print(f"    Failed: {failed_sessions}")
+        print(f"    Success rate: {successful_sessions/len(all_results)*100:.1f}%")
+        print(f"   ⏱ Total training time: {total_duration/3600:.2f} hours")
+        print(f"    Average session duration: {avg_duration:.1f}s")
+        print(f"    Concurrent games per round: {sessions_per_round}")
+        print(f"    Total rounds: {round_count}")
         
         # Save results to database
-        print(f"\n💾 Saving results to database...")
+        print(f"\n Saving results to database...")
         
         # Save each session result to database
         for i, result in enumerate(all_results):
@@ -438,8 +438,8 @@ async def main():
             session_id=f"scaled_training_summary_{int(time.time())}"
         )
         
-        print(f"✅ All {len(all_results)} sessions saved to database")
-        print(f"📊 Summary logged to system_logs")
+        print(f" All {len(all_results)} sessions saved to database")
+        print(f" Summary logged to system_logs")
     
     print(f"\nTraining session ended at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return 0

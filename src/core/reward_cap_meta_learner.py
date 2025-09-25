@@ -107,7 +107,7 @@ class RewardCapMetaLearner:
         # Load existing configuration if available
         self._load_configuration()
         
-        self.logger.info("🎯 Reward Cap Meta-Learner initialized")
+        self.logger.info(" Reward Cap Meta-Learner initialized")
         self.logger.info(f"   Current caps: {self.current_caps.to_dict()}")
     
     def update_performance(
@@ -265,7 +265,7 @@ class RewardCapMetaLearner:
             # Increase exploration bonus and reduce productivity caps to encourage exploration
             adjustments['exploration_bonus'] = min(self.max_adjustment, 0.15)
             adjustments['productivity_max'] = -min(self.max_adjustment, 0.15)
-            self.logger.info("🔧 LETHARGIC DETECTED: Increasing exploration incentives")
+            self.logger.info(" LETHARGIC DETECTED: Increasing exploration incentives")
         
         # Rule 2: If system is too manic (high volatility, low stability)
         elif volatility > 0.8 and stability < 0.3:
@@ -273,7 +273,7 @@ class RewardCapMetaLearner:
             adjustments['productivity_multiplier'] = -min(self.max_adjustment, 0.20)
             adjustments['recent_gains_multiplier'] = -min(self.max_adjustment, 0.20)
             adjustments['recent_losses_multiplier'] = -min(self.max_adjustment, 0.20)
-            self.logger.info("🔧 MANIC DETECTED: Reducing caps to stabilize behavior")
+            self.logger.info(" MANIC DETECTED: Reducing caps to stabilize behavior")
         
         # Rule 3: If productivity efficiency is low
         elif efficiency < 0.4:
@@ -282,21 +282,21 @@ class RewardCapMetaLearner:
                 adjustments['exploration_bonus'] = min(self.max_adjustment, 0.10)
             else:
                 adjustments['productivity_multiplier'] = min(self.max_adjustment, 0.10)
-            self.logger.info("🔧 LOW EFFICIENCY: Adjusting multipliers for better productivity")
+            self.logger.info(" LOW EFFICIENCY: Adjusting multipliers for better productivity")
         
         # Rule 4: If stagnation is high
         elif stagnation > 0.7:
             # Increase recent gains bonus to encourage new attempts
             adjustments['recent_gains_multiplier'] = min(self.max_adjustment, 0.15)
             adjustments['recent_gains_max'] = min(self.max_adjustment, 0.15)
-            self.logger.info("🔧 STAGNATION DETECTED: Increasing recent gains incentives")
+            self.logger.info(" STAGNATION DETECTED: Increasing recent gains incentives")
         
         # Rule 5: If system is well-balanced, fine-tune
         elif stability > 0.6 and 0.3 < exploration < 0.7 and improvement > 0.05:
             # Small adjustments to optimize further
             if efficiency < 0.6:
                 adjustments['productivity_multiplier'] = min(self.min_adjustment, 0.05)
-            self.logger.info("🔧 BALANCED STATE: Fine-tuning for optimization")
+            self.logger.info(" BALANCED STATE: Fine-tuning for optimization")
         
         return adjustments
     
@@ -327,7 +327,7 @@ class RewardCapMetaLearner:
         # Track adjustment effectiveness
         self.cap_history.append(self.current_caps.to_dict())
         
-        self.logger.info(f"🎯 Cap adjustment complete. New configuration: {self.current_caps.to_dict()}")
+        self.logger.info(f" Cap adjustment complete. New configuration: {self.current_caps.to_dict()}")
     
     def get_current_caps(self) -> CapConfiguration:
         """Get current cap configuration."""
@@ -390,8 +390,8 @@ class RewardCapMetaLearner:
             self.last_adjustment = self.db_manager.get_last_adjustment()
             self.action_count = self.db_manager.get_action_count()
             
-            self.logger.info("📁 Loaded reward cap configuration from database")
+            self.logger.info(" Loaded reward cap configuration from database")
         except Exception as e:
-            self.logger.warning(f"⚠️ Failed to load reward cap configuration from database: {e}")
-            self.logger.info("🔄 Using default configuration")
+            self.logger.warning(f" Failed to load reward cap configuration from database: {e}")
+            self.logger.info(" Using default configuration")
 

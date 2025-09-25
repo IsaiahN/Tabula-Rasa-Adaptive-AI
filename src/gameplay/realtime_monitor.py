@@ -43,7 +43,7 @@ class RealTimeGameplayMonitor:
     async def start_monitoring(self, game_state_callback: Callable[[], Dict[str, Any]]):
         """Start real-time monitoring."""
         self.is_monitoring = True
-        logger.info("🔍 Starting real-time gameplay monitoring...")
+        logger.info(" Starting real-time gameplay monitoring...")
         
         while self.is_monitoring:
             try:
@@ -63,7 +63,7 @@ class RealTimeGameplayMonitor:
     def stop_monitoring(self):
         """Stop real-time monitoring."""
         self.is_monitoring = False
-        logger.info("🛑 Stopped real-time gameplay monitoring")
+        logger.info(" Stopped real-time gameplay monitoring")
     
     async def _monitoring_cycle(self, game_state: Dict[str, Any]):
         """Process a single monitoring cycle."""
@@ -130,11 +130,11 @@ class RealTimeGameplayMonitor:
         
         # Log based on severity
         if severity == "critical":
-            logger.critical(f"🚨 {event_type}: {data}")
+            logger.critical(f" {event_type}: {data}")
         elif severity == "warning":
-            logger.warning(f"⚠️ {event_type}: {data}")
+            logger.warning(f" {event_type}: {data}")
         elif severity == "info":
-            logger.info(f"ℹ️ {event_type}: {data}")
+            logger.info(f"ℹ {event_type}: {data}")
     
     def _monitor_system_health(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
         """Monitor overall system health."""
@@ -241,12 +241,12 @@ class RealTimeGameplayMonitor:
     def enable_auto_fix(self):
         """Enable automatic error fixing."""
         self.auto_fix_enabled = True
-        logger.info("✅ Auto-fix enabled")
+        logger.info(" Auto-fix enabled")
     
     def disable_auto_fix(self):
         """Disable automatic error fixing."""
         self.auto_fix_enabled = False
-        logger.info("❌ Auto-fix disabled")
+        logger.info(" Auto-fix disabled")
     
     def get_monitoring_status(self) -> Dict[str, Any]:
         """Get current monitoring status."""

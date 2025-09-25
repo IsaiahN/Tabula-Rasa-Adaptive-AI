@@ -60,17 +60,17 @@ class ScorecardAPIManager:
                         'tags': tags,
                         'opaque': opaque
                     }
-                    logger.info(f"✅ Opened scorecard: {card_id}")
+                    logger.info(f" Opened scorecard: {card_id}")
                     return card_id
                 else:
-                    logger.error(f"❌ No card_id in response: {data}")
+                    logger.error(f" No card_id in response: {data}")
                     return None
             else:
-                logger.error(f"❌ Failed to open scorecard: {response.status_code} - {response.text}")
+                logger.error(f" Failed to open scorecard: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ Error opening scorecard: {e}")
+            logger.error(f" Error opening scorecard: {e}")
             return None
     
     def create_scorecard(self, name: str, description: str = "") -> Optional[str]:
@@ -96,17 +96,17 @@ class ScorecardAPIManager:
             
             if response.status_code == 200:
                 data = response.json()
-                logger.info(f"✅ Retrieved scorecard data for {card_id}")
+                logger.info(f" Retrieved scorecard data for {card_id}")
                 return data
             elif response.status_code == 404:
-                logger.warning(f"⚠️ Scorecard not found: {card_id}")
+                logger.warning(f" Scorecard not found: {card_id}")
                 return None
             else:
-                logger.error(f"❌ Failed to retrieve scorecard: {response.status_code} - {response.text}")
+                logger.error(f" Failed to retrieve scorecard: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ Error retrieving scorecard: {e}")
+            logger.error(f" Error retrieving scorecard: {e}")
             return None
     
     def analyze_level_completions(self, scorecard_data: Dict) -> Dict:
@@ -197,17 +197,17 @@ class ScorecardAPIManager:
                 session_id=f"scorecard_{card_id}"
             )
             
-            logger.info(f"✅ Saved scorecard data to database for {card_id}")
+            logger.info(f" Saved scorecard data to database for {card_id}")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error saving scorecard data to database: {e}")
+            logger.error(f" Error saving scorecard data to database: {e}")
             return None
     
     def monitor_active_scorecards(self) -> Dict:
         """Monitor all active scorecards and return comprehensive statistics."""
         
-        logger.info("🔍 DIRECTOR: Monitoring Active Scorecards")
+        logger.info(" DIRECTOR: Monitoring Active Scorecards")
         
         all_stats = {
             'total_scorecards': len(self.active_scorecards),
@@ -242,11 +242,11 @@ class ScorecardAPIManager:
                     'source_url': self.active_scorecards[card_id]['source_url']
                 }
                 
-                logger.info(f"📊 Scorecard {card_id}: {analysis['level_completions']} level completions, {analysis['games_completed']} games completed")
+                logger.info(f" Scorecard {card_id}: {analysis['level_completions']} level completions, {analysis['games_completed']} games completed")
             else:
                 # Remove inactive scorecards
                 del self.active_scorecards[card_id]
-                logger.warning(f"⚠️ Removed inactive scorecard: {card_id}")
+                logger.warning(f" Removed inactive scorecard: {card_id}")
         
         # Calculate overall win rate
         if all_stats['total_played'] > 0:
@@ -254,7 +254,7 @@ class ScorecardAPIManager:
         else:
             all_stats['overall_win_rate'] = 0.0
         
-        logger.info(f"📈 Overall: {all_stats['total_level_completions']} level completions, {all_stats['total_games_completed']} games completed")
+        logger.info(f" Overall: {all_stats['total_level_completions']} level completions, {all_stats['total_games_completed']} games completed")
         
         return all_stats
     
@@ -284,7 +284,7 @@ def get_api_key_from_config() -> Optional[str]:
                     if api_key and api_key != '[REDACTED]':
                         return api_key
         except Exception as e:
-            print(f"⚠️ Error reading .env file: {e}")
+            print(f" Error reading .env file: {e}")
     
     # Check other config files
     config_files = [

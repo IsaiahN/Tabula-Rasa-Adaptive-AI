@@ -25,6 +25,7 @@ import signal
 from datetime import datetime
 from typing import Dict, List, Any
 import json
+import logging
 
 # Load environment variables from .env file
 try:
@@ -43,22 +44,54 @@ from training import ContinuousLearningLoop
 # Global shutdown flag and cleanup handler
 shutdown_requested = False
 cleanup_handler = None
+cleanup_task = None
+
+# Configure logging: raise level for noisy debug modules to reduce console spam
+logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
+# Quiet the detailed stagnation system and action selector debug noise
+# Set to ERROR to suppress debug/info/warning from the stagnation system
+logging.getLogger('src.core.stagnation_intervention_system').setLevel(logging.ERROR)
+# Reduce action selector verbosity to ERROR to cut console spam during long runs
+logging.getLogger('training.analysis.action_selector').setLevel(logging.ERROR)
 
 def signal_handler(signum, frame):
     """Handle graceful shutdown signals."""
     global shutdown_requested, cleanup_handler
     if shutdown_requested:
-    print(f"\n[STOP] FORCE EXIT REQUESTED (Signal: {signum})")
-    print("[STOP] Exiting immediately...")
-        # Try to cleanup before force exit
+        print(f"\n[STOP] FORCE EXIT REQUESTED (Signal: {signum})")
+        print("[STOP] Exiting immediately...")
+        # Try to cleanup before force exit. If an event loop is already running
+        # we must schedule the cleanup coroutine on it instead of calling
+        # asyncio.run (which will raise RuntimeError when a loop is running).
         if cleanup_handler:
             try:
-                import asyncio
-                asyncio.run(cleanup_handler())
-            except:
-                pass
+                # If there's a running loop, schedule the cleanup coroutine
+                loop = None
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+
+                if loop is not None and loop.is_running():
+                    # schedule cleanup on the running loop
+                    try:
+                        # Schedule cleanup only once — store the Task in the global namespace
+                        if globals().get('cleanup_task') is None:
+                            loop.call_soon_threadsafe(lambda: globals().update({'cleanup_task': loop.create_task(cleanup_handler())}))
+                        else:
+                            print("[WARN] Cleanup already scheduled; skipping duplicate schedule")
+                    except Exception as exc:
+                        print(f"[WARN] Failed to schedule cleanup on running loop: {exc}")
+                else:
+                    # no running loop, safe to run directly
+                    try:
+                        asyncio.run(cleanup_handler())
+                    except Exception as exc:
+                        print(f"[WARN] Cleanup run failed: {exc}")
+            except Exception as e:
+                print(f"[WARN] Error while attempting force-cleanup: {e}")
         sys.exit(0)
-    
+
     print(f"\n[STOP] GRACEFUL SHUTDOWN REQUESTED (Signal: {signum})")
     shutdown_requested = True
     print("[STOP] Training will stop after current session completes...")
@@ -107,7 +140,9 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
                 print("[OK] Cleanup completed")
             except Exception as e:
                 print(f"[WARN] Error during cleanup: {e}")
-        
+
+        # Assign to global cleanup_handler so signal handler can access it
+        global cleanup_handler
         cleanup_handler = cleanup
         
         # Ensure the system is initialized
@@ -115,7 +150,29 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         
         # Get available games
         available_games = await learning_loop.get_available_games()
-        if not available_games:
+
+        # Avoid ambiguous truth-value checks for array-like objects (e.g. numpy arrays)
+        has_available_games = False
+        if available_games is None:
+            has_available_games = False
+        else:
+            try:
+                has_available_games = len(available_games) > 0
+            except TypeError:
+                # Some array-likes may not support len(); try using .size or bool()
+                size = getattr(available_games, 'size', None)
+                if size is None:
+                    try:
+                        has_available_games = bool(available_games)
+                    except Exception:
+                        has_available_games = False
+                else:
+                    try:
+                        has_available_games = int(size) > 0
+                    except Exception:
+                        has_available_games = False
+
+        if not has_available_games:
             print("[ERROR] No available games found")
             return {
                 'session_id': session_id,
@@ -207,7 +264,7 @@ async def main():
     
     # Record start time
     start_time = datetime.now()
-    print(f"🕐 Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f" Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print()
     print("Press Ctrl+C to stop gracefully")
     print()
@@ -243,7 +300,7 @@ async def main():
             remaining_seconds = total_duration - elapsed_seconds
             
             if remaining_seconds <= 0:
-                print(f"\n🎉 9 HOUR TRAINING COMPLETE!")
+                print(f"\n 9 HOUR TRAINING COMPLETE!")
                 print(f"Total duration: {elapsed_seconds/3600:.2f} hours")
                 print(f"Total sessions: {session_count}")
                 print(f"Completed at: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -303,9 +360,21 @@ async def main():
     finally:
         # Cleanup resources
         try:
-            if cleanup_handler:
-                print("🧹 Cleaning up resources...")
-                await cleanup_handler()
+            # If a cleanup Task was scheduled by the signal handler, await it.
+            if globals().get('cleanup_task') is not None:
+                print(" Awaiting scheduled cleanup task...")
+                try:
+                    await globals().get('cleanup_task')
+                except Exception as e:
+                    print(f"[WARNING] Error in scheduled cleanup task: {e}")
+            else:
+                # No scheduled task — call the cleanup handler once if present
+                if cleanup_handler:
+                    print(" Running cleanup handler...")
+                    try:
+                        await cleanup_handler()
+                    except Exception as e:
+                        print(f"[WARNING] Error during cleanup: {e}")
         except Exception as e:
             print(f"[WARNING] Error during cleanup: {e}")
     
@@ -330,7 +399,7 @@ async def main():
         print(f"   Execution mode: DIRECT API (single-threaded)")
         
         # Database-only mode: No file saving
-        print(f"\n💾 Results saved to database")
+        print(f"\n Results saved to database")
     
     print(f"\nTraining session ended at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return 0

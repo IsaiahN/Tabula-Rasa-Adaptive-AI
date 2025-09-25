@@ -226,7 +226,7 @@ class SleepCycle:
             'diversification_strategies_created': 0
         }
         
-        logger.info("🌙 ENHANCED SLEEP CONSOLIDATION - Starting memory consolidation and strategic diversification...")
+        logger.info(" ENHANCED SLEEP CONSOLIDATION - Starting memory consolidation and strategic diversification...")
         
         # Phase 1: Failed Pattern Analysis & Strategic Diversification
         diversification_results = self._analyze_failed_patterns_and_create_diversification_strategies(replay_buffer, arc_data)
@@ -259,12 +259,12 @@ class SleepCycle:
                 # Try ARC-aware consolidation with strategic learning
                 consolidation_results = self._strategic_arc_aware_memory_consolidation(arc_data)
                 sleep_results['arc_data_integrated'] = True
-                logger.info("✅ Used strategic ARC-aware memory consolidation during sleep")
+                logger.info(" Used strategic ARC-aware memory consolidation during sleep")
             else:
                 consolidation_results = self._consolidate_memory_with_meta_learning()
             sleep_results.update(consolidation_results)
         elif not self.predictive_core:
-            logger.warning("⚠️ Skipping memory consolidation - no predictive core available")
+            logger.warning(" Skipping memory consolidation - no predictive core available")
             sleep_results['consolidation_skipped'] = 'no_predictive_core'
         
         # Phase 6: Goal System Integration with Strategic Context
@@ -286,7 +286,7 @@ class SleepCycle:
         self.sleep_metrics['memory_consolidations'] += 1
         
         # Log enhanced sleep cycle completion
-        logger.info(f"🌅 ENHANCED SLEEP COMPLETE - Failed patterns: {sleep_results['failed_patterns_identified']}, "
+        logger.info(f" ENHANCED SLEEP COMPLETE - Failed patterns: {sleep_results['failed_patterns_identified']}, "
                    f"Successful patterns: {sleep_results['successful_patterns_strengthened']}, "
                    f"Diversification strategies: {sleep_results['diversification_strategies_created']}")
         
@@ -1060,7 +1060,7 @@ class SleepCycle:
                 self.diversification_strategies[prob_coord] = []
             self.diversification_strategies[prob_coord].append(strategy)
         
-        logger.info(f"🔍 PATTERN ANALYSIS: Identified {failed_patterns_identified} failed patterns, "
+        logger.info(f" PATTERN ANALYSIS: Identified {failed_patterns_identified} failed patterns, "
                    f"created {diversification_strategies_created} diversification strategies")
         
         return {
@@ -1199,7 +1199,7 @@ class SleepCycle:
         
         avg_loss = total_loss / max(num_batches, 1)
         
-        logger.info(f"💡 PRIORITY REPLAY: {breakthrough_replays} breakthrough, "
+        logger.info(f" PRIORITY REPLAY: {breakthrough_replays} breakthrough, "
                    f"{failure_replays} failure patterns, {success_replays} successful patterns")
         
         return {
@@ -1322,13 +1322,13 @@ class SleepCycle:
             success_mask = success_memory_map > 1.5
             if success_mask.any():
                 memory_matrix[success_mask] *= success_memory_map[success_mask].unsqueeze(-1)
-                logger.info(f"🚀 MASSIVELY strengthened {success_mask.sum()} successful pattern memories")
+                logger.info(f" MASSIVELY strengthened {success_mask.sum()} successful pattern memories")
             
             # Moderate strengthening of good patterns
             good_mask = (success_memory_map > 1.0) & (success_memory_map <= 1.5)
             if good_mask.any():
                 memory_matrix[good_mask] *= success_memory_map[good_mask].unsqueeze(-1)
-                logger.info(f"✅ Strengthened {good_mask.sum()} good pattern memories")
+                logger.info(f" Strengthened {good_mask.sum()} good pattern memories")
         
         # Apply anti-pattern creation (failure inhibition)
         if anti_patterns_created > 0:
@@ -1338,7 +1338,7 @@ class SleepCycle:
                 # Instead of weakening, create inhibitory signals
                 # These will be used during decision-making to avoid repeating failures
                 memory_matrix[failure_mask] *= (1.0 - failure_memory_map[failure_mask] * 0.5).unsqueeze(-1)
-                logger.info(f"🚫 Created {failure_mask.sum()} anti-patterns from failures")
+                logger.info(f" Created {failure_mask.sum()} anti-patterns from failures")
         
         # Normalize to prevent overflow while preserving relative strengths
         memory_norm = torch.norm(memory_matrix, dim=-1, keepdim=True)
@@ -1352,7 +1352,7 @@ class SleepCycle:
             memory_metrics_before['memory_utilization']
         )
         
-        logger.info(f"🧠 STRATEGIC CONSOLIDATION: {successful_patterns_strengthened} successful patterns strengthened, "
+        logger.info(f" STRATEGIC CONSOLIDATION: {successful_patterns_strengthened} successful patterns strengthened, "
                    f"{anti_patterns_created} anti-patterns created from {failure_patterns_processed} failures")
         
         return {

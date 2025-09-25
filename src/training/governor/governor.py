@@ -67,6 +67,19 @@ class TrainingGovernor:
             
             # Record the decision
             self.governor_decisions.append(decision)
+            # Persist decision to DB (best-effort, non-blocking)
+            try:
+                from src.database.persistence_helpers import persist_governor_decision
+                import asyncio
+                asyncio.create_task(persist_governor_decision(
+                    session_id=str(decision.get('context', {}).get('session_id', 'unknown')),
+                    decision_type=decision.get('decision_type', 'unknown'),
+                    context=decision.get('context', {}),
+                    confidence=float(decision.get('confidence', 0.0)),
+                    outcome={'action': decision.get('action')}
+                ))
+            except Exception:
+                logger.debug('Failed to schedule DB persist for governor decision')
             
             # Keep only recent decisions
             if len(self.governor_decisions) > 1000:

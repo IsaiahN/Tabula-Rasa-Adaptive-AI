@@ -285,14 +285,14 @@ class EnhancedSpaceTimeGovernor:
             # Initialize with database-only approach
             self.learning_manager = MetaLearningSystem()
             logger.info("Learning manager initialized successfully")
-            print(f"🧠 LEARNING MANAGER: Successfully initialized MetaLearningSystem")
+            print(f" LEARNING MANAGER: Successfully initialized MetaLearningSystem")
         except ImportError as e:
             logger.warning(f"Learning manager not available: {e}")
-            print(f"🧠 LEARNING MANAGER: Import error - {e}")
+            print(f" LEARNING MANAGER: Import error - {e}")
             self.learning_manager = None
         except Exception as e:
             logger.warning(f"Failed to initialize learning manager: {e}")
-            print(f"🧠 LEARNING MANAGER: Initialization error - {e}")
+            print(f" LEARNING MANAGER: Initialization error - {e}")
             self.learning_manager = None
         
         try:
@@ -338,7 +338,10 @@ class EnhancedSpaceTimeGovernor:
             
             # Record decision for learning
             self._record_decision(enhanced_decision, context, performance_history)
-            
+
+            # Log decision to database
+            self._log_decision_to_database(enhanced_decision, context, performance_history)
+
             return enhanced_decision
             
         except Exception as e:
@@ -480,7 +483,109 @@ class EnhancedSpaceTimeGovernor:
         # Update performance history
         if performance_history:
             self.performance_history.extend(performance_history[-5:])  # Keep last 5 entries
-    
+
+    def _log_decision_to_database(self, decision: Dict[str, Any], context: Dict[str, Any], performance_history: List[Dict[str, Any]]):
+        """Log governor decision to database."""
+        try:
+            import asyncio
+            from src.database.system_integration import get_system_integration
+
+            async def log_decision():
+                integration = get_system_integration()
+
+                # Create decision log data
+                decision_data = {
+                    'decision_type': 'space_time_governor',
+                    'action_selected': decision.get('action'),
+                    'confidence': decision.get('confidence', 0.5),
+                    'reasoning': decision.get('reasoning', ''),
+                    'space_time_params': decision.get('parameters', {}),
+                    'cognitive_cost': decision.get('cognitive_cost', 0),
+                    'efficiency_ratio': decision.get('efficiency_ratio', 0),
+                    'pattern_recommendations': decision.get('pattern_recommendations', []),
+                    'learning_insights': decision.get('learning_insights', {}),
+                    'performance_history_length': len(performance_history),
+                    'context_size': len(str(context))
+                }
+
+                await integration.log_system_event(
+                    level="INFO",
+                    component="enhanced_space_time_governor",
+                    message="Governor decision made",
+                    data=decision_data,
+                    session_id=context.get('session_id', 'unknown') if context else 'unknown'
+                )
+
+            # Schedule the database logging
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(log_decision())
+
+        except Exception as e:
+            logger.debug(f"Non-fatal: Failed to log decision to database: {e}")
+
+    def _log_performance_feedback_to_database(self, problem_type: str, performance_result: Dict[str, Any]):
+        """Log performance feedback to database."""
+        try:
+            import asyncio
+            from src.database.system_integration import get_system_integration
+
+            async def log_performance():
+                integration = get_system_integration()
+
+                performance_data = {
+                    'problem_type': problem_type,
+                    'performance_result': performance_result,
+                    'component': 'space_time_governor'
+                }
+
+                await integration.log_system_event(
+                    level="INFO",
+                    component="enhanced_space_time_governor",
+                    message=f"Performance feedback update for {problem_type}",
+                    data=performance_data,
+                    session_id=performance_result.get('session_id', 'unknown') if isinstance(performance_result, dict) else 'unknown'
+                )
+
+            # Schedule the database logging
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(log_performance())
+
+        except Exception as e:
+            logger.debug(f"Non-fatal: Failed to log performance feedback to database: {e}")
+
+    def _log_parameter_optimization_to_database(self, optimization_result: Dict[str, Any], context: Dict[str, Any]):
+        """Log parameter optimization to database."""
+        try:
+            import asyncio
+            from src.database.system_integration import get_system_integration
+
+            async def log_optimization():
+                integration = get_system_integration()
+
+                optimization_data = {
+                    'optimization_result': optimization_result,
+                    'context_size': len(str(context)),
+                    'component': 'space_time_governor_optimizer'
+                }
+
+                await integration.log_system_event(
+                    level="INFO",
+                    component="enhanced_space_time_governor",
+                    message="Parameter optimization completed",
+                    data=optimization_data,
+                    session_id=context.get('session_id', 'unknown') if context else 'unknown'
+                )
+
+            # Schedule the database logging
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(log_optimization())
+
+        except Exception as e:
+            logger.debug(f"Non-fatal: Failed to log parameter optimization to database: {e}")
+
     # Legacy methods for backward compatibility
     def set_action_limit_maximums(self, **kwargs):
         """Set action limit maximums (legacy compatibility)."""
@@ -545,6 +650,9 @@ class EnhancedSpaceTimeGovernor:
                 self.learning_manager.update_performance(problem_type, performance_result)
             except Exception as e:
                 logger.warning(f"Learning manager update failed: {e}")
+
+        # Log performance feedback to database
+        self._log_performance_feedback_to_database(problem_type, performance_result)
     
     def record_action_result(self, action: int, success: bool, score_change: float, 
                            context: Dict[str, Any] = None) -> None:
@@ -571,6 +679,38 @@ class EnhancedSpaceTimeGovernor:
                 'context': context or {}
             }
             self.performance_history.append(result_entry)
+
+            # Best-effort: persist the performance entry to the database if an
+            # asyncio event loop is available. This avoids blocking synchronous
+            # callers while ensuring data is saved during async runs.
+            try:
+                import asyncio
+                from src.database.performance_data_manager import get_performance_manager
+
+                async def _persist_performance():
+                    pm = get_performance_manager()
+                    session_id = None
+                    if context and isinstance(context, dict):
+                        session_id = context.get('session_id')
+                    perf_payload = {
+                        'game_id': context.get('game_id') if context and isinstance(context, dict) else None,
+                        'score': None,
+                        'win_rate': None,
+                        'learning_efficiency': None,
+                        'metadata': result_entry,
+                    }
+                    # Use a fallback session id when not provided to keep DB records traceable
+                    await pm.store_performance_data(session_id or 'unknown', perf_payload)
+
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(_persist_performance())
+                else:
+                    # If no loop is running we deliberately avoid blocking; persistence
+                    # will occur in contexts that run the async loop.
+                    pass
+            except Exception as e:
+                logger.debug(f"Non-fatal: failed to schedule performance persist: {e}")
             
             # Update learning manager if available
             if self.learning_manager:
@@ -786,8 +926,9 @@ class EnhancedSpaceTimeGovernor:
             
             # Log optimization
             logger.info(f"Parameter optimization: d={new_d:.3f}, b={new_b:.3f}, h={new_h:.3f}")
-            
-            return {
+
+            # Log optimization to database
+            optimization_result = {
                 'success': True,
                 'old_parameters': {'d': current_d, 'b': current_b, 'h': current_h},
                 'new_parameters': {'d': new_d, 'b': new_b, 'h': new_h},
@@ -795,6 +936,9 @@ class EnhancedSpaceTimeGovernor:
                 'performance_analysis': performance_analysis,
                 'reasoning': self._generate_optimization_reasoning(performance_analysis, d_adjustment, b_adjustment, h_adjustment)
             }
+            self._log_parameter_optimization_to_database(optimization_result, context)
+
+            return optimization_result
             
         except Exception as e:
             logger.error(f"Parameter optimization failed: {e}")

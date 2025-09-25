@@ -91,7 +91,7 @@ class SystematicButtonDiscovery:
             self.pending_tests.append(coord)
             self.tested_coordinates[coord] = ButtonTestResult(coordinate=coord)
         
-        self.logger.info(f"🎯 BUTTON DISCOVERY STARTED for game {game_id}")
+        self.logger.info(f" BUTTON DISCOVERY STARTED for game {game_id}")
         self.logger.info(f"   Found {len(potential_objects)} potential objects to test")
         self.logger.info(f"   Testing queue initialized with {len(self.pending_tests)} coordinates")
     
@@ -101,26 +101,44 @@ class SystematicButtonDiscovery:
         
         if not frame_data or not isinstance(frame_data, list):
             return objects
-        
+
         # Convert to numpy array for easier processing
         frame_array = np.array(frame_data)
-        
-        # Find all non-zero cells (potential objects)
-        non_zero_coords = np.where(frame_array != 0)
-        
+
+        # Create a 2D mask of non-zero cells. Supports multi-channel frames by collapsing
+        # the last axis using any(), which avoids ambiguous truth-value checks on arrays.
+        if frame_array.ndim > 2:
+            mask = np.any(frame_array != 0, axis=-1)
+        else:
+            mask = frame_array != 0
+
+        # Find all non-zero coordinates using the mask
+        non_zero_coords = np.where(mask)
+
         for y, x in zip(non_zero_coords[0], non_zero_coords[1]):
             # Only consider cells that might be interactive
-            if frame_array[y, x] > 0:  # Non-zero values might be objects
+            if mask[y, x]:
                 objects.append((int(x), int(y)))
         
         # Also check for patterns that might indicate buttons
         # Look for clusters of non-zero cells
         for y in range(len(frame_data)):
             for x in range(len(frame_data[y])):
-                if frame_array[y, x] != 0:
-                    # Check if this might be part of a larger object
-                    if self._is_likely_object_center(frame_array, x, y):
-                        objects.append((x, y))
+                # Use the precomputed mask to avoid ambiguous array truth-values
+                try:
+                    if mask[y, x]:
+                        # Check if this might be part of a larger object
+                        if self._is_likely_object_center(frame_array, x, y):
+                            objects.append((x, y))
+                except Exception:
+                    # Fallback: try scalar comparison safely
+                    try:
+                        if np.any(frame_array[y, x] != 0):
+                            if self._is_likely_object_center(frame_array, x, y):
+                                objects.append((x, y))
+                    except Exception:
+                        # Last resort: skip problematic pixel
+                        continue
         
         # Remove duplicates and sort for systematic testing
         objects = list(set(objects))
@@ -135,8 +153,14 @@ class SystematicButtonDiscovery:
             for dx in range(-1, 2):
                 ny, nx = y + dy, x + dx
                 if 0 <= ny < frame_array.shape[0] and 0 <= nx < frame_array.shape[1]:
-                    if frame_array[ny, nx] != 0:
-                        return True
+                    # Use np.any to safely handle multi-channel pixels
+                    try:
+                        if np.any(frame_array[ny, nx] != 0):
+                            return True
+                    except Exception:
+                        # Fallback for scalar values
+                        if frame_array[ny, nx] != 0:
+                            return True
         return False
     
     async def get_next_test_coordinate(self) -> Optional[Tuple[int, int]]:
@@ -155,7 +179,7 @@ class SystematicButtonDiscovery:
         if not self.exploration_complete:
             self.exploration_complete = True
             self.exploration_phase = False
-            self.logger.info("🎯 EXPLORATION PHASE COMPLETE - All objects tested at least once")
+            self.logger.info(" EXPLORATION PHASE COMPLETE - All objects tested at least once")
             self.logger.info(f"   Confirmed buttons: {len(self.confirmed_buttons)}")
             
             # Log button summary
@@ -214,7 +238,7 @@ class SystematicButtonDiscovery:
         # Log significant discoveries
         if result.is_confirmed_button and result.test_count == self.min_tests_per_object:
             self.confirmed_buttons.add(coordinate)
-            self.logger.info(f"✅ BUTTON CONFIRMED: {coordinate} - {result.button_type.value}")
+            self.logger.info(f" BUTTON CONFIRMED: {coordinate} - {result.button_type.value}")
             self.logger.info(f"   Score increases: {result.score_increases}, Total score change: {result.total_score_change:.2f}")
     
     async def _update_button_classification(self, result: ButtonTestResult) -> None:
@@ -279,7 +303,7 @@ class SystematicButtonDiscovery:
                 type_counts[result.button_type.value] += 1
                 total_score_change += result.total_score_change
         
-        self.logger.info("📊 BUTTON DISCOVERY SUMMARY:")
+        self.logger.info(" BUTTON DISCOVERY SUMMARY:")
         self.logger.info(f"   Total objects tested: {len(self.tested_coordinates)}")
         self.logger.info(f"   Confirmed buttons: {len(self.confirmed_buttons)}")
         self.logger.info(f"   Score buttons: {type_counts['score_button']}")
@@ -295,7 +319,7 @@ class SystematicButtonDiscovery:
         )[:5]
         
         if top_buttons:
-            self.logger.info("🏆 TOP PRIORITY BUTTONS:")
+            self.logger.info(" TOP PRIORITY BUTTONS:")
             for i, coord in enumerate(top_buttons, 1):
                 result = self.tested_coordinates[coord]
                 priority = self.button_priorities.get(coord, 0.0)

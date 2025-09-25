@@ -26,61 +26,61 @@ class DirectorInitializer:
     
     async def initialize_director(self):
         """Complete Director initialization process."""
-        print("🎯 DIRECTOR PERMANENT INITIALIZATION")
+        print(" DIRECTOR PERMANENT INITIALIZATION")
         print("=" * 60)
         
         try:
             # 1. Retrieve and analyze self-model
-            print("\n📚 Analyzing self-model entries...")
+            print("\n Analyzing self-model entries...")
             self_model_entries = await self.integration.get_self_model_entries(limit=50)
             print(f"   Found {len(self_model_entries)} self-model entries")
             
             # 2. Get comprehensive system overview
-            print("\n🔍 Analyzing system overview...")
+            print("\n Analyzing system overview...")
             system_overview = await self.director.get_system_overview()
             print(f"   System Status: {system_overview.get('system_status', {})}")
             
             # 3. Analyze learning patterns
-            print("\n🧠 Analyzing learning patterns...")
+            print("\n Analyzing learning patterns...")
             learning_analysis = await self.director.get_learning_analysis()
             print(f"   Learning Analysis: {learning_analysis.get('summary', {})}")
             
             # 4. Check system health
-            print("\n🏥 Checking system health...")
+            print("\n Checking system health...")
             system_health = await self.director.analyze_system_health()
             print(f"   System Health: {system_health.get('overall_status', 'Unknown')}")
             
             # 5. Analyze action effectiveness
-            print("\n⚡ Analyzing action effectiveness...")
+            print("\n Analyzing action effectiveness...")
             action_effectiveness = await self.director.get_action_effectiveness()
             print(f"   Action Effectiveness: {len(action_effectiveness.get('patterns', []))} patterns found")
             
             # 6. Analyze coordinate intelligence
-            print("\n🎯 Analyzing coordinate intelligence...")
+            print("\n Analyzing coordinate intelligence...")
             coordinate_intelligence = await self.director.get_coordinate_intelligence()
             print(f"   Coordinate Intelligence: {len(coordinate_intelligence.get('patterns', []))} patterns found")
             
             # 7. Test database connectivity
-            print("\n🔍 Testing database connectivity...")
+            print("\n Testing database connectivity...")
             connectivity_results = await self._test_database_connectivity()
             print(f"   Database Tests: {connectivity_results['passed']}/{connectivity_results['total']} passed")
             
             # 8. Add current session reflection
-            print("\n🧠 Adding session reflection...")
+            print("\n Adding session reflection...")
             await self._add_session_reflection(system_overview, learning_analysis, system_health)
             
             # 9. Generate summary
-            print("\n📊 Generating system summary...")
+            print("\n Generating system summary...")
             summary = self._generate_summary(system_overview, learning_analysis, system_health, connectivity_results)
             
-            print("\n✅ DIRECTOR INITIALIZATION COMPLETE!")
+            print("\n DIRECTOR INITIALIZATION COMPLETE!")
             print("=" * 60)
             print(summary)
             
             return True
             
         except Exception as e:
-            print(f"\n❌ Initialization failed: {e}")
+            print(f"\n Initialization failed: {e}")
             return False
     
     async def _test_database_connectivity(self):
@@ -107,7 +107,7 @@ class DirectorInitializer:
                 await test_func()
                 tests_passed += 1
             except Exception as e:
-                print(f"   ⚠️ {test_name} failed: {e}")
+                print(f"    {test_name} failed: {e}")
         
         return {
             'passed': tests_passed,
@@ -137,38 +137,38 @@ class DirectorInitializer:
             )
             
             if success:
-                print("   ✅ Session reflection added")
+                print("    Session reflection added")
             else:
-                print("   ⚠️ Failed to add session reflection")
+                print("    Failed to add session reflection")
                 
         except Exception as e:
-            print(f"   ⚠️ Error adding reflection: {e}")
+            print(f"    Error adding reflection: {e}")
     
     def _generate_summary(self, system_overview, learning_analysis, system_health, connectivity_results):
         """Generate comprehensive system summary."""
         status = system_overview.get('system_status', {})
         
-        summary = f"""🎯 DIRECTOR STATUS: OPERATIONAL
-📊 System Overview:
+        summary = f""" DIRECTOR STATUS: OPERATIONAL
+ System Overview:
    • Active Sessions: {status.get('active_sessions', 0)}
    • Total Actions: {status.get('total_actions', 0)}
    • Total Wins: {status.get('total_wins', 0)}
    • Win Rate: {status.get('avg_win_rate', 0.0):.1f}%
    • Avg Score: {status.get('avg_score', 0.0):.1f}
 
-🧠 Learning Status:
+ Learning Status:
    • Patterns: {len(learning_analysis.get('patterns', []))}
    • Learning Analysis: {learning_analysis.get('summary', {})}
 
-🏥 Health Status:
+ Health Status:
    • Overall: {system_health.get('overall_status', 'Unknown')}
    • Recommendations: {len(system_health.get('recommendations', []))}
 
-🔍 Database Status:
+ Database Status:
    • Connectivity: {connectivity_results['success_rate']:.1f}% ({connectivity_results['passed']}/{connectivity_results['total']})
-   • Integration: {'✅ Functional' if connectivity_results['success_rate'] > 80 else '⚠️ Issues detected'}
+   • Integration: {' Functional' if connectivity_results['success_rate'] > 80 else ' Issues detected'}
 
-🎮 Ready for: Autonomous operation, training sessions, game completion"""
+ Ready for: Autonomous operation, training sessions, game completion"""
         
         return summary
 
@@ -178,10 +178,10 @@ async def main():
     success = await initializer.initialize_director()
     
     if success:
-        print("\n🎯 Director ready for autonomous operation!")
+        print("\n Director ready for autonomous operation!")
         return 0
     else:
-        print("\n❌ Director initialization failed!")
+        print("\n Director initialization failed!")
         return 1
 
 if __name__ == "__main__":

@@ -59,11 +59,37 @@ class MetaCognitiveMemoryManager:
         
         # Memory classification patterns
         self.classification_patterns = {
-            # Database-only mode: All data stored in database
-            MemoryClassification.CRITICAL_LOSSLESS: [],
-            MemoryClassification.IMPORTANT_DECAY: [],
-            MemoryClassification.REGULAR_DECAY: [],
-            MemoryClassification.TEMPORARY_PURGE: []
+            MemoryClassification.CRITICAL_LOSSLESS: [
+                "data/logs/governor_decisions_*.log",
+                "data/architect_evolution_*.json",
+                "data/meta_cognitive_results_*.json",
+                "data/backups/persistent_learning_state.json",
+                "data/unified_trainer_results.json",
+                "data/cross_session_*.json",
+                "data/outcome_tracking_*.json",
+                "data/critical_breakthroughs_*.json"
+            ],
+            MemoryClassification.IMPORTANT_DECAY: [
+                "data/meta_learning_session_*.json",
+                "data/session_session_*.json",
+                "data/action_intelligence_*.json",
+                "data/combined_score_*.json",
+                "data/memory_hierarchy_*.json",
+                "data/salience_patterns_*.json"
+            ],
+            MemoryClassification.REGULAR_DECAY: [
+                "data/sessions/continuous_session_*.json",
+                "data/training_episode_*.json",
+                "data/performance_metrics_*.json",
+                "data/coordination_logs_*.json"
+            ],
+            MemoryClassification.TEMPORARY_PURGE: [
+                "data/temp_*.json",
+                "data/debug_*.log",
+                "data/sandbox_*.json",
+                "data/mutations/mutation_exploratory_temp_*.json",
+                "data/test_temp_*.json"
+            ]
         }
         
         # Decay parameters by classification
@@ -95,9 +121,8 @@ class MetaCognitiveMemoryManager:
         }
         
         self.memory_inventory: Dict[Path, MemoryFile] = {}
-        # Database-only mode: No file-based backup directory
-        self.backup_directory = None  # Disabled for database-only mode
-        # self.backup_directory.mkdir(parents=True, exist_ok=True)  # Database-only mode: No file creation
+        self.backup_directory = self.base_path / "memory_backups"
+        self.backup_directory.mkdir(exist_ok=True)
     
     def classify_file(self, file_path: Path) -> MemoryClassification:
         """Classify a file based on patterns and content analysis."""
@@ -148,11 +173,9 @@ class MetaCognitiveMemoryManager:
         # Scan all relevant directories
         scan_dirs = [
             self.base_path / "data" / "meta_learning_data",
-            self.base_path / "data" / "meta_learning_sessions",
-            self.base_path / "data" / "sessions",
-            self.base_path / "data" / "experiments" / "research",
-            self.base_path / "data" / "memory" / "backups",
             self.base_path / "data", 
+            self.base_path / "checkpoints",
+            self.base_path / "research_results",
             self.base_path  # Root level files
         ]
         

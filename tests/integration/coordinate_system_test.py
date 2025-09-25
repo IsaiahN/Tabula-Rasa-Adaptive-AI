@@ -32,7 +32,7 @@ class CoordinateSystemTester:
         """
         Run complete test suite for coordinate system validation.
         """
-        print("🧪 STARTING COORDINATE SYSTEM TEST SUITE")
+        print(" STARTING COORDINATE SYSTEM TEST SUITE")
         print("=" * 50)
         
         self.test_game_id = game_id
@@ -119,7 +119,7 @@ class CoordinateSystemTester:
         """
         Test basic API connectivity.
         """
-        print("\n🔌 Test 1: API Connection")
+        print("\n Test 1: API Connection")
         
         try:
             # Test if we can reach the API
@@ -131,7 +131,7 @@ class CoordinateSystemTester:
                 'message': 'API client initialized successfully',
                 'details': {'client_state': state}
             }
-            print("   ✅ PASSED: API client ready")
+            print("    PASSED: API client ready")
             
         except Exception as e:
             result = {
@@ -140,7 +140,7 @@ class CoordinateSystemTester:
                 'message': f'API connection failed: {str(e)}',
                 'details': {'error': str(e)}
             }
-            print(f"   ❌ FAILED: {str(e)}")
+            print(f"    FAILED: {str(e)}")
         
         return result
     
@@ -148,7 +148,7 @@ class CoordinateSystemTester:
         """
         Test game initialization.
         """
-        print("\n🎮 Test 2: Game Start/Reset")
+        print("\n Test 2: Game Start/Reset")
         
         try:
             # Start new game
@@ -161,7 +161,7 @@ class CoordinateSystemTester:
                     'message': f'Game start failed: {response["error"]}',
                     'details': response
                 }
-                print(f"   ❌ FAILED: {response['error']}")
+                print(f"    FAILED: {response['error']}")
                 assert result.get('passed') is True, result.get('message', 'Game Start failed')
             
             # Validate response structure
@@ -175,7 +175,7 @@ class CoordinateSystemTester:
                     'message': f'Response missing required fields: {missing_fields}',
                     'details': response
                 }
-                print(f"   ❌ FAILED: Missing fields {missing_fields}")
+                print(f"    FAILED: Missing fields {missing_fields}")
                 assert result.get('passed') is True, result.get('message', 'Missing fields in Game Start')
             
             result = {
@@ -190,7 +190,7 @@ class CoordinateSystemTester:
                     'state': response.get('state')
                 }
             }
-            print(f"   ✅ PASSED: Game started, Score: {response.get('score', 0)}/{response.get('win_score', 0)}")
+            print(f"    PASSED: Game started, Score: {response.get('score', 0)}/{response.get('win_score', 0)}")
             
         except Exception as e:
             result = {
@@ -199,7 +199,7 @@ class CoordinateSystemTester:
                 'message': f'Game start exception: {str(e)}',
                 'details': {'error': str(e)}
             }
-            print(f"   ❌ FAILED: {str(e)}")
+            print(f"    FAILED: {str(e)}")
         
         return result
     
@@ -207,7 +207,7 @@ class CoordinateSystemTester:
         """
         Test coordinate validation and bounds checking.
         """
-        print("\n📍 Test 3: Coordinate Validation")
+        print("\n Test 3: Coordinate Validation")
         
         try:
             test_cases = [
@@ -251,9 +251,9 @@ class CoordinateSystemTester:
             }
             
             if all_valid:
-                print("   ✅ PASSED: All coordinate validation tests passed")
+                print("    PASSED: All coordinate validation tests passed")
             else:
-                print("   ❌ FAILED: Some coordinate validation tests failed")
+                print("    FAILED: Some coordinate validation tests failed")
             
         except Exception as e:
             result = {
@@ -262,7 +262,7 @@ class CoordinateSystemTester:
                 'message': f'Coordinate validation exception: {str(e)}',
                 'details': {'error': str(e)}
             }
-            print(f"   ❌ FAILED: {str(e)}")
+            print(f"    FAILED: {str(e)}")
         
         assert result.get('passed') is True, result.get('message', 'Coordinate Validation failed')
     
@@ -270,7 +270,7 @@ class CoordinateSystemTester:
         """
         Test ACTION6 with center-start strategy.
         """
-        print("\n🎯 Test 4: ACTION6 Center Start Strategy")
+        print("\n Test 4: ACTION6 Center Start Strategy")
         
         try:
             # Check if ACTION6 is available
@@ -283,7 +283,7 @@ class CoordinateSystemTester:
                     'message': 'ACTION6 not available in current game state',
                     'details': {'available_actions': available_actions}
                 }
-                print(f"   ⚠️ SKIPPED: ACTION6 not available (available: {available_actions})")
+                print(f"    SKIPPED: ACTION6 not available (available: {available_actions})")
                 assert result.get('passed') is True, result.get('message', 'ACTION6 not available')
             
             # Get initial state
@@ -300,7 +300,7 @@ class CoordinateSystemTester:
                     'message': f'ACTION6 execution failed: {response["error"]}',
                     'details': response
                 }
-                print(f"   ❌ FAILED: {response['error']}")
+                print(f"    FAILED: {response['error']}")
                 assert result.get('passed') is True, result.get('message', 'ACTION6 execution failed')
             
             # Validate response
@@ -334,10 +334,10 @@ class CoordinateSystemTester:
             }
             
             if coordinate_match:
-                print(f"   ✅ PASSED: ACTION6 executed correctly at ({center_x}, {center_y})")
-                print(f"   📊 Score: {initial_score} → {new_score} (change: {new_score - initial_score})")
+                print(f"    PASSED: ACTION6 executed correctly at ({center_x}, {center_y})")
+                print(f"    Score: {initial_score} → {new_score} (change: {new_score - initial_score})")
             else:
-                print(f"   ❌ FAILED: Coordinate mismatch - sent ({center_x}, {center_y}), recorded ({recorded_x}, {recorded_y})")
+                print(f"    FAILED: Coordinate mismatch - sent ({center_x}, {center_y}), recorded ({recorded_x}, {recorded_y})")
             
         except Exception as e:
             result = {
@@ -346,7 +346,7 @@ class CoordinateSystemTester:
                 'message': f'ACTION6 test exception: {str(e)}',
                 'details': {'error': str(e)}
             }
-            print(f"   ❌ FAILED: {str(e)}")
+            print(f"    FAILED: {str(e)}")
         
         assert result.get('passed') is True, result.get('message', 'ACTION6 Center Start failed')
     
@@ -354,7 +354,7 @@ class CoordinateSystemTester:
         """
         Test simple actions (ACTION1-5, ACTION7).
         """
-        print("\n🕹️ Test 5: Simple Actions (ACTION1-5, ACTION7)")
+        print("\n Test 5: Simple Actions (ACTION1-5, ACTION7)")
         
         try:
             available_actions = self.api_client.get_available_actions()
@@ -367,7 +367,7 @@ class CoordinateSystemTester:
                     'message': 'No simple actions available for testing',
                     'details': {'available_actions': available_actions}
                 }
-                print("   ⚠️ SKIPPED: No simple actions available")
+                print("    SKIPPED: No simple actions available")
                 assert result.get('passed') is True, result.get('message', 'No simple actions available')
             
             action_results = []
@@ -405,12 +405,12 @@ class CoordinateSystemTester:
             }
             
             if len(successful_actions) > 0:
-                print(f"   ✅ PASSED: {len(successful_actions)} simple actions executed")
+                print(f"    PASSED: {len(successful_actions)} simple actions executed")
                 for action_result in successful_actions:
                     if action_result['success']:
-                        print(f"   📊 ACTION{action_result['action']}: {action_result['score_before']} → {action_result['score_after']} (Δ{action_result['score_change']})")
+                        print(f"    ACTION{action_result['action']}: {action_result['score_before']} → {action_result['score_after']} (Δ{action_result['score_change']})")
             else:
-                print("   ❌ FAILED: No simple actions executed successfully")
+                print("    FAILED: No simple actions executed successfully")
             
         except Exception as e:
             result = {
@@ -419,7 +419,7 @@ class CoordinateSystemTester:
                 'message': f'Simple actions test exception: {str(e)}',
                 'details': {'error': str(e)}
             }
-            print(f"   ❌ FAILED: {str(e)}")
+            print(f"    FAILED: {str(e)}")
         
         assert result.get('passed') is True, result.get('message', 'Simple Actions failed')
     
@@ -427,7 +427,7 @@ class CoordinateSystemTester:
         """
         Test frame analysis and computer vision system.
         """
-        print("\n👁️ Test 6: Frame Analysis")
+        print("\n Test 6: Frame Analysis")
         
         try:
             # Get current frame
@@ -440,7 +440,7 @@ class CoordinateSystemTester:
                     'message': 'No frame data available for analysis',
                     'details': {}
                 }
-                print("   ❌ FAILED: No frame data available")
+                print("    FAILED: No frame data available")
                 assert result.get('passed') is True, result.get('message', 'No frame data available')
             
             # Analyze frame
@@ -472,11 +472,11 @@ class CoordinateSystemTester:
             }
             
             if has_required_fields and colors_found:
-                print(f"   ✅ PASSED: Frame analysis working, {len(analysis.get('colors_detected', []))} colors detected")
+                print(f"    PASSED: Frame analysis working, {len(analysis.get('colors_detected', []))} colors detected")
                 if analysis.get('agent_position'):
-                    print(f"   📍 Agent position detected: {analysis['agent_position']} (confidence: {analysis.get('position_confidence', 0):.2f})")
+                    print(f"    Agent position detected: {analysis['agent_position']} (confidence: {analysis.get('position_confidence', 0):.2f})")
             else:
-                print("   ❌ FAILED: Frame analysis incomplete or no colors detected")
+                print("    FAILED: Frame analysis incomplete or no colors detected")
             
         except Exception as e:
             result = {
@@ -485,7 +485,7 @@ class CoordinateSystemTester:
                 'message': f'Frame analysis exception: {str(e)}',
                 'details': {'error': str(e)}
             }
-            print(f"   ❌ FAILED: {str(e)}")
+            print(f"    FAILED: {str(e)}")
         
         assert result.get('passed') is True, result.get('message', 'Frame Analysis failed')
     
@@ -493,7 +493,7 @@ class CoordinateSystemTester:
         """
         Test pathway learning system integration.
         """
-        print("\n🧠 Test 7: Pathway Learning Integration")
+        print("\n Test 7: Pathway Learning Integration")
         
         try:
             # Get recent actions from API client
@@ -506,7 +506,7 @@ class CoordinateSystemTester:
                     'message': 'No action history available for pathway analysis',
                     'details': {}
                 }
-                print("   ⚠️ SKIPPED: No action history for pathway learning")
+                print("    SKIPPED: No action history for pathway learning")
                 assert result.get('passed') is True, result.get('message', 'No action history for pathway learning')
             
             # Track actions in pathway system
@@ -545,12 +545,12 @@ class CoordinateSystemTester:
             }
             
             if has_recommendations and has_reasoning:
-                print(f"   ✅ PASSED: Pathway learning active, {len(pathway_analyses)} actions tracked")
-                print(f"   🎯 Confidence: {recommendations.get('confidence', 0.0):.2f}")
+                print(f"    PASSED: Pathway learning active, {len(pathway_analyses)} actions tracked")
+                print(f"    Confidence: {recommendations.get('confidence', 0.0):.2f}")
                 if recommendations.get('reasoning'):
-                    print(f"   💭 Top reasoning: {recommendations['reasoning'][0]}")
+                    print(f"    Top reasoning: {recommendations['reasoning'][0]}")
             else:
-                print("   ❌ FAILED: Pathway learning not generating complete recommendations")
+                print("    FAILED: Pathway learning not generating complete recommendations")
             
         except Exception as e:
             result = {
@@ -559,7 +559,7 @@ class CoordinateSystemTester:
                 'message': f'Pathway learning exception: {str(e)}',
                 'details': {'error': str(e)}
             }
-            print(f"   ❌ FAILED: {str(e)}")
+            print(f"    FAILED: {str(e)}")
         
         assert result.get('passed') is True, result.get('message', 'Pathway Learning failed')
     
@@ -567,7 +567,7 @@ class CoordinateSystemTester:
         """
         Test score-based success measurement.
         """
-        print("\n📊 Test 8: Score-Based Success Measurement")
+        print("\n Test 8: Score-Based Success Measurement")
         
         try:
             # Get score progress info
@@ -607,11 +607,11 @@ class CoordinateSystemTester:
             }
             
             if has_valid_scores:
-                print(f"   ✅ PASSED: Score measurement working")
-                print(f"   📈 Progress: {progress_info['current_score']}/{progress_info['win_score']} ({progress_info['progress_ratio']:.1%})")
-                print(f"   🎯 Success rate: {success_rate:.1%} ({len(action_history) if action_history else 0} actions)")
+                print(f"    PASSED: Score measurement working")
+                print(f"    Progress: {progress_info['current_score']}/{progress_info['win_score']} ({progress_info['progress_ratio']:.1%})")
+                print(f"    Success rate: {success_rate:.1%} ({len(action_history) if action_history else 0} actions)")
             else:
-                print("   ❌ FAILED: Score measurement not working properly")
+                print("    FAILED: Score measurement not working properly")
             
         except Exception as e:
             result = {
@@ -620,7 +620,7 @@ class CoordinateSystemTester:
                 'message': f'Score measurement exception: {str(e)}',
                 'details': {'error': str(e)}
             }
-            print(f"   ❌ FAILED: {str(e)}")
+            print(f"    FAILED: {str(e)}")
         
         assert result.get('passed') is True, result.get('message', 'Score-Based Success Measurement failed')
     
@@ -629,29 +629,29 @@ class CoordinateSystemTester:
         Print summary of all test results.
         """
         print("\n" + "=" * 50)
-        print("🧪 TEST SUITE SUMMARY")
+        print(" TEST SUITE SUMMARY")
         print("=" * 50)
         
         total_tests = results['tests_passed'] + results['tests_failed']
         pass_rate = results['tests_passed'] / total_tests if total_tests > 0 else 0
         
         print(f"Total Tests: {total_tests}")
-        print(f"Passed: {results['tests_passed']} ✅")
-        print(f"Failed: {results['tests_failed']} ❌")
+        print(f"Passed: {results['tests_passed']} ")
+        print(f"Failed: {results['tests_failed']} ")
         print(f"Pass Rate: {pass_rate:.1%}")
         
         if results['tests_failed'] > 0:
-            print("\n⚠️ FAILED TESTS:")
+            print("\n FAILED TESTS:")
             for test in results['test_details']:
                 if not test['passed']:
                     print(f"   • {test['test_name']}: {test['message']}")
         
         if pass_rate >= 0.8:
-            print("\n🎉 COORDINATE SYSTEM READY FOR TRAINING!")
+            print("\n COORDINATE SYSTEM READY FOR TRAINING!")
         elif pass_rate >= 0.6:
-            print("\n⚠️ COORDINATE SYSTEM MOSTLY WORKING - Consider fixing failed tests")
+            print("\n COORDINATE SYSTEM MOSTLY WORKING - Consider fixing failed tests")
         else:
-            print("\n❌ COORDINATE SYSTEM NEEDS WORK - Fix critical issues before training")
+            print("\n COORDINATE SYSTEM NEEDS WORK - Fix critical issues before training")
 
 
 def main():
@@ -676,7 +676,7 @@ def main():
     if args.output_file:
         with open(args.output_file, 'w') as f:
             json.dump(results, f, indent=2)
-        print(f"\n📁 Results saved to {args.output_file}")
+        print(f"\n Results saved to {args.output_file}")
     
     return results
 

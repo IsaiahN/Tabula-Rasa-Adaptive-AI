@@ -216,7 +216,7 @@ class SafetyMechanisms:
         is_safe = len(critical_failures) == 0 and len(high_failures) == 0
         
         if not is_safe:
-            logger.warning(f"🚨 Safety validation failed for {change_type}")
+            logger.warning(f" Safety validation failed for {change_type}")
             for check in critical_failures + high_failures:
                 logger.warning(f"   [ERROR] {check.check_name}: {check.message}")
         else:
@@ -243,18 +243,18 @@ class SafetyMechanisms:
         is_safe, checks = await self.validate_change(change_type, change_data, safety_level)
         
         if not is_safe:
-            logger.error(f"🚨 Cannot execute {change_type} - safety validation failed")
+            logger.error(f" Cannot execute {change_type} - safety validation failed")
             return False
         
         # 2. Create backup
         backup_id = await self.rollback_manager.create_backup(change_type, change_data)
         if not backup_id:
-            logger.error(f"🚨 Cannot execute {change_type} - backup creation failed")
+            logger.error(f" Cannot execute {change_type} - backup creation failed")
             return False
         
         # 3. Execute change with monitoring
         try:
-            logger.info(f"🔄 Executing {change_type} change safely")
+            logger.info(f" Executing {change_type} change safely")
             success = await self._execute_change_with_monitoring(change_type, change_data)
             
             if success:
@@ -276,7 +276,7 @@ class SafetyMechanisms:
                 return False
                 
         except Exception as e:
-            logger.error(f"🚨 Exception during {change_type} execution: {e}")
+            logger.error(f" Exception during {change_type} execution: {e}")
             await self.rollback_manager.rollback(backup_id)
             return False
     
@@ -290,7 +290,7 @@ class SafetyMechanisms:
         Returns:
             True if emergency stop was successful
         """
-        logger.critical(f"🚨 EMERGENCY STOP TRIGGERED: {reason}")
+        logger.critical(f" EMERGENCY STOP TRIGGERED: {reason}")
         
         self.emergency_stop_active = True
         
@@ -312,7 +312,7 @@ class SafetyMechanisms:
             return True
             
         except Exception as e:
-            logger.critical(f"🚨 Emergency stop failed: {e}")
+            logger.critical(f" Emergency stop failed: {e}")
             return False
     
     async def resume_automation(self, safety_checks: bool = True) -> bool:
@@ -333,11 +333,11 @@ class SafetyMechanisms:
             # Run comprehensive safety checks
             system_health = await self.system_monitor.get_system_health()
             if system_health["overall_health"] < 0.8:
-                logger.error("🚨 System health too low to resume automation")
+                logger.error(" System health too low to resume automation")
                 return False
         
         self.emergency_stop_active = False
-        logger.info("🔄 Automation systems resumed")
+        logger.info(" Automation systems resumed")
         return True
     
     def _check_cooldown_period(self, change_type: str) -> SafetyCheck:
@@ -480,7 +480,7 @@ class SafetyMechanisms:
             # Log emergency override
             await self.audit_logger.log_emergency_override(most_critical)
             
-            logger.warning(f"🚨 GAME EMERGENCY OVERRIDE TRIGGERED: {most_critical.override_type.value} - "
+            logger.warning(f" GAME EMERGENCY OVERRIDE TRIGGERED: {most_critical.override_type.value} - "
                           f"{most_critical.trigger_reason}")
             
             return most_critical
@@ -830,7 +830,7 @@ class RollbackManager:
             "backup_location": f"backups/{backup_id}"
         }
         
-        logger.info(f"📦 Backup created: {backup_id}")
+        logger.info(f" Backup created: {backup_id}")
         return backup_id
     
     async def rollback(self, backup_id: str) -> bool:
@@ -840,7 +840,7 @@ class RollbackManager:
             return False
         
         # This would perform actual rollback
-        logger.info(f"🔄 Rolling back to backup: {backup_id}")
+        logger.info(f" Rolling back to backup: {backup_id}")
         return True
 
 class ApprovalSystem:
@@ -861,7 +861,7 @@ class ApprovalSystem:
             "status": "pending"
         }
         
-        logger.info(f"📋 Approval requested: {approval_id}")
+        logger.info(f" Approval requested: {approval_id}")
         return approval_id
 
 class AuditLogger:
@@ -880,7 +880,7 @@ class AuditLogger:
             "change_data": change_data
         }
         self.audit_log.append(entry)
-        logger.info(f"📝 Audit log: {change_type} change {status}")
+        logger.info(f" Audit log: {change_type} change {status}")
     
     async def log_emergency_stop(self, reason: str):
         """Log emergency stop event."""
@@ -890,7 +890,7 @@ class AuditLogger:
             "reason": reason
         }
         self.audit_log.append(entry)
-        logger.critical(f"📝 Audit log: Emergency stop - {reason}")
+        logger.critical(f" Audit log: Emergency stop - {reason}")
     
     async def log_emergency_override(self, override: EmergencyOverride):
         """Log emergency override event."""
@@ -905,7 +905,7 @@ class AuditLogger:
             "override_action": override.override_action
         }
         self.audit_log.append(entry)
-        logger.warning(f"📝 Audit log: Emergency override - {override.override_type.value}")
+        logger.warning(f" Audit log: Emergency override - {override.override_type.value}")
     
     async def log_security_violation(self, violation: Dict[str, Any]):
         """Log security violation event."""
@@ -919,7 +919,7 @@ class AuditLogger:
             "details": violation.get("details", {})
         }
         self.audit_log.append(entry)
-        logger.warning(f"🔒 Security violation: {violation.get('type', 'unknown')}")
+        logger.warning(f" Security violation: {violation.get('type', 'unknown')}")
 
 # Import required modules
 import re
