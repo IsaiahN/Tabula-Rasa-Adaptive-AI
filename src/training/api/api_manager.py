@@ -125,7 +125,12 @@ class APIManager:
                     y = action.get('y', 0)
                     return await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid, x=x, y=y)
                 else:
-                    return await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid)
+                    # For actions 1-5 and 7, include reasoning in the payload
+                    reasoning = action.get('reasoning', {})
+                    if reasoning:
+                        return await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid, reasoning=reasoning)
+                    else:
+                        return await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid)
             elif request_type == "get_game_state":
                 # Extract parameters for get_game_state
                 game_id = kwargs.get('game_id')
@@ -290,7 +295,29 @@ class APIManager:
         
         self.initialized = False
         logger.info("API manager closed")
-    
+
+    async def get_current_scorecard_data(self) -> Optional[Dict[str, Any]]:
+        """Get current scorecard data for saving to database."""
+        try:
+            if hasattr(self, 'scorecard_manager') and self.scorecard_manager:
+                # Get scorecard data from scorecard manager
+                scorecard_data = await self.scorecard_manager.get_current_scorecard()
+                if scorecard_data:
+                    return {
+                        'scorecard_id': scorecard_data.get('id'),
+                        'name': scorecard_data.get('name'),
+                        'description': scorecard_data.get('description'),
+                        'total_games': scorecard_data.get('total_games', 0),
+                        'total_score': scorecard_data.get('total_score', 0.0),
+                        'session_id': getattr(self, 'current_session_id', 'unknown'),
+                        'created_at': scorecard_data.get('created_at'),
+                        'updated_at': scorecard_data.get('updated_at')
+                    }
+            return None
+        except Exception as e:
+            logger.error(f"Error getting scorecard data: {e}")
+            return None
+
     def get_status(self) -> Dict[str, Any]:
         """Get comprehensive API manager status."""
         return {

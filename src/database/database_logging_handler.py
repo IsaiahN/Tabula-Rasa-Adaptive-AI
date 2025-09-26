@@ -23,21 +23,20 @@ class DatabaseLoggingHandler(logging.Handler):
         self._ensure_tables_exist()
     
     def _ensure_tables_exist(self):
-        """Ensure the system_logs table exists."""
+        """Ensure the system_logs table exists with correct schema."""
         with sqlite3.connect(self.db_path) as conn:
+            # Use the existing schema that matches the actual table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS system_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     log_level TEXT NOT NULL,
-                    logger_name TEXT,
+                    component TEXT NOT NULL,
                     message TEXT NOT NULL,
-                    module TEXT,
-                    function TEXT,
-                    line_number INTEGER,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    data TEXT,
                     session_id TEXT,
                     game_id TEXT,
-                    metadata TEXT
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             conn.commit()
@@ -46,37 +45,36 @@ class DatabaseLoggingHandler(logging.Handler):
         """Emit a log record to the database."""
         try:
             # Extract information from the log record
-            log_data = {
-                'log_level': record.levelname,
-                'logger_name': record.name,
-                'message': record.getMessage(),
-                'module': record.module,
-                'function': record.funcName,
-                'line_number': record.lineno,
-                'timestamp': datetime.fromtimestamp(record.created).isoformat(),
-                'session_id': getattr(record, 'session_id', None),
-                'game_id': getattr(record, 'game_id', None),
-                'metadata': self._extract_metadata(record)
+            component_name = record.name if record.name else 'unknown'
+
+            # Create metadata with additional info
+            metadata = {
+                'module': getattr(record, 'module', 'unknown'),
+                'function': getattr(record, 'funcName', 'unknown'),
+                'line_number': getattr(record, 'lineno', 0)
             }
-            
-            # Insert into database
+
+            # Add exception info if present
+            if record.exc_info:
+                metadata['exception'] = {
+                    'type': record.exc_info[0].__name__ if record.exc_info[0] else None,
+                    'message': str(record.exc_info[1]) if record.exc_info[1] else None
+                }
+
+            # Insert into database using the existing schema
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("""
-                    INSERT INTO system_logs 
-                    (log_level, logger_name, message, module, function, 
-                     line_number, timestamp, session_id, game_id, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO system_logs
+                    (log_level, component, message, data, session_id, game_id, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    log_data['log_level'],
-                    log_data['logger_name'],
-                    log_data['message'],
-                    log_data['module'],
-                    log_data['function'],
-                    log_data['line_number'],
-                    log_data['timestamp'],
-                    log_data['session_id'],
-                    log_data['game_id'],
-                    log_data['metadata']
+                    record.levelname,
+                    component_name,
+                    record.getMessage(),
+                    json.dumps(metadata),
+                    getattr(record, 'session_id', None),
+                    getattr(record, 'game_id', None),
+                    datetime.fromtimestamp(record.created).isoformat()
                 ))
                 conn.commit()
                 
@@ -165,78 +163,76 @@ class DatabaseLoggingManager:
         
         return logger
     
-    def get_logs(self, 
+    def get_logs(self,
                 level: str = None,
-                logger_name: str = None,
+                component: str = None,
                 session_id: str = None,
                 game_id: str = None,
                 limit: int = 1000,
                 offset: int = 0) -> List[Dict[str, Any]]:
         """
         Get logs from the database with optional filtering.
-        
+
         Args:
             level: Filter by log level
-            logger_name: Filter by logger name
+            component: Filter by component name
             session_id: Filter by session ID
             game_id: Filter by game ID
             limit: Maximum number of logs to return
             offset: Number of logs to skip
-            
+
         Returns:
             List of log dictionaries
         """
         query = "SELECT * FROM system_logs WHERE 1=1"
         params = []
-        
+
         if level:
             query += " AND log_level = ?"
             params.append(level)
-        
-        if logger_name:
-            query += " AND logger_name = ?"
-            params.append(logger_name)
-        
+
+        if component:
+            query += " AND component = ?"
+            params.append(component)
+
         if session_id:
             query += " AND session_id = ?"
             params.append(session_id)
-        
+
         if game_id:
             query += " AND game_id = ?"
             params.append(game_id)
-        
+
         query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(query, params)
-            
+
             logs = []
             for row in cursor.fetchall():
                 logs.append({
                     'id': row[0],
                     'log_level': row[1],
-                    'logger_name': row[2],
+                    'component': row[2],
                     'message': row[3],
-                    'module': row[4],
-                    'function': row[5],
-                    'line_number': row[6],
+                    'data': json.loads(row[4]) if row[4] else {},
+                    'session_id': row[5],
+                    'game_id': row[6],
                     'timestamp': row[7],
-                    'session_id': row[8],
-                    'game_id': row[9],
-                    'metadata': json.loads(row[10]) if row[10] else {}
+                    'created_at': row[8] if len(row) > 8 else None
                 })
-            
+
             return logs
     
     def get_log_stats(self) -> Dict[str, Any]:
         """Get statistics about logged messages."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
-                SELECT 
+                SELECT
                     COUNT(*) as total_logs,
                     COUNT(DISTINCT log_level) as log_levels,
-                    COUNT(DISTINCT logger_name) as loggers,
+                    COUNT(DISTINCT component) as components,
                     COUNT(DISTINCT session_id) as sessions,
                     COUNT(DISTINCT game_id) as games
                 FROM system_logs
@@ -260,7 +256,7 @@ class DatabaseLoggingManager:
             return {
                 'total_logs': stats[0] or 0,
                 'log_levels': stats[1] or 0,
-                'loggers': stats[2] or 0,
+                'components': stats[2] or 0,
                 'sessions': stats[3] or 0,
                 'games': stats[4] or 0,
                 'level_distribution': level_distribution

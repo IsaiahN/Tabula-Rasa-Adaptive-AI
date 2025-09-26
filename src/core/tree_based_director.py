@@ -917,7 +917,7 @@ class TreeBasedDirector:
         if constraints:
             narrative_parts.append(f"Strategic constraints: {len(constraints)} to manage")
         
-        return " → ".join(narrative_parts)
+        return " -> ".join(narrative_parts)
     
     def _generate_reflective_narrative(self, 
                                      trace: ReasoningTrace, 

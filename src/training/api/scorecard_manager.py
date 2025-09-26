@@ -145,7 +145,30 @@ class ScorecardManager:
     def get_active_scorecard_id(self) -> Optional[str]:
         """Get the active scorecard ID."""
         return self.active_scorecard_id
-    
+
+    async def get_current_scorecard(self) -> Optional[Dict[str, Any]]:
+        """Get current scorecard data."""
+        try:
+            if not self.active_scorecard_id:
+                return None
+
+            # Get scorecard status which includes data
+            status = await self.get_scorecard_status()
+            if status.get('success'):
+                return {
+                    'id': self.active_scorecard_id,
+                    'name': f"Training Scorecard {self.active_scorecard_id}",
+                    'description': "Training session scorecard",
+                    'total_games': status.get('total_games', 0),
+                    'total_score': status.get('total_score', 0.0),
+                    'created_at': getattr(self, 'created_at', None),
+                    'updated_at': status.get('timestamp')
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Error getting current scorecard: {e}")
+            return None
+
     async def close(self) -> None:
         """Close the scorecard manager."""
         if self.scorecard_api_manager:

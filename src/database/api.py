@@ -400,24 +400,30 @@ class TabulaRasaDatabase:
     # LOGGING AND TRACING
     # ============================================================================
     
-    async def log_system_event(self, level: LogLevel, component: Component, message: str, 
-                              data: Dict[str, Any] = None, session_id: str = None, 
+    async def log_system_event(self, level: Union[LogLevel, str], component: Union[Component, str], message: str,
+                              data: Dict[str, Any] = None, session_id: str = None,
                               game_id: str = None) -> bool:
         """Log system event."""
         async with self.get_connection() as conn:
             try:
+                # Convert level to string if it's an enum, otherwise use as-is
+                level_str = level.value if hasattr(level, 'value') else str(level)
+
+                # Convert component to string if it's an enum, otherwise use as-is
+                component_str = component.value if hasattr(component, 'value') else str(component)
+
                 # Custom JSON encoder to handle datetime objects
                 def json_serializer(obj):
                     if isinstance(obj, datetime):
                         return obj.isoformat()
                     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-                
+
                 conn.execute("""
                     INSERT INTO system_logs
                     (log_level, component, message, data, session_id, game_id, timestamp)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    level.value, component.value, message,
+                    level_str, component_str, message,
                     json.dumps(data, default=json_serializer) if data else None,
                     session_id, game_id, datetime.now()
                 ))

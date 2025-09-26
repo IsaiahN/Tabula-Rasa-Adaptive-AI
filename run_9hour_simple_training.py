@@ -39,6 +39,7 @@ except ImportError:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from database.system_integration import get_system_integration
 from database.db_initializer import ensure_database_ready
+from database.database_logging_handler import setup_database_logging
 from training import ContinuousLearningLoop
 
 # Global shutdown flag and cleanup handler
@@ -46,13 +47,43 @@ shutdown_requested = False
 cleanup_handler = None
 cleanup_task = None
 
-# Configure logging: raise level for noisy debug modules to reduce console spam
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
-# Quiet the detailed stagnation system and action selector debug noise
-# Set to ERROR to suppress debug/info/warning from the stagnation system
-logging.getLogger('src.core.stagnation_intervention_system').setLevel(logging.ERROR)
-# Reduce action selector verbosity to ERROR to cut console spam during long runs
-logging.getLogger('training.analysis.action_selector').setLevel(logging.ERROR)
+# Configure logging: only show ERROR messages and above to reduce console spam
+logging.basicConfig(level=logging.ERROR, format='%(levelname)s:%(name)s:%(message)s')
+
+# Set all logger levels to ERROR to prevent INFO messages from any module
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.ERROR)
+
+# Set specific modules to ERROR level to suppress all INFO/DEBUG/WARNING
+for module in [
+    'src.learning.game_type_classifier',
+    'training.api.scorecard_manager',
+    'src.core.unified_performance_monitor',
+    'src.core.four_phase_memory_coordinator',
+    'src.core.enhanced_space_time_governor',
+    'training.governor.governor',
+    'src.core.architect',
+    'training.governor.meta_cognitive',
+    'training.core.continuous_learning_loop',
+    'training.api.api_manager',
+    'src.arc_integration.arc_api_client',
+    'src.core.pattern_discovery_curiosity',
+    'src.core.stagnation_intervention_system',
+    'training.analysis.action_selector'
+]:
+    logging.getLogger(module).setLevel(logging.ERROR)
+
+# Also suppress any modules that might still log at INFO level
+logging.getLogger().setLevel(logging.ERROR)
+for logger_name in logging.Logger.manager.loggerDict:
+    if isinstance(logging.getLogger(logger_name), logging.Logger):
+        logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+# Set up database logging to capture ALL log levels (including ERROR) to database
+# This ensures ERROR messages get logged to database even though console only shows ERROR+
+db_logger = setup_database_logging("tabula_rasa", level=logging.DEBUG)
+# Add database logging to the root logger so all modules use it
+root_logger.addHandler(db_logger.handlers[0])
 
 def signal_handler(signum, frame):
     """Handle graceful shutdown signals."""
@@ -135,9 +166,44 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         async def cleanup():
             """Cleanup function for graceful shutdown."""
             try:
-                print("[CLEANUP] Cleaning up resources...")
+                print("[CLEANUP] Starting comprehensive cleanup...")
+
+                # 1. Close current game if active
+                if hasattr(learning_loop, 'current_game_id') and learning_loop.current_game_id:
+                    print(f"[CLEANUP] Finishing current game: {learning_loop.current_game_id}")
+                    try:
+                        await learning_loop.finish_current_game()
+                    except Exception as e:
+                        print(f"[WARN] Error finishing game: {e}")
+
+                # 2. Close current session if active
+                if hasattr(learning_loop, 'current_session_id') and learning_loop.current_session_id:
+                    print(f"[CLEANUP] Closing current session: {learning_loop.current_session_id}")
+                    try:
+                        await learning_loop.finish_current_session()
+                    except Exception as e:
+                        print(f"[WARN] Error finishing session: {e}")
+
+                # 3. Save scorecard data
+                print("[CLEANUP] Saving scorecard data...")
+                try:
+                    await learning_loop.save_scorecard_data()
+                except Exception as e:
+                    print(f"[WARN] Error saving scorecard data: {e}")
+
+                # 4. Ensure all pending database writes are completed
+                print("[CLEANUP] Flushing database writes...")
+                try:
+                    integration = get_system_integration()
+                    await integration.flush_pending_writes()
+                except Exception as e:
+                    print(f"[WARN] Error flushing database: {e}")
+
+                # 5. Close learning loop resources
+                print("[CLEANUP] Closing learning loop...")
                 await learning_loop.close()
-                print("[OK] Cleanup completed")
+
+                print("[OK] Comprehensive cleanup completed")
             except Exception as e:
                 print(f"[WARN] Error during cleanup: {e}")
 

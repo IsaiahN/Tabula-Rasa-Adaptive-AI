@@ -88,12 +88,12 @@ class ScorecardAPIManager:
     
     def get_scorecard_data(self, card_id: str) -> Optional[Dict]:
         """Retrieve current scorecard data including level completions."""
-        
+
         url = f"{self.base_url}/api/scorecard/{card_id}"
-        
+
         try:
             response = requests.get(url, headers=self.headers, timeout=30)
-            
+
             if response.status_code == 200:
                 data = response.json()
                 logger.info(f" Retrieved scorecard data for {card_id}")
@@ -104,10 +104,52 @@ class ScorecardAPIManager:
             else:
                 logger.error(f" Failed to retrieve scorecard: {response.status_code} - {response.text}")
                 return None
-                
+
         except Exception as e:
             logger.error(f" Error retrieving scorecard: {e}")
             return None
+
+    async def get_scorecard_status(self, card_id: str) -> Dict:
+        """Get scorecard status with comprehensive analysis."""
+        try:
+            # Get raw scorecard data
+            scorecard_data = self.get_scorecard_data(card_id)
+
+            if not scorecard_data:
+                return {
+                    'success': False,
+                    'error': 'Scorecard not found or inaccessible',
+                    'total_games': 0,
+                    'total_score': 0.0,
+                    'timestamp': datetime.now().isoformat()
+                }
+
+            # Analyze the data
+            analysis = self.analyze_level_completions(scorecard_data)
+
+            return {
+                'success': True,
+                'card_id': card_id,
+                'total_games': analysis.get('total_played', 0),
+                'total_wins': analysis.get('total_wins', 0),
+                'total_score': analysis.get('total_score', 0.0),
+                'total_actions': analysis.get('total_actions', 0),
+                'win_rate': analysis.get('win_rate', 0.0),
+                'level_completions': analysis.get('level_completions', 0),
+                'games_completed': analysis.get('games_completed', 0),
+                'timestamp': datetime.now().isoformat(),
+                'raw_data': scorecard_data
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting scorecard status: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'total_games': 0,
+                'total_score': 0.0,
+                'timestamp': datetime.now().isoformat()
+            }
     
     def analyze_level_completions(self, scorecard_data: Dict) -> Dict:
         """Analyze scorecard data to extract level completion statistics."""

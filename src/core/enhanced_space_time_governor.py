@@ -280,6 +280,10 @@ class EnhancedSpaceTimeGovernor:
     
     def _initialize_learning_components(self):
         """Initialize learning and pattern recognition components."""
+        # Skip initialization if already done
+        if hasattr(self, 'learning_manager') and self.learning_manager is not None:
+            return
+
         try:
             from .meta_learning import MetaLearningSystem
             # Initialize with database-only approach

@@ -2,7 +2,7 @@
 """
 Systematic Exploration Phases System
 
-This module implements systematic exploration phases (corners → center → edges → random)
+This module implements systematic exploration phases (corners -> center -> edges -> random)
 with database tracking and intelligent coordinate selection.
 """
 
@@ -386,7 +386,7 @@ class SystematicExplorationSystem:
                 await self._store_exploration_phase(new_phase)
                 self.active_phases[phase.game_id] = new_phase
                 
-                logger.info(f"Exploration phase advanced: {phase.phase_name.value} → {next_phase.value}")
+                logger.info(f"Exploration phase advanced: {phase.phase_name.value} -> {next_phase.value}")
             
         except Exception as e:
             logger.error(f"Error checking phase advancement: {e}")

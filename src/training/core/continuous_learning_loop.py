@@ -231,7 +231,7 @@ class ContinuousLearningLoop:
                         action_display = f"Action {actions_taken}: {action_to_take}"
                         if isinstance(action_to_take, dict) and 'reason' in action_to_take:
                             action_display += f" ({action_to_take['reason']})"
-                        print(f"   {action_display} → Score: {total_score} (+{score_change})")
+                        print(f"   {action_display} -> Score: {total_score} (+{score_change})")
                         
                         # Update game state for next iteration
                         game_state = {
@@ -251,7 +251,7 @@ class ContinuousLearningLoop:
                         # Small delay between actions (dynamic pausing handles rate limits)
                         await asyncio.sleep(0.1)  # 100ms delay
                     else:
-                        print(f"   Action {actions_taken}: {action_to_take} → Failed")
+                        print(f"   Action {actions_taken}: {action_to_take} -> Failed")
                         break
                         
                 except Exception as e:
@@ -646,7 +646,67 @@ class ContinuousLearningLoop:
         self.shutdown_handler.request_shutdown()
         logger.info("External shutdown requested")
     
+    async def finish_current_game(self) -> None:
+        """Finish the current game and save all data."""
+        try:
+            if hasattr(self, 'current_game_id') and self.current_game_id:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+
+                # Ensure game is closed in database
+                session_id = getattr(self, 'current_session_id', 'unknown')
+                await integration.ensure_game_closed(self.current_game_id, session_id)
+
+                logger.info(f"Finished current game: {self.current_game_id}")
+        except Exception as e:
+            logger.error(f"Error finishing current game: {e}")
+
+    async def finish_current_session(self) -> None:
+        """Finish the current session and save all data."""
+        try:
+            if hasattr(self, 'current_session_id') and self.current_session_id:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+
+                # Ensure session is closed in database
+                await integration.ensure_session_closed(self.current_session_id)
+
+                logger.info(f"Finished current session: {self.current_session_id}")
+        except Exception as e:
+            logger.error(f"Error finishing current session: {e}")
+
+    async def save_scorecard_data(self) -> None:
+        """Save scorecard data to database."""
+        try:
+            if hasattr(self, 'api_manager') and self.api_manager:
+                # Get scorecard data from API manager
+                scorecard_data = await self.api_manager.get_current_scorecard_data()
+                if scorecard_data:
+                    # Save to database via system integration
+                    from src.database.system_integration import get_system_integration
+                    integration = get_system_integration()
+                    await integration.save_scorecard_data(scorecard_data)
+                    logger.info("Scorecard data saved to database")
+                else:
+                    logger.warning("No scorecard data to save")
+        except Exception as e:
+            logger.error(f"Error saving scorecard data: {e}")
+
     async def close(self) -> None:
         """Close the continuous learning loop."""
-        await self.api_manager.close()
-        logger.info("Continuous learning loop closed")
+        try:
+            # Ensure current operations are finished
+            await self.finish_current_game()
+            await self.finish_current_session()
+            await self.save_scorecard_data()
+
+            # Close API manager
+            await self.api_manager.close()
+            logger.info("Continuous learning loop closed")
+        except Exception as e:
+            logger.error(f"Error during close: {e}")
+            # Still try to close API manager
+            try:
+                await self.api_manager.close()
+            except:
+                pass

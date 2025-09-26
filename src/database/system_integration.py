@@ -885,6 +885,46 @@ class SystemIntegration:
             self.logger.error(f"Error getting governor decisions: {e}")
             return []
 
+    # ============================================================================
+    # CLEANUP AND DATA INTEGRITY METHODS
+    # ============================================================================
+
+    async def flush_pending_writes(self) -> bool:
+        """Ensure all pending database writes are completed."""
+        try:
+            # The database should auto-commit, but let's ensure everything is saved
+            await self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error flushing database writes: {e}")
+            return False
+
+    async def save_scorecard_data(self, scorecard_data: Dict[str, Any]) -> bool:
+        """Save scorecard data to database."""
+        try:
+            # Add scorecard data to session if we have one
+            session_id = scorecard_data.get('session_id', 'unknown')
+
+            # Log scorecard information
+            await self.log_system_event(
+                LogLevel.INFO, Component.EXPERIMENT,
+                f"Scorecard data saved for session {session_id}",
+                scorecard_data, session_id
+            )
+
+            # Update session with scorecard info if session exists
+            if session_id != 'unknown':
+                await self.db.execute("""
+                    UPDATE training_sessions
+                    SET updated_at = CURRENT_TIMESTAMP
+                    WHERE session_id = ?
+                """, (session_id,))
+
+            return True
+        except Exception as e:
+            self.logger.error(f"Error saving scorecard data: {e}")
+            return False
+
 # ============================================================================
 # GLOBAL INTEGRATION INSTANCE
 # ============================================================================
@@ -1026,9 +1066,10 @@ async def get_subsystem_alerts(subsystem_id: str, hours: int = 24) -> List[Dict[
         print(f"Failed to get subsystem alerts: {e}")
         return []
 
-# ============================================================================       
-# CONVENIENCE FUNCTIONS
-# ============================================================================       
+
+# ============================================================================
+# CONVENIENCE FUNCTIONS  
+# ============================================================================
 
 async def log_event(level: str, component: str, message: str, **kwargs):
     """Quick log event function."""

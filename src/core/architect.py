@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 from .system_design.genome import SystemGenome
 from .mutation_system import MutationEngine, SandboxTester, Mutation, TestResult
 from .evolution_engine import EvolutionEngine
-from .component_coordination import ComponentCoordinator, SystemIntegration
+from .component_coordination import ComponentCoordinator, ComponentSystemIntegration
 
 class Architect:
     """
@@ -34,7 +34,7 @@ class Architect:
         self.sandbox_tester = SandboxTester(self.base_path, self.logger)
         self.evolution_engine = EvolutionEngine(self.logger)
         self.component_coordinator = ComponentCoordinator(self.logger)
-        self.system_integration = SystemIntegration(self.logger)
+        self.system_integration = ComponentSystemIntegration(self.logger)
         
         # Evolution state
         self.generation = 0

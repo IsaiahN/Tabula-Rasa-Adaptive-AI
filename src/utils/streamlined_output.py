@@ -161,7 +161,7 @@ class StreamlinedOutput:
         """Log fallback usage."""
         if self._should_show(OutputLevel.NORMAL):
             comp_info = f" [{component}]" if component else ""
-            self._print(f" FALLBACK{comp_info}: {original} → {fallback}", 
+            self._print(f" FALLBACK{comp_info}: {original} -> {fallback}",
                        OutputLevel.NORMAL, self.Fore.MAGENTA)
     
     def system_status(self, status: str, details: str = ""):

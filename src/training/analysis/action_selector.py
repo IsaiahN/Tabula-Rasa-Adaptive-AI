@@ -2601,14 +2601,16 @@ class ActionSelector:
                 current_score = float(current_score)
             else:
                 current_score = 0.0
-                
+
+            # Initialize last_score before the conditional block
+            last_score = 0.0
             if len(self.performance_history) > 0:
                 last_score = self.performance_history[-1].get('score', 0)
                 if isinstance(last_score, (int, float)):
                     last_score = float(last_score)
                 else:
                     last_score = 0.0
-                    
+
                 if current_score > last_score:
                     self.coordinate_success_rates[coordinate]['successes'] += 1
             

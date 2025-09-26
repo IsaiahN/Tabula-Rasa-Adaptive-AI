@@ -58,3 +58,22 @@ class SystemIntegration:
         except Exception as e:
             self.logger.error(f"Failed to establish communication with {component}: {e}")
             return None
+
+    async def save_scorecard_data(self, scorecard_data: Dict[str, Any]) -> bool:
+        """Save scorecard data (compatibility method)."""
+        try:
+            self.logger.info(f"Scorecard data received: {len(scorecard_data)} items")
+            # For this integration class, we just log the data
+            return True
+        except Exception as e:
+            self.logger.error(f"Error saving scorecard data: {e}")
+            return False
+
+    async def flush_pending_writes(self) -> bool:
+        """Flush pending writes (compatibility method)."""
+        try:
+            self.logger.info("Flushing pending writes (no-op for this integration class)")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error flushing writes: {e}")
+            return False
