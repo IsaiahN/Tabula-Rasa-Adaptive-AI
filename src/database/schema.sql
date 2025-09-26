@@ -588,6 +588,25 @@ CREATE TABLE IF NOT EXISTS gan_performance_metrics (
     FOREIGN KEY (session_id) REFERENCES gan_training_sessions(session_id)
 );
 
+-- GAN training data - Frame-Action pairs for GAN training
+CREATE TABLE IF NOT EXISTS gan_training_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    session_id TEXT,
+    action_number INTEGER NOT NULL,
+    coordinates TEXT, -- JSON format [x, y] for action 6
+    previous_frame TEXT, -- JSON compressed frame data
+    current_frame TEXT, -- JSON compressed frame data
+    frame_changes TEXT, -- JSON array of change coordinates
+    score_change INTEGER DEFAULT 0,
+    is_button_candidate BOOLEAN DEFAULT FALSE,
+    button_candidate_confidence REAL DEFAULT 0.0,
+    frame_comparison_data TEXT, -- JSON metadata about frame comparison
+    timestamp REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES training_sessions(session_id)
+);
+
 -- ============================================================================
 -- ADVANCED ACTION SYSTEM TABLES
 -- ============================================================================
@@ -788,3 +807,7 @@ CREATE INDEX IF NOT EXISTS idx_gan_model_checkpoints_session ON gan_model_checkp
 CREATE INDEX IF NOT EXISTS idx_gan_pattern_learning_session ON gan_pattern_learning(session_id);
 CREATE INDEX IF NOT EXISTS idx_gan_reverse_engineering_session ON gan_reverse_engineering(session_id);
 CREATE INDEX IF NOT EXISTS idx_gan_performance_metrics_session ON gan_performance_metrics(session_id);
+CREATE INDEX IF NOT EXISTS idx_gan_training_data_game ON gan_training_data(game_id);
+CREATE INDEX IF NOT EXISTS idx_gan_training_data_action ON gan_training_data(action_number);
+CREATE INDEX IF NOT EXISTS idx_gan_training_data_button_candidate ON gan_training_data(is_button_candidate);
+CREATE INDEX IF NOT EXISTS idx_gan_training_data_timestamp ON gan_training_data(timestamp);

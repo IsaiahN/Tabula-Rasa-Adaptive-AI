@@ -235,7 +235,7 @@ class TrainingSession:
     learning_rate_schedule: Dict[str, float]
     save_interval: int
     target_performance: Dict[str, float]
-    max_actions_per_session: int = 500  # Default action limit per game session
+    max_actions_per_session: int = 5000  # Default action limit per game session
     enable_contrarian_strategy: bool = False  # New contrarian mode
     salience_mode: SalienceMode = SalienceMode.LOSSLESS
     enable_salience_comparison: bool = False
@@ -3509,7 +3509,7 @@ class ContinuousLearningLoop:
             episode_start_time = time.time()
             
             # Use the max_actions_per_session from current session if available, otherwise use default
-            max_actions_per_session = getattr(self.current_session, 'max_actions_per_session', 500)
+            max_actions_per_session = getattr(self.current_session, 'max_actions_per_session', 5000)
             
             # Initialize variables to avoid undefined errors
             stdout_text = ""
@@ -6387,7 +6387,7 @@ class ContinuousLearningLoop:
         self,
         games: List[str],
         max_mastery_sessions_per_game: int = 50,  # Updated parameter name
-        max_actions_per_session: int = 500,  # Default action limit per game session
+        max_actions_per_session: int = 5000,  # Default action limit per game session
         enable_contrarian_mode: bool = False,  # New parameter
         target_win_rate: float = 0.3,
         target_avg_score: float = 50.0,
@@ -8709,7 +8709,7 @@ class ContinuousLearningLoop:
     async def start_training_with_direct_control(
         self, 
         game_id: str,
-        max_actions_per_game: int = 500,
+        max_actions_per_game: int = 5000,
         session_count: int = 0
     ) -> Dict[str, Any]:
         """Run training session with direct API action control instead of external main.py."""

@@ -26,8 +26,8 @@ class FitnessEvaluator:
                 fitness += 0.1
             
             # Action limit optimization (prefer reasonable values)
-            max_actions = individual.get('max_actions_per_game', 500)
-            if 300 <= max_actions <= 800:
+            max_actions = individual.get('max_actions_per_game', 5000)
+            if 3000 <= max_actions <= 8000:
                 fitness += 0.2
             else:
                 fitness += 0.1

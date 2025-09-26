@@ -683,7 +683,7 @@ class SystemIntegration:
             self.logger.error(f"Error storing winning strategy: {e}")
             return False
     
-    async def store_frame_change_analysis(self, 
+    async def store_frame_change_analysis(self,
                                         game_id: str,
                                         action_number: int,
                                         coordinates: Optional[Tuple[int, int]],
@@ -710,6 +710,69 @@ class SystemIntegration:
             return True
         except Exception as e:
             self.logger.error(f"Error storing frame change analysis: {e}")
+            return False
+
+    async def store_frame_action_data_for_gan(self,
+                                            game_id: str,
+                                            session_id: str,
+                                            action_number: int,
+                                            coordinates: Optional[Tuple[int, int]],
+                                            previous_frame: Any,
+                                            current_frame: Any,
+                                            frame_changes: List[Tuple[int, int]],
+                                            score_change: int,
+                                            is_button_candidate: bool = False,
+                                            button_candidate_confidence: float = 0.0) -> bool:
+        """Store frame-action pair data for GAN training."""
+        try:
+            import time
+            import json
+            import zlib
+            import base64
+
+            # Compress frame data for storage efficiency
+            def compress_frame(frame_data):
+                if frame_data is None:
+                    return None
+                try:
+                    frame_json = json.dumps(frame_data)
+                    compressed = zlib.compress(frame_json.encode('utf-8'))
+                    return base64.b64encode(compressed).decode('ascii')
+                except Exception as e:
+                    self.logger.warning(f"Frame compression failed: {e}")
+                    return json.dumps(frame_data)  # Fallback to uncompressed
+
+            # Prepare data for storage
+            compressed_previous = compress_frame(previous_frame)
+            compressed_current = compress_frame(current_frame)
+            coordinates_json = json.dumps(list(coordinates)) if coordinates else None
+            frame_changes_json = json.dumps(frame_changes) if frame_changes else None
+
+            # Generate frame comparison metadata
+            frame_comparison_data = {
+                'total_changes': len(frame_changes) if frame_changes else 0,
+                'has_previous_frame': previous_frame is not None,
+                'compression_used': True,
+                'timestamp': time.time()
+            }
+
+            # Store in database
+            await self.db.execute("""
+                INSERT INTO gan_training_data
+                (game_id, session_id, action_number, coordinates, previous_frame,
+                 current_frame, frame_changes, score_change, is_button_candidate,
+                 button_candidate_confidence, frame_comparison_data, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (game_id, session_id, action_number, coordinates_json, compressed_previous,
+                  compressed_current, frame_changes_json, score_change, is_button_candidate,
+                  button_candidate_confidence, json.dumps(frame_comparison_data), time.time()))
+
+            self.logger.debug(f"[GAN] Stored frame-action data for game {game_id}, action {action_number}, "
+                            f"button_candidate={is_button_candidate}, changes={len(frame_changes) if frame_changes else 0}")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Error storing frame-action data for GAN: {e}")
             return False
     
     async def store_exploration_phase(self, 

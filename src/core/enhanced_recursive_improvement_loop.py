@@ -191,7 +191,7 @@ class EnhancedRecursiveImprovementLoop:
             # Set up performance baseline
             await self._establish_performance_baseline()
             
-            logger.info("Enhanced Recursive Improvement Loop initialized successfully")
+            logger.info("Enhanced Recursive Improvement Loop initialization complete")
             return True
             
         except Exception as e:

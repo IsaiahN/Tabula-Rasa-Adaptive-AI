@@ -92,7 +92,7 @@ class ContinuousLearningLoop:
             logger.error(f"Error getting available games: {e}")
             return []
     
-    async def start_training_with_direct_control(self, game_id: str, max_actions_per_game: int = 500, 
+    async def start_training_with_direct_control(self, game_id: str, max_actions_per_game: int = 5000, 
                                                session_count: int = 1, duration_minutes: int = 15) -> Dict[str, Any]:
         """Start training with direct API control using real ARC-AGI-3 API."""
         try:

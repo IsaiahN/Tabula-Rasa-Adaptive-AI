@@ -287,7 +287,7 @@ class CoordinateAwareTrainingManager:
             # Test coordinate-aware approach
             coord_results = await self.run_enhanced_training_session(
                 game_id=game_id,
-                max_actions=500,
+                max_actions=5000,
                 use_coordinate_awareness=True
             )
             benchmark_results['coordinate_aware_results'][game_id] = coord_results
@@ -295,7 +295,7 @@ class CoordinateAwareTrainingManager:
             # Test traditional approach
             traditional_results = await self.run_enhanced_training_session(
                 game_id=game_id,
-                max_actions=500,
+                max_actions=5000,
                 use_coordinate_awareness=False
             )
             benchmark_results['traditional_results'][game_id] = traditional_results

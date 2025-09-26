@@ -38,7 +38,7 @@ class SystemGenome:
     """
     # Core learning parameters
     salience_mode: str = "decay_compression"
-    max_actions_per_game: int = 500
+    max_actions_per_game: int = 5000
     max_learning_cycles: int = 50
     target_score: float = 85.0
     

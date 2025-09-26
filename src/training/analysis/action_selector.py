@@ -150,6 +150,12 @@ class ActionSelector:
         # Initialize game type classifier
         self.game_type_classifier = None
         self._initialize_game_type_classifier()
+
+        # Frame caching system for button candidate detection
+        self.previous_frame_cache = None  # Store previous frame for comparison
+        self.frame_comparison_threshold = 0.3  # 30% change threshold for detecting notable changes
+        self.button_candidate_cache = {}  # Cache detected button candidates by game_id
+        self.frame_change_history = []  # Track frame changes over time
         
         if TREE_EVALUATION_AVAILABLE:
             try:
@@ -216,14 +222,24 @@ class ActionSelector:
         
     async def select_action(self, game_state: Dict[str, Any], available_actions: List[int]) -> Dict[str, Any]:
         """Select the best action using advanced OpenCV analysis and pattern matching."""
-        
+
         try:
+            # PRIORITY: Validate and prioritize available actions (removes action 0, prioritizes 1-4)
+            original_actions = available_actions.copy()
+            available_actions = self._validate_and_prioritize_actions(available_actions)
+
+            if original_actions != available_actions:
+                removed_actions = set(original_actions) - set(available_actions)
+                if removed_actions:
+                    logger.warning(f"[PRIORITY] Filtered out invalid actions: {list(removed_actions)}")
+                logger.info(f"[PRIORITY] Prioritized actions: {available_actions} (original: {original_actions})")
+
             # Extract frame data and current state
             frame_data = game_state.get('frame', [])
             current_score = game_state.get('score', 0)
             game_state_status = game_state.get('state', 'NOT_FINISHED')
             game_id = game_state.get('game_id', 'unknown')
-            
+
             logger.info(f"[CHECK] DEBUG: Starting action selection with frame_data type: {type(frame_data)}")
             if hasattr(frame_data, 'shape'):
                 logger.info(f"[CHECK] DEBUG: frame_data shape: {frame_data.shape}")
@@ -235,15 +251,23 @@ class ActionSelector:
             logger.error(f"[CHECK] DEBUG: Traceback: {traceback.format_exc()}")
             raise
         
+        # Check if primary actions 1-4 are available
+        primary_actions_available = any(action in [1, 2, 3, 4] for action in available_actions)
+        
+        if primary_actions_available:
+            logger.info("[PRIORITY] Primary actions 1-4 detected - prioritizing over action 6 systems")
+        else:
+            logger.info("[PRIORITY] No primary actions 1-4 available - enabling action 6 fallback systems")
+        
         # 0. STAGNATION INTERVENTION - Check for stagnation and trigger intervention
         if self.stagnation_intervention_system:
             try:
-                logger.info(f" STAGNATION SYSTEM ACTIVE - Analyzing frame {len(self.stagnation_intervention_system.frame_history) if hasattr(self.stagnation_intervention_system, 'frame_history') else 'unknown'}")
+                logger.info(f"⚠ STAGNATION SYSTEM ACTIVE - Analyzing frame {len(self.stagnation_intervention_system.frame_history) if hasattr(self.stagnation_intervention_system, 'frame_history') else 'unknown'}")
                 logger.info(f"[CHECK] DEBUG: About to call stagnation_intervention_system.analyze_frame with frame_data type: {type(frame_data)}")
                 stagnation_event = await self.stagnation_intervention_system.analyze_frame(frame_data, game_state)
                 
                 if stagnation_event and stagnation_event.intervention_required:
-                    logger.warning(f" STAGNATION DETECTED: {stagnation_event.type.value} (severity: {stagnation_event.severity:.2f})")
+                    logger.warning(f"⚠ STAGNATION DETECTED: {stagnation_event.type.value} (severity: {stagnation_event.severity:.2f})")
                     
                     # Trigger multi-system intervention
                     intervention = await self.stagnation_intervention_system.trigger_intervention(stagnation_event)
@@ -251,19 +275,21 @@ class ActionSelector:
                     # Use emergency actions to break stagnation
                     if intervention.get('emergency_actions'):
                         emergency_action = intervention['emergency_actions'][0]  # Use first emergency action
-                        logger.warning(f" EMERGENCY INTERVENTION: {emergency_action['reason']}")
+                        logger.warning(f"🚨 EMERGENCY INTERVENTION: {emergency_action['reason']}")
                         return emergency_action
             except Exception as e:
                 logger.error(f"[CHECK] DEBUG: Error in stagnation analysis: {e}")
                 import traceback
                 logger.error(f"[CHECK] DEBUG: Stagnation analysis traceback: {traceback.format_exc()}")
                 # Don't raise - continue with normal action selection
-                logger.warning(f" STAGNATION SYSTEM ERROR - Continuing with normal action selection")
+                logger.warning(f"⚠ STAGNATION SYSTEM ERROR - Continuing with normal action selection")
         else:
-            logger.warning(f" STAGNATION SYSTEM NOT AVAILABLE - Advanced systems: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
+            logger.warning(f"⚠ STAGNATION SYSTEM NOT AVAILABLE - Advanced systems: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
         
-        # 0.5. SYSTEMATIC BUTTON DISCOVERY - Test every object with Action 6 (only if no stagnation)
-        if self.button_discovery_system and 6 in available_actions and not self.stagnation_intervention_system.is_intervention_active():
+        # 0.5. SYSTEMATIC BUTTON DISCOVERY - Only when actions 1-4 are NOT available
+        if (self.button_discovery_system and 6 in available_actions and 
+            not primary_actions_available and 
+            not self.stagnation_intervention_system.is_intervention_active()):
             # Initialize button discovery for new games
             if not hasattr(self, '_current_game_id') or self._current_game_id != game_id:
                 await self.button_discovery_system.start_new_game(game_id, frame_data)
@@ -283,11 +309,10 @@ class ActionSelector:
                     'source': 'button_discovery'
                 }
 
-        # NEW: BUTTON-FIRST DISCOVERY PASS
-        # Discover all candidate button coordinates early and prioritize them for Action 6 suggestions
+        # BUTTON-FIRST DISCOVERY PASS - Only when actions 1-4 are NOT available
         discovered_button_suggestions = []
         try:
-            if 6 in available_actions:
+            if 6 in available_actions and not primary_actions_available:
                 # Gather candidates from frame analyzer, persistent button_priorities, and learned coordinates
                 frame_buttons = self._gather_buttons_from_frame(self.last_frame_analysis or self.frame_analyzer.analyze_frame(game_state.get('frame', [])))
                 # Load persisted button priorities if available via a coordinate_intelligence_system
@@ -318,7 +343,7 @@ class ActionSelector:
                         'x': coord[0],
                         'y': coord[1],
                         'confidence': 0.9 if coord in frame_buttons else 0.75,
-                        'reason': 'Discovered button candidate',
+                        'reason': 'Discovered button candidate (fallback)',
                         'source': 'button_first_discovery'
                     })
         except Exception as e:
@@ -328,40 +353,50 @@ class ActionSelector:
         frame_analysis = self.frame_analyzer.analyze_frame(frame_data)
         self.last_frame_analysis = frame_analysis
 
+        # 1.5. FRAME COMPARISON BUTTON CANDIDATE DETECTION - Only when actions 1-4 are NOT available
+        frame_comparison_suggestions = []
+        if 6 in available_actions and not primary_actions_available and self.previous_frame_cache is not None:
+            frame_comparison_suggestions = self._detect_button_candidates_by_frame_changes(
+                self.previous_frame_cache, frame_data
+            )
+            if frame_comparison_suggestions:
+                logger.info(f"[FRAME] Frame comparison detected {len(frame_comparison_suggestions)} button candidates")
+
+        # Cache current frame for next comparison
+        self._cache_frame_data(frame_data, game_id)
+
         # 2. PATTERN MATCHING - Learn from successful patterns
         pattern_suggestions = self._analyze_patterns(frame_analysis, available_actions)
 
         # 3. COORDINATE INTELLIGENCE - Learn from successful coordinates
         coordinate_suggestions = await self._get_intelligent_coordinates(frame_analysis, available_actions, game_state)
         
-        # 4. OPENCV OBJECT TESTING - Test objects for interactivity (PRIMARY for Action 6)
+        # 4. OPENCV OBJECT TESTING - Modified prioritization based on available actions
+        opencv_suggestions = []
         if 6 in available_actions:
-            # Check if this is an Action 6 centric game
-            is_action6_centric = self._is_action6_centric_game(game_state, available_actions)
+            # Check if this is an Action 6 centric game - only when no primary actions available
+            is_action6_centric = self._is_action6_centric_game(game_state, available_actions) and not primary_actions_available
             
             if is_action6_centric:
                 logger.info("[TARGET] ACTION 6 CENTRIC GAME DETECTED - Focusing on button discovery and testing")
             
-            # Get confirmed interactive objects (highest priority for Action 6)
-            interactive_suggestions = self._get_interactive_objects(frame_analysis)
+            # Get confirmed interactive objects (only prioritize for Action 6 when no primary actions)
+            if not primary_actions_available:
+                interactive_suggestions = self._get_interactive_objects(frame_analysis)
+                untested_suggestions = self._get_untested_objects(frame_analysis)
+                opencv_detected_suggestions = self._detect_opencv_targets(frame_analysis, [6])
+                
+                # For Action 6 centric games, prioritize button testing
+                if is_action6_centric:
+                    # Increase priority for untested objects to discover more buttons
+                    for suggestion in untested_suggestions:
+                        suggestion['confidence'] = min(1.0, suggestion['confidence'] + 0.1)
+                        suggestion['reason'] += " (Action 6 centric - button discovery priority)"
+                
+                # Combine all OpenCV-based suggestions
+                opencv_suggestions = interactive_suggestions + untested_suggestions + opencv_detected_suggestions
             
-            # Get untested objects (high priority for testing)
-            untested_suggestions = self._get_untested_objects(frame_analysis)
-            
-            # Get OpenCV detected objects (medium-high priority)
-            opencv_detected_suggestions = self._detect_opencv_targets(frame_analysis, [6])
-            
-            # For Action 6 centric games, prioritize button testing
-            if is_action6_centric:
-                # Increase priority for untested objects to discover more buttons
-                for suggestion in untested_suggestions:
-                    suggestion['confidence'] = min(1.0, suggestion['confidence'] + 0.1)
-                    suggestion['reason'] += " (Action 6 centric - button discovery priority)"
-            
-            # Combine all OpenCV-based suggestions
-            opencv_suggestions = interactive_suggestions + untested_suggestions + opencv_detected_suggestions
-            
-            # If no OpenCV objects found, add random fallback for non-Action6 options
+            # If no OpenCV objects found or primary actions available, add fallback suggestions
             if not opencv_suggestions and len(available_actions) > 1:
                 # Prioritize Action 5 as primary fallback when stuck
                 if 5 in available_actions:
@@ -377,9 +412,9 @@ class ActionSelector:
                 for action_id in non_action6_actions[:2]:  # Limit to 2 additional suggestions
                     opencv_suggestions.append({
                         'action': f'ACTION{action_id}',
-                        'confidence': 0.6,  # Medium confidence for random fallback
-                        'reason': f'Random fallback - no OpenCV objects found',
-                        'source': 'random_fallback'
+                        'confidence': 0.9 if action_id in [1, 2, 3, 4] else 0.6,  # Higher confidence for primary actions
+                        'reason': f'Primary action {action_id} available' if action_id in [1, 2, 3, 4] else f'Random fallback',
+                        'source': 'primary_action' if action_id in [1, 2, 3, 4] else 'random_fallback'
                     })
         else:
             # Fallback to regular OpenCV detection
@@ -391,11 +426,11 @@ class ActionSelector:
         # 6. EXPLORATION STRATEGY - Balance exploration vs exploitation
         exploration_suggestions = self._generate_exploration_suggestions(available_actions)
         
-        # 6.5. COORDINATE EXPLORATION - LAST RESORT for Action 6 (only when no OpenCV objects)
-        if 6 in available_actions and not opencv_suggestions:
+        # 6.5. COORDINATE EXPLORATION - LAST RESORT for Action 6 (only when no primary actions and no OpenCV objects)
+        if 6 in available_actions and not primary_actions_available and not opencv_suggestions:
             coordinate_exploration_suggestions = self._get_exploration_coordinates(frame_analysis)
             exploration_suggestions.extend(coordinate_exploration_suggestions)
-            logger.info(" Using coordinate exploration as LAST RESORT for Action 6 - no OpenCV objects found")
+            logger.info("🔍 Using coordinate exploration as LAST RESORT for Action 6 - no OpenCV objects found")
         
         # 7. ADVANCED COGNITIVE SYSTEMS - Tree evaluation and sequence optimization
         advanced_suggestions = self._generate_advanced_suggestions(
@@ -459,9 +494,9 @@ class ActionSelector:
             except Exception as e:
                 logger.error(f"Error in emergency override check: {e}")
         
-        # 13. VISUAL-INTERACTIVE ACTION6 TARGETING - Enhanced Action6 targeting
+        # 13. VISUAL-INTERACTIVE ACTION6 TARGETING - Only when actions 1-4 are NOT available
         visual_targeting_suggestions = []
-        if 6 in available_actions and self.visual_interactive_system:
+        if 6 in available_actions and not primary_actions_available and self.visual_interactive_system:
             try:
                 visual_analysis = await self.visual_interactive_system.analyze_frame_for_action6_targets(
                     frame_data, game_state.get('game_id', 'unknown'), available_actions
@@ -472,15 +507,15 @@ class ActionSelector:
                         'action': 'ACTION6',
                         'coordinates': (x, y),
                         'confidence': visual_analysis.get('confidence', 0.5),
-                        'reason': visual_analysis.get('targeting_reason', 'Visual target detected'),
+                        'reason': visual_analysis.get('targeting_reason', 'Visual target detected (fallback)'),
                         'source': 'visual_interactive_targeting'
                     })
             except Exception as e:
                 logger.error(f"Error in visual interactive targeting: {e}")
         
-        # 14. SYSTEMATIC EXPLORATION - Use systematic exploration phases
+        # 14. SYSTEMATIC EXPLORATION - Only when actions 1-4 are NOT available
         exploration_phase_suggestions = []
-        if self.exploration_system:
+        if self.exploration_system and not primary_actions_available:
             try:
                 grid_dimensions = self._get_grid_dimensions(frame_data)
                 x, y, phase_name = await self.exploration_system.get_exploration_coordinates(
@@ -493,7 +528,7 @@ class ActionSelector:
                     'action': 'ACTION6',
                     'coordinates': (x, y),
                     'confidence': 0.6,
-                    'reason': f'Systematic exploration - {phase_name} phase',
+                    'reason': f'Systematic exploration - {phase_name} phase (fallback)',
                     'source': 'systematic_exploration'
                 })
             except Exception as e:
@@ -556,9 +591,9 @@ class ActionSelector:
         if self._detect_stuck_situation(game_state, available_actions):
             action5_suggestions = self._generate_action5_fallback_suggestions(available_actions)
         
-        # 12.5. BUTTON DISCOVERY SUGGESTIONS - Use discovered buttons
+        # 12.5. BUTTON DISCOVERY SUGGESTIONS - Only when actions 1-4 are NOT available
         button_discovery_suggestions = []
-        if self.button_discovery_system and 6 in available_actions:
+        if self.button_discovery_system and 6 in available_actions and not primary_actions_available:
             button_discovery_suggestions = self.button_discovery_system.get_button_suggestions(limit=3)
             if button_discovery_suggestions:
                 logger.info(f"[TARGET] BUTTON DISCOVERY: Found {len(button_discovery_suggestions)} button suggestions")
@@ -566,8 +601,9 @@ class ActionSelector:
         # 13. COMBINE ALL SUGGESTIONS - Multi-source decision making
         all_suggestions = self._combine_suggestions(
             discovered_button_suggestions,
+            frame_comparison_suggestions,  # Frame change button candidates
             pattern_suggestions,
-            coordinate_suggestions, 
+            coordinate_suggestions,
             opencv_suggestions,
             learning_suggestions,
             exploration_suggestions,
@@ -583,9 +619,9 @@ class ActionSelector:
             button_discovery_suggestions
         )
 
-        # Build an available_buttons list similar to available_actions (only when Action 6 is available)
+        # Build an available_buttons list similar to available_actions (only when Action 6 is available and no primary actions)
         try:
-            if 6 in available_actions:
+            if 6 in available_actions and not primary_actions_available:
                 buttons = []
                 for s in all_suggestions:
                     if isinstance(s, dict):
@@ -599,7 +635,7 @@ class ActionSelector:
                                 if coord not in buttons:
                                     buttons.append(coord)
                 self.available_buttons = buttons
-                logger.info(f" Available Buttons detected: {len(self.available_buttons)}")
+                logger.info(f"🎯 Available Buttons detected: {len(self.available_buttons)}")
             else:
                 self.available_buttons = []
         except Exception as e:
@@ -634,16 +670,16 @@ class ActionSelector:
             
             # If we discovered new actions, treat as pseudo score increase
             if availability_changes['pseudo_score_increase']:
-                logger.info(f" PSEUDO SCORE INCREASE: Discovered {len(availability_changes['newly_available'])} new actions!")
+                logger.info(f"🎉 PSEUDO SCORE INCREASE: Discovered {len(availability_changes['newly_available'])} new actions!")
         
         # Always log available actions for visibility
-        logger.info(f" Available Actions: {available_actions}")
+        logger.info(f"🎮 Available Actions: {available_actions}")
         
         # Log current game state summary
         current_score = game_state.get('score', 0)
         game_state_status = game_state.get('state', 'UNKNOWN')
         logger.info(f"[STATS] Game State: Score={current_score}, Status={game_state_status}")
-        logger.info("" * 80)  # Separator line for readability
+        logger.info("=" * 80)  # Separator line for readability
         
         # 10. LEARNING UPDATE - Update all learning systems
         self._update_learning_systems(best_action, game_state, frame_analysis)
@@ -735,10 +771,55 @@ class ActionSelector:
                 'score_change': score_change,
                 'frame_changes': frame_changes
             })
-            
+
             # Keep only recent history
             if len(self.performance_history) > 100:
                 self.performance_history = self.performance_history[-100:]
+
+            # Store frame-action data for GAN training
+            try:
+                from src.database.system_integration import get_system_integration
+                integration = get_system_integration()
+
+                # Get frame data from game state
+                current_frame_data = game_state.get('frame', None)
+
+                # Detect frame changes using our new comparison logic
+                frame_change_coords = []
+                is_button_candidate = False
+                button_confidence = 0.0
+
+                if self.previous_frame_cache is not None and current_frame_data is not None:
+                    # Use our frame comparison to get actual changes
+                    frame_change_coords = self._compare_frames_for_changes(
+                        self.previous_frame_cache,
+                        self._normalize_frame_data(current_frame_data)
+                    )
+
+                    # Determine if this is a button candidate based on frame changes
+                    if len(frame_change_coords) >= 3:  # Minimum changes for button candidate
+                        is_button_candidate = True
+                        button_confidence = min(len(frame_change_coords) / 20.0, 0.9)
+
+                # Store the frame-action pair for GAN training
+                await integration.store_frame_action_data_for_gan(
+                    game_id=game_id,
+                    session_id=session_id,
+                    action_number=action_number,
+                    coordinates=coordinates,
+                    previous_frame=self.previous_frame_cache,
+                    current_frame=self._normalize_frame_data(current_frame_data),
+                    frame_changes=frame_change_coords,
+                    score_change=int(score_change),
+                    is_button_candidate=is_button_candidate,
+                    button_candidate_confidence=button_confidence
+                )
+
+                logger.debug(f"[GAN] Stored frame-action data: action={action_number}, changes={len(frame_change_coords)}, "
+                           f"button_candidate={is_button_candidate}, confidence={button_confidence:.2f}")
+
+            except Exception as e:
+                logger.error(f"Error storing frame-action data for GAN: {e}")
             
             # Update action history
             self.action_history.append(action_number)
@@ -812,11 +893,198 @@ class ActionSelector:
         except Exception as e:
             logger.error(f"Error getting grid dimensions: {e}")
             return (32, 32)
+
+    def _normalize_frame_data(self, frame_data: Any) -> Optional[List[List[Any]]]:
+        """Normalize frame data to consistent 2D list format."""
+        try:
+            if frame_data is None:
+                return None
+
+            # Handle different frame data formats
+            if isinstance(frame_data, list):
+                # If it's a list of frames, take the first frame
+                if len(frame_data) > 0 and isinstance(frame_data[0], list):
+                    if isinstance(frame_data[0][0], list):
+                        # 3D list - take first frame
+                        return frame_data[0]
+                    else:
+                        # Already 2D list
+                        return frame_data
+
+            # Convert numpy arrays if needed
+            if hasattr(frame_data, 'tolist'):
+                frame_list = frame_data.tolist()
+                if isinstance(frame_list[0], list):
+                    return frame_list
+
+            logger.warning(f"Could not normalize frame data of type: {type(frame_data)}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error normalizing frame data: {e}")
+            return None
+
+    def _compare_frames_for_changes(self, previous_frame: List[List[Any]], current_frame: List[List[Any]]) -> List[Tuple[int, int]]:
+        """Compare two frames and return coordinates of notable changes."""
+        try:
+            if not previous_frame or not current_frame:
+                return []
+
+            changes = []
+            height = min(len(previous_frame), len(current_frame))
+            width = min(len(previous_frame[0]), len(current_frame[0])) if height > 0 else 0
+
+            for y in range(height):
+                for x in range(width):
+                    # Compare pixel values
+                    prev_pixel = previous_frame[y][x]
+                    curr_pixel = current_frame[y][x]
+
+                    # Calculate change based on pixel type
+                    change_detected = False
+
+                    if isinstance(prev_pixel, (list, tuple)) and isinstance(curr_pixel, (list, tuple)):
+                        # RGB/color pixels - calculate color distance
+                        if len(prev_pixel) >= 3 and len(curr_pixel) >= 3:
+                            color_distance = sum(abs(a - b) for a, b in zip(prev_pixel[:3], curr_pixel[:3]))
+                            if color_distance > (255 * 3 * self.frame_comparison_threshold):
+                                change_detected = True
+                    else:
+                        # Single value pixels - direct comparison
+                        if abs(prev_pixel - curr_pixel) > (255 * self.frame_comparison_threshold):
+                            change_detected = True
+
+                    if change_detected:
+                        changes.append((x, y))
+
+            return changes
+
+        except Exception as e:
+            logger.error(f"Error comparing frames: {e}")
+            return []
+
+    def _detect_button_candidates_by_frame_changes(self, previous_frame: Any, current_frame: Any) -> List[Dict[str, Any]]:
+        """Detect button candidates based on notable changes between frames."""
+        try:
+            # Normalize frames
+            prev_normalized = self._normalize_frame_data(previous_frame)
+            curr_normalized = self._normalize_frame_data(current_frame)
+
+            if not prev_normalized or not curr_normalized:
+                return []
+
+            # Get change coordinates
+            change_coords = self._compare_frames_for_changes(prev_normalized, curr_normalized)
+
+            if not change_coords:
+                return []
+
+            # Group nearby changes into button candidates
+            candidates = []
+            clustered_changes = self._cluster_change_coordinates(change_coords)
+
+            for cluster in clustered_changes:
+                if len(cluster) >= 3:  # Minimum cluster size for a button candidate
+                    # Calculate centroid of the cluster
+                    center_x = sum(coord[0] for coord in cluster) // len(cluster)
+                    center_y = sum(coord[1] for coord in cluster) // len(cluster)
+
+                    # Calculate confidence based on cluster size and density
+                    confidence = min(len(cluster) / 20.0, 0.9)  # Max confidence of 0.9
+
+                    candidates.append({
+                        'action': 'ACTION6',
+                        'x': center_x,
+                        'y': center_y,
+                        'coordinates': (center_x, center_y),
+                        'confidence': confidence,
+                        'reason': f'Button candidate detected from {len(cluster)} frame changes',
+                        'source': 'frame_comparison',
+                        'cluster_size': len(cluster)
+                    })
+
+            logger.info(f"[FRAME] Detected {len(candidates)} button candidates from {len(change_coords)} frame changes")
+            return candidates
+
+        except Exception as e:
+            logger.error(f"Error detecting button candidates from frame changes: {e}")
+            return []
+
+    def _cluster_change_coordinates(self, coords: List[Tuple[int, int]], cluster_radius: int = 3) -> List[List[Tuple[int, int]]]:
+        """Cluster nearby change coordinates into groups."""
+        if not coords:
+            return []
+
+        clusters = []
+        used_coords = set()
+
+        for coord in coords:
+            if coord in used_coords:
+                continue
+
+            # Start new cluster
+            cluster = [coord]
+            used_coords.add(coord)
+
+            # Find nearby coordinates
+            for other_coord in coords:
+                if other_coord in used_coords:
+                    continue
+
+                # Calculate distance
+                dx = abs(coord[0] - other_coord[0])
+                dy = abs(coord[1] - other_coord[1])
+
+                if dx <= cluster_radius and dy <= cluster_radius:
+                    cluster.append(other_coord)
+                    used_coords.add(other_coord)
+
+            if cluster:
+                clusters.append(cluster)
+
+        return clusters
+
+    def _cache_frame_data(self, frame_data: Any, game_id: str) -> None:
+        """Cache current frame data as previous frame for next comparison."""
+        try:
+            normalized_frame = self._normalize_frame_data(frame_data)
+            if normalized_frame:
+                self.previous_frame_cache = normalized_frame
+
+                # Track frame change history
+                if len(self.frame_change_history) >= 10:
+                    self.frame_change_history.pop(0)  # Remove oldest entry
+
+                # We'll update this with actual change detection later
+                self.frame_change_history.append(True)  # Placeholder
+
+        except Exception as e:
+            logger.error(f"Error caching frame data: {e}")
     
     def _analyze_patterns(self, frame_analysis: Dict[str, Any], available_actions: List[int]) -> List[Dict[str, Any]]:
         """Analyze patterns from frame data and historical success."""
         suggestions = []
         
+        # Check if primary actions 1-4 are available
+        primary_actions_available = any(action in [1, 2, 3, 4] for action in available_actions)
+        
+        # If primary actions are available, prioritize them over action 6 pattern matching
+        if primary_actions_available:
+            # Generate suggestions for primary actions based on general patterns
+            for action_id in [1, 2, 3, 4]:
+                if action_id in available_actions:
+                    suggestions.append({
+                        'action': f'ACTION{action_id}',
+                        'confidence': 0.8,  # High confidence for primary actions
+                        'reason': f'Primary action {action_id} available - pattern priority',
+                        'source': 'pattern_matching_primary'
+                    })
+            return suggestions
+        
+        # Only generate ACTION6 pattern suggestions when primary actions are NOT available
+        if 6 not in available_actions:
+            return suggestions
+            
         # Look for patterns in the frame
         objects = frame_analysis.get('objects', [])
         interactive_elements = frame_analysis.get('interactive_elements', [])
@@ -829,7 +1097,7 @@ class ActionSelector:
                     'x': element['centroid'][0],
                     'y': element['centroid'][1],
                     'confidence': element['confidence'],
-                    'reason': f"Pattern-matched interactive element at ({element['centroid'][0]}, {element['centroid'][1]})",
+                    'reason': f"Pattern-matched interactive element at ({element['centroid'][0]}, {element['centroid'][1]}) [fallback]",
                     'source': 'pattern_matching'
                 })
         
@@ -841,7 +1109,7 @@ class ActionSelector:
                     'x': obj['centroid'][0],
                     'y': obj['centroid'][1],
                     'confidence': min(obj['area'] / 100, 1.0),
-                    'reason': f"Pattern-matched large object at ({obj['centroid'][0]}, {obj['centroid'][1]})",
+                    'reason': f"Pattern-matched large object at ({obj['centroid'][0]}, {obj['centroid'][1]}) [fallback]",
                     'source': 'pattern_matching'
                 })
         
@@ -2632,9 +2900,9 @@ class ActionSelector:
                 if not hasattr(self, 'coordinate_intelligence_system'):
                     self.coordinate_intelligence_system = CoordinateIntelligenceSystem()
                 
-                # Update coordinate intelligence in database (async call)
+                # Update coordinate intelligence in database (track task to avoid fire-and-forget)
                 import asyncio
-                asyncio.create_task(self.coordinate_intelligence_system.update_coordinate_intelligence(
+                task = asyncio.create_task(self.coordinate_intelligence_system.update_coordinate_intelligence(
                     game_id=game_state.get('game_id', 'unknown'),
                     x=coordinate[0],
                     y=coordinate[1],
@@ -2644,19 +2912,28 @@ class ActionSelector:
                     score_change=current_score - last_score if len(self.performance_history) > 0 else 0.0,
                     context={'action_selector': True}
                 ))
+                # Store task to prevent it from being garbage collected
+                if not hasattr(self, '_background_tasks'):
+                    self._background_tasks = set()
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
             except Exception as e:
                 logger.error(f"Failed to update coordinate intelligence: {e}")
             try:
-                # Record coordinate attempt with penalty system (include pseudo success)
-                asyncio.create_task(self.frame_analyzer.record_coordinate_attempt(
-                    coordinate[0], coordinate[1], 
+                # Record coordinate attempt with penalty system (track tasks)
+                task1 = asyncio.create_task(self.frame_analyzer.record_coordinate_attempt(
+                    coordinate[0], coordinate[1],
                     (current_score > last_score or pseudo_score_increase) if len(self.performance_history) > 0 else False,
                     game_state.get('game_id', 'unknown')
                 ))
-                
+                self._background_tasks.add(task1)
+                task1.add_done_callback(self._background_tasks.discard)
+
                 # Decay penalties periodically
                 if attempts % 10 == 0:  # Decay every 10 attempts
-                    asyncio.create_task(self.frame_analyzer.decay_penalties())
+                    task2 = asyncio.create_task(self.frame_analyzer.decay_penalties())
+                    self._background_tasks.add(task2)
+                    task2.add_done_callback(self._background_tasks.discard)
                     
             except Exception as e:
                 logger.warning(f"Failed to update penalty system for coordinate {coordinate}: {e}")
@@ -2741,16 +3018,62 @@ class ActionSelector:
         if len(self.performance_history) > 500:
             self.performance_history = self.performance_history[-500:]
     
+    def _validate_and_prioritize_actions(self, available_actions: List[int]) -> List[int]:
+        """Validate and prioritize available actions - remove action 0 and prioritize actions 1-4.
+
+        NOTE: Action 6 is treated as a single action type despite having 64x64 coordinate options.
+        The coordinate selection is handled separately in suggestion generation.
+        """
+        # First, filter out action 0 completely - action 0 should never be sent to API
+        validated_actions = [action for action in available_actions if action != 0]
+
+        if not validated_actions:
+            logger.warning("[PRIORITY] All actions filtered out, including action 0. Using fallback.")
+            return [1]  # Emergency fallback
+
+        # Sort actions with priority: 1-4 first (highest priority), then others
+        priority_actions = [action for action in validated_actions if 1 <= action <= 4]
+        other_actions = [action for action in validated_actions if action < 1 or action > 4]
+
+        # Prioritized order: 1-4 first, then others
+        prioritized = priority_actions + other_actions
+
+        if priority_actions:
+            logger.debug(f"[PRIORITY] Priority actions 1-4 available: {priority_actions}, others: {other_actions}")
+
+        return prioritized
+
+    def _apply_action_priority_boost(self, suggestions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Apply confidence boost to actions 1-4."""
+        for suggestion in suggestions:
+            if isinstance(suggestion, dict):
+                action_id = self._get_action_id(suggestion.get('action', 'ACTION1'))
+
+                # Boost confidence for actions 1-4
+                if 1 <= action_id <= 4:
+                    current_confidence = suggestion.get('confidence', 0.5)
+                    boosted_confidence = min(current_confidence * 1.5, 0.95)  # 50% boost, max 0.95
+                    suggestion['confidence'] = boosted_confidence
+                    suggestion['reason'] = f"{suggestion.get('reason', '')} [PRIORITY BOOST]"
+                    logger.debug(f"[PRIORITY] Boosted ACTION{action_id} confidence: {current_confidence:.2f} -> {boosted_confidence:.2f}")
+
+        return suggestions
+
     def _filter_valid_actions(self, suggestions: List[Dict[str, Any]], available_actions: List[int]) -> List[Dict[str, Any]]:
-        """Filter suggestions to only include available actions."""
+        """Filter suggestions to only include valid and prioritized actions."""
+        # First validate and prioritize available actions (removes action 0)
+        validated_actions = self._validate_and_prioritize_actions(available_actions)
+
         valid_suggestions = []
-        
         for suggestion in suggestions:
             action_id = self._get_action_id(suggestion.get('action', 'ACTION1'))
-            if action_id in available_actions:
+            if action_id in validated_actions:
                 valid_suggestions.append(suggestion)
-        
-        return valid_suggestions
+
+        # Apply priority boost to valid suggestions
+        prioritized_suggestions = self._apply_action_priority_boost(valid_suggestions)
+
+        return prioritized_suggestions
     
     def _get_action_id(self, action_name: str) -> int:
         """Convert action name to action ID."""
@@ -2762,24 +3085,49 @@ class ActionSelector:
     
     def _get_fallback_action(self, available_actions: List[int]) -> Dict[str, Any]:
         """Get a fallback action when no intelligent suggestions are available."""
-        
-        # Prefer simple actions over complex ones
-        simple_actions = [1, 2, 3, 4, 5, 7]  # All except ACTION6
+
+        # Validate and prioritize actions first (removes action 0)
+        validated_actions = self._validate_and_prioritize_actions(available_actions)
+
+        if not validated_actions:
+            logger.error("[PRIORITY] No valid actions available for fallback!")
+            # Emergency fallback
+            return {
+                'id': 1,
+                'reason': 'Emergency fallback to ACTION1 - no valid actions available',
+                'confidence': 0.05,
+                'source': 'emergency_fallback'
+            }
+
+        # Prefer priority actions (1-4) first, then simple actions, then complex ones
+        priority_actions = [1, 2, 3, 4]  # Highest priority
+        simple_actions = [5, 7]  # Simple actions (excluding ACTION6)
         complex_actions = [6]  # ACTION6
-        
-        # Try simple actions first
+
+        # Try priority actions first (1-4)
+        for action_id in priority_actions:
+            if action_id in validated_actions:
+                logger.info(f"[PRIORITY] Using priority fallback action: {action_id}")
+                return {
+                    'id': action_id,
+                    'reason': f'Priority fallback to ACTION{action_id}',
+                    'confidence': 0.2,  # Higher confidence for priority actions
+                    'source': 'priority_fallback'
+                }
+
+        # Try simple actions
         for action_id in simple_actions:
-            if action_id in available_actions:
+            if action_id in validated_actions:
                 return {
                     'id': action_id,
                     'reason': f'Fallback to simple action {action_id}',
                     'confidence': 0.1,
-                    'source': 'fallback'
+                    'source': 'simple_fallback'
                 }
-        
+
         # Try complex actions
         for action_id in complex_actions:
-            if action_id in available_actions:
+            if action_id in validated_actions:
                 if action_id == 6:
                     return {
                         'id': action_id,

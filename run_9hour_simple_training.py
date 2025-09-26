@@ -19,6 +19,7 @@ Usage:
 
 import os
 import sys
+sys.dont_write_bytecode = True
 import time
 import asyncio
 import signal
@@ -270,7 +271,7 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         # Run a single continuous training session for the full duration
         result = await learning_loop.start_training_with_direct_control(
             game_id=game_id,
-            max_actions_per_game=500,  # This will be the total actions for the entire session
+            max_actions_per_game=5000,  # This will be the total actions for the entire session
             session_count=session_id,
             duration_minutes=duration_minutes  # Pass the duration parameter
         )

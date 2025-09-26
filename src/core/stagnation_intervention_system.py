@@ -105,7 +105,9 @@ class StagnationInterventionSystem:
             # GANActionGenerator doesn't exist, so we'll skip it
             # from src.core.gan_action_generator import GANActionGenerator
             
-            self.governor = EnhancedSpaceTimeGovernor()
+            # Use singleton pattern to avoid duplicate instances
+            from .enhanced_space_time_governor import get_enhanced_space_time_governor, create_enhanced_space_time_governor
+            self.governor = get_enhanced_space_time_governor() or create_enhanced_space_time_governor()
             self.pattern_predictor = PatternDiscoveryCuriosity()
             self.gan_system = None  # Set to None since module doesn't exist
             

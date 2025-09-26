@@ -207,6 +207,32 @@ class ARCClient:
                     # Handle other error status codes
                     if response.status >= 400:
                         error_msg = data.get('error', data.get('message', 'Unknown error'))
+
+                        # Check if this is actually a game-over state disguised as an error
+                        if response.status == 400 and error_msg == 'GAME_NOT_STARTED_ERROR':
+                            logger.info(f"Game appears to be over (GAME_NOT_STARTED_ERROR) - treating as game completion")
+                            # Return a game-over state instead of raising an error
+                            return {
+                                'state': 'GAME_OVER',
+                                'game_id': data.get('game_id', 'unknown'),
+                                'score': data.get('score', 0),
+                                'frame': [],
+                                'available_actions': [],
+                                'error': None  # Clear error since this is expected game end
+                            }
+                        elif response.status == 404 and error_msg == 'VALIDATION_ERROR':
+                            logger.info(f"Game validation error - likely game completed or expired")
+                            # Return a game-over state instead of raising an error
+                            return {
+                                'state': 'GAME_OVER',
+                                'game_id': data.get('game_id', 'unknown'),
+                                'score': data.get('score', 0),
+                                'frame': [],
+                                'available_actions': [],
+                                'error': None  # Clear error since this is expected game end
+                            }
+
+                        # For all other errors, log and raise as before
                         logger.error(f"API error {response.status}: {error_msg}")
                         raise ARCAPIError(f"API request failed with status {response.status}: {error_msg}")
                     

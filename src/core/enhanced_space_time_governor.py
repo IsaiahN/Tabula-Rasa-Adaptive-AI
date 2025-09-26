@@ -1361,15 +1361,33 @@ class EnhancedSpaceTimeGovernor:
         logger.info("Enhanced Space-Time Governor cleaned up")
 
 
-# Factory function for easy integration
+# Singleton instance storage
+_enhanced_governor_instance = None
+
+# Factory function for easy integration with singleton pattern
 def create_enhanced_space_time_governor(memory_capacity: int = 1000,
                                        decision_threshold: float = 0.7,
                                        adaptation_rate: float = 0.1,
                                        persistence_dir: Optional[Path] = None) -> EnhancedSpaceTimeGovernor:
-    """Create an enhanced space-time aware governor with all functionality."""
-    return EnhancedSpaceTimeGovernor(
-        memory_capacity=memory_capacity,
-        decision_threshold=decision_threshold,
-        adaptation_rate=adaptation_rate,
-        persistence_dir=persistence_dir
-    )
+    """Create an enhanced space-time aware governor with all functionality.
+
+    Uses singleton pattern to prevent duplicate instances and redundant initializations.
+    """
+    global _enhanced_governor_instance
+
+    if _enhanced_governor_instance is None:
+        print(" LEARNING MANAGER: Creating singleton EnhancedSpaceTimeGovernor instance")
+        _enhanced_governor_instance = EnhancedSpaceTimeGovernor(
+            memory_capacity=memory_capacity,
+            decision_threshold=decision_threshold,
+            adaptation_rate=adaptation_rate,
+            persistence_dir=persistence_dir
+        )
+    else:
+        print(" LEARNING MANAGER: Reusing existing EnhancedSpaceTimeGovernor singleton")
+
+    return _enhanced_governor_instance
+
+def get_enhanced_space_time_governor() -> Optional[EnhancedSpaceTimeGovernor]:
+    """Get existing singleton instance without creating a new one."""
+    return _enhanced_governor_instance
