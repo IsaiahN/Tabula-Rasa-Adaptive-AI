@@ -1,0 +1,35 @@
+2025-09-26 14:41:50,225 - INFO - ============================================================
+2025-09-26 14:41:50,226 - INFO - STARTING SIMPLE DATABASE OPTIMIZATION TEST
+2025-09-26 14:41:50,226 - INFO - ============================================================
+2025-09-26 14:41:50,226 - INFO - Initial database size: 344.68 MB
+2025-09-26 14:41:50,226 - INFO - Test 1: Data Retention Manager
+2025-09-26 14:41:50,250 - INFO -   Loaded 18 retention policies
+2025-09-26 14:42:05,124 - INFO -   Deleted 0 old records
+2025-09-26 14:42:05,124 - INFO -   SUCCESS: Data retention manager working
+2025-09-26 14:42:05,125 - INFO - Test 2: Index Optimizer
+2025-09-26 14:42:05,281 - INFO -   Found 0 redundant indexes
+2025-09-26 14:42:05,281 - INFO -   Found 11 missing strategic indexes
+2025-09-26 14:42:07,313 - INFO -   Dropped 0 redundant indexes
+2025-09-26 14:42:07,313 - INFO -   Created 16 strategic indexes
+2025-09-26 14:42:07,314 - INFO -   SUCCESS: Index optimizer working
+2025-09-26 14:42:07,314 - INFO - Test 3: Async Batch Writer
+2025-09-26 14:42:07,333 - INFO -   Async batcher running: True
+2025-09-26 14:42:07,333 - INFO -   Pending writes: 0
+2025-09-26 14:42:07,333 - INFO -   SUCCESS: Async batch writer working
+2025-09-26 14:42:07,333 - INFO - Test 4: Frame Compression System
+2025-09-26 14:42:07,635 - INFO -   Frame compression test: PASSED
+2025-09-26 14:42:07,635 - INFO -   SUCCESS: Frame compression working
+2025-09-26 14:42:07,635 - INFO - Test 5: Performance Monitor
+2025-09-26 14:42:07,747 - INFO -   Performance monitoring enabled: True
+2025-09-26 14:42:07,762 - INFO -   Database health score: 77.4/100
+2025-09-26 14:42:07,762 - INFO -   SUCCESS: Performance monitor working
+2025-09-26 14:42:07,762 - INFO - ============================================================
+2025-09-26 14:42:07,762 - INFO - OPTIMIZATION TEST RESULTS
+2025-09-26 14:42:07,762 - INFO - ============================================================
+2025-09-26 14:42:07,762 - INFO - Tests passed: 5/5
+2025-09-26 14:42:07,762 - INFO - Success rate: 100.0%
+2025-09-26 14:42:07,762 - INFO - Database size change: 344.68 MB -> 362.61 MB
+2025-09-26 14:42:07,763 - INFO - Space freed: -17.93 MB
+2025-09-26 14:42:07,763 - INFO - EXCELLENT: Database optimization systems are working correctly!
+2025-09-26 14:42:07,767 - INFO - Batch processor cancelled
+2025-09-26 14:42:07,769 - INFO - Flush timer cancelled
