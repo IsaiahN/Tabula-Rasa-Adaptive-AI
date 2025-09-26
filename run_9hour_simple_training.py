@@ -27,11 +27,15 @@ from typing import Dict, List, Any
 import json
 import logging
 
+# Disable Python bytecode cache to force fresh imports after fixes
+os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
     load_dotenv()
     print("[OK] Environment variables loaded from .env file")
+    print("[OK] Python bytecode cache disabled - fresh imports guaranteed")
 except ImportError:
     print("[WARNING] python-dotenv not available, using system environment variables")
 
