@@ -353,6 +353,14 @@ class ActionSelector:
         frame_analysis = self.frame_analyzer.analyze_frame(frame_data)
         self.last_frame_analysis = frame_analysis
 
+        # 1.1. PENALTY RESET FOR VISUAL TARGETS - Reset penalties periodically for visual objects
+        current_action_count = len(self.action_history) if hasattr(self, 'action_history') else 0
+        if self._should_reset_penalties(current_action_count):
+            self._reset_visual_target_penalties(frame_analysis)
+
+        # 1.2. EMERGENCY PENALTY RESET - Clear all penalties when clearly stuck
+        self._emergency_penalty_reset(game_state, current_action_count)
+
         # 1.5. FRAME COMPARISON BUTTON CANDIDATE DETECTION - Only when actions 1-4 are NOT available
         frame_comparison_suggestions = []
         if 6 in available_actions and not primary_actions_available and self.previous_frame_cache is not None:
@@ -1174,17 +1182,33 @@ class ActionSelector:
         # Use the frame analyzer's OpenCV detection
         interactive_elements = frame_analysis.get('interactive_elements', [])
         
+        # Lower threshold for ARC puzzles - any detected interactive element is worth trying
         for element in interactive_elements:
-            if element.get('confidence', 0) > 0.7:  # High confidence threshold
+            if element.get('confidence', 0) > 0.3:  # Much lower threshold for ARC puzzles
                 suggestions.append({
                     'action': 'ACTION6',
                     'x': element['centroid'][0],
                     'y': element['centroid'][1],
                     'confidence': element['confidence'],
-                    'reason': f"OpenCV detected target at ({element['centroid'][0]}, {element['centroid'][1]})",
+                    'reason': f"OpenCV detected target at ({element['centroid'][0]}, {element['centroid'][1]}) [ARC element]",
                     'source': 'opencv_detection'
                 })
         
+        # Also use regular objects as potential targets
+        objects = frame_analysis.get('objects', [])
+        for obj in objects:
+            # Any non-background colored object could be interactive
+            if obj.get('color', 0) != 0 and obj.get('area', 0) >= 1:
+                suggestions.append({
+                    'action': 'ACTION6',
+                    'x': obj['centroid'][0],
+                    'y': obj['centroid'][1],
+                    'confidence': min(0.8, 0.5 + obj.get('area', 1) / 100),  # Base confidence + size bonus
+                    'reason': f"Colored object (color {obj.get('color', '?')}) at ({obj['centroid'][0]}, {obj['centroid'][1]})",
+                    'source': 'opencv_object_detection'
+                })
+        
+        logger.info(f"🎯 OpenCV generated {len(suggestions)} target suggestions")
         return suggestions
     
     def _generate_learning_suggestions(self, frame_analysis: Dict[str, Any], available_actions: List[int]) -> List[Dict[str, Any]]:
@@ -1475,10 +1499,10 @@ class ActionSelector:
         return unique_suggestions
     
     def _select_best_action_intelligent(self, suggestions: List[Dict[str, Any]], 
-                                       available_actions: List[int],
-                                       current_score: int,
-                                       frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """Select the best action using intelligent multi-factor analysis."""
+                                           available_actions: List[int],
+                                           current_score: int,
+                                           frame_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Select the best action using intelligent multi-factor analysis with AGI priority."""
         
         if not suggestions:
             return self._get_fallback_action(available_actions)
@@ -1488,6 +1512,35 @@ class ActionSelector:
         
         if not valid_suggestions:
             return self._get_fallback_action(available_actions)
+        
+        # PRIORITY: AGI HIGH-CONFIDENCE SUGGESTIONS - Human-like rapid puzzle solving
+        agi_insights = frame_analysis.get('agi_insights')
+        if agi_insights and agi_insights.get('confidence', 0.0) > 0.7:
+            logger.info(f"[AGI] High-confidence AGI insights detected (confidence: {agi_insights['confidence']:.2f}) - prioritizing AGI strategy")
+            
+            # Look for AGI-suggested actions in suggestions
+            agi_suggestions = [s for s in valid_suggestions if s.get('agi_insight') == True]
+            if agi_suggestions:
+                # Sort AGI suggestions by confidence
+                agi_suggestions.sort(key=lambda x: x.get('confidence', 0.0), reverse=True)
+                best_agi = agi_suggestions[0]
+                
+                # Convert AGI suggestion to action format
+                action_id = self._get_action_id(best_agi.get('action', 'ACTION1'))
+                action = {
+                    'id': action_id,
+                    'reason': f"AGI Strategy: {best_agi.get('reason', 'AGI-recommended action')} (confidence: {best_agi.get('confidence', 0.0):.2f})",
+                    'confidence': best_agi.get('confidence', 0.8),
+                    'source': 'agi_rapid_solver'
+                }
+                
+                # Add coordinates for ACTION6
+                if action_id == 6:
+                    action['x'] = best_agi.get('x', 32)
+                    action['y'] = best_agi.get('y', 32)
+                
+                logger.info(f"[AGI] Selected AGI action: {action_id} - {action['reason']}")
+                return action
         
         # Normalize suggestion coordinate fields: accept 'coordinates' tuples as 'x'/'y'
         for s in valid_suggestions:
@@ -1509,6 +1562,14 @@ class ActionSelector:
 
         for suggestion in valid_suggestions:
             score, breakdown = self._score_with_breakdown(suggestion, current_score, frame_analysis)
+            
+            # BOOST: AGI suggestions get automatic score boost
+            if suggestion.get('agi_insight') == True:
+                agi_boost = 0.3  # Significant boost for AGI suggestions
+                score = min(1.0, score + agi_boost)
+                breakdown['agi_boost'] = agi_boost
+                logger.debug(f"[AGI] Applied AGI boost of {agi_boost} to suggestion")
+            
             # If breakdown reports a high repetition penalty for a coordinate, exclude it from consideration
             try:
                 repetition_penalty = breakdown.get('repetition_penalty', 0.0)
@@ -1547,8 +1608,9 @@ class ActionSelector:
             for sc, sug, br in top_breakdowns:
                 src = sug.get('source', 'unknown')
                 coord = (sug.get('x'), sug.get('y')) if 'x' in sug and 'y' in sug else sug.get('coordinates', None)
-                logger.info(f"SCORE={sc:.3f} | action={sug.get('action', sug.get('id'))} | source={src} | coord={coord}")
-                logger.info(f"   breakdown: confidence={br.get('confidence_factor'):.3f}, source={br.get('source_factor'):.3f}, learning={br.get('learning_factor'):.3f}, frame={br.get('frame_factor'):.3f}, penalty={br.get('penalty_factor'):.3f}, repetition_penalty={br.get('repetition_penalty'):.3f}, repetition_factor={br.get('repetition_factor'):.3f}")
+                agi_marker = " [AGI]" if sug.get('agi_insight') else ""
+                logger.info(f"SCORE={sc:.3f} | action={sug.get('action', sug.get('id'))} | source={src}{agi_marker} | coord={coord}")
+                logger.info(f"   breakdown: confidence={br.get('confidence_factor'):.3f}, source={br.get('source_factor'):.3f}, learning={br.get('learning_factor'):.3f}, frame={br.get('frame_factor'):.3f}, penalty={br.get('penalty_factor'):.3f}, repetition_penalty={br.get('repetition_penalty'):.3f}, repetition_factor={br.get('repetition_factor'):.3f}, agi_boost={br.get('agi_boost', 0.0):.3f}")
             logger.info("--- end breakdown ---")
         except Exception:
             pass
@@ -1707,6 +1769,8 @@ class ActionSelector:
             'opencv_detection': 0.9,
             'object_testing': 0.85,
             'pattern_matching': 0.8,
+            'pattern_matching_primary': 0.95,  # Higher priority for primary actions
+            'primary_action': 0.95,  # High priority for actions 1-4
             'coordinate_intelligence': 0.7,
             'gan_synthetic': 0.75,
             'action5_fallback': 0.7,
@@ -1754,17 +1818,44 @@ class ActionSelector:
             penalty_score = 0.0
             penalty_factor = 1.0
 
-        # Action repetition penalty
+        # Modified Action repetition penalty - more forgiving for visual targets
         action_id = self._get_action_id(suggestion.get('action', 'ACTION1'))
         if action_id == 6 and 'x' in suggestion and 'y' in suggestion:
             coordinate = (suggestion['x'], suggestion['y'])
+            
+            # Check if this coordinate corresponds to a visual object in the current frame
+            is_visual_target = False
+            for obj in frame_analysis.get('objects', []):
+                obj_x, obj_y = obj.get('centroid', (0, 0))
+                distance = np.sqrt((coordinate[0] - obj_x)**2 + (coordinate[1] - obj_y)**2)
+                if distance < 5:  # Close to a visual object
+                    is_visual_target = True
+                    break
+            
+            # Check interactive elements too
+            if not is_visual_target:
+                for element in frame_analysis.get('interactive_elements', []):
+                    elem_x, elem_y = element.get('centroid', (0, 0))
+                    distance = np.sqrt((coordinate[0] - elem_x)**2 + (coordinate[1] - elem_y)**2)
+                    if distance < 5:  # Close to an interactive element
+                        is_visual_target = True
+                        break
+            
+            # Get base repetition penalty
             repetition_penalty = self._get_action_repetition_penalty(action_id, coordinate)
+            
+            # For visual targets, cap the penalty to allow retries
+            if is_visual_target:
+                repetition_penalty = min(repetition_penalty, 0.6)  # Cap at 60% penalty for visual objects
+                logger.debug(f"🎯 Visual target at {coordinate} - capping repetition penalty at {repetition_penalty:.2f}")
         else:
             repetition_penalty = self._get_action_repetition_penalty(action_id)
+            
         repetition_factor = max(0.1, 1.0 - repetition_penalty)
 
-        # Hard cutoff: if repetition penalty is very high, short-circuit and return very low score
-        if repetition_penalty > 0.7:
+        # More forgiving hard cutoff for visual targets
+        max_penalty_threshold = 0.8 if action_id == 6 and is_visual_target else 0.7
+        if repetition_penalty > max_penalty_threshold:
             breakdown = {
                 'confidence_factor': confidence_factor,
                 'source_factor': source_factor,
@@ -1773,7 +1864,8 @@ class ActionSelector:
                 'penalty_factor': penalty_factor,
                 'penalty_score': penalty_score,
                 'repetition_penalty': repetition_penalty,
-                'repetition_factor': repetition_factor
+                'repetition_factor': repetition_factor,
+                'is_visual_target': is_visual_target if action_id == 6 else False
             }
             return 0.01, breakdown
 
@@ -1798,7 +1890,8 @@ class ActionSelector:
             'penalty_factor': penalty_factor,
             'penalty_score': penalty_score,
             'repetition_penalty': repetition_penalty,
-            'repetition_factor': repetition_factor
+            'repetition_factor': repetition_factor,
+            'is_visual_target': is_visual_target if action_id == 6 else False
         }
 
         return intelligent_score, breakdown
@@ -2771,6 +2864,85 @@ class ActionSelector:
         self.action_repetition_penalties[coordinate_key] = penalty
         
         return penalty
+
+    def _reset_visual_target_penalties(self, frame_analysis: Dict[str, Any]) -> None:
+        """Reset repetition penalties for coordinates that correspond to current visual objects."""
+        if not hasattr(self, 'action_repetition_penalties'):
+            return
+            
+        # Get current visual targets
+        visual_targets = set()
+        
+        # Add objects as visual targets
+        for obj in frame_analysis.get('objects', []):
+            if obj.get('color', 0) != 0:  # Non-background colored objects
+                cx, cy = obj.get('centroid', (0, 0))
+                visual_targets.add((cx, cy))
+        
+        # Add interactive elements as visual targets
+        for element in frame_analysis.get('interactive_elements', []):
+            cx, cy = element.get('centroid', (0, 0))
+            visual_targets.add((cx, cy))
+        
+        # Reset penalties for coordinates near visual targets
+        penalties_reset = 0
+        for coord in visual_targets:
+            coordinate_key = f"6_{coord[0]}_{coord[1]}"
+            if coordinate_key in self.action_repetition_penalties:
+                old_penalty = self.action_repetition_penalties[coordinate_key]
+                # Reduce penalty instead of completely removing it
+                new_penalty = max(0.0, old_penalty - 0.2)  # Reduce by 20%
+                self.action_repetition_penalties[coordinate_key] = new_penalty
+                if old_penalty > 0.5 and new_penalty <= 0.5:
+                    penalties_reset += 1
+                    logger.info(f"🎯 Reset penalty for visual target at {coord}: {old_penalty:.2f} -> {new_penalty:.2f}")
+        
+        if penalties_reset > 0:
+            logger.info(f"🔄 Reset penalties for {penalties_reset} visual targets to allow retries")
+
+    def _should_reset_penalties(self, current_action_count: int) -> bool:
+        """Determine if we should reset penalties based on action count and time."""
+        if not hasattr(self, '_last_penalty_reset'):
+            self._last_penalty_reset = 0
+            
+        # Reset penalties every 100 actions to give visual targets another chance
+        if current_action_count - self._last_penalty_reset >= 100:
+            self._last_penalty_reset = current_action_count
+            return True
+        return False
+
+    def _emergency_penalty_reset(self, game_state: Dict[str, Any], current_action_count: int) -> None:
+        """Emergency reset of all coordinate penalties when clearly stuck."""
+        current_score = game_state.get('score', 0)
+        
+        # Define "stuck" conditions
+        stuck_conditions = [
+            current_action_count > 1000 and current_score == 0,  # 1000+ actions with no score
+            current_action_count > 2000,  # 2000+ actions regardless of score
+        ]
+        
+        if any(stuck_conditions):
+            if not hasattr(self, '_last_emergency_reset'):
+                self._last_emergency_reset = 0
+                
+            # Only do emergency reset once every 500 actions to avoid spam
+            if current_action_count - self._last_emergency_reset >= 500:
+                self._last_emergency_reset = current_action_count
+                
+                # Reset ALL coordinate penalties
+                coordinate_penalties_cleared = 0
+                for key in list(self.action_repetition_penalties.keys()):
+                    if key.startswith('6_'):  # ACTION6 coordinate penalties
+                        self.action_repetition_penalties[key] = 0.0
+                        coordinate_penalties_cleared += 1
+                
+                # Also clear recent actions to reset penalty tracking
+                self.recent_actions = []
+                
+                logger.warning(f"🚨 EMERGENCY PENALTY RESET - System appears stuck!")
+                logger.warning(f"   Actions taken: {current_action_count}, Score: {current_score}")
+                logger.warning(f"   Cleared {coordinate_penalties_cleared} coordinate penalties")
+                logger.warning(f"   Giving all visual targets a fresh chance...")
     
     def _get_action_repetition_penalty(self, action_id: int, coordinate: tuple = None) -> float:
         """Get penalty score for action repetition."""

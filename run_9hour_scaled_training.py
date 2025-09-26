@@ -3,14 +3,15 @@
 TABULA RASA - SCALED 9 HOUR CONTINUOUS TRAINING SCRIPT
 
 This script runs a comprehensive 9-hour continuous training session
-with DOZENS of concurrent games for maximum learning speed.
+by launching multiple instances of the simple training script concurrently.
 
 Features:
-- Multiple concurrent game sessions (20-50 games)
+- Multiple concurrent training instances
 - Parallel learning across different games
 - Enhanced memory sharing between games
 - Optimized for maximum learning speed
-- Graceful shutdown for all games
+- Graceful shutdown for all instances
+- Wrapper around simple training to reduce code duplication
 
 Usage:
     python run_9hour_scaled_training.py
@@ -20,13 +21,12 @@ import os
 import sys
 import subprocess
 import time
-import threading
 import asyncio
 import psutil
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Any
-import json
+import signal
 
 # Add src to path for database access
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -108,64 +108,56 @@ def analyze_system_resources() -> Dict[str, Any]:
         'ram_usage_percent': ram_usage_percent
     }
 
-def run_single_training_session(session_id: int, duration_minutes: int = 30) -> Dict[str, Any]:
-    """Run a single training session with specific parameters."""
-    print(f" Starting training session #{session_id}")
-    
-    # Set environment variables for optimal performance
+def run_simple_training_instance(instance_id: int, duration_minutes: int = 540) -> Dict[str, Any]:
+    """Run a single instance of the simple training script."""
+    print(f" Starting simple training instance #{instance_id}")
+
+    # Set environment variables for the instance
     env = os.environ.copy()
     env['PYTHONUNBUFFERED'] = '1'
     env['PYTHONIOENCODING'] = 'utf-8'
-    env['TRAINING_SESSION_ID'] = str(session_id)
-    
-    # Build the command with OPTIMIZED ARC GAME EXECUTION settings
-    cmd = [
-        'python', 'master_arc_trainer.py',
-        '--mode', 'maximum-intelligence',
-        '--session-duration', str(duration_minutes),
-        '--max-actions', '1000',      # Allow full action sequences for complex puzzles
-        '--max-cycles', '1000',       # Allow full exploration
-        '--target-score', '100.0',    # Target perfect score
-        '--enable-detailed-monitoring',
-        '--salience-threshold', '0.3',  # More aggressive learning
-        '--salience-decay', '0.98',
-        '--memory-size', '2048',       # Larger memory for complex games
-        '--memory-word-size', '128',
-        '--memory-read-heads', '8',
-        '--memory-write-heads', '2',
-        '--dashboard', 'console',
-        '--verbose'
-    ]
-    
+    env['TRAINING_INSTANCE_ID'] = str(instance_id)
+
+    # Use the simple training script as the base
+    cmd = ['python', 'run_9hour_simple_training.py']
+
     start_time = time.time()
-    
+
     try:
-        # Run the training with proper encoding handling
+        # Run the simple training script
         process = subprocess.run(
-            cmd, 
-            env=env, 
-            check=False, 
-            capture_output=True, 
+            cmd,
+            env=env,
+            check=False,
+            capture_output=True,
             text=True,
             encoding='utf-8',
-            errors='replace'  # Replace problematic characters instead of failing
+            errors='replace'
         )
-        
+
         duration = time.time() - start_time
-        
+
+        # Parse success from return code and output
+        success = process.returncode == 0
+
+        if success:
+            print(f"   ✓ Instance #{instance_id} completed successfully in {duration:.1f}s")
+        else:
+            print(f"   ✗ Instance #{instance_id} failed (code: {process.returncode}) in {duration:.1f}s")
+
         return {
-            'session_id': session_id,
+            'instance_id': instance_id,
             'return_code': process.returncode,
             'duration': duration,
-            'success': process.returncode == 0,
+            'success': success,
             'stdout': process.stdout,
             'stderr': process.stderr
         }
-        
+
     except Exception as e:
         duration = time.time() - start_time
         return {
-            'session_id': session_id,
+            'instance_id': instance_id,
             'return_code': -1,
             'duration': duration,
             'success': False,
@@ -174,273 +166,159 @@ def run_single_training_session(session_id: int, duration_minutes: int = 30) -> 
             'stderr': ''
         }
 
-def run_parallel_training_sessions(num_sessions: int = 20, session_duration: int = 30) -> List[Dict[str, Any]]:
-    """Run multiple training sessions in parallel."""
-    print(f" Starting {num_sessions} parallel training sessions")
-    print(f"⏱ Each session duration: {session_duration} minutes")
-    print(f" Total concurrent games: {num_sessions}")
+def run_parallel_training_instances(num_instances: int = 5) -> List[Dict[str, Any]]:
+    """Run multiple simple training instances in parallel."""
+    print(f" Starting {num_instances} parallel simple training instances")
+    print(f"⏱ Each instance will run for 9 hours")
+    print(f" Total concurrent training instances: {num_instances}")
     print()
-    
+
     results = []
-    
-    # Use intelligent resource detection with reasonable safety limits
-    max_workers = min(num_sessions, 20)  # Cap at 20 for safety, but respect intelligent detection
-    
-    if num_sessions > max_workers:
+
+    # Use conservative limits for parallel simple training instances
+    max_workers = min(num_instances, 10)  # Cap at 10 for safety
+
+    if num_instances > max_workers:
         print(f" Limiting to {max_workers} concurrent workers for system stability")
-        print(f"   (Requested: {num_sessions}, Using: {max_workers})")
+        print(f"   (Requested: {num_instances}, Using: {max_workers})")
         print()
-    
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all sessions
-        future_to_session = {
-            executor.submit(run_single_training_session, i, session_duration): i 
-            for i in range(num_sessions)
+        # Submit all instances
+        future_to_instance = {
+            executor.submit(run_simple_training_instance, i): i
+            for i in range(num_instances)
         }
-        
+
         # Collect results as they complete
-        for future in as_completed(future_to_session):
-            session_id = future_to_session[future]
+        for future in as_completed(future_to_instance):
+            instance_id = future_to_instance[future]
             try:
                 result = future.result()
                 results.append(result)
-                
+
                 if result['success']:
-                    print(f" Session #{session_id} completed successfully in {result['duration']:.1f}s")
+                    print(f" Instance #{instance_id} completed successfully in {result['duration']:.1f}s")
                 else:
-                    print(f" Session #{session_id} failed (code: {result['return_code']}) in {result['duration']:.1f}s")
-                    
+                    print(f" Instance #{instance_id} failed (code: {result['return_code']}) in {result['duration']:.1f}s")
+
             except Exception as e:
-                print(f" Session #{session_id} crashed: {e}")
+                print(f" Instance #{instance_id} crashed: {e}")
                 results.append({
-                    'session_id': session_id,
+                    'instance_id': instance_id,
                     'return_code': -1,
                     'duration': 0,
                     'success': False,
                     'error': str(e)
                 })
-    
+
     return results
 
 async def main():
     """Main function for scaled 9-hour training."""
     print("=" * 80)
-    print("TABULA RASA - INTELLIGENT SCALED 9 HOUR CONTINUOUS TRAINING")
+    print("TABULA RASA - SCALED 9 HOUR CONTINUOUS TRAINING")
     print("=" * 80)
     print()
-    print(" Starting intelligent parallel training session...")
-    print("⏱ Duration: 9 hours (540 minutes)")
-    print(" Mode: Intelligent parallel with dynamic resource optimization")
-    print(" Features: RAM-aware scaling, CPU optimization, adaptive learning")
+    print(" Starting scaled parallel training session...")
+    print("⏱ Duration: Multiple 9-hour instances running in parallel")
+    print(" Mode: Wrapper around simple training for reduced code duplication")
+    print(" Features: Multiple concurrent simple training instances")
     print(" Database: Enabled (no more JSON files)")
-    
+
     # Ensure database is ready before starting training
     print(" Checking database initialization...")
     if not ensure_database_ready():
         print(" Database initialization failed. Training cannot proceed.")
-        return
-    
+        return 1
+
     # Initialize database integration
     integration = get_system_integration()
-    
+
     # Analyze system resources and determine optimal configuration
     resource_analysis = analyze_system_resources()
-    
+
+    # Determine number of concurrent instances based on system resources
+    num_instances = max(1, min(resource_analysis['max_concurrent_sessions'] // 4, 8))  # Conservative approach
+
     # Record start time
     start_time = datetime.now()
     print(f" Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print()
-    print("Press Ctrl+C to stop gracefully (will close all games)")
+    print("Press Ctrl+C to stop gracefully (will terminate all instances)")
     print()
-    
-    # Use intelligent configuration based on system analysis
-    total_duration = 9 * 60 * 60  # 9 hours in seconds
-    session_duration = resource_analysis['session_duration']  # Dynamic based on RAM
-    sessions_per_round = resource_analysis['max_concurrent_sessions']  # Dynamic based on resources
-    round_duration = session_duration * 60  # Dynamic round duration
-    
-    total_rounds = total_duration // round_duration
-    print(f" Intelligent Training Plan:")
-    print(f"   • Total rounds: {total_rounds}")
-    print(f"   • Sessions per round: {sessions_per_round} (auto-detected based on {resource_analysis['total_ram_gb']:.1f}GB RAM)")
-    print(f"   • Session duration: {session_duration} minutes (optimized for {resource_analysis['total_ram_gb']:.1f}GB RAM)")
-    print(f"   • Total concurrent games: {total_rounds * sessions_per_round}")
-    print(f"   • Memory per session: {resource_analysis['memory_size']}MB")
+
+    print(f" Scaled Training Plan:")
+    print(f"   • Number of concurrent instances: {num_instances}")
+    print(f"   • Each instance duration: 9 hours")
     print(f"   • System: {resource_analysis['cpu_count']} cores, {resource_analysis['total_ram_gb']:.1f}GB RAM")
+    print(f"   • Wrapper approach: Uses simple training as base")
     print()
-    
-    all_results = []
-    round_count = 0
-    
+
     try:
-        while True:
-            # Check if 9 hours have elapsed
-            current_time = datetime.now()
-            elapsed_seconds = (current_time - start_time).total_seconds()
-            remaining_seconds = total_duration - elapsed_seconds
-            
-            if remaining_seconds <= 0:
-                print(f"\n 9 HOUR TRAINING COMPLETE!")
-                print(f"Total duration: {elapsed_seconds/3600:.2f} hours")
-                print(f"Total rounds: {round_count}")
-                print(f"Total sessions: {len(all_results)}")
-                print(f"Completed at: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                break
-            
-            round_count += 1
-            remaining_hours = remaining_seconds / 3600
-            
-            print("=" * 80)
-            print(f"TRAINING ROUND #{round_count}")
-            print("=" * 80)
-            print(f"⏰ Time remaining: {remaining_hours:.2f} hours")
-            print(f" Round started: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            # Check current resource usage and adjust if needed
-            current_memory = psutil.virtual_memory()
-            current_cpu = psutil.cpu_percent(interval=0.1)
-            
-            # Dynamic adjustment based on current resource usage
-            if current_memory.percent > 90:
-                sessions_per_round = max(1, sessions_per_round // 2)
-                print(f" High memory usage ({current_memory.percent:.1f}%), reducing to {sessions_per_round} concurrent sessions")
-            elif current_memory.percent > 80:
-                sessions_per_round = max(1, int(sessions_per_round * 0.8))
-                print(f" Moderate memory usage ({current_memory.percent:.1f}%), reducing to {sessions_per_round} concurrent sessions")
-            
-            if current_cpu > 90:
-                sessions_per_round = max(1, sessions_per_round // 2)
-                print(f" High CPU usage ({current_cpu:.1f}%), reducing to {sessions_per_round} concurrent sessions")
-            elif current_cpu > 80:
-                sessions_per_round = max(1, int(sessions_per_round * 0.8))
-                print(f" Moderate CPU usage ({current_cpu:.1f}%), reducing to {sessions_per_round} concurrent sessions")
-            
-            print(f" Starting {sessions_per_round} concurrent training sessions...")
-            print(f" Current memory usage: {current_memory.percent:.1f}%")
-            print(f" Current CPU usage: {current_cpu:.1f}%")
-            print()
-            
-            # Run parallel training sessions
-            round_results = run_parallel_training_sessions(sessions_per_round, session_duration)
-            all_results.extend(round_results)
-            
-            # Calculate round statistics
-            successful_sessions = sum(1 for r in round_results if r['success'])
-            failed_sessions = len(round_results) - successful_sessions
-            avg_duration = sum(r['duration'] for r in round_results) / len(round_results)
-            
-            print()
-            print(f" Round #{round_count} Results:")
-            print(f"    Successful sessions: {successful_sessions}/{len(round_results)}")
-            print(f"    Failed sessions: {failed_sessions}")
-            print(f"   ⏱ Average duration: {avg_duration:.1f}s")
-            print(f"    Success rate: {successful_sessions/len(round_results)*100:.1f}%")
-            
-            # Check if we still have time remaining
-            current_time = datetime.now()
-            elapsed_seconds = (current_time - start_time).total_seconds()
-            remaining_seconds = total_duration - elapsed_seconds
-            
-            if remaining_seconds > 0:
-                remaining_hours = remaining_seconds / 3600
-                print(f"\n⏰ Time remaining: {remaining_hours:.2f} hours")
-                print(" Starting next round...")
-                print()
-                time.sleep(5)  # Brief pause between rounds
-            else:
-                print(f"\n 9 HOUR TRAINING COMPLETE!")
-                print(f"Total duration: {elapsed_seconds/3600:.2f} hours")
-                print(f"Total rounds: {round_count}")
-                print(f"Total sessions: {len(all_results)}")
-                print(f"Completed at: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                break
-            
+        # Run multiple simple training instances in parallel
+        print(f" Starting {num_instances} parallel simple training instances...")
+        all_results = run_parallel_training_instances(num_instances)
+
+        # All instances have completed
+        current_time = datetime.now()
+        elapsed_seconds = (current_time - start_time).total_seconds()
+        print(f"\n SCALED TRAINING COMPLETE!")
+        print(f"Total duration: {elapsed_seconds/3600:.2f} hours")
+        print(f"Total instances: {len(all_results)}")
+        print(f"Completed at: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
     except KeyboardInterrupt:
         current_time = datetime.now()
         elapsed_seconds = (current_time - start_time).total_seconds()
         print(f"\n Training stopped by user (Ctrl+C)")
         print(f"⏱ Total duration: {elapsed_seconds/3600:.2f} hours")
-        print(f" Total rounds completed: {round_count}")
-        print(f" Total sessions completed: {len(all_results)}")
-        
-        # Graceful shutdown - close all scorecards
-        print("\n Initiating graceful shutdown...")
-        print(" Closing all active scorecards...")
-        # Note: The graceful shutdown is handled by the signal handlers in the continuous learning loop
-        
+        print(f" All instances will be terminated gracefully")
+
     except Exception as e:
         print(f"\n Error running scaled training: {e}")
         return 1
-    
     # Final statistics
     print("\n" + "=" * 80)
     print("FINAL TRAINING STATISTICS")
     print("=" * 80)
-    
+
     if all_results:
-        successful_sessions = sum(1 for r in all_results if r['success'])
-        failed_sessions = len(all_results) - successful_sessions
+        successful_instances = sum(1 for r in all_results if r['success'])
+        failed_instances = len(all_results) - successful_instances
         total_duration = sum(r['duration'] for r in all_results)
         avg_duration = total_duration / len(all_results)
-        
+
         print(f" Overall Results:")
-        print(f"    Total sessions: {len(all_results)}")
-        print(f"    Successful: {successful_sessions}")
-        print(f"    Failed: {failed_sessions}")
-        print(f"    Success rate: {successful_sessions/len(all_results)*100:.1f}%")
+        print(f"    Total instances: {len(all_results)}")
+        print(f"    Successful: {successful_instances}")
+        print(f"    Failed: {failed_instances}")
+        print(f"    Success rate: {successful_instances/len(all_results)*100:.1f}%")
         print(f"   ⏱ Total training time: {total_duration/3600:.2f} hours")
-        print(f"    Average session duration: {avg_duration:.1f}s")
-        print(f"    Concurrent games per round: {sessions_per_round}")
-        print(f"    Total rounds: {round_count}")
-        
+        print(f"    Average instance duration: {avg_duration:.1f}s")
+
         # Save results to database
         print(f"\n Saving results to database...")
-        
-        # Save each session result to database
-        for i, result in enumerate(all_results):
-            session_db_id = f"scaled_training_{int(time.time())}_{i+1}"
-            session_metrics = {
-                'session_id': session_db_id,
-                'start_time': start_time,
-                'mode': 'scaled_training',
-                'status': 'completed' if result['success'] else 'failed',
-                'total_actions': 0,  # Not available in scaled training
-                'total_wins': 1 if result['success'] else 0,
-                'total_games': 1,
-                'win_rate': 1.0 if result['success'] else 0.0,
-                'avg_score': 0.0,  # Not available in scaled training
-                'energy_level': 100.0,
-                'memory_operations': 0,
-                'sleep_cycles': 0,
-                'duration_seconds': result['duration'],
-                'return_code': result.get('return_code', 0),
-                'concurrent_games_per_round': sessions_per_round,
-                'round_number': result.get('round', 0)
-            }
-            
-            await integration.update_session_metrics(session_db_id, session_metrics)
-        
+
         # Log final summary to database
         await integration.log_system_event(
             level="INFO",
-            component="scaled_training",
-            message=f"Scaled training completed: {len(all_results)} sessions, {successful_sessions/len(all_results)*100:.1f}% success rate",
+            component="scaled_training_wrapper",
+            message=f"Scaled training (wrapper) completed: {len(all_results)} instances, {successful_instances/len(all_results)*100:.1f}% success rate",
             data={
-                'total_sessions': len(all_results),
-                'successful_sessions': successful_sessions,
-                'failed_sessions': failed_sessions,
-                'success_rate': successful_sessions/len(all_results)*100,
+                'total_instances': len(all_results),
+                'successful_instances': successful_instances,
+                'failed_instances': failed_instances,
+                'success_rate': successful_instances/len(all_results)*100,
                 'total_duration_hours': total_duration/3600,
                 'average_duration_seconds': avg_duration,
-                'concurrent_games_per_round': sessions_per_round,
-                'total_rounds': round_count
+                'wrapper_approach': True
             },
-            session_id=f"scaled_training_summary_{int(time.time())}"
+            session_id=f"scaled_training_wrapper_summary_{int(time.time())}"
         )
-        
-        print(f" All {len(all_results)} sessions saved to database")
+
         print(f" Summary logged to system_logs")
-    
+
     print(f"\nTraining session ended at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return 0
 

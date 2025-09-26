@@ -278,8 +278,37 @@ async def run_training_session(session_id: int, duration_minutes: int = 15) -> D
         
         duration = time.time() - start_time
         
-        # Check if training was successful
-        success = result is not None and 'error' not in result
+        # Check if training was successful - use meaningful criteria
+        success = False
+        if result is not None and 'error' not in result:
+            # Get actual performance metrics
+            final_score = result.get('final_score', 0)
+            max_score = result.get('max_score', 0)
+            actions_taken = result.get('actions_taken', 0)
+            games_completed = result.get('games_completed', 0)
+
+            # Define success criteria - at least ONE of these should be true for success:
+            success_criteria = [
+                final_score > 0,  # Any score improvement
+                max_score > 0,    # Ever achieved any points
+                games_completed > 0,  # Completed at least one game
+                (actions_taken > 0 and actions_taken < 1000 and final_score == 0)  # Efficient exploration (completed quickly even if no score)
+            ]
+
+            success = any(success_criteria)
+
+            # Log the decision for transparency
+            if success:
+                reasons = []
+                if final_score > 0: reasons.append(f"final_score: {final_score}")
+                if max_score > 0: reasons.append(f"max_score: {max_score}")
+                if games_completed > 0: reasons.append(f"completed {games_completed} games")
+                if actions_taken > 0 and actions_taken < 1000: reasons.append(f"efficient exploration: {actions_taken} actions")
+                print(f"   ✓ Session considered successful: {', '.join(reasons)}")
+            else:
+                print(f"   ✗ Session failed: score={final_score}, max={max_score}, games={games_completed}, actions={actions_taken}")
+        else:
+            print(f"   ✗ Session failed: result={'None' if result is None else 'has error'}")
         
         return {
             'session_id': session_id,
