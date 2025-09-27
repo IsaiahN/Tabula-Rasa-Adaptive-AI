@@ -7,7 +7,7 @@ This replaces the massive 18,000+ line monolithic file.
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Tuple, Union
 from ..analysis.action_selector import create_action_selector
 from pathlib import Path
 from datetime import datetime
@@ -150,6 +150,7 @@ class ContinuousLearningLoop:
 
             # Track action sequences for win pattern learning
             action_sequence = []
+            action_coordinates = []  # Track coordinates for Action 6
             score_progression = [0.0]  # Start with initial score
 
             # Track level-based learning
@@ -281,10 +282,21 @@ class ContinuousLearningLoop:
 
                         # Track action and score for win pattern learning
                         if isinstance(action_to_take, dict) and 'id' in action_to_take:
-                            action_sequence.append(action_to_take['id'])
-                            level_action_sequence.append(action_to_take['id'])
+                            action_id = action_to_take['id']
+                            action_sequence.append(action_id)
+
+                            # For Action 6, store coordinate information
+                            if action_id == 6 and 'x' in action_to_take and 'y' in action_to_take:
+                                action_coordinates.append((action_to_take['x'], action_to_take['y']))
+                                detailed_action = f"6({action_to_take['x']},{action_to_take['y']})"
+                                level_action_sequence.append(detailed_action)
+                            else:
+                                # For non-Action 6, store None as coordinate placeholder
+                                action_coordinates.append(None)
+                                level_action_sequence.append(action_id)
                         elif isinstance(action_to_take, int):
                             action_sequence.append(action_to_take)
+                            action_coordinates.append(None)  # No coordinates for integer actions
                             level_action_sequence.append(action_to_take)
                         score_progression.append(total_score)
                         level_score_progression.append(total_score)
@@ -388,7 +400,7 @@ class ContinuousLearningLoop:
             # Learn from game outcome (success OR failure)
             await self._analyze_game_outcome(
                 real_game_id, game_won, current_state, total_score, actions_taken,
-                action_sequence, score_progression, current_level,
+                action_sequence, action_coordinates, score_progression, current_level,
                 level_action_sequence, level_score_progression, last_significant_score
             )
 
@@ -804,8 +816,8 @@ class ContinuousLearningLoop:
 
     async def _analyze_game_outcome(self, game_id: str, game_won: bool, final_state: str,
                                    final_score: float, actions_taken: int,
-                                   action_sequence: List[int], score_progression: List[float],
-                                   current_level: int, level_action_sequence: List[int],
+                                   action_sequence: List[int], action_coordinates: List[Optional[Tuple[int, int]]],
+                                   score_progression: List[float], current_level: int, level_action_sequence: List[Any],
                                    level_score_progression: List[float], last_significant_score: float) -> None:
         """Analyze game outcome and learn from both successes AND failures."""
         try:
@@ -836,13 +848,8 @@ class ContinuousLearningLoop:
 
                     # Record successful patterns to update anti-pattern learning
                     if self.anti_pattern_learner:
-                        # Extract coordinates used (if any Action 6 was used)
-                        coordinates_used = []
-                        for i, action in enumerate(action_sequence):
-                            if action == 6 and i < len(action_sequence):
-                                # For now, use simple coordinate extraction
-                                # In a real implementation, this would come from action context
-                                coordinates_used.append((i * 10 % 640, i * 10 % 480))
+                        # Extract real coordinates from action tracking
+                        coordinates_used = [coord for coord in action_coordinates if coord is not None]
 
                         self.anti_pattern_learner.record_pattern_success(
                             game_type, action_sequence, coordinates_used
@@ -885,10 +892,8 @@ class ContinuousLearningLoop:
 
                     # Analyze failure patterns for anti-pattern learning
                     if self.anti_pattern_learner:
-                        coordinates_used = []
-                        for i, action in enumerate(action_sequence):
-                            if action == 6:
-                                coordinates_used.append((i * 10 % 640, i * 10 % 480))
+                        # Extract real coordinates from action tracking
+                        coordinates_used = [coord for coord in action_coordinates if coord is not None]
 
                         failure_context = {
                             "final_state": final_state,
@@ -985,7 +990,7 @@ class ContinuousLearningLoop:
             logger.error(f"Error learning from game failure: {e}")
 
     async def _learn_from_level_failure(self, strategy_system, game_id: str, level: int,
-                                      final_state: str, level_actions: List[int],
+                                      final_state: str, level_actions: List[Any],
                                       level_scores: List[float], last_score: float) -> None:
         """Learn from level-specific failures to improve level-specific strategies."""
         try:
@@ -995,12 +1000,42 @@ class ContinuousLearningLoop:
             # Analyze level-specific failure
             score_stagnation = len(level_scores) > 1 and (level_scores[-1] - level_scores[0]) < 5.0
 
+            # Format actions with coordinate details for better analysis
+            formatted_actions = []
+            action_6_coordinates = []
+
+            for action in level_actions:
+                if isinstance(action, str) and action.startswith("6("):
+                    # Extract coordinates from Action 6
+                    formatted_actions.append(action)
+                    # Extract x,y from "6(x,y)" format
+                    coord_part = action[2:-1]  # Remove "6(" and ")"
+                    if ',' in coord_part:
+                        try:
+                            x, y = map(int, coord_part.split(','))
+                            action_6_coordinates.append((x, y))
+                        except ValueError:
+                            pass
+                else:
+                    formatted_actions.append(str(action))
+
             print(f" LEVEL {level} FAILURE ANALYSIS: Failed during level {level}")
-            print(f"   Level actions that failed: {level_actions}")
+            print(f"   Level actions that failed: {formatted_actions}")
             print(f"   Score progress on level: {level_scores[0]:.1f} → {level_scores[-1]:.1f}")
 
+            # Provide more specific hypothesis based on action types
             if score_stagnation:
-                print(f"   Hypothesis: Actions {level_actions} may not be effective for level {level} type puzzles")
+                if action_6_coordinates:
+                    # Analyze coordinate clusters for specific feedback
+                    unique_coords = list(set(action_6_coordinates))
+                    if len(unique_coords) == 1:
+                        print(f"   Hypothesis: Coordinate {unique_coords[0]} appears ineffective for level {level} type puzzles")
+                    elif len(unique_coords) <= 3:
+                        print(f"   Hypothesis: Coordinate cluster {unique_coords} may not be effective for level {level} type puzzles")
+                    else:
+                        print(f"   Hypothesis: {len(unique_coords)} different coordinates tried, none effective for level {level} - may need different action types")
+                else:
+                    print(f"   Hypothesis: Actions {level_actions} may not be effective for level {level} type puzzles")
             else:
                 print(f"   Hypothesis: Action sequence was progressing but led to game over - try different approach")
 

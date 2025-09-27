@@ -261,7 +261,15 @@ class SuccessZoneMapper:
         else:
             zone.failure_actions.add(action_id)
         
-        zone.success_rate = zone.successes / zone.total_attempts
+        # Safe division to prevent ZeroDivisionError
+        if zone.total_attempts > 0:
+            zone.success_rate = zone.successes / zone.total_attempts
+        else:
+            # Handle edge case where total_attempts is 0
+            zone.success_rate = 0.0
+            zone.total_attempts = 1  # Fix inconsistent state
+            logger.warning(f"Fixed zone {zone_id} with zero total_attempts")
+
         zone.last_updated = time.time()
         
         # Update confidence based on success rate and attempts
@@ -348,8 +356,13 @@ class SuccessZoneMapper:
         
         # Create merged zone
         merged_coordinates = zone1.coordinates | zone2.coordinates
-        merged_center_x = sum(coord[0] for coord in merged_coordinates) / len(merged_coordinates)
-        merged_center_y = sum(coord[1] for coord in merged_coordinates) / len(merged_coordinates)
+        if len(merged_coordinates) > 0:
+            merged_center_x = sum(coord[0] for coord in merged_coordinates) / len(merged_coordinates)
+            merged_center_y = sum(coord[1] for coord in merged_coordinates) / len(merged_coordinates)
+        else:
+            # Fallback to zone1's center if no coordinates (should not happen)
+            merged_center_x, merged_center_y = zone1.center
+            logger.warning(f"Merged zone has no coordinates, using zone1 center: {zone1.center}")
         
         # Calculate merged statistics
         merged_attempts = zone1.total_attempts + zone2.total_attempts
@@ -467,7 +480,7 @@ class SuccessZoneMapper:
         failure_zones = sum(1 for z in zones.values() if z.zone_type == ZoneType.FAILURE)
         neutral_zones = sum(1 for z in zones.values() if z.zone_type == ZoneType.NEUTRAL)
         total_coordinates = sum(len(z.coordinates) for z in zones.values())
-        avg_success_rate = sum(z.success_rate for z in zones.values()) / len(zones)
+        avg_success_rate = sum(z.success_rate for z in zones.values()) / len(zones) if len(zones) > 0 else 0.0
         high_confidence_zones = sum(1 for z in zones.values() if z.confidence == ZoneConfidence.HIGH)
         
         return {
@@ -599,7 +612,8 @@ class CoordinateIntelligenceSystem:
         coord_intel.attempts += 1
         if success:
             coord_intel.successes += 1
-        coord_intel.success_rate = coord_intel.successes / coord_intel.attempts
+        # Safe division to prevent ZeroDivisionError
+        coord_intel.success_rate = coord_intel.successes / coord_intel.attempts if coord_intel.attempts > 0 else 0.0
         coord_intel.last_used = time.time()
         coord_intel.frame_changes += frame_changes
         coord_intel.zone_id = zone_id
@@ -739,7 +753,7 @@ class CoordinateIntelligenceSystem:
         
         # Bonus for consistent action success
         if coord_intel.action_success_rates:
-            avg_action_success = sum(coord_intel.action_success_rates.values()) / len(coord_intel.action_success_rates)
+            avg_action_success = sum(coord_intel.action_success_rates.values()) / len(coord_intel.action_success_rates) if len(coord_intel.action_success_rates) > 0 else 0.0
             consistency_bonus = avg_action_success * 0.2
         else:
             consistency_bonus = 0.0
