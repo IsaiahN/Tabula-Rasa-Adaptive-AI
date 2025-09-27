@@ -300,16 +300,11 @@ class EnhancedSpaceTimeGovernor:
             self.learning_manager = None
         
         try:
-            from .pattern_analyzer import PatternAnalyzer
-            # Try different initialization methods
-            try:
-                self.pattern_analyzer = PatternAnalyzer(
-                    persistence_dir=self.persistence_dir
-                )
-            except TypeError:
-                # Fallback to default initialization
-                self.pattern_analyzer = PatternAnalyzer()
-            logger.info("Pattern analyzer initialized")
+            # Import the correct PatternAnalyzer from analysis module
+            from src.analysis.pattern_analysis.analyzer import PatternAnalyzer
+            # Initialize PatternAnalyzer (it doesn't take persistence_dir parameter)
+            self.pattern_analyzer = PatternAnalyzer()
+            logger.info("Pattern analyzer initialized successfully")
         except ImportError:
             # Pattern analyzer is optional - create a dummy implementation
             self.pattern_analyzer = None
@@ -418,21 +413,54 @@ class EnhancedSpaceTimeGovernor:
         """Get pattern-based recommendations."""
         if not self.pattern_analyzer:
             return []
-        
+
         try:
-            # Try different method names that might exist
-            if hasattr(self.pattern_analyzer, 'analyze_patterns'):
-                return self.pattern_analyzer.analyze_patterns(context, performance_history)
-            elif hasattr(self.pattern_analyzer, 'get_recommendations'):
-                return self.pattern_analyzer.get_recommendations(context, performance_history)
-            elif hasattr(self.pattern_analyzer, 'analyze_context'):
-                return self.pattern_analyzer.analyze_context(context, performance_history)
+            # Convert performance_history to traces format for PatternAnalyzer
+            traces = []
+            for entry in performance_history:
+                if isinstance(entry, dict):
+                    traces.append({
+                        'action': entry.get('action', 0),
+                        'score': entry.get('score', 0),
+                        'success': entry.get('success', False),
+                        'timestamp': entry.get('timestamp', time.time())
+                    })
+
+            # Analyze patterns and convert to recommendations format
+            if hasattr(self.pattern_analyzer, 'analyze_patterns') and traces:
+                analysis = self.pattern_analyzer.analyze_patterns(traces)
+
+                # Convert analysis to recommendations
+                recommendations = []
+
+                # Extract successful sequences as recommendations
+                if 'successful_sequences' in analysis:
+                    for seq in analysis['successful_sequences'][:3]:  # Top 3
+                        recommendations.append({
+                            'type': 'successful_sequence',
+                            'confidence': 0.8,
+                            'description': f"Repeat successful action sequence: {seq}",
+                            'data': seq
+                        })
+
+                # Extract action effectiveness recommendations
+                if 'action_effectiveness' in analysis:
+                    for action, effectiveness in analysis['action_effectiveness'].items():
+                        if effectiveness > 0.7:  # High effectiveness
+                            recommendations.append({
+                                'type': 'effective_action',
+                                'confidence': effectiveness,
+                                'description': f"Action {action} has high effectiveness ({effectiveness:.2f})",
+                                'data': {'action': action, 'effectiveness': effectiveness}
+                            })
+
+                return recommendations
             else:
                 # Return basic recommendations if no specific method is available
                 return [{
                     'type': 'basic_pattern',
                     'confidence': 0.5,
-                    'description': 'Basic pattern analysis not available'
+                    'description': 'Pattern analysis available but no traces to analyze'
                 }]
         except Exception as e:
             logger.debug(f"Pattern analysis failed: {e}")

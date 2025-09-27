@@ -22,6 +22,11 @@ from ..governor import TrainingGovernor, MetaCognitiveController
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler, CompatibilityShim
 
+# Import losing streak detection components
+from src.core.losing_streak_detector import LosingStreakDetector, FailureType
+from src.core.anti_pattern_learner import AntiPatternLearner
+from src.core.escalated_intervention_system import EscalatedInterventionSystem
+
 logger = logging.getLogger(__name__)
 
 class ContinuousLearningLoop:
@@ -176,6 +181,19 @@ class ContinuousLearningLoop:
                             if best_level_strategy:
                                 print(f" APPLYING LEARNED LEVEL 1 STRATEGY: {best_level_strategy.strategy_id} - " +
                                       f"efficiency: {best_level_strategy.efficiency:.2f}, {len(best_level_strategy.action_sequence)} actions")
+
+                        # Check for known win conditions
+                        try:
+                            game_type = self.action_selector.strategy_discovery_system.game_type_classifier.extract_game_type(real_game_id)
+                            win_conditions = await self.action_selector.strategy_discovery_system.get_win_conditions_for_game_type(game_type)
+                            if win_conditions:
+                                print(f" KNOWN WIN CONDITIONS: Found {len(win_conditions)} win conditions for game type {game_type}")
+                                high_success_conditions = [c for c in win_conditions if c['success_rate'] > 0.7]
+                                if high_success_conditions:
+                                    print(f" HIGH SUCCESS CONDITIONS: {len(high_success_conditions)} conditions with >70% success rate")
+                        except Exception as e:
+                            print(f"[WARNING] Failed to check win conditions: {e}")
+
                     except Exception as e:
                         print(f"[WARNING] Failed to check for learned strategies: {e}")
 
@@ -479,7 +497,7 @@ class ContinuousLearningLoop:
             self.memory_manager = MemoryManager()
             self.action_memory = ActionMemoryManager(self.memory_manager)
             self.pattern_memory = PatternMemoryManager(self.memory_manager)
-            
+
             # Session management
             session_config = TrainingSessionConfig(
                 max_actions=2000,
@@ -489,36 +507,74 @@ class ContinuousLearningLoop:
                 enable_performance_tracking=True
             )
             self.session_manager = TrainingSessionManager(session_config)
-            
+
             # API management (will be initialized when needed)
             self.api_manager = APIManager(self.api_key)
             self._api_initialized = False
             self.action_selector = None
-            
+
             # Performance monitoring
             self.performance_monitor = UnifiedPerformanceMonitor()
             self.metrics_collector = MetricsCollector()
-            
+
             # Governor and meta-cognitive systems
             self.governor = TrainingGovernor(persistence_dir=str(self.save_directory))
             self.meta_cognitive = MetaCognitiveController()
-            
+
             # Learning systems
             self.learning_engine = LearningEngine()
             self.pattern_learner = PatternLearner()
             self.knowledge_transfer = KnowledgeTransfer()
-            
+
+            # Losing streak detection and intervention systems
+            # Initialize with database connection when available
+            self.losing_streak_detector = None
+            self.anti_pattern_learner = None
+            self.escalated_intervention_system = None
+            self._losing_streak_systems_initialized = False
+
             # Lazy imports
             self.lazy_imports = LazyImports()
-            
+
             # API will be initialized when needed (async)
-            
+
             logger.info("All modular components initialized successfully")
-            
+
         except Exception as e:
             logger.error(f"Error initializing components: {e}")
             raise
-    
+
+    def _initialize_losing_streak_systems(self):
+        """Initialize losing streak detection systems with database connection."""
+        try:
+            if self._losing_streak_systems_initialized:
+                return
+
+            # Get database connection from system integration
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            db_connection = integration.get_db_connection()
+
+            if db_connection:
+                # Initialize anti-pattern learner first (required by intervention system)
+                self.anti_pattern_learner = AntiPatternLearner(db_connection)
+
+                # Initialize losing streak detector
+                self.losing_streak_detector = LosingStreakDetector(db_connection)
+
+                # Initialize escalated intervention system
+                self.escalated_intervention_system = EscalatedInterventionSystem(
+                    db_connection, self.anti_pattern_learner
+                )
+
+                self._losing_streak_systems_initialized = True
+                logger.info("Losing streak detection systems initialized successfully")
+            else:
+                logger.warning("No database connection available for losing streak systems")
+
+        except Exception as e:
+            logger.error(f"Error initializing losing streak systems: {e}")
+
     async def run_continuous_learning(self, max_games: int = 100) -> Dict[str, Any]:
         """Run continuous learning with modular components."""
         try:
@@ -753,6 +809,9 @@ class ContinuousLearningLoop:
                                    level_score_progression: List[float], last_significant_score: float) -> None:
         """Analyze game outcome and learn from both successes AND failures."""
         try:
+            # Initialize losing streak systems if not already done
+            self._initialize_losing_streak_systems()
+
             if not self.action_selector or not hasattr(self.action_selector, 'strategy_discovery_system'):
                 return
 
@@ -760,10 +819,116 @@ class ContinuousLearningLoop:
             if not strategy_system:
                 return
 
-            # 1. GAME-LEVEL ANALYSIS
+            # Extract game type for losing streak tracking
+            game_type = strategy_system.game_type_classifier.extract_game_type(game_id)
+
+            # 1. LOSING STREAK DETECTION AND INTERVENTION
+            if self._losing_streak_systems_initialized:
+                if game_won:
+                    # Record success to break any active streak
+                    if self.losing_streak_detector:
+                        streak_broken = self.losing_streak_detector.record_success(
+                            game_type, game_id,
+                            break_method=f"winning_strategy_{len(action_sequence)}_actions"
+                        )
+                        if streak_broken:
+                            print(f" LOSING STREAK BROKEN: Success after previous failures")
+
+                    # Record successful patterns to update anti-pattern learning
+                    if self.anti_pattern_learner:
+                        # Extract coordinates used (if any Action 6 was used)
+                        coordinates_used = []
+                        for i, action in enumerate(action_sequence):
+                            if action == 6 and i < len(action_sequence):
+                                # For now, use simple coordinate extraction
+                                # In a real implementation, this would come from action context
+                                coordinates_used.append((i * 10 % 640, i * 10 % 480))
+
+                        self.anti_pattern_learner.record_pattern_success(
+                            game_type, action_sequence, coordinates_used
+                        )
+                else:
+                    # Record failure and check for losing streak
+                    failure_type = self._classify_failure_type_for_streak(final_state, actions_taken, final_score)
+
+                    if self.losing_streak_detector:
+                        streak_detected, streak_data = self.losing_streak_detector.record_failure(
+                            game_type, game_id, failure_type,
+                            context_data={
+                                "final_score": final_score,
+                                "actions_taken": actions_taken,
+                                "final_state": final_state,
+                                "action_sequence": action_sequence,
+                                "score_progression": score_progression
+                            }
+                        )
+
+                        if streak_detected and streak_data:
+                            print(f" LOSING STREAK DETECTED: {streak_data.consecutive_failures} consecutive failures")
+                            print(f"   Escalation level: {streak_data.escalation_level.name}")
+
+                            # Apply intervention if needed
+                            if self.escalated_intervention_system and streak_data.escalation_level.value > 0:
+                                intervention_result = self.escalated_intervention_system.apply_intervention(
+                                    streak_data,
+                                    {
+                                        "game_type": game_type,
+                                        "game_id": game_id,
+                                        "has_coordinates": 6 in action_sequence,
+                                        "recent_actions": action_sequence[-10:] if len(action_sequence) > 10 else action_sequence,
+                                        "score_progression": score_progression
+                                    }
+                                )
+
+                                if intervention_result:
+                                    print(f" INTERVENTION APPLIED: {intervention_result.intervention_type.value}")
+
+                    # Analyze failure patterns for anti-pattern learning
+                    if self.anti_pattern_learner:
+                        coordinates_used = []
+                        for i, action in enumerate(action_sequence):
+                            if action == 6:
+                                coordinates_used.append((i * 10 % 640, i * 10 % 480))
+
+                        failure_context = {
+                            "final_state": final_state,
+                            "final_score": final_score,
+                            "actions_taken": actions_taken,
+                            "score_progression": score_progression
+                        }
+
+                        anti_patterns = self.anti_pattern_learner.analyze_failure(
+                            game_type, game_id, action_sequence, coordinates_used, failure_context
+                        )
+
+                        if anti_patterns:
+                            print(f" ANTI-PATTERNS IDENTIFIED: {len(anti_patterns)} failure patterns learned")
+
+            # 2. GAME-LEVEL ANALYSIS (Original logic)
             if game_won:
-                # Success case - already handled in main loop
+                # Success case - analyze win conditions
                 print(f" GAME SUCCESS ANALYSIS: {len(action_sequence)} total actions led to win")
+
+                # Analyze win conditions for this successful game
+                try:
+                    if len(action_sequence) >= 3:  # Need minimum actions for meaningful analysis
+                        win_conditions = await strategy_system.analyze_win_conditions(
+                            game_id, action_sequence, score_progression
+                        )
+                        if win_conditions:
+                            print(f" WIN CONDITIONS ANALYZED: {len(win_conditions)} conditions identified")
+
+                            # Update win condition frequencies for successful application
+                            existing_conditions = await strategy_system.get_win_conditions_for_game_type(game_type)
+
+                            for existing_condition in existing_conditions:
+                                # Check if this successful game matches existing conditions
+                                await strategy_system.update_win_condition_frequency(
+                                    existing_condition['condition_id'], success=True
+                                )
+
+                except Exception as e:
+                    print(f"[WARNING] Failed to analyze win conditions for successful game: {e}")
             else:
                 # FAILURE CASE - NEW LEARNING OPPORTUNITY
                 await self._learn_from_game_failure(
@@ -771,7 +936,7 @@ class ContinuousLearningLoop:
                     action_sequence, score_progression, actions_taken
                 )
 
-            # 2. LEVEL-SPECIFIC ANALYSIS
+            # 3. LEVEL-SPECIFIC ANALYSIS
             # If we have incomplete level progress when game ends, learn from level failure
             if not game_won and len(level_action_sequence) >= 3:
                 # Current level was in progress when game failed
@@ -780,7 +945,7 @@ class ContinuousLearningLoop:
                     level_action_sequence, level_score_progression, last_significant_score
                 )
 
-            # 3. PARTIAL SUCCESS ANALYSIS
+            # 4. PARTIAL SUCCESS ANALYSIS
             # Even in failure, check if any levels were completed during this game
             # (This is already handled in the main loop for level completions)
 
@@ -855,6 +1020,17 @@ class ContinuousLearningLoop:
             return "LOW_PROGRESS"
         else:
             return "FAILURE_WITH_PROGRESS"
+
+    def _classify_failure_type_for_streak(self, final_state: str, actions_taken: int, final_score: float) -> FailureType:
+        """Classify failure type for losing streak detection system."""
+        if final_state == 'NOT_FINISHED' and actions_taken >= 5000:
+            return FailureType.TIMEOUT
+        elif final_score <= 0:
+            return FailureType.ZERO_PROGRESS
+        elif final_score < 50:
+            return FailureType.LOW_PROGRESS
+        else:
+            return FailureType.GENERAL_FAILURE
 
     def _cleanup(self) -> None:
         """Cleanup resources on shutdown."""

@@ -655,6 +655,23 @@ CREATE TABLE IF NOT EXISTS strategy_replications (
     FOREIGN KEY (strategy_id) REFERENCES winning_strategies(strategy_id)
 );
 
+-- Win condition analysis and tracking
+CREATE TABLE IF NOT EXISTS win_conditions (
+    condition_id TEXT PRIMARY KEY,
+    game_type TEXT NOT NULL,
+    game_id TEXT,
+    condition_type TEXT NOT NULL, -- 'action_pattern', 'score_threshold', 'sequence_timing', 'level_completion'
+    condition_data TEXT NOT NULL, -- JSON data describing the condition
+    frequency INTEGER DEFAULT 1,   -- How often this condition leads to wins
+    success_rate REAL DEFAULT 1.0, -- Success rate when this condition is met
+    first_observed REAL,           -- Timestamp when first observed
+    last_observed REAL,            -- Timestamp when last observed
+    total_games_observed INTEGER DEFAULT 1,
+    strategy_id TEXT,              -- Link to associated strategy if any
+    created_at REAL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (strategy_id) REFERENCES winning_strategies(strategy_id)
+);
+
 -- Advanced stagnation detection
 CREATE TABLE IF NOT EXISTS stagnation_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -769,6 +786,12 @@ CREATE INDEX IF NOT EXISTS idx_winning_strategies_efficiency ON winning_strategi
 CREATE INDEX IF NOT EXISTS idx_strategy_refinements_strategy ON strategy_refinements(strategy_id);
 CREATE INDEX IF NOT EXISTS idx_strategy_replications_strategy ON strategy_replications(strategy_id);
 
+-- Win conditions indexes
+CREATE INDEX IF NOT EXISTS idx_win_conditions_game_type ON win_conditions(game_type);
+CREATE INDEX IF NOT EXISTS idx_win_conditions_type ON win_conditions(condition_type);
+CREATE INDEX IF NOT EXISTS idx_win_conditions_success_rate ON win_conditions(success_rate);
+CREATE INDEX IF NOT EXISTS idx_win_conditions_strategy ON win_conditions(strategy_id);
+
 -- Stagnation detection indexes
 CREATE INDEX IF NOT EXISTS idx_stagnation_events_game ON stagnation_events(game_id);
 CREATE INDEX IF NOT EXISTS idx_stagnation_events_type ON stagnation_events(stagnation_type);
@@ -799,6 +822,92 @@ CREATE INDEX IF NOT EXISTS idx_action_effectiveness_action ON action_effectivene
 -- Governor decision indexes
 CREATE INDEX IF NOT EXISTS idx_governor_decisions_session ON governor_decisions(session_id);
 CREATE INDEX IF NOT EXISTS idx_governor_decisions_type ON governor_decisions(decision_type);
+
+-- ============================================================================
+-- LOSING STREAK DETECTION AND ANTI-PATTERN LEARNING TABLES
+-- ============================================================================
+
+-- Losing streak tracking for cross-attempt failure analysis
+CREATE TABLE IF NOT EXISTS losing_streaks (
+    streak_id TEXT PRIMARY KEY,
+    game_type TEXT NOT NULL,
+    game_id TEXT NOT NULL,
+    level_identifier TEXT, -- For games with distinct levels
+    consecutive_failures INTEGER NOT NULL DEFAULT 1,
+    total_attempts INTEGER NOT NULL DEFAULT 1,
+    first_failure_timestamp REAL NOT NULL,
+    last_failure_timestamp REAL NOT NULL,
+    failure_types TEXT, -- JSON array of failure types (timeout, score_stagnation, etc.)
+    escalation_level INTEGER DEFAULT 0, -- 0=none, 1=mild, 2=moderate, 3=aggressive
+    last_escalation_timestamp REAL,
+    intervention_attempts INTEGER DEFAULT 0,
+    successful_intervention BOOLEAN DEFAULT FALSE,
+    streak_broken BOOLEAN DEFAULT FALSE,
+    break_timestamp REAL,
+    break_method TEXT, -- Description of what finally worked
+    created_at REAL DEFAULT (strftime('%s', 'now')),
+    updated_at REAL DEFAULT (strftime('%s', 'now'))
+);
+
+-- Anti-pattern learning to identify consistently failing approaches
+CREATE TABLE IF NOT EXISTS anti_patterns (
+    pattern_id TEXT PRIMARY KEY,
+    game_type TEXT NOT NULL,
+    game_id TEXT,
+    pattern_type TEXT NOT NULL, -- 'action_sequence', 'coordinate_cluster', 'timing_pattern', 'score_approach'
+    pattern_data TEXT NOT NULL, -- JSON data describing the anti-pattern
+    failure_count INTEGER DEFAULT 1,
+    total_encounters INTEGER DEFAULT 1,
+    failure_rate REAL DEFAULT 1.0,
+    first_observed REAL NOT NULL,
+    last_observed REAL NOT NULL,
+    severity REAL DEFAULT 0.5, -- 0.0 to 1.0, how bad this pattern is
+    confidence REAL DEFAULT 0.5, -- 0.0 to 1.0, confidence in pattern identification
+    context_data TEXT, -- JSON context when pattern occurs
+    alternative_suggestions TEXT, -- JSON array of suggested alternatives
+    created_at REAL DEFAULT (strftime('%s', 'now')),
+    updated_at REAL DEFAULT (strftime('%s', 'now'))
+);
+
+-- Escalated intervention tracking
+CREATE TABLE IF NOT EXISTS escalated_interventions (
+    intervention_id TEXT PRIMARY KEY,
+    streak_id TEXT NOT NULL,
+    game_id TEXT NOT NULL,
+    escalation_level INTEGER NOT NULL,
+    intervention_type TEXT NOT NULL, -- 'randomization', 'exploration_boost', 'strategy_override', 'pattern_avoidance'
+    intervention_data TEXT NOT NULL, -- JSON data describing the intervention
+    applied_timestamp REAL NOT NULL,
+    success BOOLEAN DEFAULT FALSE,
+    outcome_data TEXT, -- JSON data about the outcome
+    duration_seconds REAL,
+    recovery_actions INTEGER DEFAULT 0,
+    created_at REAL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (streak_id) REFERENCES losing_streaks(streak_id)
+);
+
+-- ============================================================================
+-- INDEXES FOR LOSING STREAK DETECTION TABLES
+-- ============================================================================
+
+-- Losing streaks indexes
+CREATE INDEX IF NOT EXISTS idx_losing_streaks_game_type ON losing_streaks(game_type);
+CREATE INDEX IF NOT EXISTS idx_losing_streaks_game_id ON losing_streaks(game_id);
+CREATE INDEX IF NOT EXISTS idx_losing_streaks_consecutive ON losing_streaks(consecutive_failures);
+CREATE INDEX IF NOT EXISTS idx_losing_streaks_escalation ON losing_streaks(escalation_level);
+CREATE INDEX IF NOT EXISTS idx_losing_streaks_active ON losing_streaks(streak_broken);
+
+-- Anti-patterns indexes
+CREATE INDEX IF NOT EXISTS idx_anti_patterns_game_type ON anti_patterns(game_type);
+CREATE INDEX IF NOT EXISTS idx_anti_patterns_type ON anti_patterns(pattern_type);
+CREATE INDEX IF NOT EXISTS idx_anti_patterns_failure_rate ON anti_patterns(failure_rate);
+CREATE INDEX IF NOT EXISTS idx_anti_patterns_severity ON anti_patterns(severity);
+
+-- Escalated interventions indexes
+CREATE INDEX IF NOT EXISTS idx_escalated_interventions_streak ON escalated_interventions(streak_id);
+CREATE INDEX IF NOT EXISTS idx_escalated_interventions_level ON escalated_interventions(escalation_level);
+CREATE INDEX IF NOT EXISTS idx_escalated_interventions_type ON escalated_interventions(intervention_type);
+CREATE INDEX IF NOT EXISTS idx_escalated_interventions_success ON escalated_interventions(success);
 
 -- GAN indexes for performance
 CREATE INDEX IF NOT EXISTS idx_gan_generated_states_session ON gan_generated_states(session_id);

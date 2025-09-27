@@ -105,16 +105,23 @@ class StrategyDiscoverySystem:
             
             # Store in database
             await self._store_winning_strategy(strategy)
-            
+
+            # Analyze win conditions for this successful strategy
+            try:
+                win_conditions = await self.analyze_win_conditions(game_id, action_sequence, score_progression)
+                logger.info(f" WIN CONDITIONS DISCOVERED: {len(win_conditions)} conditions analyzed for strategy {strategy_id}")
+            except Exception as e:
+                logger.warning(f"Failed to analyze win conditions for strategy {strategy_id}: {e}")
+
             # Update local cache
             if game_type not in self.active_strategies:
                 self.active_strategies[game_type] = []
             self.active_strategies[game_type].append(strategy)
-            
+
             logger.info(f" WINNING STRATEGY DISCOVERED: {strategy_id} - "
                        f"{len(action_sequence)} actions, +{score_increase:.1f} score, "
                        f"efficiency: {efficiency:.2f}")
-            
+
             return strategy
             
         except Exception as e:
@@ -525,3 +532,456 @@ class StrategyDiscoverySystem:
         except Exception as e:
             logger.error(f"Error getting strategy statistics: {e}")
             return {}
+
+    # ============================================================================
+    # WIN CONDITION ANALYSIS METHODS
+    # ============================================================================
+
+    async def analyze_win_conditions(self,
+                                   game_id: str,
+                                   action_sequence: List[int],
+                                   score_progression: List[float]) -> List[Dict[str, Any]]:
+        """
+        Analyze and extract win conditions from successful game completion.
+
+        Args:
+            game_id: Game identifier
+            action_sequence: Sequence of actions that led to success
+            score_progression: Score values throughout the sequence
+
+        Returns:
+            List of extracted win conditions
+        """
+        try:
+            game_type = self.game_type_classifier.extract_game_type(game_id)
+            win_conditions = []
+
+            # 1. Action Pattern Analysis
+            pattern_conditions = self._extract_action_patterns(action_sequence, game_type, game_id)
+            win_conditions.extend(pattern_conditions)
+
+            # 2. Score Threshold Analysis
+            threshold_conditions = self._extract_score_thresholds(score_progression, game_type, game_id)
+            win_conditions.extend(threshold_conditions)
+
+            # 3. Sequence Timing Analysis
+            timing_conditions = self._extract_sequence_timing(action_sequence, score_progression, game_type, game_id)
+            win_conditions.extend(timing_conditions)
+
+            # 4. Level Completion Analysis (if applicable)
+            if "_level_" in game_id:
+                level_conditions = self._extract_level_completion_patterns(action_sequence, score_progression, game_type, game_id)
+                win_conditions.extend(level_conditions)
+
+            # Store discovered conditions
+            for condition in win_conditions:
+                await self.store_win_condition(game_type, condition['type'], condition['data'])
+
+            logger.info(f" WIN CONDITIONS EXTRACTED: {len(win_conditions)} conditions from {game_id}")
+            return win_conditions
+
+        except Exception as e:
+            logger.error(f"Error analyzing win conditions for {game_id}: {e}")
+            return []
+
+    async def store_win_condition(self,
+                                game_type: str,
+                                condition_type: str,
+                                condition_data: Dict[str, Any],
+                                game_id: str = None,
+                                strategy_id: str = None) -> str:
+        """
+        Store a new win condition in the database.
+
+        Args:
+            game_type: Type of game
+            condition_type: Type of condition ('action_pattern', 'score_threshold', etc.)
+            condition_data: Data describing the condition
+            game_id: Optional specific game ID
+            strategy_id: Optional associated strategy ID
+
+        Returns:
+            The condition_id of the stored condition
+        """
+        try:
+            condition_id = f"{game_type}_{condition_type}_{uuid.uuid4().hex[:8]}"
+
+            query = """
+                INSERT OR REPLACE INTO win_conditions
+                (condition_id, game_type, game_id, condition_type, condition_data,
+                 first_observed, last_observed, strategy_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """
+
+            current_time = time.time()
+            await self.integration.db.execute(
+                query,
+                (condition_id, game_type, game_id, condition_type,
+                 json.dumps(condition_data), current_time, current_time, strategy_id)
+            )
+
+            logger.debug(f"Stored win condition: {condition_id}")
+            return condition_id
+
+        except Exception as e:
+            logger.error(f"Error storing win condition: {e}")
+            return ""
+
+    async def get_win_conditions_for_game_type(self, game_type: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve all known win conditions for a specific game type.
+
+        Args:
+            game_type: Type of game to get conditions for
+
+        Returns:
+            List of win conditions with their data
+        """
+        try:
+            query = """
+                SELECT condition_id, condition_type, condition_data, frequency,
+                       success_rate, first_observed, last_observed, total_games_observed
+                FROM win_conditions
+                WHERE game_type = ?
+                ORDER BY success_rate DESC, frequency DESC
+            """
+
+            results = await self.integration.db.fetch_all(query, (game_type,))
+
+            conditions = []
+            for row in results:
+                condition = {
+                    'condition_id': row['condition_id'],
+                    'condition_type': row['condition_type'],
+                    'condition_data': json.loads(row['condition_data']),
+                    'frequency': row['frequency'],
+                    'success_rate': row['success_rate'],
+                    'first_observed': row['first_observed'],
+                    'last_observed': row['last_observed'],
+                    'total_games_observed': row['total_games_observed']
+                }
+                conditions.append(condition)
+
+            return conditions
+
+        except Exception as e:
+            logger.error(f"Error getting win conditions for {game_type}: {e}")
+            return []
+
+    async def compare_multiple_wins(self, game_type: str) -> Dict[str, Any]:
+        """
+        Analyze patterns across multiple wins for the same game type.
+
+        Args:
+            game_type: Type of game to analyze
+
+        Returns:
+            Analysis of common patterns across wins
+        """
+        try:
+            # Get all strategies for this game type
+            strategies = await self._load_strategies_for_game_type(game_type)
+            if len(strategies) < 2:
+                return {'error': 'Not enough strategies to compare', 'count': len(strategies)}
+
+            # Get all win conditions for this game type
+            conditions = await self.get_win_conditions_for_game_type(game_type)
+
+            # Extract common patterns
+            common_patterns = await self.extract_common_patterns(strategies)
+
+            analysis = {
+                'game_type': game_type,
+                'total_strategies': len(strategies),
+                'total_conditions': len(conditions),
+                'common_patterns': common_patterns,
+                'most_successful_conditions': [
+                    c for c in conditions if c['success_rate'] > 0.7
+                ][:5],  # Top 5 most successful
+                'pattern_statistics': {
+                    'action_patterns': len([c for c in conditions if c['condition_type'] == 'action_pattern']),
+                    'score_thresholds': len([c for c in conditions if c['condition_type'] == 'score_threshold']),
+                    'timing_patterns': len([c for c in conditions if c['condition_type'] == 'sequence_timing']),
+                    'level_patterns': len([c for c in conditions if c['condition_type'] == 'level_completion'])
+                }
+            }
+
+            return analysis
+
+        except Exception as e:
+            logger.error(f"Error comparing multiple wins for {game_type}: {e}")
+            return {}
+
+    async def extract_common_patterns(self, strategies: List[WinningStrategy]) -> List[Dict[str, Any]]:
+        """
+        Extract common winning patterns from multiple strategies.
+
+        Args:
+            strategies: List of winning strategies to analyze
+
+        Returns:
+            List of common patterns found
+        """
+        try:
+            if len(strategies) < 2:
+                return []
+
+            common_patterns = []
+
+            # 1. Common Action Sequences (2+ actions in a row)
+            action_sequences = {}
+            for strategy in strategies:
+                seq = strategy.action_sequence
+                for i in range(len(seq) - 1):
+                    pattern = tuple(seq[i:i+2])
+                    if pattern not in action_sequences:
+                        action_sequences[pattern] = 0
+                    action_sequences[pattern] += 1
+
+            # Find sequences that appear in multiple strategies
+            common_threshold = max(2, len(strategies) // 2)
+            for pattern, count in action_sequences.items():
+                if count >= common_threshold:
+                    common_patterns.append({
+                        'type': 'common_action_sequence',
+                        'pattern': list(pattern),
+                        'frequency': count,
+                        'percentage': count / len(strategies)
+                    })
+
+            # 2. Common Efficiency Ranges
+            efficiencies = [s.efficiency for s in strategies]
+            avg_efficiency = np.mean(efficiencies)
+            std_efficiency = np.std(efficiencies)
+
+            if std_efficiency < avg_efficiency * 0.3:  # Low variance
+                common_patterns.append({
+                    'type': 'efficiency_consistency',
+                    'avg_efficiency': avg_efficiency,
+                    'std_deviation': std_efficiency,
+                    'range': [min(efficiencies), max(efficiencies)]
+                })
+
+            # 3. Common Score Progression Patterns
+            score_increases = [s.total_score_increase for s in strategies]
+            if len(set(score_increases)) < len(score_increases) * 0.5:  # Many similar scores
+                common_patterns.append({
+                    'type': 'score_convergence',
+                    'common_scores': list(set(score_increases)),
+                    'frequency_distribution': {score: score_increases.count(score) for score in set(score_increases)}
+                })
+
+            return common_patterns
+
+        except Exception as e:
+            logger.error(f"Error extracting common patterns: {e}")
+            return []
+
+    async def update_win_condition_frequency(self, condition_id: str, success: bool) -> None:
+        """
+        Update frequency and success rate of a win condition.
+
+        Args:
+            condition_id: ID of the condition to update
+            success: Whether the condition led to success
+        """
+        try:
+            # Get current values
+            query = "SELECT frequency, success_rate, total_games_observed FROM win_conditions WHERE condition_id = ?"
+            result = await self.integration.db.fetch_one(query, (condition_id,))
+
+            if result:
+                current_freq = result['frequency']
+                current_success_rate = result['success_rate']
+                current_total = result['total_games_observed']
+
+                # Update values
+                new_total = current_total + 1
+                if success:
+                    new_freq = current_freq + 1
+                else:
+                    new_freq = current_freq
+
+                new_success_rate = new_freq / new_total
+
+                # Update database
+                update_query = """
+                    UPDATE win_conditions
+                    SET frequency = ?, success_rate = ?, total_games_observed = ?, last_observed = ?
+                    WHERE condition_id = ?
+                """
+
+                await self.integration.db.execute(
+                    update_query,
+                    (new_freq, new_success_rate, new_total, time.time(), condition_id)
+                )
+
+        except Exception as e:
+            logger.error(f"Error updating win condition frequency: {e}")
+
+    # ============================================================================
+    # PRIVATE WIN CONDITION EXTRACTION HELPERS
+    # ============================================================================
+
+    def _extract_action_patterns(self, action_sequence: List[int], game_type: str, game_id: str) -> List[Dict[str, Any]]:
+        """Extract action pattern conditions from sequence."""
+        patterns = []
+
+        try:
+            # Repeated action sequences
+            for length in [2, 3, 4]:
+                if len(action_sequence) >= length:
+                    for i in range(len(action_sequence) - length + 1):
+                        pattern = action_sequence[i:i+length]
+
+                        # Check if this pattern repeats
+                        pattern_count = 0
+                        for j in range(len(action_sequence) - length + 1):
+                            if action_sequence[j:j+length] == pattern:
+                                pattern_count += 1
+
+                        if pattern_count >= 2:  # Pattern repeats at least twice
+                            patterns.append({
+                                'type': 'action_pattern',
+                                'data': {
+                                    'pattern': pattern,
+                                    'length': length,
+                                    'repetitions': pattern_count,
+                                    'positions': [j for j in range(len(action_sequence) - length + 1)
+                                                if action_sequence[j:j+length] == pattern]
+                                }
+                            })
+
+            # Action frequency distribution
+            action_counts = {}
+            for action in action_sequence:
+                action_counts[action] = action_counts.get(action, 0) + 1
+
+            # Find dominant actions (>30% of sequence)
+            total_actions = len(action_sequence)
+            for action, count in action_counts.items():
+                if count / total_actions > 0.3:
+                    patterns.append({
+                        'type': 'action_pattern',
+                        'data': {
+                            'dominant_action': action,
+                            'frequency': count,
+                            'percentage': count / total_actions
+                        }
+                    })
+
+        except Exception as e:
+            logger.error(f"Error extracting action patterns: {e}")
+
+        return patterns
+
+    def _extract_score_thresholds(self, score_progression: List[float], game_type: str, game_id: str) -> List[Dict[str, Any]]:
+        """Extract score threshold conditions."""
+        thresholds = []
+
+        try:
+            if len(score_progression) < 3:
+                return thresholds
+
+            # Find significant score jumps
+            for i in range(1, len(score_progression)):
+                score_change = score_progression[i] - score_progression[i-1]
+                if score_change > 10:  # Significant increase
+                    thresholds.append({
+                        'type': 'score_threshold',
+                        'data': {
+                            'threshold_score': score_progression[i-1],
+                            'target_score': score_progression[i],
+                            'score_jump': score_change,
+                            'position': i
+                        }
+                    })
+
+            # Final score threshold
+            final_score = score_progression[-1]
+            if final_score > 50:  # Arbitrary threshold for "good" score
+                thresholds.append({
+                    'type': 'score_threshold',
+                    'data': {
+                        'final_score_threshold': final_score,
+                        'total_increase': final_score - score_progression[0]
+                    }
+                })
+
+        except Exception as e:
+            logger.error(f"Error extracting score thresholds: {e}")
+
+        return thresholds
+
+    def _extract_sequence_timing(self, action_sequence: List[int], score_progression: List[float],
+                                game_type: str, game_id: str) -> List[Dict[str, Any]]:
+        """Extract sequence timing conditions."""
+        timing_patterns = []
+
+        try:
+            # Actions per score increase
+            if len(action_sequence) > 0 and len(score_progression) > 1:
+                total_score_increase = score_progression[-1] - score_progression[0]
+                if total_score_increase > 0:
+                    actions_per_score = len(action_sequence) / total_score_increase
+
+                    timing_patterns.append({
+                        'type': 'sequence_timing',
+                        'data': {
+                            'actions_per_score_point': actions_per_score,
+                            'total_actions': len(action_sequence),
+                            'total_score_increase': total_score_increase,
+                            'efficiency_ratio': total_score_increase / len(action_sequence)
+                        }
+                    })
+
+            # Early vs late game patterns
+            if len(action_sequence) >= 6:
+                early_actions = action_sequence[:len(action_sequence)//3]
+                late_actions = action_sequence[-len(action_sequence)//3:]
+
+                if early_actions != late_actions:
+                    timing_patterns.append({
+                        'type': 'sequence_timing',
+                        'data': {
+                            'early_pattern': early_actions,
+                            'late_pattern': late_actions,
+                            'pattern_shift': True
+                        }
+                    })
+
+        except Exception as e:
+            logger.error(f"Error extracting sequence timing: {e}")
+
+        return timing_patterns
+
+    def _extract_level_completion_patterns(self, action_sequence: List[int], score_progression: List[float],
+                                         game_type: str, game_id: str) -> List[Dict[str, Any]]:
+        """Extract level completion patterns."""
+        level_patterns = []
+
+        try:
+            # Extract level number from game_id
+            level_num = None
+            if "_level_" in game_id:
+                try:
+                    level_num = int(game_id.split("_level_")[1])
+                except (IndexError, ValueError):
+                    level_num = None
+
+            if level_num:
+                level_patterns.append({
+                    'type': 'level_completion',
+                    'data': {
+                        'level_number': level_num,
+                        'completion_actions': len(action_sequence),
+                        'completion_score': score_progression[-1] if score_progression else 0,
+                        'action_sequence': action_sequence,
+                        'score_progression': score_progression
+                    }
+                })
+
+        except Exception as e:
+            logger.error(f"Error extracting level completion patterns: {e}")
+
+        return level_patterns

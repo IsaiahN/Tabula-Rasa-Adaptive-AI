@@ -562,8 +562,159 @@ class ActionSelector:
                             })
             except Exception as e:
                 logger.error(f"Error in strategy discovery: {e}")
-        
-        # 16. ENHANCED FRAME ANALYSIS - Analyze frame changes for better action selection
+
+        # 16. WIN CONDITION INFLUENCE - Apply known win conditions to action selection
+        win_condition_suggestions = []
+        if self.strategy_discovery_system:
+            try:
+                game_id = game_state.get('game_id', 'unknown')
+                game_type = self.strategy_discovery_system.game_type_classifier.extract_game_type(game_id)
+
+                # Get win conditions for this game type
+                win_conditions = await self.strategy_discovery_system.get_win_conditions_for_game_type(game_type)
+
+                if win_conditions:
+                    # Process high-success win conditions
+                    high_success_conditions = [c for c in win_conditions if c['success_rate'] > 0.7]
+
+                    for condition in high_success_conditions[:3]:  # Top 3 conditions
+                        condition_data = condition['condition_data']
+
+                        # Handle action pattern conditions
+                        if condition['condition_type'] == 'action_pattern':
+                            if 'pattern' in condition_data:
+                                pattern = condition_data['pattern']
+                                if len(pattern) > 0 and pattern[0] in available_actions:
+                                    win_condition_suggestions.append({
+                                        'action': f'ACTION{pattern[0]}',
+                                        'confidence': condition['success_rate'],
+                                        'reason': f'Win condition: action pattern with {condition["success_rate"]:.1%} success rate',
+                                        'source': 'win_condition_pattern'
+                                    })
+
+                            elif 'dominant_action' in condition_data:
+                                dominant_action = condition_data['dominant_action']
+                                if dominant_action in available_actions:
+                                    win_condition_suggestions.append({
+                                        'action': f'ACTION{dominant_action}',
+                                        'confidence': condition['success_rate'] * condition_data.get('percentage', 0.5),
+                                        'reason': f'Win condition: dominant action {dominant_action} ({condition_data.get("percentage", 0.5):.1%} frequency)',
+                                        'source': 'win_condition_dominant'
+                                    })
+
+                        # Handle score threshold conditions
+                        elif condition['condition_type'] == 'score_threshold':
+                            if 'final_score_threshold' in condition_data:
+                                threshold = condition_data['final_score_threshold']
+                                current_score = game_state.get('score', 0)
+
+                                # If we're below the winning threshold, prioritize score-gaining actions
+                                if current_score < threshold:
+                                    # Prefer actions that historically lead to score increases
+                                    score_gaining_actions = [1, 2, 3, 4, 5]  # Generally score-gaining actions
+                                    for action in score_gaining_actions:
+                                        if action in available_actions:
+                                            win_condition_suggestions.append({
+                                                'action': f'ACTION{action}',
+                                                'confidence': condition['success_rate'] * 0.8,  # Slightly lower confidence
+                                                'reason': f'Win condition: need score {threshold}, current {current_score}',
+                                                'source': 'win_condition_score_threshold'
+                                            })
+                                            break  # Only suggest one action per condition
+
+            except Exception as e:
+                logger.error(f"Error applying win conditions: {e}")
+
+        # 16. LOSING STREAK INTERVENTION - Apply intervention guidance when losing streaks detected
+        losing_streak_suggestions = []
+        try:
+            # Try to get losing streak systems from the continuous learning loop
+            # This is a bit hacky but necessary since we don't have direct access
+            from src.training.core.continuous_learning_loop import ContinuousLearningLoop
+            import inspect
+
+            # Look for ContinuousLearningLoop instance in the call stack to get access to losing streak systems
+            loop_instance = None
+            for frame_info in inspect.stack():
+                frame_locals = frame_info.frame.f_locals
+                for var_name, var_value in frame_locals.items():
+                    if isinstance(var_value, ContinuousLearningLoop):
+                        loop_instance = var_value
+                        break
+                if loop_instance:
+                    break
+
+            if (loop_instance and
+                hasattr(loop_instance, '_losing_streak_systems_initialized') and
+                loop_instance._losing_streak_systems_initialized):
+
+                game_id = game_state.get('game_id', 'unknown')
+                game_type = self.strategy_discovery_system.game_type_classifier.extract_game_type(game_id) if self.strategy_discovery_system else 'unknown'
+
+                # Check for active losing streak
+                if loop_instance.losing_streak_detector:
+                    active_streak = loop_instance.losing_streak_detector.get_streak_for_game(game_type, game_id)
+
+                    if active_streak and active_streak.consecutive_failures >= 3:
+                        logger.info(f" LOSING STREAK GUIDANCE: {active_streak.consecutive_failures} consecutive failures detected")
+
+                        # Get active interventions
+                        if loop_instance.escalated_intervention_system:
+                            active_interventions = loop_instance.escalated_intervention_system.get_active_interventions()
+
+                            for intervention in active_interventions:
+                                guidance = loop_instance.escalated_intervention_system.get_intervention_guidance(
+                                    intervention['intervention_id']
+                                )
+
+                                if guidance:
+                                    losing_streak_suggestions.extend(
+                                        self._apply_intervention_guidance(guidance, available_actions, game_state)
+                                    )
+
+                        # Get anti-pattern avoidance suggestions
+                        if loop_instance.anti_pattern_learner:
+                            # Simulate proposed actions to check for anti-patterns
+                            proposed_action_sequence = [a for a in available_actions[:3]]  # Sample available actions
+                            proposed_coordinates = [(100, 100), (200, 200)] if 6 in available_actions else []
+
+                            pattern_suggestions = loop_instance.anti_pattern_learner.get_pattern_suggestions(
+                                game_type, proposed_action_sequence, proposed_coordinates
+                            )
+
+                            if pattern_suggestions.get('warnings'):
+                                logger.warning(f" ANTI-PATTERN WARNING: {len(pattern_suggestions['warnings'])} patterns to avoid")
+
+                            # Convert alternative suggestions to action suggestions
+                            for suggestion in pattern_suggestions.get('suggestions', []):
+                                if suggestion['type'] == 'action_substitution':
+                                    for alt_action in suggestion.get('suggested_actions', []):
+                                        if alt_action in available_actions:
+                                            losing_streak_suggestions.append({
+                                                'action': f'ACTION{alt_action}',
+                                                'confidence': 0.8,
+                                                'reason': f'Anti-pattern avoidance: alternative to failing pattern',
+                                                'source': 'losing_streak_intervention'
+                                            })
+
+                                elif suggestion['type'] == 'coordinate_offset' and 6 in available_actions:
+                                    coords = suggestion.get('coordinates', [100, 100])
+                                    losing_streak_suggestions.append({
+                                        'action': 'ACTION6',
+                                        'x': coords[0],
+                                        'y': coords[1],
+                                        'confidence': 0.7,
+                                        'reason': f'Anti-pattern avoidance: coordinate offset from failed cluster',
+                                        'source': 'losing_streak_intervention'
+                                    })
+
+                        if losing_streak_suggestions:
+                            logger.info(f" LOSING STREAK SUGGESTIONS: Generated {len(losing_streak_suggestions)} intervention suggestions")
+
+        except Exception as e:
+            logger.error(f"Error applying losing streak guidance: {e}")
+
+        # 17. ENHANCED FRAME ANALYSIS - Analyze frame changes for better action selection
         if self.frame_analysis_system and hasattr(self, 'last_frame_data') and self.last_frame_data is not None and isinstance(self.last_frame_data, list) and len(self.last_frame_data) > 0:
             try:
                 logger.info(f"[CHECK] DEBUG: About to analyze frame changes with last_frame_data type: {type(self.last_frame_data)}")
@@ -623,6 +774,8 @@ class ActionSelector:
             visual_targeting_suggestions,
             exploration_phase_suggestions,
             strategy_suggestions,
+            win_condition_suggestions,  # Win condition-based action recommendations
+            losing_streak_suggestions,  # Losing streak intervention guidance
             action5_suggestions,
             button_discovery_suggestions
         )
@@ -3331,7 +3484,138 @@ class ActionSelector:
             action['y'] = random.randint(0, 63)
         
         return action
-    
+
+    def _apply_intervention_guidance(self, guidance: Dict[str, Any], available_actions: List[int], game_state: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Apply intervention guidance to generate action suggestions."""
+        suggestions = []
+
+        try:
+            intervention_type = guidance.get('type', '')
+
+            if intervention_type == 'randomization':
+                # Apply randomization to action selection
+                randomization_factor = guidance.get('randomization_factor', 0.3)
+                if randomization_factor > 0.5:  # High randomization
+                    # Suggest less commonly used actions
+                    less_used_actions = [a for a in available_actions if a not in [1, 2, 3, 4]]
+                    for action in less_used_actions[:2]:
+                        suggestions.append({
+                            'action': f'ACTION{action}',
+                            'confidence': 0.6,
+                            'reason': f'Randomization intervention: trying less common action',
+                            'source': 'losing_streak_randomization'
+                        })
+
+            elif intervention_type == 'exploration_boost':
+                # Boost exploration by suggesting diverse actions
+                exploration_multiplier = guidance.get('exploration_multiplier', 1.5)
+                if 6 in available_actions and exploration_multiplier > 1.3:
+                    # Suggest diverse coordinates
+                    diverse_coords = [(100, 100), (400, 300), (200, 200), (500, 400)]
+                    for x, y in diverse_coords[:2]:
+                        suggestions.append({
+                            'action': 'ACTION6',
+                            'x': x,
+                            'y': y,
+                            'confidence': 0.7,
+                            'reason': f'Exploration boost: diverse coordinate testing',
+                            'source': 'losing_streak_exploration'
+                        })
+
+            elif intervention_type == 'coordinate_diversification':
+                # Force coordinate diversity
+                if 6 in available_actions:
+                    suggested_regions = guidance.get('suggested_regions', [])
+                    minimum_distance = guidance.get('minimum_distance', 50)
+
+                    for region in suggested_regions[:3]:
+                        x, y = region
+                        # Add some randomness within the region
+                        offset = minimum_distance // 2
+                        x_rand = x + random.randint(-offset, offset)
+                        y_rand = y + random.randint(-offset, offset)
+
+                        # Clamp to screen bounds
+                        x_rand = max(0, min(639, x_rand))
+                        y_rand = max(0, min(479, y_rand))
+
+                        suggestions.append({
+                            'action': 'ACTION6',
+                            'x': x_rand,
+                            'y': y_rand,
+                            'confidence': 0.8,
+                            'reason': f'Coordinate diversification: testing region ({x}, {y})',
+                            'source': 'losing_streak_diversification'
+                        })
+
+            elif intervention_type == 'action_sequence_shuffle':
+                # Shuffle action sequence recommendations
+                shuffle_probability = guidance.get('shuffle_probability', 0.5)
+                shuffled_sequences = guidance.get('shuffled_sequences', [])
+
+                for sequence in shuffled_sequences[:2]:
+                    if len(sequence) > 0 and sequence[0] in available_actions:
+                        suggestions.append({
+                            'action': f'ACTION{sequence[0]}',
+                            'confidence': 0.6,
+                            'reason': f'Action sequence shuffle: trying shuffled pattern',
+                            'source': 'losing_streak_shuffle'
+                        })
+
+            elif intervention_type == 'strategy_override':
+                # Override normal strategy with experimental approach
+                if guidance.get('force_experimental_approach', False):
+                    # Suggest actions in reverse order of typical priority
+                    reverse_priority_actions = [a for a in available_actions[::-1]]
+                    for action in reverse_priority_actions[:2]:
+                        suggestions.append({
+                            'action': f'ACTION{action}',
+                            'confidence': 0.7,
+                            'reason': f'Strategy override: experimental action choice',
+                            'source': 'losing_streak_override'
+                        })
+
+            elif intervention_type == 'timing_adjustment':
+                # Add timing considerations (this would typically affect action execution timing)
+                minimum_delay = guidance.get('minimum_action_delay', 1.0)
+                if minimum_delay > 1.5:
+                    # Suggest deliberate actions with timing consideration
+                    for action in available_actions[:2]:
+                        suggestions.append({
+                            'action': f'ACTION{action}',
+                            'confidence': 0.6,
+                            'reason': f'Timing adjustment: deliberate action with {minimum_delay:.1f}s delay',
+                            'source': 'losing_streak_timing'
+                        })
+
+            elif intervention_type == 'complete_reset':
+                # Complete reset - suggest fresh exploration
+                if guidance.get('start_fresh_exploration', False):
+                    # Start with basic actions if available
+                    basic_actions = [a for a in available_actions if a in [1, 2, 3, 4]]
+                    if basic_actions:
+                        suggestions.append({
+                            'action': f'ACTION{basic_actions[0]}',
+                            'confidence': 0.8,
+                            'reason': f'Complete reset: fresh start with basic action',
+                            'source': 'losing_streak_reset'
+                        })
+                    elif 6 in available_actions:
+                        # Try center coordinate for fresh start
+                        suggestions.append({
+                            'action': 'ACTION6',
+                            'x': 320,
+                            'y': 240,
+                            'confidence': 0.8,
+                            'reason': f'Complete reset: fresh start at center coordinate',
+                            'source': 'losing_streak_reset'
+                        })
+
+        except Exception as e:
+            logger.error(f"Error applying intervention guidance: {e}")
+
+        return suggestions
+
     def get_action_statistics(self) -> Dict[str, Any]:
         """Get statistics about action selection."""
         if not self.action_history:
