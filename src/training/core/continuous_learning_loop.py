@@ -587,10 +587,17 @@ class ContinuousLearningLoop:
         except Exception as e:
             logger.error(f"Error initializing losing streak systems: {e}")
 
-    async def run_continuous_learning(self, max_games: int = 100) -> Dict[str, Any]:
-        """Run continuous learning with modular components."""
+    async def run_continuous_learning(self, max_games: int = None, max_hours: float = 9.0) -> Dict[str, Any]:
+        """Run continuous learning with modular components until time limit or game limit reached."""
         try:
-            print(f"[TARGET] Starting continuous learning for {max_games} games")
+            if max_games:
+                print(f"[TARGET] Starting continuous learning for {max_games} games")
+            else:
+                print(f"[TARGET] Starting continuous learning for {max_hours} hours")
+
+            import time
+            start_time = time.time()
+            max_duration_seconds = max_hours * 3600  # Convert hours to seconds
             
             # Initialize API if not already done
             if not self.api_manager.is_initialized():
@@ -621,7 +628,21 @@ class ContinuousLearningLoop:
                 'performance_metrics': {}
             }
             
-            for game_num in range(max_games):
+            game_num = 0
+            while True:
+                # Check time limit first
+                elapsed_time = time.time() - start_time
+                elapsed_hours = elapsed_time / 3600
+
+                if elapsed_time >= max_duration_seconds:
+                    print(f"[TIME LIMIT] Reached {max_hours} hour time limit ({elapsed_hours:.2f} hours elapsed)")
+                    break
+
+                # Check game limit if specified
+                if max_games and game_num >= max_games:
+                    print(f"[GAME LIMIT] Reached {max_games} game limit")
+                    break
+
                 if self.shutdown_handler.is_shutdown_requested():
                     print("[STOP] Shutdown requested, stopping continuous learning")
                     break
@@ -662,19 +683,38 @@ class ContinuousLearningLoop:
                     self.performance_monitor.update_metric('total_games_played', 1)
                     self.performance_monitor.update_metric('total_actions_taken', game_result.get('actions_taken', 0))
                     
-                    print(f"[OK] Game {game_num + 1}/{max_games} completed: {game_result.get('score', 0.0):.2f} score")
+                    if max_games:
+                        print(f"[OK] Game {game_num + 1}/{max_games} completed: {game_result.get('score', 0.0):.2f} score")
+                    else:
+                        elapsed_hours = (time.time() - start_time) / 3600
+                        print(f"[OK] Game {game_num + 1} completed: {game_result.get('score', 0.0):.2f} score ({elapsed_hours:.2f}h elapsed)")
                     
                 except Exception as e:
                     logger.error(f"Error in game {game_num}: {e}")
                     continue
-            
-            # Final results
+                finally:
+                    # Increment game counter
+                    game_num += 1
+
+                    # Print progress update every 10 games
+                    if game_num % 10 == 0:
+                        elapsed_hours = (time.time() - start_time) / 3600
+                        print(f"[PROGRESS] Completed {game_num} games in {elapsed_hours:.2f} hours ({max_hours - elapsed_hours:.2f} hours remaining)")
+
+            # Final results with timing information
+            total_elapsed_time = time.time() - start_time
+            total_elapsed_hours = total_elapsed_time / 3600
+
             results['performance_metrics'] = self.performance_monitor.get_performance_report()
             results['success_rate'] = results['games_won'] / max(results['games_completed'], 1)
-            
+            results['total_time_hours'] = total_elapsed_hours
+            results['games_per_hour'] = results['games_completed'] / max(total_elapsed_hours, 0.001)
+
             print(
                 f" Continuous learning completed: {results['games_completed']} games, "
-                f"{results['success_rate']:.2%} success rate"
+                f"{results['success_rate']:.2%} success rate, "
+                f"{total_elapsed_hours:.2f} hours, "
+                f"{results['games_per_hour']:.1f} games/hour"
             )
             return results
             
