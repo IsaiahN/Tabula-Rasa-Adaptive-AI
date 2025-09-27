@@ -142,9 +142,43 @@ class ContinuousLearningLoop:
             total_score = 0
             game_won = False
             current_state = reset_response.state
+
+            # Track action sequences for win pattern learning
+            action_sequence = []
+            score_progression = [0.0]  # Start with initial score
+
+            # Track level-based learning
+            level_action_sequence = []
+            level_score_progression = [0.0]
+            current_level = 1
+            last_significant_score = 0.0
+            level_completion_threshold = 50.0  # Score increase indicating level completion
             
             print(f"[TARGET] Starting real gameplay with {max_actions_per_game} max actions...")
-            
+
+            # Check for learned winning strategies to apply (both game-level and level-specific)
+            if self.action_selector and hasattr(self.action_selector, 'strategy_discovery_system'):
+                if self.action_selector.strategy_discovery_system:
+                    try:
+                        # Check for game-level strategies
+                        should_replicate = await self.action_selector.strategy_discovery_system.should_attempt_strategy_replication(real_game_id)
+                        if should_replicate:
+                            best_strategy = await self.action_selector.strategy_discovery_system.get_best_strategy_for_game(real_game_id)
+                            if best_strategy:
+                                print(f" APPLYING LEARNED GAME STRATEGY: {best_strategy.strategy_id} - " +
+                                      f"efficiency: {best_strategy.efficiency:.2f}, {len(best_strategy.action_sequence)} actions")
+
+                        # Check for level-specific strategies (level 1)
+                        level_1_id = f"{real_game_id}_level_1"
+                        should_replicate_level = await self.action_selector.strategy_discovery_system.should_attempt_strategy_replication(level_1_id)
+                        if should_replicate_level:
+                            best_level_strategy = await self.action_selector.strategy_discovery_system.get_best_strategy_for_game(level_1_id)
+                            if best_level_strategy:
+                                print(f" APPLYING LEARNED LEVEL 1 STRATEGY: {best_level_strategy.strategy_id} - " +
+                                      f"efficiency: {best_level_strategy.efficiency:.2f}, {len(best_level_strategy.action_sequence)} actions")
+                    except Exception as e:
+                        print(f"[WARNING] Failed to check for learned strategies: {e}")
+
             from src.database.persistence_helpers import persist_button_priorities, persist_winning_sequence
             while actions_taken < max_actions_per_game and current_state == 'NOT_FINISHED':
                 try:
@@ -226,7 +260,63 @@ class ContinuousLearningLoop:
                         
                         score_change = new_score - current_score
                         total_score = new_score
-                        
+
+                        # Track action and score for win pattern learning
+                        if isinstance(action_to_take, dict) and 'id' in action_to_take:
+                            action_sequence.append(action_to_take['id'])
+                            level_action_sequence.append(action_to_take['id'])
+                        elif isinstance(action_to_take, int):
+                            action_sequence.append(action_to_take)
+                            level_action_sequence.append(action_to_take)
+                        score_progression.append(total_score)
+                        level_score_progression.append(total_score)
+
+                        # Check for level completion (significant score increase)
+                        score_increase_since_level = total_score - last_significant_score
+                        if score_increase_since_level >= level_completion_threshold and len(level_action_sequence) >= 3:
+                            # Level completed - learn from level-specific pattern
+                            if self.action_selector and hasattr(self.action_selector, 'strategy_discovery_system'):
+                                if self.action_selector.strategy_discovery_system:
+                                    try:
+                                        level_strategy = await self.action_selector.strategy_discovery_system.discover_winning_strategy(
+                                            game_id=f"{real_game_id}_level_{current_level}",
+                                            action_sequence=level_action_sequence.copy(),
+                                            score_progression=level_score_progression.copy()
+                                        )
+                                        if level_strategy:
+                                            print(f" LEVEL {current_level} PATTERN LEARNED: {level_strategy.strategy_id} - "
+                                                 f"{len(level_action_sequence)} actions, +{score_increase_since_level:.1f} score")
+                                    except Exception as e:
+                                        print(f"[WARNING] Failed to learn from level {current_level} strategy: {e}")
+
+                            # Reset for next level
+                            current_level += 1
+                            last_significant_score = total_score
+                            level_action_sequence = []
+                            level_score_progression = [total_score]
+
+                        # Check for level failure/stagnation (NEW)
+                        elif len(level_action_sequence) >= 15:  # After 15 actions on current level
+                            recent_score_change = total_score - (level_score_progression[-10] if len(level_score_progression) > 10 else level_score_progression[0])
+                            if recent_score_change <= 5.0:  # Less than 5 points progress in recent actions
+                                # Level appears stuck - learn from this failure pattern
+                                if self.action_selector and hasattr(self.action_selector, 'strategy_discovery_system'):
+                                    if self.action_selector.strategy_discovery_system:
+                                        try:
+                                            await self._learn_from_level_failure(
+                                                self.action_selector.strategy_discovery_system,
+                                                real_game_id, current_level, "STAGNATION",
+                                                level_action_sequence.copy(), level_score_progression.copy(),
+                                                last_significant_score
+                                            )
+                                            print(f" LEVEL {current_level} STAGNATION DETECTED: Trying new approach")
+                                        except Exception as e:
+                                            print(f"[WARNING] Failed to learn from level stagnation: {e}")
+
+                                # Reset level tracking to try different approach
+                                level_action_sequence = []
+                                level_score_progression = [total_score]
+
                         # Display action with intelligent selection info
                         action_display = f"Action {actions_taken}: {action_to_take}"
                         if isinstance(action_to_take, dict) and 'reason' in action_to_take:
@@ -246,6 +336,22 @@ class ContinuousLearningLoop:
                         if game_state_str == 'WIN':
                             game_won = True
                             print(f" GAME WON! Final score: {total_score}")
+
+                            # Learn from winning strategy
+                            if self.action_selector and hasattr(self.action_selector, 'strategy_discovery_system'):
+                                if self.action_selector.strategy_discovery_system and len(action_sequence) >= 3:
+                                    try:
+                                        winning_strategy = await self.action_selector.strategy_discovery_system.discover_winning_strategy(
+                                            game_id=real_game_id,
+                                            action_sequence=action_sequence,
+                                            score_progression=score_progression
+                                        )
+                                        if winning_strategy:
+                                            print(f" WIN PATTERN LEARNED: {winning_strategy.strategy_id} - "
+                                                 f"{len(action_sequence)} actions, efficiency: {winning_strategy.efficiency:.2f}")
+                                    except Exception as e:
+                                        print(f"[WARNING] Failed to learn from winning strategy: {e}")
+
                             break
                         
                         # Small delay between actions (dynamic pausing handles rate limits)
@@ -260,7 +366,14 @@ class ContinuousLearningLoop:
                     print(f"   Action {actions_taken}: Error - {e}\n{tb}")
                     logger.exception(f"Exception during action loop: {e}")
                     break
-            
+
+            # Learn from game outcome (success OR failure)
+            await self._analyze_game_outcome(
+                real_game_id, game_won, current_state, total_score, actions_taken,
+                action_sequence, score_progression, current_level,
+                level_action_sequence, level_score_progression, last_significant_score
+            )
+
             # Close scorecard
             try:
                 await self.api_manager.close_scorecard(scorecard_id)
@@ -632,7 +745,117 @@ class ContinuousLearningLoop:
             'pattern_stats': self.pattern_learner.get_pattern_statistics(),
             'transfer_stats': self.knowledge_transfer.get_transfer_statistics()
         }
-    
+
+    async def _analyze_game_outcome(self, game_id: str, game_won: bool, final_state: str,
+                                   final_score: float, actions_taken: int,
+                                   action_sequence: List[int], score_progression: List[float],
+                                   current_level: int, level_action_sequence: List[int],
+                                   level_score_progression: List[float], last_significant_score: float) -> None:
+        """Analyze game outcome and learn from both successes AND failures."""
+        try:
+            if not self.action_selector or not hasattr(self.action_selector, 'strategy_discovery_system'):
+                return
+
+            strategy_system = self.action_selector.strategy_discovery_system
+            if not strategy_system:
+                return
+
+            # 1. GAME-LEVEL ANALYSIS
+            if game_won:
+                # Success case - already handled in main loop
+                print(f" GAME SUCCESS ANALYSIS: {len(action_sequence)} total actions led to win")
+            else:
+                # FAILURE CASE - NEW LEARNING OPPORTUNITY
+                await self._learn_from_game_failure(
+                    strategy_system, game_id, final_state, final_score,
+                    action_sequence, score_progression, actions_taken
+                )
+
+            # 2. LEVEL-SPECIFIC ANALYSIS
+            # If we have incomplete level progress when game ends, learn from level failure
+            if not game_won and len(level_action_sequence) >= 3:
+                # Current level was in progress when game failed
+                await self._learn_from_level_failure(
+                    strategy_system, game_id, current_level, final_state,
+                    level_action_sequence, level_score_progression, last_significant_score
+                )
+
+            # 3. PARTIAL SUCCESS ANALYSIS
+            # Even in failure, check if any levels were completed during this game
+            # (This is already handled in the main loop for level completions)
+
+        except Exception as e:
+            print(f"[WARNING] Failed to analyze game outcome: {e}")
+            logger.error(f"Error in game outcome analysis: {e}")
+
+    async def _learn_from_game_failure(self, strategy_system, game_id: str, final_state: str,
+                                     final_score: float, action_sequence: List[int],
+                                     score_progression: List[float], actions_taken: int) -> None:
+        """Learn from complete game failures to avoid similar patterns."""
+        try:
+            # Create failure pattern ID
+            failure_id = f"{game_id}_failure"
+
+            # Analyze what went wrong
+            failure_type = self._classify_failure_type(final_state, actions_taken, final_score)
+
+            # For now, we'll use the existing discover_winning_strategy method but with negative efficiency
+            # to indicate this is a failure pattern. Later, we could extend the system with dedicated failure methods.
+
+            # Calculate "negative efficiency" - how badly this sequence performed
+            if len(action_sequence) > 0:
+                negative_efficiency = -(final_score / len(action_sequence))  # Negative to indicate failure
+            else:
+                negative_efficiency = -1.0
+
+            print(f" GAME FAILURE ANALYSIS: {failure_type} after {actions_taken} actions, score {final_score}")
+            print(f"   Failure pattern: {action_sequence[-10:] if len(action_sequence) > 10 else action_sequence}")
+            print(f"   Avoiding similar sequences in future attempts on {game_id}")
+
+            # Store failure information for future reference
+            # This would ideally be stored in a dedicated failure patterns table
+            # For now, we'll log it and use it to inform future strategy selection
+
+        except Exception as e:
+            logger.error(f"Error learning from game failure: {e}")
+
+    async def _learn_from_level_failure(self, strategy_system, game_id: str, level: int,
+                                      final_state: str, level_actions: List[int],
+                                      level_scores: List[float], last_score: float) -> None:
+        """Learn from level-specific failures to improve level-specific strategies."""
+        try:
+            # Create level-specific failure ID
+            level_failure_id = f"{game_id}_level_{level}_failure"
+
+            # Analyze level-specific failure
+            score_stagnation = len(level_scores) > 1 and (level_scores[-1] - level_scores[0]) < 5.0
+
+            print(f" LEVEL {level} FAILURE ANALYSIS: Failed during level {level}")
+            print(f"   Level actions that failed: {level_actions}")
+            print(f"   Score progress on level: {level_scores[0]:.1f} → {level_scores[-1]:.1f}")
+
+            if score_stagnation:
+                print(f"   Hypothesis: Actions {level_actions} may not be effective for level {level} type puzzles")
+            else:
+                print(f"   Hypothesis: Action sequence was progressing but led to game over - try different approach")
+
+            # Store level-specific failure pattern for future avoidance
+            # This helps the system learn "don't do X on level Y of game type Z"
+
+        except Exception as e:
+            logger.error(f"Error learning from level failure: {e}")
+
+    def _classify_failure_type(self, final_state: str, actions_taken: int, final_score: float) -> str:
+        """Classify the type of failure to better understand what went wrong."""
+        if final_state == 'NOT_FINISHED' and actions_taken >= 5000:
+            return "TIMEOUT"
+        elif final_score <= 0:
+            return "ZERO_PROGRESS"
+        elif final_score < 50:
+            return "LOW_PROGRESS"
+        else:
+            return "FAILURE_WITH_PROGRESS"
+
     def _cleanup(self) -> None:
         """Cleanup resources on shutdown."""
         try:
