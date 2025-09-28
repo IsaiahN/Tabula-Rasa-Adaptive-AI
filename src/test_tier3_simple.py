@@ -22,7 +22,7 @@ def create_test_database():
 
     # Read and execute the Tier 3 schema
     try:
-        with open('database/tier3_schema_extension.sql', 'r') as f:
+        with open('src/database/tier3_schema_extension.sql', 'r') as f:
             schema_sql = f.read()
 
         # Execute schema creation
@@ -43,7 +43,7 @@ async def test_bayesian_system(db):
     try:
         # Import directly
         import importlib.util
-        spec = importlib.util.spec_from_file_location('bayesian_inference_engine', 'core/bayesian_inference_engine.py')
+        spec = importlib.util.spec_from_file_location('bayesian_inference_engine', 'src/core/bayesian_inference_engine.py')
         bayesian_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(bayesian_module)
 
@@ -109,7 +109,7 @@ async def test_graph_traversal_system(db):
     try:
         # Import directly
         import importlib.util
-        spec = importlib.util.spec_from_file_location('enhanced_graph_traversal', 'core/enhanced_graph_traversal.py')
+        spec = importlib.util.spec_from_file_location('enhanced_graph_traversal', 'src/core/enhanced_graph_traversal.py')
         graph_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(graph_module)
 

@@ -71,7 +71,7 @@ logger = logging.getLogger(__name__)
 class ActionSelector:
     """Intelligent action selector that uses multiple sources of information and advanced systems."""
     
-    def __init__(self, api_manager: APIManager):
+    def __init__(self, api_manager: APIManager, bayesian_inference_system=None, graph_traversal_system=None):
         self.api_manager = api_manager
         self.frame_analyzer = FrameAnalyzer()
         self.action_history = []
@@ -79,6 +79,17 @@ class ActionSelector:
         self.coordinate_intelligence = {}
         self.performance_history = []
         self.learning_cycles = 0
+
+        # Advanced Tier 3 systems
+        self.bayesian_inference_system = bayesian_inference_system
+        self.graph_traversal_system = graph_traversal_system
+        self.advanced_systems_available = (bayesian_inference_system is not None and
+                                         graph_traversal_system is not None)
+
+        if self.advanced_systems_available:
+            logger.info("[OK] Advanced Tier 3 systems available for action selection")
+        else:
+            logger.info("[INFO] Advanced systems not available - using fallback action selection")
         
         # Advanced analysis state
         self.last_frame_analysis = None
@@ -267,9 +278,58 @@ class ActionSelector:
             logger.error(f"[CHECK] DEBUG: Traceback: {traceback.format_exc()}")
             raise
         
+        # ADVANCED SYSTEMS: Use Bayesian Inference + Graph Traversal if available
+        if self.advanced_systems_available:
+            try:
+                logger.info("[ADVANCED] Using Bayesian Inference + Graph Traversal for action selection")
+
+                # 1. Generate Bayesian prediction for action candidates
+                action_candidates = []
+                for action_id in available_actions:
+                    action_candidates.append({
+                        'id': action_id,
+                        'x': 32 if action_id == 6 else None,  # Default coordinate for ACTION6
+                        'y': 32 if action_id == 6 else None
+                    })
+
+                # Current context for Bayesian inference
+                current_context = {
+                    'game_id': game_id,
+                    'score': current_score,
+                    'state': game_state_status,
+                    'frame_data': frame_data,
+                    'available_actions': available_actions
+                }
+
+                # Generate Bayesian prediction
+                bayesian_prediction = await self.bayesian_inference_system.generate_prediction(
+                    action_candidates, current_context, game_id, f"session_{game_id}"
+                )
+
+                if bayesian_prediction and bayesian_prediction.success_probability > 0.5:
+                    predicted_action = bayesian_prediction.predicted_action
+                    logger.info(f"[ADVANCED] Bayesian prediction: Action {predicted_action.get('id')} "
+                               f"(probability: {bayesian_prediction.success_probability:.3f}, "
+                               f"confidence: {bayesian_prediction.confidence_level:.3f})")
+
+                    return {
+                        'action': f"ACTION{predicted_action.get('id')}",
+                        'x': predicted_action.get('x'),
+                        'y': predicted_action.get('y'),
+                        'confidence': bayesian_prediction.confidence_level,
+                        'reason': f'Bayesian inference prediction (probability: {bayesian_prediction.success_probability:.3f})',
+                        'source': 'bayesian_inference_engine'
+                    }
+                else:
+                    logger.info("[ADVANCED] Bayesian prediction below threshold, continuing with fallback systems")
+
+            except Exception as e:
+                logger.error(f"[ADVANCED] Error using advanced systems: {e}")
+                logger.info("[ADVANCED] Falling back to traditional action selection")
+
         # Check if primary actions 1-4 are available
         primary_actions_available = any(action in [1, 2, 3, 4] for action in available_actions)
-        
+
         if primary_actions_available:
             logger.info("[PRIORITY] Primary actions 1-4 detected - prioritizing over action 6 systems")
         else:
@@ -3656,6 +3716,6 @@ class ActionSelector:
             'action_effectiveness': self.action_effectiveness
         }
 
-def create_action_selector(api_manager: APIManager) -> ActionSelector:
-    """Create an action selector instance."""
-    return ActionSelector(api_manager)
+def create_action_selector(api_manager: APIManager, bayesian_inference_system=None, graph_traversal_system=None) -> ActionSelector:
+    """Create an action selector instance with optional advanced systems."""
+    return ActionSelector(api_manager, bayesian_inference_system, graph_traversal_system)

@@ -123,8 +123,12 @@ class ContinuousLearningLoop:
             await self.api_manager.initialize()
             self._api_initialized = True
             
-            # Initialize action selector
-            self.action_selector = create_action_selector(self.api_manager)
+            # Initialize action selector with advanced systems if available
+            self.action_selector = create_action_selector(
+                self.api_manager,
+                self.bayesian_inference_system if self._bayesian_inference_initialized else None,
+                self.graph_traversal_system if self._graph_traversal_initialized else None
+            )
     
     def _ensure_initialized(self) -> None:
         """Ensure the system is initialized (synchronous wrapper)."""
@@ -159,7 +163,42 @@ class ContinuousLearningLoop:
             
             # Initialize API if needed
             await self._ensure_api_initialized()
-            
+
+            # Initialize advanced systems BEFORE training starts
+            print("[INIT] Initializing advanced systems for action selection...")
+
+            # Initialize losing streak systems if not already done
+            self._initialize_losing_streak_systems()
+
+            # Initialize real-time learning systems if not already done
+            self._initialize_real_time_learning_systems()
+
+            # Initialize attention + communication systems if not already done
+            self._initialize_attention_communication_systems()
+
+            # Initialize fitness evolution system if not already done
+            self._initialize_fitness_evolution_system()
+
+            # Initialize NEAT architect system if not already done
+            self._initialize_neat_architect_system()
+
+            # Initialize Tier 3 systems BEFORE action selection starts
+            self._initialize_bayesian_inference_system()
+            self._initialize_graph_traversal_system()
+
+            # Reinitialize action selector with advanced systems now that they're available
+            print("[INIT] Connecting advanced systems to action selector...")
+            self.action_selector = create_action_selector(
+                self.api_manager,
+                self.bayesian_inference_system if self._bayesian_inference_initialized else None,
+                self.graph_traversal_system if self._graph_traversal_initialized else None
+            )
+
+            if self._bayesian_inference_initialized and self._graph_traversal_initialized:
+                print("[OK] Advanced Bayesian Inference + Graph Traversal systems ready for action selection")
+            else:
+                print("[WARNING] Advanced systems failed to initialize - falling back to basic action selection")
+
             # Get real available games from ARC-AGI-3 API
             available_games = await self.api_manager.get_available_games()
             if not available_games:
