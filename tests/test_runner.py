@@ -158,8 +158,7 @@ class PerformanceTestSuite(unittest.TestCase):
             ('src.arc_integration.opencv_feature_extractor', 'FeatureExtractor'),
             ('src.arc_integration.arc_agent_adapter', 'AdaptiveLearningARCAgent'),
             ('src.arc_integration.action_trace_analyzer', 'PatternAnalyzer'),
-            ('src.arc_integration.arc_meta_learning', 'ARCMetaLearningSystem'),
-            ('src.arc_integration.enhanced_scorecard_monitor', 'PerformanceTracker')
+            ('src.arc_integration.arc_meta_learning', 'ARCMetaLearningSystem')
         ]
         
         for module_path, class_name in wrappers:

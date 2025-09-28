@@ -20,7 +20,7 @@ from enum import Enum
 import numpy as np
 from collections import defaultdict, deque
 
-from src.core.penalty_decay_system import get_penalty_decay_system
+from src.core.penalty_decay_system_simple import get_simple_penalty_decay_system
 import json
 
 logger = logging.getLogger(__name__)
@@ -574,7 +574,7 @@ class CoordinateIntelligenceSystem:
         self.failed_recommendations = 0
         
         # Initialize penalty decay system
-        self.penalty_system = get_penalty_decay_system()
+        self.penalty_system = get_simple_penalty_decay_system()
     
     async def update_coordinate_intelligence(
         self, 

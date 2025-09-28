@@ -28,7 +28,7 @@ async def test_penalty_decay_system():
     
     try:
         # Import the systems
-        from src.core.penalty_decay_system import get_penalty_decay_system
+        from src.core.penalty_decay_system_simple import get_simple_penalty_decay_system
         from src.core.coordinate_intelligence_system import create_coordinate_intelligence_system
         from src.core.penalty_logging_system import get_penalty_logging_system
         
@@ -36,7 +36,7 @@ async def test_penalty_decay_system():
         logger.info("=" * 60)
         
         # Initialize systems
-        penalty_system = get_penalty_decay_system()
+        penalty_system = get_simple_penalty_decay_system()
         coordinate_system = create_coordinate_intelligence_system()
         logging_system = get_penalty_logging_system()
         

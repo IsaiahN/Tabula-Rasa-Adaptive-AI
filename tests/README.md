@@ -24,12 +24,8 @@ tests/
 ### Integration Tests (`tests/integration/`)
 - `test_agent_on_puzzles.py` - Agent performance on AGI puzzles
 - `test_agi_puzzles.py` - AGI puzzle environment validation
-- `test_enhanced_sleep_system.py` - Sleep system with object encoding
-
 ### System Tests (`tests/system/`)
-- `test_phase1.py` - Phase 1 system integration
-- `test_phase3.py` - Phase 3 emergent goals and multi-agent
-- `test_phase3_simple.py` - Simplified Phase 3 validation
+- Available system tests vary - check the `tests/system/` directory for current files
 
 ## Running Tests
 
@@ -38,11 +34,11 @@ tests/
 # Unit tests
 python -m pytest tests/unit/test_meta_learning_simple.py -v
 
-# Integration tests  
-python -m pytest tests/integration/test_enhanced_sleep_system.py -v
+# Integration tests
+python -m pytest tests/integration/ -v
 
 # System tests
-python -m pytest tests/system/test_phase1.py -v
+python -m pytest tests/system/ -v
 ```
 
 ### Test Categories
@@ -64,8 +60,7 @@ python -m pytest tests/ -v
 ```bash
 # From project root
 python tests/unit/test_meta_learning_simple.py
-python tests/integration/test_enhanced_sleep_system.py
-python tests/system/test_phase1.py
+# Check tests/integration/ and tests/system/ directories for available test files
 ```
 
 ## Test Requirements
