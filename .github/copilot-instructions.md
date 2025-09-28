@@ -67,7 +67,7 @@ When user says "continue," execute this cycle:
     *   **Self-Reflection:** Update self-model with await integration.add_self_model_entry()
     *   **Commit changes** with descriptive messages
     *   **Monitor autonomous systems** - let Governor and Architect handle routine optimizations
-    *   **Restart training sessions** with 2-minute timeout to test fixes (e.g., timeout 120 python run_9hour_simple_training.py)
+    *   **Restart training sessions** with 2-minute timeout to test fixes (e.g., timeout 120 python train.py)
 
 6. **When to Update the Self-Model**
 
@@ -224,9 +224,9 @@ self_model_entries = await integration.get_self_model_entries(limit=100)
 *   `get_phase3_knowledge_status()` - Get knowledge management status
 
 **Execution Rule for Training Scripts:**
-*   **Standard:** python run_9hour_simple_training.py (default), python run_9hour_scaled_training.py, python enhanced_scorecard_monitor.py
+*   **Standard:** python train.py (default), python parallel.py, python enhanced_scorecard_monitor.py
 
-*   **MANDATORY TESTING RULES:** Prepend timeout 120 to limit run time (e.g., timeout 120 python run_9hour_simple_training.py). When you need to run a longer or extended test, prepend `timeout 1200` (20 minutes). ALWAYS clear pycache before testing code changes.
+*   **MANDATORY TESTING RULES:** Prepend timeout 120 to limit run time (e.g., timeout 120 python train.py). When you need to run a longer or extended test, prepend `timeout 1200` (20 minutes). ALWAYS clear pycache before testing code changes.
 
 ** Troubleshooting Gameplay & API Errors: **
 For guidance on resolving ARC-AGI-3 API or gameplay action-related issues, consult the documentation: `arc_api_action_documentation.md`

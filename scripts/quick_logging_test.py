@@ -16,7 +16,7 @@ def test_logging_setup():
     try:
         # Run the training script for just 5 seconds
         proc = subprocess.Popen(
-            [sys.executable, 'run_9hour_simple_training.py'],
+            [sys.executable, 'train.py'],
             cwd='C:\\Users\\Admin\\Documents\\GitHub\\tabula-rasa',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,  # Combine stdout and stderr

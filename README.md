@@ -149,17 +149,17 @@ start_intelligent_training.bat
 #### Advanced Users
 ```bash
 # Direct access to advanced 9-hour training scripts
-python run_9hour_scaled_training.py    # Intelligent parallel training
-python run_9hour_simple_training.py    # Sequential training
+python parallel.py    # Simple parallel training
+python train.py    # Sequential training
 ```
 
 #### Manual Usage
 ```bash
 # Intelligent 9-hour scaled training (Recommended)
-python run_9hour_scaled_training.py
+python parallel.py
 
 # Simple 9-hour sequential training
-python run_9hour_simple_training.py
+python train.py
 
 # Advanced training with Bayesian inference and graph traversal (NEW!)
 python src/run_5minute_tier3_training.py    # 5-minute advanced systems test
@@ -172,9 +172,9 @@ python master_arc_trainer.py
 #### Advanced Systems Testing and Validation
 ```bash
 # Test advanced systems integration
-python src/test_tier3_simple.py             # Simple integration test
-python src/test_tier3_integration.py        # Full integration test
-python src/test_tier3_gameplay_simulation.py # Gameplay simulation test
+python tests/test_tier3_simple.py             # Simple integration test
+python tests/test_tier3_integration.py        # Full integration test
+python tests/test_tier3_gameplay_simulation.py # Gameplay simulation test
 
 # Performance and stress testing
 python src/tier3_stress_test.py             # Comprehensive stress test
@@ -194,8 +194,8 @@ python src/quick_monitoring_test.py         # Quick monitoring validation
 ```
 Tabula Rasa
 ├── Entry Points
-│   ├── run_9hour_scaled_training.py (Primary)
-│   ├── run_9hour_simple_training.py (Alternative)
+│   ├── parallel.py (Primary)
+│   ├── train.py (Alternative)
 │   └── master_arc_trainer.py (Legacy)
 ├── Database Layer (NEW!)
 │   ├── SQLite Database (High-Performance Storage)
@@ -658,10 +658,10 @@ Tree-Based Action Sequences
 ### Advanced Training
 ```bash
 # Intelligent scaled training with resource optimization
-python run_9hour_scaled_training.py
+python parallel.py
 
 # Simple sequential training for stability
-python run_9hour_simple_training.py
+python train.py
 
 # Legacy trainer with custom parameters
 python master_arc_trainer.py --memory-size 1024 --memory-read-heads 8

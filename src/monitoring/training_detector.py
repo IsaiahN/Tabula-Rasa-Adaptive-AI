@@ -44,8 +44,8 @@ class TrainingDetector:
         
         self.training_types = {
             'master_arc_trainer.py': 'core_training',
-            'run_9hour_simple_training.py': 'orchestrator',
-            'run_9hour_scaled_training.py': 'scaled_training',
+            'train.py': 'orchestrator',
+            'parallel.py': 'scaled_training',
             'enhanced_scorecard_monitor.py': 'monitor'
         }
     

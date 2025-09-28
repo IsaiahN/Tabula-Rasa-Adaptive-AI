@@ -18,7 +18,7 @@ def run_short_training():
     try:
         # Run training for 30 seconds
         proc = subprocess.Popen(
-            [sys.executable, 'run_9hour_simple_training.py'],
+            [sys.executable, 'train.py'],
             cwd='C:\\Users\\Admin\\Documents\\GitHub\\tabula-rasa',
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

@@ -26,7 +26,7 @@ def test_graceful_exit():
         # Start training process
         print("\nStarting training process...")
         proc = subprocess.Popen(
-            [sys.executable, 'run_9hour_simple_training.py'],
+            [sys.executable, 'train.py'],
             cwd='C:\\Users\\Admin\\Documents\\GitHub\\tabula-rasa',
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

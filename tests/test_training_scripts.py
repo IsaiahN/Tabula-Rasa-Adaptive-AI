@@ -182,18 +182,18 @@ class TestContinuousLearningLoop:
 class TestRun9HourScripts:
     """Test suite for run_9hour scripts."""
     
-    def test_run_9hour_simple_training_exists(self):
-        """Test that run_9hour_simple_training.py exists and is executable."""
-        script_path = os.path.join(os.path.dirname(__file__), '..', 'run_9hour_simple_training.py')
-        assert os.path.exists(script_path), "run_9hour_simple_training.py does not exist"
+    def test_train_exists(self):
+        """Test that train.py exists and is executable."""
+        script_path = os.path.join(os.path.dirname(__file__), '..', 'train.py')
+        assert os.path.exists(script_path), "train.py does not exist"
         
         # Skip encoding issues for now
         pytest.skip("Script has encoding issues, but exists")
     
-    def test_run_9hour_scaled_training_exists(self):
-        """Test that run_9hour_scaled_training.py exists and is executable."""
-        script_path = os.path.join(os.path.dirname(__file__), '..', 'run_9hour_scaled_training.py')
-        assert os.path.exists(script_path), "run_9hour_scaled_training.py does not exist"
+    def test_parallel_exists(self):
+        """Test that parallel.py exists and is executable."""
+        script_path = os.path.join(os.path.dirname(__file__), '..', 'parallel.py')
+        assert os.path.exists(script_path), "parallel.py does not exist"
         
         # Skip encoding issues for now
         pytest.skip("Script has encoding issues, but exists")
@@ -201,13 +201,13 @@ class TestRun9HourScripts:
     def test_run_9hour_scripts_import_master_trainer(self):
         """Test that run_9hour scripts import training module."""
         # Check simple training script
-        simple_script_path = os.path.join(os.path.dirname(__file__), '..', 'run_9hour_simple_training.py')
+        simple_script_path = os.path.join(os.path.dirname(__file__), '..', 'train.py')
         with open(simple_script_path, 'r', encoding='utf-8') as f:
             simple_content = f.read()
             assert 'master_arc_trainer' in simple_content or 'MasterArcTrainer' in simple_content
         
         # Check scaled training script
-        scaled_script_path = os.path.join(os.path.dirname(__file__), '..', 'run_9hour_scaled_training.py')
+        scaled_script_path = os.path.join(os.path.dirname(__file__), '..', 'parallel.py')
         with open(scaled_script_path, 'r', encoding='utf-8') as f:
             scaled_content = f.read()
             assert 'master_arc_trainer' in scaled_content or 'MasterArcTrainer' in scaled_content
@@ -215,7 +215,7 @@ class TestRun9HourScripts:
     def test_run_9hour_scripts_database_usage(self):
         """Test that run_9hour scripts use database instead of file generation."""
         # Check simple training script
-        simple_script_path = os.path.join(os.path.dirname(__file__), '..', 'run_9hour_simple_training.py')
+        simple_script_path = os.path.join(os.path.dirname(__file__), '..', 'train.py')
         with open(simple_script_path, 'r', encoding='utf-8') as f:
             simple_content = f.read()
             # Should have database patterns
@@ -224,7 +224,7 @@ class TestRun9HourScripts:
             assert 'ensure_database_ready' in simple_content
         
         # Check scaled training script
-        scaled_script_path = os.path.join(os.path.dirname(__file__), '..', 'run_9hour_scaled_training.py')
+        scaled_script_path = os.path.join(os.path.dirname(__file__), '..', 'parallel.py')
         with open(scaled_script_path, 'r', encoding='utf-8') as f:
             scaled_content = f.read()
             # Should have database patterns

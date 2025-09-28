@@ -70,7 +70,7 @@ async def run_training_cycle(cycle_num: int, timeout_seconds: int = 300):
     try:
         # Use subprocess to run training with timeout
         proc = await asyncio.create_subprocess_exec(
-            sys.executable, 'run_9hour_simple_training.py',
+            sys.executable, 'train.py',
             cwd='C:\\Users\\Admin\\Documents\\GitHub\\tabula-rasa',
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE

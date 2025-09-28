@@ -1,6 +1,6 @@
 import asyncio, sys
 sys.path.insert(0, r'c:\Users\Admin\Documents\GitHub\tabula-rasa')
-from run_9hour_simple_training import run_training_session
+from train import run_training_session
 
 async def main():
     print('Starting single 15-minute training session (ID=1)')
