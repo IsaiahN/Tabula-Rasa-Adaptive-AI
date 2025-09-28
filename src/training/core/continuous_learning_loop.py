@@ -27,6 +27,28 @@ from src.core.losing_streak_detector import LosingStreakDetector, FailureType
 from src.core.anti_pattern_learner import AntiPatternLearner
 from src.core.escalated_intervention_system import EscalatedInterventionSystem
 
+# Import real-time learning engine components (Phase 1.1)
+from src.core.real_time_learner import RealTimeLearner
+from src.core.mid_game_pattern_detector import MidGamePatternDetector
+from src.core.dynamic_strategy_adjuster import DynamicStrategyAdjuster
+from src.core.action_outcome_tracker import ActionOutcomeTracker
+
+# Import enhanced attention + communication system components (TIER 1)
+from src.core.central_attention_controller import CentralAttentionController, SubsystemDemand, ResourceUsage
+from src.core.weighted_communication_system import WeightedCommunicationSystem, MessagePriority
+
+# Import context-dependent fitness evolution system components (TIER 2)
+from src.core.context_dependent_fitness_evolution import ContextDependentFitnessEvolution, LearningPhase, ContextType
+
+# Import NEAT-based architect system components (TIER 2)
+from src.core.neat_based_architect import NEATBasedArchitect, ModuleType, ModuleCategory
+
+# Import Bayesian inference engine components (TIER 3)
+from src.core.bayesian_inference_engine import BayesianInferenceEngine, HypothesisType, EvidenceType
+
+# Import enhanced graph traversal components (TIER 3)
+from src.core.enhanced_graph_traversal import EnhancedGraphTraversal, GraphType, TraversalAlgorithm, NodeType
+
 logger = logging.getLogger(__name__)
 
 class ContinuousLearningLoop:
@@ -118,7 +140,45 @@ class ContinuousLearningLoop:
             real_game_id = real_game.get('game_id', game_id)
             
             print(f" Using real ARC-AGI-3 game: {real_game_id}")
-            
+
+            # REAL-TIME LEARNING ENGINE: Initialize game context (Phase 1.1)
+            if self._real_time_learning_initialized and self.real_time_learner:
+                try:
+                    session_id = f"session_{session_count}"
+                    self._game_real_time_context = await self.real_time_learner.initialize_game_context(
+                        real_game_id, session_id, 0.0  # Initial score
+                    )
+                    print(f" 🧠 Real-time learning context initialized for game {real_game_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize real-time learning context: {e}")
+                    self._game_real_time_context = None
+            else:
+                self._game_real_time_context = None
+
+            # ENHANCED ATTENTION + COMMUNICATION: Initialize game context (TIER 1)
+            if self._attention_communication_initialized and self.attention_controller and self.communication_system:
+                try:
+                    session_id = f"session_{session_count}"
+
+                    # Initialize attention monitoring
+                    self._game_attention_context = await self.attention_controller.initialize_attention_monitoring(
+                        real_game_id, session_id
+                    )
+
+                    # Initialize communication system
+                    self._game_communication_context = await self.communication_system.initialize_communication_system(
+                        real_game_id, session_id
+                    )
+
+                    print(f" ⚡ Enhanced attention + communication systems initialized for game {real_game_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize attention + communication systems: {e}")
+                    self._game_attention_context = None
+                    self._game_communication_context = None
+            else:
+                self._game_attention_context = None
+                self._game_communication_context = None
+
             # Open scorecard for tracking
             scorecard_id = await self.api_manager.create_scorecard(
                 f"Real Training Session {session_count}",
@@ -301,6 +361,524 @@ class ContinuousLearningLoop:
                         score_progression.append(total_score)
                         level_score_progression.append(total_score)
 
+                        # REAL-TIME LEARNING ENGINE INTEGRATION (Phase 1.1)
+                        # Process action outcome through real-time learning system
+                        if (self._real_time_learning_initialized and self.real_time_learner and
+                            hasattr(self, '_game_real_time_context')):
+                            try:
+                                # Extract action details
+                                action_number = action_to_take.get('id') if isinstance(action_to_take, dict) else action_to_take
+                                coordinates = None
+                                if isinstance(action_to_take, dict) and action_number == 6:
+                                    coordinates = (action_to_take.get('x'), action_to_take.get('y'))
+
+                                # Detect frame changes and movement (simplified detection)
+                                frame_changes_detected = (score_change != 0 or
+                                                        (frame and len(frame) > 0 and frame != getattr(self, '_last_frame', [])))
+                                movement_detected = frame_changes_detected and score_change >= 0
+
+                                # Create game context
+                                game_context = {
+                                    'game_state': game_state_str,
+                                    'available_actions': available_actions,
+                                    'actions_taken': actions_taken,
+                                    'current_level': current_level,
+                                    'frame_data': frame
+                                }
+
+                                # Process action through real-time learning
+                                learning_insights = await self.real_time_learner.process_action_taken(
+                                    real_game_id,
+                                    action_number,
+                                    coordinates,
+                                    current_score,
+                                    new_score,
+                                    frame_changes_detected,
+                                    movement_detected,
+                                    game_context
+                                )
+
+                                # Log real-time learning insights
+                                if learning_insights and learning_insights.get('patterns_detected'):
+                                    print(f" 🧠 REAL-TIME LEARNING: {len(learning_insights['patterns_detected'])} patterns detected")
+                                if learning_insights and learning_insights.get('strategy_adjustments'):
+                                    print(f" ⚡ STRATEGY ADJUSTED: {len(learning_insights['strategy_adjustments'])} real-time adjustments")
+
+                                # Store last frame for comparison
+                                self._last_frame = frame
+
+                            except Exception as e:
+                                logger.warning(f"Real-time learning processing error: {e}")
+
+                        # ENHANCED ATTENTION + COMMUNICATION INTEGRATION (TIER 1)
+                        # Coordinate attention allocation and system communication
+                        if (self._attention_communication_initialized and self.attention_controller and
+                            self.communication_system and hasattr(self, '_game_attention_context')):
+                            try:
+                                # Create subsystem demands based on current situation
+                                subsystem_demands = []
+
+                                # Real-time learning demand
+                                if self._real_time_learning_initialized:
+                                    rt_demand = SubsystemDemand(
+                                        subsystem_name="real_time_learning",
+                                        requested_priority=0.4 if learning_insights and learning_insights.get('patterns_detected') else 0.2,
+                                        current_load=0.3,  # Estimate based on processing
+                                        processing_complexity=0.5,
+                                        urgency_level=3 if score_change < 0 else 2,
+                                        justification="Processing action outcomes and detecting patterns",
+                                        context_data={"score_change": score_change, "action_count": actions_taken}
+                                    )
+                                    subsystem_demands.append(rt_demand)
+
+                                # Action selection demand (always high priority)
+                                action_demand = SubsystemDemand(
+                                    subsystem_name="action_selection",
+                                    requested_priority=0.6,
+                                    current_load=0.4,
+                                    processing_complexity=len(available_actions) / 10.0,
+                                    urgency_level=4,  # Always critical for real-time decisions
+                                    justification="Critical real-time action selection",
+                                    context_data={"available_actions": len(available_actions)}
+                                )
+                                subsystem_demands.append(action_demand)
+
+                                # Strategy discovery demand (if patterns detected)
+                                if learning_insights and learning_insights.get('patterns_detected'):
+                                    strategy_demand = SubsystemDemand(
+                                        subsystem_name="strategy_discovery",
+                                        requested_priority=0.5,
+                                        current_load=0.3,
+                                        processing_complexity=0.7,
+                                        urgency_level=3,
+                                        justification="New patterns detected, strategy analysis needed",
+                                        context_data={"patterns_count": len(learning_insights.get('patterns_detected', []))}
+                                    )
+                                    subsystem_demands.append(strategy_demand)
+
+                                # Allocate attention resources
+                                attention_allocation = await self.attention_controller.allocate_attention_resources(
+                                    real_game_id, subsystem_demands, game_context
+                                )
+
+                                # Route communications between systems
+                                if learning_insights and learning_insights.get('patterns_detected'):
+                                    # Send pattern detection message to strategy discovery
+                                    await self.communication_system.route_message(
+                                        "real_time_learning", "strategy_discovery", "pattern_detected",
+                                        learning_insights, MessagePriority.HIGH, real_game_id
+                                    )
+
+                                if learning_insights and learning_insights.get('strategy_adjustments'):
+                                    # Send strategy adjustment to action selector
+                                    await self.communication_system.route_message(
+                                        "strategy_discovery", "action_selection", "strategy_adjustment",
+                                        learning_insights.get('strategy_adjustments'), MessagePriority.HIGH, real_game_id
+                                    )
+
+                                # Monitor resource usage (simplified)
+                                resource_usage = [
+                                    ResourceUsage("real_time_learning", 0.3, 50.0, 0.05, 2, 20.0, 0.0, False),
+                                    ResourceUsage("action_selection", 0.4, 30.0, 0.02, 1, 50.0, 0.0, False),
+                                    ResourceUsage("strategy_discovery", 0.2, 40.0, 0.1, 3, 10.0, 0.0, False)
+                                ]
+
+                                monitoring_results = await self.attention_controller.monitor_subsystem_loads(
+                                    real_game_id, resource_usage
+                                )
+
+                                # Log coordination results
+                                if attention_allocation and attention_allocation.allocations:
+                                    priority_info = ", ".join([f"{k}:{v:.2f}" for k, v in attention_allocation.allocations.items()])
+                                    print(f" ⚡ ATTENTION ALLOCATED: {priority_info}")
+
+                                if monitoring_results.get("bottlenecks_detected"):
+                                    print(f" ⚠️  BOTTLENECKS: {len(monitoring_results['bottlenecks_detected'])} detected")
+
+                            except Exception as e:
+                                logger.warning(f"Attention + communication coordination error: {e}")
+
+                        # CONTEXT-DEPENDENT FITNESS EVOLUTION INTEGRATION (TIER 2)
+                        # Evaluate contextual fitness and evolve success criteria
+                        if self._fitness_evolution_initialized and self.fitness_evolution_system:
+                            try:
+                                # Create context for fitness evaluation
+                                fitness_context = {
+                                    'game_state': game_state_str,
+                                    'action_count': actions_taken,
+                                    'current_score': new_score,
+                                    'score_change': score_change,
+                                    'available_actions': available_actions,
+                                    'current_level': current_level,
+                                    'coordinates_tried': action_coordinates,
+                                    'total_possible_coordinates': 100,  # Estimate
+                                    'unique_actions_tried': set(action_sequence),
+                                    'context_changes_detected': 1 if frame_changes_detected else 0,
+                                    'target_score': 100.0  # Default target, could be dynamic
+                                }
+
+                                # Create performance data from current systems
+                                performance_data = {
+                                    'total_score_improvement': new_score,
+                                    'patterns_detected': len(learning_insights.get('patterns_detected', [])) if learning_insights else 0,
+                                    'patterns_validated': 0,  # Would need tracking system
+                                    'avg_pattern_confidence': 0.7 if learning_insights and learning_insights.get('patterns_detected') else 0.0,
+                                    'strategies_discovered': 1 if learning_insights and learning_insights.get('strategy_adjustments') else 0,
+                                    'avg_strategy_effectiveness': 0.6 if score_change > 0 else 0.3,
+                                    'novel_approaches_tried': min(actions_taken // 10, 5),  # Estimate
+                                    'learning_events_triggered': len(learning_insights.get('new_hypotheses', [])) if learning_insights else 0,
+                                    'adaptations_made': len(learning_insights.get('strategy_adjustments', [])) if learning_insights else 0,
+                                    'avg_adaptation_latency': 5.0,  # Estimate
+                                    'adaptation_effectiveness': 0.7 if score_change > 0 else 0.4,
+                                    'goals_achieved': 1 if current_state == 'WON' else 0,
+                                    'goals_attempted': 1,
+                                    'level_completions': current_level - 1,
+                                    'performance_consistency': 0.6,  # Could be calculated from score variance
+                                    'cross_game_applications': 0,  # Would need cross-game tracking
+                                    'generalization_success_rate': 0.5,  # Default
+                                    'novel_context_performance': 0.5 if movement_detected else 0.3
+                                }
+
+                                # Perform contextual fitness evaluation
+                                fitness_evaluation = await self.fitness_evolution_system.evaluate_contextual_fitness(
+                                    real_game_id,
+                                    f"session_{session_count}",
+                                    fitness_context,
+                                    performance_data
+                                )
+
+                                # Request attention allocation based on fitness priorities if available
+                                if fitness_evaluation and fitness_evaluation.individual_scores:
+                                    fitness_priorities = fitness_evaluation.individual_scores
+                                    attention_request = await self.fitness_evolution_system.request_attention_allocation(
+                                        real_game_id, f"session_{session_count}", fitness_priorities
+                                    )
+
+                                    if attention_request:
+                                        print(f" 🎯 FITNESS EVOLUTION: Composite score {fitness_evaluation.composite_fitness_score:.3f}, " +
+                                              f"phase: {fitness_evaluation.learning_phase.value}")
+
+                                        if fitness_evaluation.predicted_improvement_areas:
+                                            improvement_areas = ", ".join(fitness_evaluation.predicted_improvement_areas[:3])
+                                            print(f" 📈 IMPROVEMENT FOCUS: {improvement_areas}")
+
+                            except Exception as e:
+                                logger.warning(f"Fitness evolution integration error: {e}")
+
+                        # NEAT-BASED ARCHITECT SYSTEM INTEGRATION (TIER 2)
+                        # Evolve system architecture based on performance patterns
+                        if self._neat_architect_initialized and self.neat_architect_system:
+                            try:
+                                # Determine if architectural evolution should be triggered
+                                # Trigger evolution periodically or when performance patterns suggest it
+                                should_trigger_evolution = (actions_taken % 50 == 0 or  # Every 50 actions
+                                                           score_change < 0 or          # On score decrease
+                                                           (learning_insights and       # When patterns detected
+                                                            learning_insights.get('patterns_detected')))
+
+                                if should_trigger_evolution:
+                                    # Create evolution context
+                                    evolution_context = {
+                                        'game_state': game_state_str,
+                                        'action_count': actions_taken,
+                                        'current_score': new_score,
+                                        'score_change': score_change,
+                                        'current_level': current_level,
+                                        'performance_metrics': performance_data if 'performance_data' in locals() else {},
+                                        'learning_insights': learning_insights if learning_insights else {},
+                                        'available_actions': available_actions,
+                                        'patterns_detected': len(learning_insights.get('patterns_detected', [])) if learning_insights else 0,
+                                        'recent_effectiveness': 0.7 if score_change > 0 else 0.3
+                                    }
+
+                                    # Perform architectural evolution
+                                    evolution_results = await self.neat_architect_system.evolve_architecture(
+                                        real_game_id, f"session_{session_count}"
+                                    )
+
+                                    # Evaluate module effectiveness based on current performance
+                                    module_effectiveness = {
+                                        'real_time_learning': 0.8 if learning_insights and learning_insights.get('patterns_detected') else 0.4,
+                                        'action_selection': 0.9 if score_change > 0 else 0.5,
+                                        'strategy_discovery': 0.7 if learning_insights and learning_insights.get('strategy_adjustments') else 0.3,
+                                        'attention_control': 0.6,  # Baseline effectiveness
+                                        'fitness_evolution': 0.7 if fitness_evaluation and fitness_evaluation.composite_fitness_score > 0.5 else 0.4
+                                    }
+
+                                    # Update module effectiveness tracking
+                                    await self.neat_architect_system.update_module_effectiveness(
+                                        real_game_id, f"session_{session_count}", module_effectiveness
+                                    )
+
+                                    # Check for module pruning opportunities
+                                    if evolution_results and evolution_results.get('modules_pruned'):
+                                        pruned_modules = evolution_results['modules_pruned']
+                                        print(f" 🧬 NEAT EVOLUTION: {len(pruned_modules)} ineffective modules pruned")
+
+                                    # Check for new module creations
+                                    if evolution_results and evolution_results.get('modules_created'):
+                                        new_modules = evolution_results['modules_created']
+                                        print(f" 🧬 NEAT EVOLUTION: {len(new_modules)} new modules created")
+
+                                    # Apply architectural changes if beneficial
+                                    if evolution_results and evolution_results.get('fitness_improvement'):
+                                        fitness_improvement = evolution_results['fitness_improvement']
+                                        if fitness_improvement > 0.05:  # 5% improvement threshold
+                                            print(f" 🧬 NEAT ARCHITECTURE: {fitness_improvement:.2%} fitness improvement, " +
+                                                  f"generation {evolution_results.get('generation', 'unknown')}")
+
+                                    # Request attention allocation for architectural planning if needed
+                                    if evolution_results and evolution_results.get('requires_attention'):
+                                        architect_demand = SubsystemDemand(
+                                            subsystem_name="neat_architect",
+                                            requested_priority=0.3,
+                                            current_load=0.2,
+                                            processing_complexity=0.6,
+                                            urgency_level=2,
+                                            justification="Architectural evolution planning required",
+                                            context_data={"evolution_phase": evolution_results.get('phase', 'unknown')}
+                                        )
+
+                                        if hasattr(self, 'attention_controller') and self.attention_controller:
+                                            architect_allocation = await self.attention_controller.allocate_attention_resources(
+                                                real_game_id, [architect_demand], game_context
+                                            )
+
+                            except Exception as e:
+                                logger.warning(f"NEAT architect system integration error: {e}")
+
+                        # TIER 3 INTEGRATION: BAYESIAN INFERENCE + ENHANCED GRAPH TRAVERSAL
+                        # Advanced probabilistic reasoning and intelligent navigation through pattern spaces
+                        if (self._bayesian_inference_initialized and self.bayesian_inference_system and
+                            self._graph_traversal_initialized and self.graph_traversal_system):
+                            try:
+                                # Determine reasoning complexity based on current situation
+                                reasoning_complexity = 0.3  # Base complexity
+                                if score_change < 0:
+                                    reasoning_complexity += 0.2  # Increase for negative outcomes
+                                if learning_insights and learning_insights.get('patterns_detected'):
+                                    reasoning_complexity += 0.1 * len(learning_insights.get('patterns_detected', []))
+                                if len(available_actions) > 5:
+                                    reasoning_complexity += 0.1  # Complex decision space
+
+                                reasoning_complexity = min(1.0, reasoning_complexity)  # Cap at 1.0
+
+                                # BAYESIAN INFERENCE: Create and validate hypotheses about game mechanics
+                                current_context = {
+                                    'game_state': game_state_str,
+                                    'action_count': actions_taken,
+                                    'current_score': new_score,
+                                    'score_change': score_change,
+                                    'current_level': current_level,
+                                    'available_actions': len(available_actions),
+                                    'patterns_detected': len(learning_insights.get('patterns_detected', [])) if learning_insights else 0
+                                }
+
+                                # Create hypotheses for current action outcomes
+                                if isinstance(action_to_take, dict) and 'id' in action_to_take:
+                                    action_id = action_to_take['id']
+
+                                    # Create action-outcome hypothesis
+                                    if score_change != 0:  # Only for meaningful outcomes
+                                        hypothesis_desc = f"Action {action_id} in context {current_level} leads to score change {score_change}"
+
+                                        action_hypothesis_id = await self.bayesian_inference_system.create_hypothesis(
+                                            hypothesis_type=HypothesisType.ACTION_OUTCOME,
+                                            description=hypothesis_desc,
+                                            prior_probability=0.5,  # Neutral prior
+                                            context_conditions={
+                                                'action_id': action_id,
+                                                'level_range': [current_level-1, current_level+1],
+                                                'score_range': [new_score-20, new_score+20]
+                                            },
+                                            game_id=real_game_id,
+                                            session_id=f"session_{session_count}"
+                                        )
+
+                                        # Add evidence for this hypothesis
+                                        evidence_strength = min(1.0, abs(score_change) / 10.0)  # Stronger evidence for bigger changes
+                                        await self.bayesian_inference_system.add_evidence(
+                                            hypothesis_id=action_hypothesis_id,
+                                            evidence_type=EvidenceType.DIRECT_OBSERVATION,
+                                            supports_hypothesis=(score_change > 0),
+                                            strength=evidence_strength,
+                                            context=current_context,
+                                            game_id=real_game_id,
+                                            session_id=f"session_{session_count}"
+                                        )
+
+                                    # Create coordinate effectiveness hypothesis for Action 6
+                                    if action_id == 6 and 'x' in action_to_take and 'y' in action_to_take:
+                                        coord_x, coord_y = action_to_take['x'], action_to_take['y']
+                                        coord_hypothesis_desc = f"Coordinate ({coord_x},{coord_y}) is effective in level {current_level} contexts"
+
+                                        coord_hypothesis_id = await self.bayesian_inference_system.create_hypothesis(
+                                            hypothesis_type=HypothesisType.COORDINATE_EFFECTIVENESS,
+                                            description=coord_hypothesis_desc,
+                                            prior_probability=0.4,  # Slightly pessimistic prior
+                                            context_conditions={
+                                                'x': coord_x,
+                                                'y': coord_y,
+                                                'level': current_level,
+                                                'action_type': 6
+                                            },
+                                            game_id=real_game_id,
+                                            session_id=f"session_{session_count}"
+                                        )
+
+                                        # Add coordinate evidence
+                                        coord_evidence_strength = min(1.0, max(0.1, abs(score_change) / 15.0))
+                                        await self.bayesian_inference_system.add_evidence(
+                                            hypothesis_id=coord_hypothesis_id,
+                                            evidence_type=EvidenceType.DIRECT_OBSERVATION,
+                                            supports_hypothesis=(score_change > 0),
+                                            strength=coord_evidence_strength,
+                                            context=current_context,
+                                            game_id=real_game_id,
+                                            session_id=f"session_{session_count}"
+                                        )
+
+                                # Generate probabilistic predictions for next actions
+                                if len(available_actions) > 1:  # Only if there are choices
+                                    # Convert available actions to action candidates
+                                    action_candidates = []
+                                    for act_id in available_actions:
+                                        if act_id == 6:
+                                            # For Action 6, create several coordinate options
+                                            for x in range(10, 55, 15):  # Sample coordinates
+                                                for y in range(10, 55, 15):
+                                                    action_candidates.append({'id': 6, 'x': x, 'y': y})
+                                                    if len(action_candidates) >= 10:  # Limit candidates
+                                                        break
+                                                if len(action_candidates) >= 10:
+                                                    break
+                                        else:
+                                            action_candidates.append({'id': act_id})
+
+                                    # Get Bayesian prediction
+                                    bayesian_prediction = await self.bayesian_inference_system.generate_prediction(
+                                        action_candidates=action_candidates,
+                                        current_context=current_context,
+                                        game_id=real_game_id,
+                                        session_id=f"session_{session_count}"
+                                    )
+
+                                    if bayesian_prediction:
+                                        print(f" 🎯 BAYESIAN PREDICTION: Action {bayesian_prediction.predicted_action.get('id', 'unknown')} " +
+                                              f"(probability: {bayesian_prediction.success_probability:.2f}, " +
+                                              f"confidence: {bayesian_prediction.confidence_level:.2f})")
+
+                                        if bayesian_prediction.uncertainty_factors:
+                                            uncertainty_summary = ", ".join(bayesian_prediction.uncertainty_factors[:2])
+                                            print(f" ❓ UNCERTAINTY: {uncertainty_summary}")
+
+                                # ENHANCED GRAPH TRAVERSAL: Model decision trees and pattern spaces
+                                traversal_complexity = 0.2  # Base complexity
+                                if learning_insights and learning_insights.get('patterns_detected'):
+                                    traversal_complexity += 0.1 * len(learning_insights.get('patterns_detected', []))
+                                if len(available_actions) > 3:
+                                    traversal_complexity += 0.2  # Complex action space
+
+                                traversal_complexity = min(1.0, traversal_complexity)
+
+                                # Create or update game state graph
+                                game_state_graph_id = f"game_state_{real_game_id}"
+
+                                # Check if graph exists, if not create it
+                                if game_state_graph_id not in self.graph_traversal_system.graphs:
+                                    from src.core.enhanced_graph_traversal import GraphNode, GraphEdge
+
+                                    # Create initial game state nodes
+                                    initial_nodes = []
+
+                                    # Current state node
+                                    current_state_node = GraphNode(
+                                        node_id=f"state_{actions_taken}",
+                                        node_type=NodeType.STATE_NODE,
+                                        properties={
+                                            'score': new_score,
+                                            'level': current_level,
+                                            'actions_taken': actions_taken,
+                                            'game_state': game_state_str
+                                        },
+                                        coordinates=(actions_taken / 100.0, new_score / 100.0)  # Normalize for visualization
+                                    )
+                                    initial_nodes.append(current_state_node)
+
+                                    # Action nodes for available actions
+                                    action_nodes = []
+                                    for i, act_id in enumerate(available_actions[:5]):  # Limit to first 5 actions
+                                        action_node = GraphNode(
+                                            node_id=f"action_{actions_taken}_{act_id}",
+                                            node_type=NodeType.ACTION_NODE,
+                                            properties={'action_id': act_id, 'available_from_state': f"state_{actions_taken}"},
+                                            coordinates=(actions_taken / 100.0 + 0.01, (new_score + i * 5) / 100.0)
+                                        )
+                                        action_nodes.append(action_node)
+                                        initial_nodes.append(action_node)
+
+                                    await self.graph_traversal_system.create_graph(
+                                        graph_type=GraphType.GAME_STATE_GRAPH,
+                                        initial_nodes=initial_nodes,
+                                        initial_edges=[],
+                                        game_id=real_game_id
+                                    )
+
+                                # Find optimal path through decision space if we have multiple actions
+                                if len(available_actions) > 1 and actions_taken > 5:  # Only after some history
+                                    try:
+                                        # Try to find path from early successful state to current state
+                                        early_state_id = f"state_{max(0, actions_taken - 10)}"
+                                        current_state_id = f"state_{actions_taken}"
+
+                                        optimal_paths = await self.graph_traversal_system.find_optimal_paths(
+                                            graph_id=game_state_graph_id,
+                                            start_node=early_state_id,
+                                            end_node=current_state_id,
+                                            max_alternatives=2
+                                        )
+
+                                        if optimal_paths:
+                                            best_path = optimal_paths[0]
+                                            print(f" 🗺️  GRAPH TRAVERSAL: Found optimal path with {len(best_path.nodes)} states, " +
+                                                  f"weight: {best_path.total_weight:.2f}")
+
+                                            if len(optimal_paths) > 1:
+                                                alternative_path = optimal_paths[1]
+                                                print(f" 🗺️  ALTERNATIVE PATH: {len(alternative_path.nodes)} states, " +
+                                                      f"weight: {alternative_path.total_weight:.2f}")
+
+                                    except Exception as e:
+                                        logger.debug(f"Graph traversal path finding error: {e}")
+
+                                # Request attention allocation for complex reasoning
+                                if reasoning_complexity > 0.6 or traversal_complexity > 0.6:
+                                    # Request attention for Bayesian reasoning
+                                    if reasoning_complexity > 0.6:
+                                        bayesian_attention = await self.bayesian_inference_system.request_attention_allocation(
+                                            real_game_id, f"session_{session_count}", reasoning_complexity
+                                        )
+
+                                    # Request attention for graph traversal
+                                    if traversal_complexity > 0.6:
+                                        traversal_attention = await self.graph_traversal_system.request_attention_allocation(
+                                            real_game_id, f"session_{session_count}", traversal_complexity
+                                        )
+
+                                # Log Tier 3 system performance
+                                if reasoning_complexity > 0.5 or traversal_complexity > 0.5:
+                                    insights = await self.bayesian_inference_system.get_hypothesis_insights(real_game_id)
+
+                                    if insights:
+                                        active_hypotheses = insights.get('total_hypotheses', 0)
+                                        high_confidence = len(insights.get('high_confidence_hypotheses', []))
+                                        print(f" 🧠 TIER 3 REASONING: {active_hypotheses} hypotheses active, " +
+                                              f"{high_confidence} high-confidence, " +
+                                              f"reasoning complexity: {reasoning_complexity:.2f}")
+
+                            except Exception as e:
+                                logger.warning(f"Tier 3 integration error: {e}")
+
                         # Check for level completion (significant score increase)
                         score_increase_since_level = total_score - last_significant_score
                         if score_increase_since_level >= level_completion_threshold and len(level_action_sequence) >= 3:
@@ -420,7 +998,7 @@ class ContinuousLearningLoop:
             try:
                 from src.database.system_integration import get_system_integration
                 integration = get_system_integration()
-                
+
                 await integration.save_game_result(
                     game_id=real_game_id,
                     session_id=f"session_{session_count}",
@@ -433,7 +1011,44 @@ class ContinuousLearningLoop:
                 print(f" Game result saved to database: {real_game_id}")
             except Exception as e:
                 print(f"[WARNING] Failed to save game result to database: {e}")
-            
+
+            # REAL-TIME LEARNING ENGINE: Finalize game context (Phase 1.1)
+            if (self._real_time_learning_initialized and self.real_time_learner and
+                hasattr(self, '_game_real_time_context') and self._game_real_time_context):
+                try:
+                    learning_summary = await self.real_time_learner.finalize_game_context(real_game_id)
+                    if learning_summary:
+                        patterns_count = learning_summary.get('active_patterns_count', 0)
+                        adjustments_count = learning_summary.get('active_adjustments_count', 0)
+                        learning_events = learning_summary.get('performance_metrics', {}).get('learning_events', 0)
+                        print(f" 🧠 Real-time learning summary: {patterns_count} patterns, "
+                              f"{adjustments_count} adjustments, {learning_events} learning events")
+                except Exception as e:
+                    logger.warning(f"Failed to finalize real-time learning context: {e}")
+
+            # ENHANCED ATTENTION + COMMUNICATION: Finalize game context (TIER 1)
+            if (self._attention_communication_initialized and self.attention_controller and
+                self.communication_system and hasattr(self, '_game_attention_context')):
+                try:
+                    # Get final attention performance metrics
+                    attention_metrics = await self.attention_controller.get_performance_metrics()
+
+                    # Get final communication statistics
+                    communication_stats = await self.communication_system.get_communication_stats(real_game_id)
+
+                    # Finalize communication system
+                    communication_summary = await self.communication_system.finalize_communication_system(real_game_id)
+
+                    if attention_metrics or communication_stats:
+                        allocations_made = attention_metrics.get('total_allocations', 0)
+                        messages_routed = communication_stats.total_messages if hasattr(communication_stats, 'total_messages') else 0
+                        pathways_count = communication_stats.pathway_count if hasattr(communication_stats, 'pathway_count') else 0
+                        print(f" ⚡ Attention + communication summary: {allocations_made} allocations, "
+                              f"{messages_routed} messages routed, {pathways_count} pathways")
+
+                except Exception as e:
+                    logger.warning(f"Failed to finalize attention + communication systems: {e}")
+
             # Create real training result
             result = {
                 'game_id': real_game_id,
@@ -545,6 +1160,40 @@ class ContinuousLearningLoop:
             self.escalated_intervention_system = None
             self._losing_streak_systems_initialized = False
 
+            # Real-time learning engine components (Phase 1.1)
+            # Initialize with database connection when available
+            self.real_time_learner = None
+            self.pattern_detector = None
+            self.strategy_adjuster = None
+            self.outcome_tracker = None
+            self._real_time_learning_initialized = False
+
+            # Enhanced attention + communication system components (TIER 1)
+            # Initialize with database connection when available
+            self.attention_controller = None
+            self.communication_system = None
+            self._attention_communication_initialized = False
+
+            # Context-dependent fitness evolution system components (TIER 2)
+            # Initialize with database connection when available
+            self.fitness_evolution_system = None
+            self._fitness_evolution_initialized = False
+
+            # NEAT-based architect system components (TIER 2)
+            # Initialize with database connection when available
+            self.neat_architect_system = None
+            self._neat_architect_initialized = False
+
+            # Bayesian inference engine components (TIER 3)
+            # Initialize with database connection when available
+            self.bayesian_inference_system = None
+            self._bayesian_inference_initialized = False
+
+            # Enhanced graph traversal system components (TIER 3)
+            # Initialize with database connection when available
+            self.graph_traversal_system = None
+            self._graph_traversal_initialized = False
+
             # Lazy imports
             self.lazy_imports = LazyImports()
 
@@ -586,6 +1235,226 @@ class ContinuousLearningLoop:
 
         except Exception as e:
             logger.error(f"Error initializing losing streak systems: {e}")
+
+    def _initialize_real_time_learning_systems(self):
+        """Initialize real-time learning engine systems with database connection."""
+        try:
+            if self._real_time_learning_initialized:
+                return
+
+            # Get database connection from system integration
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            db_connection = integration.get_db_connection()
+
+            if db_connection:
+                # Initialize individual components
+                self.pattern_detector = MidGamePatternDetector(db_connection)
+                self.strategy_adjuster = DynamicStrategyAdjuster(db_connection)
+                self.outcome_tracker = ActionOutcomeTracker(db_connection)
+
+                # Initialize main real-time learner and inject components
+                self.real_time_learner = RealTimeLearner(db_connection)
+                self.real_time_learner.set_components(
+                    self.pattern_detector,
+                    self.strategy_adjuster,
+                    self.outcome_tracker
+                )
+
+                self._real_time_learning_initialized = True
+                logger.info("Real-time learning engine initialized successfully")
+            else:
+                logger.warning("No database connection available for real-time learning engine")
+                self._real_time_learning_initialized = False
+
+        except Exception as e:
+            logger.error(f"Error initializing real-time learning engine: {e}")
+            self._real_time_learning_initialized = False
+
+    def _initialize_attention_communication_systems(self):
+        """Initialize enhanced attention + communication systems with database connection."""
+        try:
+            if self._attention_communication_initialized:
+                return
+
+            # Get database connection from system integration
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            db_connection = integration.get_db_connection()
+
+            if db_connection:
+                # Initialize attention controller
+                self.attention_controller = CentralAttentionController(db_connection)
+
+                # Initialize communication system
+                self.communication_system = WeightedCommunicationSystem(db_connection)
+
+                # Set communication system on action selector if available
+                if self.action_selector and hasattr(self.action_selector, 'set_communication_system'):
+                    self.action_selector.set_communication_system(self.communication_system)
+
+                self._attention_communication_initialized = True
+                logger.info("Enhanced attention + communication systems initialized successfully")
+            else:
+                logger.warning("No database connection available for attention + communication systems")
+                self._attention_communication_initialized = False
+
+        except Exception as e:
+            logger.error(f"Error initializing attention + communication systems: {e}")
+            self._attention_communication_initialized = False
+
+    def _initialize_fitness_evolution_system(self):
+        """Initialize context-dependent fitness evolution system with database connection."""
+        try:
+            if self._fitness_evolution_initialized:
+                return
+
+            # Get database connection from system integration
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            db_connection = integration.get_db_connection()
+
+            if db_connection:
+                # Initialize fitness evolution system
+                self.fitness_evolution_system = ContextDependentFitnessEvolution(db_connection)
+
+                # Set attention coordination if available
+                if (self._attention_communication_initialized and self.attention_controller and
+                    self.communication_system):
+                    self.fitness_evolution_system.set_attention_coordination(
+                        self.attention_controller, self.communication_system
+                    )
+                    logger.info("Fitness evolution system linked with attention coordination")
+
+                self._fitness_evolution_initialized = True
+                logger.info("Context-dependent fitness evolution system initialized successfully")
+            else:
+                logger.warning("No database connection available for fitness evolution system")
+                self._fitness_evolution_initialized = False
+
+        except Exception as e:
+            logger.error(f"Error initializing fitness evolution system: {e}")
+            self._fitness_evolution_initialized = False
+
+    def _initialize_neat_architect_system(self):
+        """Initialize NEAT-based architect system with database connection."""
+        try:
+            if self._neat_architect_initialized:
+                return
+
+            # Get database connection from system integration
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            db_connection = integration.get_db_connection()
+
+            if db_connection:
+                # Initialize NEAT-based architect system
+                self.neat_architect_system = NEATBasedArchitect(db_connection)
+
+                # Set attention coordination if available
+                if (self._attention_communication_initialized and self.attention_controller and
+                    self.communication_system):
+                    self.neat_architect_system.set_attention_coordination(
+                        self.attention_controller, self.communication_system
+                    )
+                    logger.info("NEAT architect system linked with attention coordination")
+
+                # Link with fitness evolution system if available
+                if self._fitness_evolution_initialized and self.fitness_evolution_system:
+                    self.neat_architect_system.set_fitness_evolution_coordination(
+                        self.fitness_evolution_system
+                    )
+                    logger.info("NEAT architect system linked with fitness evolution")
+
+                self._neat_architect_initialized = True
+                logger.info("NEAT-based architect system initialized successfully")
+            else:
+                logger.warning("No database connection available for NEAT architect system")
+                self._neat_architect_initialized = False
+
+        except Exception as e:
+            logger.error(f"Error initializing NEAT architect system: {e}")
+            self._neat_architect_initialized = False
+
+    def _initialize_bayesian_inference_system(self):
+        """Initialize Bayesian inference engine with database connection."""
+        try:
+            if self._bayesian_inference_initialized:
+                return
+
+            # Get database connection from system integration
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            db_connection = integration.get_db_connection()
+
+            if db_connection:
+                # Initialize Bayesian inference engine
+                self.bayesian_inference_system = BayesianInferenceEngine(db_connection)
+
+                # Set attention coordination if available
+                if (self._attention_communication_initialized and self.attention_controller and
+                    self.communication_system):
+                    self.bayesian_inference_system.set_attention_coordination(
+                        self.attention_controller, self.communication_system
+                    )
+                    logger.info("Bayesian inference system linked with attention coordination")
+
+                # Link with fitness evolution system if available
+                if self._fitness_evolution_initialized and self.fitness_evolution_system:
+                    self.bayesian_inference_system.set_fitness_evolution_coordination(
+                        self.fitness_evolution_system
+                    )
+                    logger.info("Bayesian inference system linked with fitness evolution")
+
+                self._bayesian_inference_initialized = True
+                logger.info("Bayesian inference engine initialized successfully")
+            else:
+                logger.warning("No database connection available for Bayesian inference system")
+                self._bayesian_inference_initialized = False
+
+        except Exception as e:
+            logger.error(f"Error initializing Bayesian inference system: {e}")
+            self._bayesian_inference_initialized = False
+
+    def _initialize_graph_traversal_system(self):
+        """Initialize enhanced graph traversal system with database connection."""
+        try:
+            if self._graph_traversal_initialized:
+                return
+
+            # Get database connection from system integration
+            from src.database.system_integration import get_system_integration
+            integration = get_system_integration()
+            db_connection = integration.get_db_connection()
+
+            if db_connection:
+                # Initialize enhanced graph traversal system
+                self.graph_traversal_system = EnhancedGraphTraversal(db_connection)
+
+                # Set attention coordination if available
+                if (self._attention_communication_initialized and self.attention_controller and
+                    self.communication_system):
+                    self.graph_traversal_system.set_attention_coordination(
+                        self.attention_controller, self.communication_system
+                    )
+                    logger.info("Graph traversal system linked with attention coordination")
+
+                # Link with fitness evolution system if available
+                if self._fitness_evolution_initialized and self.fitness_evolution_system:
+                    self.graph_traversal_system.set_fitness_evolution_coordination(
+                        self.fitness_evolution_system
+                    )
+                    logger.info("Graph traversal system linked with fitness evolution")
+
+                self._graph_traversal_initialized = True
+                logger.info("Enhanced graph traversal system initialized successfully")
+            else:
+                logger.warning("No database connection available for graph traversal system")
+                self._graph_traversal_initialized = False
+
+        except Exception as e:
+            logger.error(f"Error initializing graph traversal system: {e}")
+            self._graph_traversal_initialized = False
 
     async def run_continuous_learning(self, max_games: int = None, max_hours: float = 9.0) -> Dict[str, Any]:
         """Run continuous learning with modular components until time limit or game limit reached."""
@@ -863,6 +1732,22 @@ class ContinuousLearningLoop:
         try:
             # Initialize losing streak systems if not already done
             self._initialize_losing_streak_systems()
+
+            # Initialize real-time learning systems if not already done
+            self._initialize_real_time_learning_systems()
+
+            # Initialize attention + communication systems if not already done
+            self._initialize_attention_communication_systems()
+
+            # Initialize fitness evolution system if not already done
+            self._initialize_fitness_evolution_system()
+
+            # Initialize NEAT architect system if not already done
+            self._initialize_neat_architect_system()
+
+            # Initialize Tier 3 systems if not already done
+            self._initialize_bayesian_inference_system()
+            self._initialize_graph_traversal_system()
 
             if not self.action_selector or not hasattr(self.action_selector, 'strategy_discovery_system'):
                 return

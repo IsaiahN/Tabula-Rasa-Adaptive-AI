@@ -968,21 +968,19 @@ Successfully integrated cutting-edge learning paradigms:
 - **Streamlined Codebase**: Updated all file references to use database API
 
 ## Future Development
+To expand the system's capabilities, it will be connected to a World Simulator-LLM Hybrid, enabling the generation of worlds with increasing complexity for gradual exposure. The model will learn to solve challenging problems and eventually engage in "social learning" by interacting with other AI instances, improving through competition, imitation, and reverse-engineering.
 
-The system includes a Large Language Model as a "Director" that synthesizes the cognitive subsystems into a unified processing framework. 
+Upon reaching competency, the model will be duplicated into a population of instances deployed across a suite of full-scale simulations. This population is governed by a Meta-Architect, which performs three critical functions:
 
-Future development may include specialized agent modules for enhanced cognitive modeling: 
-- NarrativeEngine for internal monologue generation
-- AffectiveAgent for emotional context processing
-- DriveAgent for intrinsic motivation modeling
-- SocialSimulant for cultural learning
-- CodingAgent for self-refactoring and architecture testing
+Selection: Using Multi-Armed Bandit systems to identify the optimal agent for a given challenge.
 
-The LLM serves as the central executive that translates technical data into context-based information, enabling proactive rather than reactive behavior in complex environments. 
+Synthesis: Abstracting higher-level principles and cognitive strategies from successes and failures across all environments to weave a more generalized intelligence.
 
-Beyond ARC AGI puzzles, this architecture could potentially operate in rich simulation environments with Open World Models, where the agent could develop theory of mind, engage in social interactions, and pursue self-generated goals based on intrinsic drives rather than external rewards. 
+Directed Exploration: Proactively generating novel challenges to target the system's weaknesses and explore the boundaries of its understanding, transforming it into an active, self-directed learner.
 
-p.s: True art is a gift to the world. It will never be a commodity. Being an artist is a lived experience expressed through a medium; their conduit, is effort. Paradoxically, in their limitations, they show their greatest creativity. Their message, imbued with passion, shares the perceptions and projections of their inner and outer worlds.
+This triad of functions is essential to overcome inherent limits. Without it, models risk overfitting to static environments or suffering from catastrophic forgetting in endlessly changing ones. The Meta-Architect actively prevents these evolutionary dead ends, ensuring continuous growth.
+
+The ultimate objective is not merely to create an AI that wins a game, but to cultivate an intelligence that transcends it. This system generates agents capable of self-learning, self-refactoring, and becoming self-directed. The final outcome is an intelligence that learns to bend, break, or rewrite the rules of any simulated world laying the groundwork for AGI/ASI.
 
 ## License
 

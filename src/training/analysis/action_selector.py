@@ -38,6 +38,9 @@ try:
     from src.core.safety_mechanisms import SafetyMechanisms
     from src.core.systematic_button_discovery import SystematicButtonDiscovery
     from src.core.stagnation_intervention_system import StagnationInterventionSystem
+
+    # Import enhanced attention + communication system (TIER 1)
+    from src.core.weighted_communication_system import WeightedCommunicationSystem, MessagePriority
     ADVANCED_ACTION_SYSTEMS_AVAILABLE = True
     print("[OK] ADVANCED SYSTEMS IMPORTED SUCCESSFULLY")
 except ImportError as e:
@@ -95,6 +98,9 @@ class ActionSelector:
                 self.safety_mechanisms = SafetyMechanisms()
                 self.button_discovery_system = SystematicButtonDiscovery()
                 self.stagnation_intervention_system = StagnationInterventionSystem()
+
+                # Communication system will be set from continuous learning loop
+                self.communication_system = None
                 logger.info("[OK] All advanced systems initialized successfully")
             except Exception as e:
                 logger.error(f"[ERROR] Failed to initialize advanced systems: {e}")
@@ -107,6 +113,7 @@ class ActionSelector:
                 self.safety_mechanisms = None
                 self.button_discovery_system = None
                 self.stagnation_intervention_system = None
+                self.communication_system = None
         else:
             logger.warning("[WARNING] Advanced systems not available - setting to None")
             self.visual_interactive_system = None
@@ -117,6 +124,7 @@ class ActionSelector:
             self.safety_mechanisms = None
             self.button_discovery_system = None
             self.stagnation_intervention_system = None
+            self.communication_system = None
         
         # Action repetition penalty system
         self.action_repetition_penalties = {}  # action_id -> penalty_score
@@ -219,7 +227,15 @@ class ActionSelector:
             logger.info("[OK] Game Type Classifier initialized")
         except Exception as e:
             logger.warning(f"Failed to initialize Game Type Classifier: {e}")
-        
+
+    def set_communication_system(self, communication_system):
+        """Set the communication system for coordinated action selection."""
+        self.communication_system = communication_system
+        if communication_system:
+            logger.info("[OK] Communication system set for coordinated action selection")
+        else:
+            logger.warning("[WARNING] Communication system set to None")
+
     async def select_action(self, game_state: Dict[str, Any], available_actions: List[int]) -> Dict[str, Any]:
         """Select the best action using advanced OpenCV analysis and pattern matching."""
 
