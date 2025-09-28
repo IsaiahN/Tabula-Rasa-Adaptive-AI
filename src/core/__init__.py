@@ -5,7 +5,14 @@ from .mutation_system import MutationEngine, SandboxTester, Mutation, TestResult
 from .evolution_engine import EvolutionEngine, FitnessEvaluator, SelectionStrategy
 from .component_coordination import ComponentCoordinator
 # Import the database SystemIntegration (the one with save_scorecard_data and flush_pending_writes)
-from ..database.system_integration import SystemIntegration
+try:
+    from ..database.system_integration import SystemIntegration
+except ImportError:
+    # Handle case when imported from different context
+    try:
+        from database.system_integration import SystemIntegration
+    except ImportError:
+        SystemIntegration = None
 
 # Enhanced Space-Time Governor
 from .enhanced_space_time_governor import EnhancedSpaceTimeGovernor, create_enhanced_space_time_governor

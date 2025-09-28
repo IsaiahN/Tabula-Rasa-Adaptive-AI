@@ -262,8 +262,8 @@ class EnhancedGraphTraversal:
         # Initialize database schema
         self._init_database_schema()
 
-        # Load existing graphs
-        asyncio.create_task(self._load_existing_graphs())
+        # Load existing graphs (will be loaded lazily when needed)
+        self._data_loaded = False
 
         # Register default heuristic functions
         self._register_default_heuristics()
@@ -475,6 +475,12 @@ class EnhancedGraphTraversal:
         self.heuristic_functions['success_rate'] = success_rate_heuristic
         self.heuristic_functions['visit_count'] = visit_count_heuristic
 
+    async def _ensure_data_loaded(self):
+        """Ensure existing data is loaded from database."""
+        if not self._data_loaded:
+            await self._load_existing_graphs()
+            self._data_loaded = True
+
     async def create_graph(self,
                           graph_type: GraphType,
                           initial_nodes: List[GraphNode] = None,
@@ -482,7 +488,9 @@ class EnhancedGraphTraversal:
                           game_id: str = None) -> str:
         """Create a new graph structure."""
         try:
-            graph_id = f"{graph_type.value}_{game_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            await self._ensure_data_loaded()
+            import uuid
+            graph_id = f"{graph_type.value}_{game_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
 
             graph = EnhancedGraph(graph_id, graph_type)
 

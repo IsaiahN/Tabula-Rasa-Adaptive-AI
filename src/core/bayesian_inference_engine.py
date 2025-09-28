@@ -163,8 +163,8 @@ class BayesianInferenceEngine:
         # Initialize database tables
         self._init_database_schema()
 
-        # Load existing data
-        asyncio.create_task(self._load_existing_data())
+        # Load existing data (will be loaded lazily when needed)
+        self._data_loaded = False
 
         logger.info("Bayesian Inference Engine initialized")
 
@@ -327,6 +327,12 @@ class BayesianInferenceEngine:
         except Exception as e:
             logger.error(f"Error loading existing Bayesian data: {e}")
 
+    async def _ensure_data_loaded(self):
+        """Ensure existing data is loaded from database."""
+        if not self._data_loaded:
+            await self._load_existing_data()
+            self._data_loaded = True
+
     async def create_hypothesis(self,
                               hypothesis_type: HypothesisType,
                               description: str,
@@ -336,7 +342,10 @@ class BayesianInferenceEngine:
                               session_id: str) -> str:
         """Create a new hypothesis for Bayesian tracking."""
         try:
-            hypothesis_id = f"{hypothesis_type.value}_{game_id}_{len(self.hypotheses)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            await self._ensure_data_loaded()
+            # Generate unique ID with microseconds to prevent collisions
+            timestamp = datetime.now()
+            hypothesis_id = f"{hypothesis_type.value}_{game_id}_{len(self.hypotheses)}_{timestamp.strftime('%Y%m%d_%H%M%S')}_{timestamp.microsecond}"
 
             hypothesis = BayesianHypothesis(
                 hypothesis_id=hypothesis_id,
@@ -395,7 +404,9 @@ class BayesianInferenceEngine:
                 logger.warning(f"Hypothesis {hypothesis_id} not found")
                 return None
 
-            evidence_id = f"evidence_{hypothesis_id}_{len(self.evidence_store[hypothesis_id])}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            # Generate unique evidence ID with microseconds
+            timestamp = datetime.now()
+            evidence_id = f"evidence_{hypothesis_id}_{len(self.evidence_store[hypothesis_id])}_{timestamp.strftime('%Y%m%d_%H%M%S')}_{timestamp.microsecond}"
 
             evidence = Evidence(
                 evidence_id=evidence_id,
@@ -522,7 +533,9 @@ class BayesianInferenceEngine:
             if len(supporting_hypotheses) < self.min_evidence_for_prediction:
                 uncertainty_factors.append("Insufficient supporting hypotheses")
 
-            prediction_id = f"prediction_{game_id}_{session_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            import uuid
+            import time
+            prediction_id = f"prediction_{game_id}_{session_id}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{uuid.uuid4().hex[:8]}_{int(time.time() * 1000000)}"
 
             prediction = BayesianPrediction(
                 prediction_id=prediction_id,

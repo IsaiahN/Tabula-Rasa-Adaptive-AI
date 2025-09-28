@@ -16,38 +16,68 @@ from datetime import datetime
 from ..memory import MemoryManager, ActionMemoryManager, PatternMemoryManager
 from ..sessions import TrainingSessionManager, TrainingSessionConfig
 from ..api import APIManager
-from src.core.unified_performance_monitor import UnifiedPerformanceMonitor
+try:
+    from src.core.unified_performance_monitor import UnifiedPerformanceMonitor
+except ImportError:
+    from core.unified_performance_monitor import UnifiedPerformanceMonitor
 from ..performance import MetricsCollector
 from ..governor import TrainingGovernor, MetaCognitiveController
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler, CompatibilityShim
 
 # Import losing streak detection components
-from src.core.losing_streak_detector import LosingStreakDetector, FailureType
-from src.core.anti_pattern_learner import AntiPatternLearner
-from src.core.escalated_intervention_system import EscalatedInterventionSystem
+try:
+    from src.core.losing_streak_detector import LosingStreakDetector, FailureType
+    from src.core.anti_pattern_learner import AntiPatternLearner
+    from src.core.escalated_intervention_system import EscalatedInterventionSystem
+except ImportError:
+    from core.losing_streak_detector import LosingStreakDetector, FailureType
+    from core.anti_pattern_learner import AntiPatternLearner
+    from core.escalated_intervention_system import EscalatedInterventionSystem
 
 # Import real-time learning engine components (Phase 1.1)
-from src.core.real_time_learner import RealTimeLearner
-from src.core.mid_game_pattern_detector import MidGamePatternDetector
-from src.core.dynamic_strategy_adjuster import DynamicStrategyAdjuster
-from src.core.action_outcome_tracker import ActionOutcomeTracker
+try:
+    from src.core.real_time_learner import RealTimeLearner
+    from src.core.mid_game_pattern_detector import MidGamePatternDetector
+    from src.core.dynamic_strategy_adjuster import DynamicStrategyAdjuster
+    from src.core.action_outcome_tracker import ActionOutcomeTracker
+except ImportError:
+    from core.real_time_learner import RealTimeLearner
+    from core.mid_game_pattern_detector import MidGamePatternDetector
+    from core.dynamic_strategy_adjuster import DynamicStrategyAdjuster
+    from core.action_outcome_tracker import ActionOutcomeTracker
 
 # Import enhanced attention + communication system components (TIER 1)
-from src.core.central_attention_controller import CentralAttentionController, SubsystemDemand, ResourceUsage
-from src.core.weighted_communication_system import WeightedCommunicationSystem, MessagePriority
+try:
+    from src.core.central_attention_controller import CentralAttentionController, SubsystemDemand, ResourceUsage
+    from src.core.weighted_communication_system import WeightedCommunicationSystem, MessagePriority
 
-# Import context-dependent fitness evolution system components (TIER 2)
-from src.core.context_dependent_fitness_evolution import ContextDependentFitnessEvolution, LearningPhase, ContextType
+    # Import context-dependent fitness evolution system components (TIER 2)
+    from src.core.context_dependent_fitness_evolution import ContextDependentFitnessEvolution, LearningPhase, ContextType
 
-# Import NEAT-based architect system components (TIER 2)
-from src.core.neat_based_architect import NEATBasedArchitect, ModuleType, ModuleCategory
+    # Import NEAT-based architect system components (TIER 2)
+    from src.core.neat_based_architect import NEATBasedArchitect, ModuleType, ModuleCategory
 
-# Import Bayesian inference engine components (TIER 3)
-from src.core.bayesian_inference_engine import BayesianInferenceEngine, HypothesisType, EvidenceType
+    # Import Bayesian inference engine components (TIER 3)
+    from src.core.bayesian_inference_engine import BayesianInferenceEngine, HypothesisType, EvidenceType
 
-# Import enhanced graph traversal components (TIER 3)
-from src.core.enhanced_graph_traversal import EnhancedGraphTraversal, GraphType, TraversalAlgorithm, NodeType
+    # Import enhanced graph traversal components (TIER 3)
+    from src.core.enhanced_graph_traversal import EnhancedGraphTraversal, GraphType, TraversalAlgorithm, NodeType
+except ImportError:
+    from core.central_attention_controller import CentralAttentionController, SubsystemDemand, ResourceUsage
+    from core.weighted_communication_system import WeightedCommunicationSystem, MessagePriority
+
+    # Import context-dependent fitness evolution system components (TIER 2)
+    from core.context_dependent_fitness_evolution import ContextDependentFitnessEvolution, LearningPhase, ContextType
+
+    # Import NEAT-based architect system components (TIER 2)
+    from core.neat_based_architect import NEATBasedArchitect, ModuleType, ModuleCategory
+
+    # Import Bayesian inference engine components (TIER 3)
+    from core.bayesian_inference_engine import BayesianInferenceEngine, HypothesisType, EvidenceType
+
+    # Import enhanced graph traversal components (TIER 3)
+    from core.enhanced_graph_traversal import EnhancedGraphTraversal, GraphType, TraversalAlgorithm, NodeType
 
 logger = logging.getLogger(__name__)
 
