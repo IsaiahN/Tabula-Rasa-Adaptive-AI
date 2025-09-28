@@ -299,7 +299,24 @@ class ScorecardAPIManager:
         logger.info(f" Overall: {all_stats['total_level_completions']} level completions, {all_stats['total_games_completed']} games completed")
         
         return all_stats
-    
+
+    async def submit_score(self, scorecard_id: str, game_id: str, score: float,
+                          level: int = 1, actions_taken: int = 0, win: bool = False) -> bool:
+        """Submit score for a game to the scorecard."""
+        try:
+            # For now, just log the score submission since the actual API submission
+            # would need to be implemented based on the ARC API specification
+            logger.info(f"Score submission: scorecard_id={scorecard_id}, game_id={game_id}, score={score}, level={level}, actions={actions_taken}, win={win}")
+
+            # TODO: Implement actual API call to submit score
+            # This would typically involve making an HTTP request to the ARC API
+            # For now, return True to indicate successful processing
+            return True
+
+        except Exception as e:
+            logger.error(f"Error submitting score for game {game_id}: {e}")
+            return False
+
     async def close(self) -> None:
         """Close the scorecard API manager and clean up resources."""
         # This is a synchronous class, so we don't need to close anything

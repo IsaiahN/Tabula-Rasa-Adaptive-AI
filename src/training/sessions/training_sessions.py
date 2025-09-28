@@ -181,3 +181,9 @@ class TrainingSessionManager:
                 (session_info.end_time or datetime.now()) - session_info.start_time
             ).total_seconds() if session_info.end_time else None
         }
+
+    def should_reflect(self, action_count: int) -> bool:
+        """Determine if the system should perform self-reflection based on action count."""
+        # Default reflection frequency - can be made configurable
+        reflection_frequency = getattr(self.config, 'reflection_frequency', 10) if self.config else 10
+        return action_count > 0 and action_count % reflection_frequency == 0

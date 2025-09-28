@@ -36,10 +36,10 @@ async def main():
     # Initialize the continuous learning loop
     try:
         # Get API key from environment
-        api_key = os.getenv('ANTHROPIC_API_KEY')
+        api_key = os.getenv('ARC_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
         if not api_key:
-            print("❌ ERROR: ANTHROPIC_API_KEY environment variable not set")
-            print("Please set your API key: export ANTHROPIC_API_KEY='your-key-here'")
+            print("❌ ERROR: ARC_API_KEY environment variable not set")
+            print("Please set your API key: export ARC_API_KEY='your-key-here'")
             return
 
         learning_loop = ContinuousLearningLoop(

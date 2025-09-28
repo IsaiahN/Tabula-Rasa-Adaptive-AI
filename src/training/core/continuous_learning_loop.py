@@ -1639,6 +1639,9 @@ class ContinuousLearningLoop:
                         elapsed_hours = (time.time() - start_time) / 3600
                         print(f"[PROGRESS] Completed {game_num} games in {elapsed_hours:.2f} hours ({max_hours - elapsed_hours:.2f} hours remaining)")
 
+                    # Add delay between games to prevent burst limit issues
+                    await asyncio.sleep(1.0)  # 1 second delay between games
+
             # Final results with timing information
             total_elapsed_time = time.time() - start_time
             total_elapsed_hours = total_elapsed_time / 3600

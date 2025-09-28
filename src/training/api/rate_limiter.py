@@ -17,7 +17,7 @@ class RateLimitConfig:
     """Configuration for rate limiting."""
     max_requests_per_minute: int = 550  # Close to API limit (600 - 50 buffer)
     max_requests_per_hour: int = 30000  # Reasonable hourly limit
-    burst_limit: int = 50  # Allow more burst requests
+    burst_limit: int = 100  # Allow more burst requests for training
     window_size_seconds: int = 60
     # Dynamic rate limiting
     warning_threshold: float = 0.8  # Warn when 80% of limit reached
@@ -157,8 +157,8 @@ class RateLimiter:
         while self.hourly_requests and current_time - self.hourly_requests[0] > 3600:
             self.hourly_requests.popleft()
         
-        # Clean up burst window (10 seconds)
-        while self.burst_requests and current_time - self.burst_requests[0] > 10:
+        # Clean up burst window (30 seconds)
+        while self.burst_requests and current_time - self.burst_requests[0] > 30:
             self.burst_requests.popleft()
     
     def get_current_usage(self) -> int:

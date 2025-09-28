@@ -369,6 +369,10 @@ class UnifiedPerformanceMonitor:
             'component': component,
             'timestamp': time.time()
         })
+
+    def update_metric(self, name: str, value: Any, component: str = "training"):
+        """Update a metric (backwards compatibility wrapper for add_custom_metric)."""
+        self.add_custom_metric(name, value, component)
     
     def get_performance_summary(self) -> Dict[str, Any]:
         """Get comprehensive performance summary."""

@@ -236,6 +236,8 @@ class APIManager:
                     x = max(0, min(63, x))
                     y = max(0, min(63, y))
                 game_state = await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid, x=x, y=y)
+                # Add delay to prevent burst limit issues
+                await asyncio.sleep(0.5)  # 500ms delay between actions
             else:
                 # For actions 1-5 and 7, include reasoning in the payload
                 reasoning = action.get('reasoning', {})
@@ -245,6 +247,8 @@ class APIManager:
                 else:
                     logger.warning(f" No reasoning provided for {action_str}")
                     game_state = await self.arc_client.send_action(action_str, game_id=game_id, card_id=card_id, guid=guid)
+                # Add delay to prevent burst limit issues
+                await asyncio.sleep(0.5)  # 500ms delay between actions
             if game_state:
                 return {
                     'game_id': game_state.game_id,

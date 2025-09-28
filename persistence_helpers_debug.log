@@ -1,0 +1,24 @@
+[2025-09-28 16:17:24,372][INFO][tabula_rasa.persistence_helpers] [persist_winning_sequence] CALLED with game_id=real_game_test, sequence=[42, 99, 7]
+[2025-09-28 16:17:24,374][DEBUG][tabula_rasa.persistence_helpers] [persist_winning_sequence] DB: <src.database.api.TabulaRasaDatabase object at 0x000001A8C17E0AD0> | SQL: INSERT OR REPLACE INTO winning_sequences
+        (game_id, sequence, frequency, avg_score, success_rate, last_used)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) | Params: ('real_game_test', '[42, 99, 7]', 2, 123.45, 0.77)
+[2025-09-28 16:17:24,394][INFO][tabula_rasa.persistence_helpers] [persist_winning_sequence] Success for game_id=real_game_test, sequence=[42, 99, 7] | Result: True
+[2025-09-28 16:17:24,395][DEBUG][tabula_rasa.persistence_helpers] [persist_winning_sequence] Commit attempted for game_id=real_game_test
+[2025-09-28 16:17:24,396][INFO][tabula_rasa.persistence_helpers] [persist_button_priorities] CALLED with game_type=real_type_test, x=99, y=88, button_type=score_button
+[2025-09-28 16:17:24,398][DEBUG][tabula_rasa.persistence_helpers] [persist_button_priorities] DB: <src.database.api.TabulaRasaDatabase object at 0x000001A8C17E0AD0> | SQL: INSERT OR REPLACE INTO button_priorities
+        (game_type, coordinate_x, coordinate_y, button_type, confidence, last_used)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) | Params: ('real_type_test', 99, 88, 'score_button', 0.55)
+[2025-09-28 16:17:24,420][INFO][tabula_rasa.persistence_helpers] [persist_button_priorities] Success for game_type=real_type_test, x=99, y=88, button_type=score_button | Result: True
+[2025-09-28 16:17:24,423][DEBUG][tabula_rasa.persistence_helpers] [persist_button_priorities] Commit attempted for game_type=real_type_test
+[2025-09-28 16:24:01,813][INFO][tabula_rasa.persistence_helpers] [persist_winning_sequence] CALLED with game_id=real_game_test, sequence=[42, 99, 7]
+[2025-09-28 16:24:01,814][DEBUG][tabula_rasa.persistence_helpers] [persist_winning_sequence] DB: <src.database.api.TabulaRasaDatabase object at 0x0000021C0F808C20> | SQL: INSERT OR REPLACE INTO winning_sequences
+        (game_id, sequence, frequency, avg_score, success_rate, last_used)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) | Params: ('real_game_test', '[42, 99, 7]', 2, 123.45, 0.77)
+[2025-09-28 16:24:01,833][INFO][tabula_rasa.persistence_helpers] [persist_winning_sequence] Success for game_id=real_game_test, sequence=[42, 99, 7] | Result: True
+[2025-09-28 16:24:01,837][DEBUG][tabula_rasa.persistence_helpers] [persist_winning_sequence] Commit attempted for game_id=real_game_test
+[2025-09-28 16:24:01,839][INFO][tabula_rasa.persistence_helpers] [persist_button_priorities] CALLED with game_type=real_type_test, x=99, y=88, button_type=score_button
+[2025-09-28 16:24:01,841][DEBUG][tabula_rasa.persistence_helpers] [persist_button_priorities] DB: <src.database.api.TabulaRasaDatabase object at 0x0000021C0F808C20> | SQL: INSERT OR REPLACE INTO button_priorities
+        (game_type, coordinate_x, coordinate_y, button_type, confidence, last_used)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) | Params: ('real_type_test', 99, 88, 'score_button', 0.55)
+[2025-09-28 16:24:01,860][INFO][tabula_rasa.persistence_helpers] [persist_button_priorities] Success for game_type=real_type_test, x=99, y=88, button_type=score_button | Result: True
+[2025-09-28 16:24:01,861][DEBUG][tabula_rasa.persistence_helpers] [persist_button_priorities] Commit attempted for game_type=real_type_test
