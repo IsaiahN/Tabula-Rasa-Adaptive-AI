@@ -1172,7 +1172,9 @@ class EnhancedGraphTraversal:
         try:
             cursor = self.db_connection.cursor()
 
-            traversal_id = f"traversal_{graph_id}_{algorithm.value}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            # Generate unique traversal ID with microsecond precision to prevent collisions
+            timestamp = datetime.now()
+            traversal_id = f"traversal_{graph_id}_{algorithm.value}_{timestamp.strftime('%Y%m%d_%H%M%S')}_{timestamp.microsecond}"
 
             path_nodes = result.primary_path.nodes if result.primary_path else []
             path_edges = result.primary_path.edges if result.primary_path else []
