@@ -1725,6 +1725,16 @@ class ContinuousLearningLoop:
             last_game_state_hash = None
             identical_state_count = 0
 
+            # Action diversity enforcement
+            recent_actions = []  # Track last 10 actions
+            MAX_REPEATS = 3  # Max times same action can be used in last 10
+            action_diversity_violations = 0
+
+            # Circuit breaker for non-responsive games
+            no_progress_count = 0
+            last_tracked_score = score
+            last_tracked_state = 'PLAYING'
+
             while actions_taken < max_actions and not win:
                 if self.shutdown_handler.is_shutdown_requested():
                     break
@@ -1771,28 +1781,119 @@ class ContinuousLearningLoop:
 
                 # DEBUG: Show generated action
                 print(f"⚡ [ACTION GEN] Generated: ID={action.get('id')}, Type={action.get('type')}, Coords={action.get('coordinates')}")
+
+                # Action diversity enforcement - prevent spam
+                action_id = action.get('id')
+                recent_count = sum(1 for a in recent_actions[-10:] if a == action_id)
+
+                if recent_count >= MAX_REPEATS:
+                    print(f"\033[91m🚫 [DIVERSITY] Rejecting ACTION{action_id} - used {recent_count} times in last 10 actions\033[0m")
+                    action_diversity_violations += 1
+
+                    # Generate alternative action
+                    alternative_actions = [i for i in range(1, 8) if i != action_id]
+                    import random
+                    alternative_id = random.choice(alternative_actions)
+                    x, y = random.randint(0, 31), random.randint(0, 31)
+
+                    action = {
+                        'id': alternative_id,
+                        'type': f'diversity_action_{alternative_id}',
+                        'coordinates': [x, y],
+                        'reason': f'Diversity enforcement: replaced ACTION{action_id} with ACTION{alternative_id}'
+                    }
+                    print(f"🔄 [DIVERSITY] Substituted with ACTION{alternative_id} at ({x},{y})")
+
+                    if action_diversity_violations >= 5:
+                        print(f"\033[91m🛑 [DIVERSITY] Too many diversity violations ({action_diversity_violations}) - game may be stuck\033[0m")
+
+                # Record action for diversity tracking
+                recent_actions.append(action_id)
+                if len(recent_actions) > 20:  # Keep last 20 actions
+                    recent_actions.pop(0)
                 
-                # Submit action with proper parameters
-                print(f"🎮 [DEBUG] Loop #{actions_taken}: Sending {action.get('id', '?')} | Current Score: {score} | Win: {win}")
+                # Submit action with enhanced verification
+                print(f"🎮 [DEBUG] Loop #{actions_taken}: Sending ACTION{action.get('id', '?')} | Current Score: {score} | Win: {win}")
+                print(f"⚡ [ACTION DETAILS] ID={action.get('id')}, Coords={action.get('coordinates')}, Type={action.get('type')}")
+
+                # Enhanced API call with timing and verification
+                import time
+                api_start_time = time.time()
+
+                # Check if API manager is healthy before making call
+                if not self.api_manager.is_initialized():
+                    print(f"\033[91m❌ [ERROR] API Manager not initialized\033[0m")
+                    break
+
+                if not self.api_manager.is_healthy():
+                    print(f"\033[91m⚠️ [WARNING] API Manager reports unhealthy status\033[0m")
+
                 action_result = await self.api_manager.take_action(current_game_id, action, card_id, guid)
+                api_elapsed = time.time() - api_start_time
+
+                print(f"🌐 [API TIMING] Request completed in {api_elapsed:.3f}s")
+
                 if not action_result:
-                    print(f"\033[91m❌ [ERROR] Action failed - no result returned\033[0m")  # Red for errors
+                    print(f"\033[91m❌ [ERROR] Action failed - no result returned after {api_elapsed:.3f}s\033[0m")
+
+                    # Try to get fresh game state to see if anything changed anyway
+                    print("🔄 [RECOVERY] Attempting to fetch fresh game state...")
+                    fresh_state = await self.api_manager.get_game_state(current_game_id, card_id, guid)
+                    if fresh_state:
+                        print(f"🔍 [RECOVERY] Fresh state: Score={fresh_state.score}, State={fresh_state.state}")
+                    else:
+                        print(f"\033[91m❌ [RECOVERY] Failed to get fresh game state\033[0m")
                     break
 
                 # DEBUG: Show what API actually returned
                 print(f"🔍 [API RESPONSE] {action_result}")
 
+                # Verify response has required fields
+                required_fields = ['score', 'state', 'game_id']
+                missing_fields = [field for field in required_fields if field not in action_result]
+                if missing_fields:
+                    print(f"\033[91m⚠️ [WARNING] API response missing fields: {missing_fields}\033[0m")
+
                 # CRITICAL FIX: Update game state from action result
                 new_score = action_result.get('score', score)
                 new_win = action_result.get('state') == 'WIN' or action_result.get('win', False)
+                new_state = action_result.get('state', 'UNKNOWN')
 
-                print(f"📊 [STATE CHECK] old_score={score}, new_score={new_score}, old_win={win}, new_win={new_win}")
+                print(f"📊 [STATE CHECK] old_score={score}, new_score={new_score}, old_win={win}, new_win={new_win}, state={new_state}")
 
                 # Debug state changes
                 if new_score != score:
                     print(f"\033[93m📈 Score changed: {score} → {new_score}\033[0m")  # Yellow for score changes
                 if new_win != win:
                     print(f"\033[92m🏆 Win state changed: {win} → {new_win}\033[0m")  # Green for win
+
+                # Circuit breaker - check for progress
+                if new_score == last_tracked_score and new_state == last_tracked_state:
+                    no_progress_count += 1
+                    if no_progress_count >= 10:
+                        print(f"\033[91m🛑 [CIRCUIT BREAKER] No progress in {no_progress_count} actions - forcing game end\033[0m")
+                        print(f"📊 [CIRCUIT BREAKER] Stuck at Score={new_score}, State={new_state}")
+                        break
+                else:
+                    no_progress_count = 0
+                    print(f"✅ [PROGRESS] Progress detected - resetting circuit breaker")
+
+                last_tracked_score = new_score
+                last_tracked_state = new_state
+
+                # Generate and capture reasoning
+                reasoning = {
+                    'action_id': action.get('id'),
+                    'action_type': action.get('type'),
+                    'coordinates': action.get('coordinates'),
+                    'governor_decision': decision.get('action'),
+                    'confidence': decision.get('confidence', 0),
+                    'game_score': new_score,
+                    'game_state': new_state,
+                    'loop_iteration': actions_taken,
+                    'reasoning_text': f"ACTION{action.get('id')} chosen based on {decision.get('action')} decision (confidence: {decision.get('confidence', 0):.2f})"
+                }
+                print(f"📝 [REASONING] {reasoning['reasoning_text']}")
 
                 # Update loop variables
                 score = new_score
