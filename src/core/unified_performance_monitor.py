@@ -117,7 +117,7 @@ class UnifiedPerformanceMonitor:
         self._monitor_thread = None
         self._stop_event = threading.Event()
         
-        logger.info(" Unified Performance Monitor initialized")
+        logger.debug(" Unified Performance Monitor initialized")
     
     def _default_config(self) -> Dict[str, Any]:
         """Default monitoring configuration."""

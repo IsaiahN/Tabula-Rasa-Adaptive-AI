@@ -102,7 +102,6 @@ class ActionSelector:
         if ADVANCED_ACTION_SYSTEMS_AVAILABLE:
             try:
                 self.visual_interactive_system = VisualInteractiveSystem()
-                self.stagnation_system = StagnationInterventionSystem()
                 self.strategy_discovery_system = StrategyDiscoverySystem()
                 self.frame_analysis_system = EnhancedFrameAnalysisSystem()
                 self.exploration_system = SystematicExplorationSystem()
@@ -117,7 +116,6 @@ class ActionSelector:
                 logger.error(f"[ERROR] Failed to initialize advanced systems: {e}")
                 # Fallback to None
                 self.visual_interactive_system = None
-                self.stagnation_system = None
                 self.strategy_discovery_system = None
                 self.frame_analysis_system = None
                 self.exploration_system = None
@@ -128,7 +126,6 @@ class ActionSelector:
         else:
             logger.warning("[WARNING] Advanced systems not available - setting to None")
             self.visual_interactive_system = None
-            self.stagnation_system = None
             self.strategy_discovery_system = None
             self.frame_analysis_system = None
             self.exploration_system = None
@@ -212,10 +209,10 @@ class ActionSelector:
     def _initialize_advanced_systems(self):
         """Initialize Bayesian and GAN systems."""
         try:
-            # Initialize Bayesian Success Scorer
-            from src.core.bayesian_success_scorer import BayesianSuccessScorer
-            self.bayesian_scorer = BayesianSuccessScorer()
-            logger.info("[OK] Bayesian Success Scorer initialized")
+            # Initialize Bayesian Success Scorer (use singleton)
+            from src.core.bayesian_success_scorer import create_bayesian_success_scorer
+            self.bayesian_scorer = create_bayesian_success_scorer()
+            logger.debug("[OK] Bayesian Success Scorer connected")
         except Exception as e:
             logger.warning(f"Failed to initialize Bayesian Success Scorer: {e}")
         
@@ -550,9 +547,9 @@ class ActionSelector:
         
         # 11. ADVANCED STAGNATION DETECTION - Check for stuck situations
         stagnation_event = None
-        if self.stagnation_system:
+        if self.stagnation_intervention_system:
             try:
-                stagnation_event = await self.stagnation_system.analyze_frame(frame_data, game_state)
+                stagnation_event = await self.stagnation_intervention_system.analyze_frame(frame_data, game_state)
             except Exception as e:
                 logger.error(f"Error in stagnation detection: {e}")
         

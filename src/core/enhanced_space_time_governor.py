@@ -258,9 +258,9 @@ class EnhancedSpaceTimeGovernor:
                 # Convert string to Path object if needed
                 persistence_path = self.persistence_dir if isinstance(self.persistence_dir, Path) else Path(self.persistence_dir)
                 self.four_phase_coordinator = create_four_phase_memory_coordinator(persistence_path)
-                logger.info("4-Phase Memory Coordinator created")
+                # Note: No need to log here as FourPhaseMemoryCoordinator logs its own initialization
             else:
-                logger.info("Using existing 4-Phase Memory Coordinator singleton")
+                logger.debug("Using existing 4-Phase Memory Coordinator singleton")
             self.four_phase_initialized = False
         except Exception as e:
             logger.warning(f"Failed to initialize 4-Phase Memory Coordinator: {e}")
@@ -281,7 +281,7 @@ class EnhancedSpaceTimeGovernor:
         # Initialize learning components
         self._initialize_learning_components()
         
-        logger.info("Enhanced Space-Time Aware Governor initialized")
+        logger.debug("Enhanced Space-Time Aware Governor initialized")
     
     def _initialize_learning_components(self):
         """Initialize learning and pattern recognition components."""
@@ -293,7 +293,7 @@ class EnhancedSpaceTimeGovernor:
             from .meta_learning import MetaLearningSystem
             # Initialize with database-only approach
             self.learning_manager = MetaLearningSystem()
-            logger.info("Learning manager initialized successfully")
+            logger.debug("Learning manager initialized successfully")
             print(f" LEARNING MANAGER: Successfully initialized MetaLearningSystem")
         except ImportError as e:
             logger.warning(f"Learning manager not available: {e}")
@@ -309,7 +309,7 @@ class EnhancedSpaceTimeGovernor:
             from src.analysis.pattern_analysis.analyzer import PatternAnalyzer
             # Initialize PatternAnalyzer (it doesn't take persistence_dir parameter)
             self.pattern_analyzer = PatternAnalyzer()
-            logger.info("Pattern analyzer initialized successfully")
+            logger.debug("Pattern analyzer initialized successfully")
         except ImportError:
             # Pattern analyzer is optional - create a dummy implementation
             self.pattern_analyzer = None

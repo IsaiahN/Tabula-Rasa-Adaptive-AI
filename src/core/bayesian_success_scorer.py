@@ -661,3 +661,27 @@ class BayesianSuccessScorer:
             'state_priors_count': len(self.state_priors),
             'context_priors_count': len(self.context_priors)
         }
+
+
+# Global singleton instance
+_bayesian_success_scorer_instance = None
+
+
+def create_bayesian_success_scorer(learning_rate: float = 0.1,
+                                  confidence_threshold: float = 0.7,
+                                  pattern_similarity_threshold: float = 0.6) -> BayesianSuccessScorer:
+    """Create or get the singleton BayesianSuccessScorer instance."""
+    global _bayesian_success_scorer_instance
+    if _bayesian_success_scorer_instance is None:
+        print("  LEARNING MANAGER: Creating singleton BayesianSuccessScorer instance")
+        _bayesian_success_scorer_instance = BayesianSuccessScorer(
+            learning_rate=learning_rate,
+            confidence_threshold=confidence_threshold,
+            pattern_similarity_threshold=pattern_similarity_threshold
+        )
+    return _bayesian_success_scorer_instance
+
+
+def get_bayesian_success_scorer() -> Optional[BayesianSuccessScorer]:
+    """Get the singleton BayesianSuccessScorer instance if it exists."""
+    return _bayesian_success_scorer_instance

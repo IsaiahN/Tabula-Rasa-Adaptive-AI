@@ -101,14 +101,14 @@ class StagnationInterventionSystem:
         """Initialize advanced systems for intervention."""
         try:
             from src.core.enhanced_space_time_governor import EnhancedSpaceTimeGovernor
-            from src.core.pattern_discovery_curiosity import PatternDiscoveryCuriosity
+            from src.core.pattern_discovery_curiosity import create_pattern_discovery_curiosity
             # GANActionGenerator doesn't exist, so we'll skip it
             # from src.core.gan_action_generator import GANActionGenerator
-            
+
             # Use singleton pattern to avoid duplicate instances
             from .enhanced_space_time_governor import get_enhanced_space_time_governor, create_enhanced_space_time_governor
             self.governor = get_enhanced_space_time_governor() or create_enhanced_space_time_governor()
-            self.pattern_predictor = PatternDiscoveryCuriosity()
+            self.pattern_predictor = create_pattern_discovery_curiosity()
             self.gan_system = None  # Set to None since module doesn't exist
             
             self.logger.info("[OK] Advanced systems initialized for stagnation intervention")
@@ -970,3 +970,18 @@ class StagnationInterventionSystem:
             'action_history_length': len(self.action_history),
             'score_history_length': len(self.score_history)
         }
+
+# Global singleton instance
+_stagnation_intervention_instance: Optional[StagnationInterventionSystem] = None
+
+def create_stagnation_intervention_system() -> StagnationInterventionSystem:
+    """Create or get the singleton StagnationInterventionSystem instance."""
+    global _stagnation_intervention_instance
+    if _stagnation_intervention_instance is None:
+        logger.debug("Creating singleton StagnationInterventionSystem instance")
+        _stagnation_intervention_instance = StagnationInterventionSystem()
+    return _stagnation_intervention_instance
+
+def get_stagnation_intervention_system() -> Optional[StagnationInterventionSystem]:
+    """Get the existing StagnationInterventionSystem singleton instance."""
+    return _stagnation_intervention_instance

@@ -6,9 +6,13 @@ Runs continuous learning for a full 9-hour period, playing sequential games
 until the time limit is reached instead of stopping after a fixed number of games.
 """
 
-import asyncio
+# Disable Python bytecode caching
 import sys
 import os
+sys.dont_write_bytecode = True
+os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+
+import asyncio
 from pathlib import Path
 
 # Add the project root to Python path
@@ -42,9 +46,13 @@ async def main():
             print("Please set your API key: export ARC_API_KEY='your-key-here'")
             return
 
+        # Use temporary directory for session data - database stores persistent data
+        import tempfile
+        temp_session_dir = tempfile.mkdtemp(prefix="training_session_")
+
         learning_loop = ContinuousLearningLoop(
             api_key=api_key,
-            save_directory=Path("data/training")
+            save_directory=Path(temp_session_dir)
         )
 
         # Run for 9 hours (no game limit)
@@ -88,7 +96,8 @@ async def main():
         traceback.print_exc()
 
     finally:
-        print("\nSession ended. Check data/training/ for saved results.")
+        print(f"\nSession ended. Session data saved to: {temp_session_dir}")
+        print("Persistent training data is stored in the database.")
 
 if __name__ == "__main__":
     # Run the async main function

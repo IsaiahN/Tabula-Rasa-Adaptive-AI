@@ -2,7 +2,7 @@
 """
 Architect Priors System - Strong Transferable Priors for Intelligent Learning
 
-This module implements the "Zeroth Brain" that pre-loads the system with strong,
+This module implements a system that pre-loads the AI with strong,
 transferable priors about the world. These aren't solutions, but meta-strategies
 that guide intelligent hypothesis generation.
 
@@ -816,8 +816,8 @@ class ActionEffectPredictor:
 class ArchitectPriorsSystem:
     """
     Main Architect Priors System that coordinates all prior analysis.
-    
-    This is the "Zeroth Brain" that pre-loads the system with strong,
+
+    This system pre-loads the AI with strong,
     transferable priors about the world.
     """
     

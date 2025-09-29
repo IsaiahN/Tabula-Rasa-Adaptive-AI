@@ -191,9 +191,9 @@ class TestRun9HourScripts:
         pytest.skip("Script has encoding issues, but exists")
     
     def test_parallel_exists(self):
-        """Test that parallel.py exists and is executable."""
-        script_path = os.path.join(os.path.dirname(__file__), '..', 'parallel.py')
-        assert os.path.exists(script_path), "parallel.py does not exist"
+        """Test that train_parallel.py exists and is executable."""
+        script_path = os.path.join(os.path.dirname(__file__), '..', 'train_parallel.py')
+        assert os.path.exists(script_path), "train_parallel.py does not exist"
         
         # Skip encoding issues for now
         pytest.skip("Script has encoding issues, but exists")
@@ -207,7 +207,7 @@ class TestRun9HourScripts:
             assert 'master_arc_trainer' in simple_content or 'MasterArcTrainer' in simple_content
         
         # Check scaled training script
-        scaled_script_path = os.path.join(os.path.dirname(__file__), '..', 'parallel.py')
+        scaled_script_path = os.path.join(os.path.dirname(__file__), '..', 'train_parallel.py')
         with open(scaled_script_path, 'r', encoding='utf-8') as f:
             scaled_content = f.read()
             assert 'master_arc_trainer' in scaled_content or 'MasterArcTrainer' in scaled_content
@@ -224,7 +224,7 @@ class TestRun9HourScripts:
             assert 'ensure_database_ready' in simple_content
         
         # Check scaled training script
-        scaled_script_path = os.path.join(os.path.dirname(__file__), '..', 'parallel.py')
+        scaled_script_path = os.path.join(os.path.dirname(__file__), '..', 'train_parallel.py')
         with open(scaled_script_path, 'r', encoding='utf-8') as f:
             scaled_content = f.read()
             # Should have database patterns

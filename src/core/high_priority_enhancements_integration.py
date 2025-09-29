@@ -166,7 +166,7 @@ class HighPriorityEnhancementsIntegration:
                     max_patterns=self.config.pattern_max_patterns
                 )
                 self.integration_status['pattern_discovery'] = IntegrationStatus.READY
-                logger.info("Pattern Discovery Curiosity initialized successfully")
+                logger.debug("Pattern Discovery Curiosity initialized successfully")
             except Exception as e:
                 self.integration_status['pattern_discovery'] = IntegrationStatus.ERROR
                 logger.error(f"Pattern Discovery Curiosity initialization failed: {e}")

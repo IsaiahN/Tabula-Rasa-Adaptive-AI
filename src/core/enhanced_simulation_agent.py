@@ -50,7 +50,8 @@ class EnhancedSimulationAgent:
             timeout=self.config.path_generation.timeout
         )
         
-        self.bayesian_scorer = BayesianSuccessScorer(
+        from .bayesian_success_scorer import create_bayesian_success_scorer
+        self.bayesian_scorer = create_bayesian_success_scorer(
             learning_rate=self.config.bayesian_scoring.learning_rate,
             confidence_threshold=self.config.bayesian_scoring.confidence_threshold,
             pattern_similarity_threshold=self.config.bayesian_scoring.pattern_similarity_threshold

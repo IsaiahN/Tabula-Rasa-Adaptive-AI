@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Modular Architect - The "Zeroth Brain" using modular components.
+Modular Architect - Self-Architecture Evolution System using modular components.
 """
 
 import logging
@@ -15,8 +15,8 @@ from .component_coordination import ComponentCoordinator, ComponentSystemIntegra
 
 class Architect:
     """
-    The "Zeroth Brain" - Self-Architecture Evolution System
-    
+    Self-Architecture Evolution System
+
     Performs safe, sandboxed experimentation on the AI's own architecture
     and hyperparameters using a general-intelligence fitness function.
     """
@@ -52,7 +52,7 @@ class Architect:
         self.human_approval_required = True
         self.auto_merge_threshold = 0.15
         
-        self.logger.info(" Modular Architect initialized - Zeroth Brain online")
+        self.logger.debug(" Modular Architect initialized - System online")
     
     def _load_current_genome(self) -> SystemGenome:
         """Load current system genome from configuration."""

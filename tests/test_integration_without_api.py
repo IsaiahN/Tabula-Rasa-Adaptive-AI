@@ -89,7 +89,8 @@ def test_configuration_loading():
     
     config_files = [
         "data/optimized_config.json",
-        "data/training/results/unified_trainer_results.json"
+        # NOTE: unified_trainer_results.json now stored in database instead of data/training/
+        # "data/training/results/unified_trainer_results.json"
     ]
     
     success = True

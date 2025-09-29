@@ -19,7 +19,8 @@ def find_tabula_rasa_scorecards():
     # Check various data files for scorecard IDs
     data_files = [
         "data/optimized_config.json",
-        "data/training/results/unified_trainer_results.json",
+        # NOTE: unified_trainer_results.json now stored in database instead of data/training/
+        # "data/training/results/unified_trainer_results.json",
         "data/global_counters.json",
         "data/task_performance.json",
         "data/sessions/*.json"
@@ -71,7 +72,8 @@ def get_api_key():
     # Check config files
     config_files = [
         "data/optimized_config.json",
-        "data/training/results/unified_trainer_results.json",
+        # NOTE: unified_trainer_results.json now stored in database instead of data/training/
+        # "data/training/results/unified_trainer_results.json",
         "config.json",
         "settings.json"
     ]

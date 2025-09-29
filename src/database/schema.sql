@@ -2303,6 +2303,24 @@ CREATE TABLE IF NOT EXISTS tier3_performance_analytics (
     analysis_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Persistence helpers debug logs
+CREATE TABLE IF NOT EXISTS persistence_debug_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TIMESTAMP NOT NULL,
+    log_level TEXT NOT NULL, -- 'DEBUG', 'INFO', 'ERROR'
+    logger_name TEXT NOT NULL, -- 'tabula_rasa.persistence_helpers'
+    function_name TEXT NOT NULL, -- 'persist_winning_sequence', 'persist_button_priorities', 'persist_governor_decision'
+    operation_type TEXT NOT NULL, -- 'CALLED', 'Success', 'Commit attempted', 'Exception', etc.
+    message TEXT NOT NULL, -- Full log message
+    parameters TEXT, -- JSON string of function parameters
+    db_info TEXT, -- Database connection info
+    sql_query TEXT, -- SQL query if applicable
+    result_info TEXT, -- Result information
+    session_id TEXT,
+    game_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============================================================================
 -- INDEXES FOR TIER 3 SYSTEMS
 -- ============================================================================

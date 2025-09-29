@@ -3,7 +3,7 @@
 Simulation-Driven Intelligence Agent
 
 This module integrates all simulation components into a unified system that
-enables multi-step planning and imagination. This is the "Third Brain" that
+enables multi-step planning and imagination. This system
 bridges reactive AI to proactive intelligence.
 """
 

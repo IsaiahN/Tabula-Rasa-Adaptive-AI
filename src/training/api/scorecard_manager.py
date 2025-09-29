@@ -35,7 +35,7 @@ class ScorecardManager:
             if not self.api_key:
                 self.api_key = get_api_key_from_config()
             self.scorecard_api_manager = ScorecardAPIManager(self.api_key)
-            logger.info("Scorecard API manager initialized")
+            logger.debug("Scorecard API manager initialized")
         except ImportError as e:
             logger.warning(f"Scorecard API not available: {e}")
             self.scorecard_api_manager = None

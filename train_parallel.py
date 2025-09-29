@@ -3,14 +3,18 @@
 Simple parallel training wrapper - runs multiple train.py instances
 
 Usage:
-    python parallel.py        # Run 2 instances (default)
-    python parallel.py 4      # Run 4 instances
-    python parallel.py 8      # Run 8 instances
+    python train_parallel.py        # Run 2 instances (default)
+    python train_parallel.py 4      # Run 4 instances
+    python train_parallel.py 8      # Run 8 instances
 """
 
-import subprocess
+# Disable Python bytecode caching
 import sys
 import os
+sys.dont_write_bytecode = True
+os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+
+import subprocess
 from concurrent.futures import ProcessPoolExecutor
 import time
 from datetime import datetime

@@ -88,7 +88,15 @@ class FourPhaseMemoryCoordinator:
     """
     
     def __init__(self, persistence_dir: Optional[Path] = None):
-        self.persistence_dir = persistence_dir or Path("continuous_learning_data")
+        # Use temporary directory instead of continuous_learning_data
+        import tempfile
+        if persistence_dir is None:
+            # Create a temporary directory for this session
+            self.temp_dir = tempfile.mkdtemp(prefix="four_phase_memory_")
+            self.persistence_dir = Path(self.temp_dir)
+        else:
+            self.persistence_dir = persistence_dir
+            self.temp_dir = None
         self.persistence_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize database integration
@@ -573,7 +581,16 @@ class FourPhaseMemoryCoordinator:
             self.optimization_history.clear()
             
             self.is_initialized = False
-            
+
+            # Clean up temporary directory if we created one
+            if self.temp_dir is not None:
+                import shutil
+                try:
+                    shutil.rmtree(self.temp_dir)
+                    logger.info(f"Cleaned up temporary directory: {self.temp_dir}")
+                except Exception as temp_error:
+                    logger.warning(f"Failed to clean up temporary directory {self.temp_dir}: {temp_error}")
+
             logger.info("4-Phase Memory Coordinator cleaned up")
             
         except Exception as e:
@@ -592,7 +609,7 @@ def create_four_phase_memory_coordinator(persistence_dir: Optional[Path] = None)
     global _four_phase_coordinator_instance
 
     if _four_phase_coordinator_instance is None:
-        logger.info("4-Phase Memory Coordinator initialized")
+        logger.debug("4-Phase Memory Coordinator initialized")
         _four_phase_coordinator_instance = FourPhaseMemoryCoordinator(persistence_dir)
     else:
         # Instance already exists, don't log duplicate initialization

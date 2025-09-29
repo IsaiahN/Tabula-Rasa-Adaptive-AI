@@ -25,9 +25,9 @@ def test_scorecard_api():
         print(" No API key found")
         print("   Please ensure API key is configured in:")
         print("   - data/optimized_config.json")
-        print("   - data/training/results/unified_trainer_results.json")
         print("   - config.json")
         print("   - Environment variable ARC_API_KEY")
+        print("   NOTE: unified_trainer_results.json now stored in database")
         return False
     
     print(f" API key found: {api_key[:8]}...")

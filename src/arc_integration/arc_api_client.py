@@ -57,6 +57,10 @@ class GameState:
             available_actions=data.get("available_actions", [])
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert GameState to dictionary for JSON serialization."""
+        return asdict(self)
+
 @dataclass
 class Scorecard:
     """Dataclass for holding scorecard information."""

@@ -160,8 +160,8 @@ class SafetyMechanisms:
         self.rollback_manager = RollbackManager(self.config)
         self.approval_system = ApprovalSystem(self.config)
         self.audit_logger = AuditLogger(self.config)
-        
-        logger.info("[SAFETY] Safety subsystems initialized")
+
+        logger.debug("[SAFETY] Safety subsystems initialized")
     
     async def validate_change(self, 
                             change_type: str, 
@@ -920,6 +920,21 @@ class AuditLogger:
         }
         self.audit_log.append(entry)
         logger.warning(f" Security violation: {violation.get('type', 'unknown')}")
+
+# Global singleton instance
+_safety_mechanisms_instance: Optional[SafetyMechanisms] = None
+
+def create_safety_mechanisms(config: Optional[Dict[str, Any]] = None) -> SafetyMechanisms:
+    """Create or get the singleton SafetyMechanisms instance."""
+    global _safety_mechanisms_instance
+    if _safety_mechanisms_instance is None:
+        logger.debug("Creating singleton SafetyMechanisms instance")
+        _safety_mechanisms_instance = SafetyMechanisms(config)
+    return _safety_mechanisms_instance
+
+def get_safety_mechanisms() -> Optional[SafetyMechanisms]:
+    """Get the existing SafetyMechanisms singleton instance."""
+    return _safety_mechanisms_instance
 
 # Import required modules
 import re

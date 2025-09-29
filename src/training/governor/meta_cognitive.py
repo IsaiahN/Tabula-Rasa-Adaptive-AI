@@ -38,7 +38,8 @@ class MetaCognitiveController:
         try:
             from src.core.architect import create_architect
             self.architect = create_architect()
-            logger.info("Architect system initialized")
+            # Note: No need to log here as Architect logs its own initialization
+            logger.debug("MetaCognitiveController connected to Architect singleton")
         except ImportError as e:
             logger.warning(f"Architect not available: {e}")
             self.architect = None

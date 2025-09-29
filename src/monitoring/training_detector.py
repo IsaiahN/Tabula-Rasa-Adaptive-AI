@@ -45,7 +45,7 @@ class TrainingDetector:
         self.training_types = {
             'master_arc_trainer.py': 'core_training',
             'train.py': 'orchestrator',
-            'parallel.py': 'scaled_training'
+            'train_parallel.py': 'scaled_training'
         }
     
     def find_all_training_processes(self) -> List[TrainingProcess]:
