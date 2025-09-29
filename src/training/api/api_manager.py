@@ -30,7 +30,7 @@ class APIManager:
         """Initialize the API client and test connection."""
         # Don't reinitialize if already initialized
         if self.initialized and self.arc_client:
-            logger.info("API manager already initialized, skipping")
+            logger.debug("API manager already initialized, skipping")
             return True
             
         try:
@@ -38,7 +38,7 @@ class APIManager:
             
             self.initialized = True
             self.connection_retries = 0
-            logger.info("API manager initialized successfully")
+            logger.debug("API manager initialized successfully")
             return True
             
         except Exception as e:

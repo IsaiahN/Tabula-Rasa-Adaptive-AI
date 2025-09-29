@@ -87,9 +87,9 @@ class ActionSelector:
                                          graph_traversal_system is not None)
 
         if self.advanced_systems_available:
-            logger.info("[OK] Advanced Tier 3 systems available for action selection")
+            logger.debug("[OK] Tier 3 systems (Bayesian/Graph) available for action selection")
         else:
-            logger.info("[INFO] Advanced systems not available - using fallback action selection")
+            logger.debug("[INFO] Tier 3 systems not available - using standard action selection")
         
         # Advanced analysis state
         self.last_frame_analysis = None
@@ -98,7 +98,7 @@ class ActionSelector:
         self.pattern_matches = []
         
         # Initialize new advanced action systems
-        logger.info(f" ADVANCED SYSTEMS STATUS: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
+        logger.debug(f"Tier 4 systems status: {ADVANCED_ACTION_SYSTEMS_AVAILABLE}")
         if ADVANCED_ACTION_SYSTEMS_AVAILABLE:
             try:
                 self.visual_interactive_system = VisualInteractiveSystem()
@@ -111,9 +111,9 @@ class ActionSelector:
 
                 # Communication system will be set from continuous learning loop
                 self.communication_system = None
-                logger.info("[OK] All advanced systems initialized successfully")
+                logger.debug("[OK] Tier 4 systems (Visual/Strategy/Analysis) initialized successfully")
             except Exception as e:
-                logger.error(f"[ERROR] Failed to initialize advanced systems: {e}")
+                logger.error(f"[ERROR] Failed to initialize Tier 4 systems: {e}")
                 # Fallback to None
                 self.visual_interactive_system = None
                 self.strategy_discovery_system = None
@@ -124,7 +124,7 @@ class ActionSelector:
                 self.stagnation_intervention_system = None
                 self.communication_system = None
         else:
-            logger.warning("[WARNING] Advanced systems not available - setting to None")
+            logger.debug("[INFO] Tier 4 systems not available - using standard systems")
             self.visual_interactive_system = None
             self.strategy_discovery_system = None
             self.frame_analysis_system = None
@@ -177,15 +177,15 @@ class ActionSelector:
             try:
                 # Initialize Tree Evaluation Simulation Engine
                 self.tree_evaluation_engine = TreeEvaluationSimulationEngine()
-                logger.info(" Tree Evaluation Simulation Engine initialized")
+                logger.debug("Tree Evaluation Simulation Engine initialized")
                 
                 # Initialize Action Sequence Optimizer
                 self.action_sequence_optimizer = ActionSequenceOptimizer()
-                logger.info("[TARGET] Action Sequence Optimizer initialized")
+                logger.debug("[TARGET] Action Sequence Optimizer initialized")
                 
                 # Initialize Enhanced Exploration System
                 self.exploration_system = EnhancedExplorationSystem()
-                logger.info("[CHECK] Enhanced Exploration System initialized")
+                logger.debug("[CHECK] Enhanced Exploration System initialized")
                 
                 # Initialize Predictive Core with correct parameters
                 if PredictiveCore is not None:
@@ -195,16 +195,16 @@ class ActionSelector:
                         hidden_size=256,
                         architecture="lstm"
                     )
-                    logger.info(" Predictive Core initialized")
+                    logger.debug("Predictive Core initialized")
                 
             except Exception as e:
-                logger.warning(f"Failed to initialize advanced systems: {e}")
+                logger.warning(f"Failed to initialize Tree Evaluation systems: {e}")
                 self.tree_evaluation_engine = None
                 self.action_sequence_optimizer = None
                 self.exploration_system = None
                 self.predictive_core = None
         
-        logger.info(" Advanced Action Selector initialized with OpenCV, pattern matching, and cognitive systems")
+        logger.info("Advanced Action Selector initialized with all available systems")
     
     def _initialize_advanced_systems(self):
         """Initialize Bayesian and GAN systems."""
@@ -557,13 +557,24 @@ class ActionSelector:
         emergency_override = None
         if self.safety_mechanisms:
             try:
-                safe_action_history = [
-                    {
-                        'action_id': int(a.get('id')) if isinstance(a, dict) and 'id' in a else int(a) if isinstance(a, (int, float)) else None,
-                        'score': float(a.get('score', 0.0)) if isinstance(a, dict) else 0.0
-                    }
-                    for a in (self.action_history or [])
-                ]
+                safe_action_history = []
+                for a in (self.action_history or []):
+                    try:
+                        if isinstance(a, dict) and 'id' in a:
+                            action_id = int(a.get('id'))
+                        elif isinstance(a, (int, float)):
+                            action_id = int(a)
+                        else:
+                            logger.debug(f"Skipping malformed action in history: {a}")
+                            continue  # Skip actions without valid IDs
+
+                        safe_action_history.append({
+                            'action_id': action_id,
+                            'score': float(a.get('score', 0.0)) if isinstance(a, dict) else 0.0
+                        })
+                    except (ValueError, TypeError) as e:
+                        logger.debug(f"Skipping invalid action in history: {a}, error: {e}")
+                        continue
                 safe_performance_history = [float(x) for x in (self.performance_history or []) if isinstance(x, (int, float))]
                 emergency_override = await self.safety_mechanisms.check_game_emergency_override(
                     game_id=str(game_state.get('game_id', 'unknown')),
@@ -935,7 +946,12 @@ class ActionSelector:
         
         # 14. ADD REASONING TO ACTION - Include detailed reasoning for API
         best_action = self._add_reasoning_to_action(best_action, game_state, frame_analysis, all_suggestions)
-        
+
+        # 15. VALIDATE BEST ACTION - Ensure action has valid ID before returning
+        if not best_action or best_action.get('id') is None:
+            logger.error("Best action is invalid - creating emergency fallback")
+            best_action = self._get_fallback_action(available_actions)
+
         return best_action
     
     async def handle_action_result(self, 
@@ -1847,7 +1863,12 @@ class ActionSelector:
         
         # Convert to action format
         action_id = self._get_action_id(best_suggestion.get('action', 'ACTION1'))
-        
+
+        # Validate action_id is not None
+        if action_id is None:
+            logger.error("Action ID is None after conversion - using fallback")
+            action_id = 1
+
         action = {
             'id': action_id,
             'reason': best_suggestion.get('reason', f'Intelligent selection (score: {best_score:.2f})'),
@@ -3475,12 +3496,35 @@ class ActionSelector:
         return prioritized_suggestions
     
     def _get_action_id(self, action_name: str) -> int:
-        """Convert action name to action ID."""
-        action_map = {
-            'ACTION1': 1, 'ACTION2': 2, 'ACTION3': 3, 'ACTION4': 4,
-            'ACTION5': 5, 'ACTION6': 6, 'ACTION7': 7
-        }
-        return action_map.get(action_name, 1)
+        """Convert action name to action ID with validation."""
+        try:
+            if not action_name or not isinstance(action_name, str):
+                logger.warning(f"Invalid action string: {action_name}, using fallback ACTION1")
+                return 1
+
+            action_map = {
+                'ACTION1': 1, 'ACTION2': 2, 'ACTION3': 3, 'ACTION4': 4,
+                'ACTION5': 5, 'ACTION6': 6, 'ACTION7': 7
+            }
+
+            # Direct lookup first
+            if action_name in action_map:
+                return action_map[action_name]
+
+            # Try parsing ACTION format
+            if action_name.startswith('ACTION'):
+                try:
+                    action_id = int(action_name[6:])  # Extract number after 'ACTION'
+                    if 1 <= action_id <= 7:
+                        return action_id
+                except (ValueError, IndexError):
+                    pass
+
+            logger.warning(f"Invalid action format: {action_name}, using fallback ACTION1")
+            return 1
+        except Exception as e:
+            logger.warning(f"Failed to parse action: {action_name}, error: {e}, using fallback ACTION1")
+            return 1
     
     def _get_fallback_action(self, available_actions: List[int]) -> Dict[str, Any]:
         """Get a fallback action when no intelligent suggestions are available."""

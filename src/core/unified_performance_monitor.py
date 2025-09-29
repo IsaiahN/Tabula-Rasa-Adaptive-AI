@@ -417,7 +417,36 @@ class UnifiedPerformanceMonitor:
             maxlen=self.metrics_history.maxlen
         )
         logger.info(f" Cleared metrics older than {hours} hours")
-    
+
+    def get_performance_report(self) -> Dict[str, Any]:
+        """Get performance report (alias for get_performance_summary)."""
+        return self.get_performance_summary()
+
+    def should_check_memory(self, actions_taken: int) -> bool:
+        """Check if memory usage should be monitored based on action count."""
+        # Check every 100 actions or if we have high memory usage
+        return actions_taken % 100 == 0 or self._get_current_memory_usage() > 0.8
+
+    def check_memory_usage(self) -> None:
+        """Check current memory usage and log if necessary."""
+        memory_usage = self._get_current_memory_usage()
+        if memory_usage > 0.8:
+            logger.warning(f"High memory usage detected: {memory_usage:.1%}")
+            self.add_custom_metric("high_memory_warning", memory_usage)
+        else:
+            logger.debug(f"Memory usage: {memory_usage:.1%}")
+
+    def _get_current_memory_usage(self) -> float:
+        """Get current memory usage as a percentage."""
+        try:
+            import psutil
+            return psutil.virtual_memory().percent / 100.0
+        except ImportError:
+            # Fallback if psutil not available
+            return 0.5  # Return moderate usage
+        except Exception:
+            return 0.5  # Return moderate usage on error
+
     def performance_timer(self, name: str):
         """Context manager for performance timing."""
         return PerformanceTimer(self, name)

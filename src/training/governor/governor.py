@@ -36,7 +36,7 @@ class TrainingGovernor:
                 self.enhanced_governor = create_enhanced_space_time_governor(
                     persistence_dir=self.persistence_dir
                 )
-                logger.info("Enhanced space-time governor initialized")
+                logger.debug("Enhanced space-time governor initialized")
             else:
                 logger.warning("No persistence directory provided for governor")
         except ImportError as e:

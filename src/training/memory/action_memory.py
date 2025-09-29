@@ -31,12 +31,26 @@ class ActionMemoryManager:
             self.memory_manager.update_memory_key('action_effectiveness', current_effectiveness)
             # Persist to database
             try:
-                from src.database.api import get_database
+                from src.database.api import get_database, ActionEffectiveness
+                from datetime import datetime
+
                 db = get_database()
                 # Use a generic game_id for now, or extract from action if available
                 game_id = action.get('game_id', 'unknown')
                 action_number = action.get('id', 0)
-                await db.update_action_effectiveness(game_id, action_number, 1, int(effectiveness > 0.5), effectiveness)
+
+                # Create ActionEffectiveness object with proper fields
+                action_effectiveness = ActionEffectiveness(
+                    game_id=game_id,
+                    action_number=action_number,
+                    attempts=1,
+                    successes=int(effectiveness > 0.5),
+                    success_rate=effectiveness,
+                    avg_score_impact=effectiveness,
+                    last_used=datetime.now()
+                )
+
+                await db.update_action_effectiveness(action_effectiveness)
             except Exception as e:
                 logger.error(f"Failed to persist action effectiveness: {e}")
     

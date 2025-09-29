@@ -350,7 +350,7 @@ class ContinuousLearningLoop:
             if not hasattr(self.sleep_system, 'is_sleeping'):
                 self.sleep_system.is_sleeping = False
             
-            logger.info(" Enhanced sleep system initialized for memory consolidation")
+            logger.debug("Enhanced sleep system initialized for memory consolidation")
             
         except ImportError as e:
             logger.warning(f" Sleep system dependencies not available: {e}")
@@ -8814,7 +8814,11 @@ class ContinuousLearningLoop:
                 # CRITICAL: Always check current available actions from the latest response
                 # Increment action counter (use local session counter, not global)
                 actions_taken += 1
-                
+
+                # Track game duration and action count
+                elapsed_time = time.time() - episode_start_time
+                logger.info(f"[GAME] Action {actions_taken} taken, elapsed: {elapsed_time:.2f}s")
+
                 print("=" * 80)
                 print(f" ACTION {actions_taken}/{actual_max_actions} | Game: {game_id} | Score: {current_score}")
                 print("=" * 80)
@@ -8858,8 +8862,12 @@ class ContinuousLearningLoop:
                     'frame': session_data.get('frame', [])  # Get frame from session data
                 }
                 selected_action = self._select_next_action(action_selection_response, game_id)
-                
+
+                # Log action selection for debugging
+                logger.info(f"[ACTION] Selected action: {selected_action}")
+
                 if selected_action is None:
+                    logger.error("[ACTION] Action selection failed - no action returned")
                     print(" Action selection failed - stopping game loop")
                     break
                 
@@ -8946,6 +8954,7 @@ class ContinuousLearningLoop:
                         print(f"    Success: {success_rate:.1%} ({total_attempts} tries)")
                 
                 # Execute the action with actual grid dimensions
+                logger.info(f"[API] Sending action to API: {selected_action} at ({x},{y})")
                 action_result = await self._send_enhanced_action(
                     game_id, selected_action, x, y, actual_grid_dims[0], actual_grid_dims[1], current_frame_analysis
                 )
@@ -8960,6 +8969,7 @@ class ContinuousLearningLoop:
                 was_effective = False
 
                 if action_result:
+                    logger.info(f"[API] Action executed successfully - received response")
                     # Update state from response
                     new_state = action_result.get('state', current_state)
                     new_score = action_result.get('score', current_score)
@@ -8987,9 +8997,9 @@ class ContinuousLearningLoop:
                     
                     # Clean result display
                     if score_improvement > 0:
-                        print(f" RESULT: Score {current_score} → {new_score} (+{score_improvement:.1f}) | State: {new_state}")
+                        print(f"\033[93m RESULT: Score {current_score} → {new_score} (+{score_improvement:.1f}) | State: {new_state}\033[0m")  # Yellow for score increase
                     elif score_improvement < 0:
-                        print(f" RESULT: Score {current_score} → {new_score} ({score_improvement:.1f}) | State: {new_state}")
+                        print(f"\033[91m RESULT: Score {current_score} → {new_score} ({score_improvement:.1f}) | State: {new_state}\033[0m")  # Red for score decrease
                     else:
                         print(f"  RESULT: Score unchanged ({new_score}) | State: {new_state}")
                     
@@ -9066,6 +9076,7 @@ class ContinuousLearningLoop:
                         session_data['frame'] = action_result['frame']
                     
                 else:
+                    logger.error(f"[API] Action execution failed - no response from API")
                     # Record failed action
                     action_history.append({
                             'action': selected_action,
@@ -9163,6 +9174,10 @@ class ContinuousLearningLoop:
                 # Use 0.15s for safety margin (6.67 RPS actual rate)
                 await asyncio.sleep(0.15)
             
+            # Log final game statistics
+            final_elapsed = time.time() - episode_start_time
+            logger.info(f"[GAME] Ending game - Total actions: {actions_taken}, Duration: {final_elapsed:.2f}s, Final state: {current_state}")
+
             # Session complete - close scorecard to save results
             if hasattr(self, 'current_scorecard_id') and self.current_scorecard_id:
                 print(f" Closing scorecard {self.current_scorecard_id} to save results...")

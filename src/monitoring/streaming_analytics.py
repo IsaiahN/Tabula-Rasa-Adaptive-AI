@@ -366,7 +366,7 @@ class StreamingAnalytics:
             self._setup_default_streams()
             
             self._initialized = True
-            self.logger.info("Streaming analytics system initialized")
+            self.logger.debug("Streaming analytics system initialized")
         except Exception as e:
             self.logger.error(f"Failed to initialize streaming analytics: {e}")
             raise

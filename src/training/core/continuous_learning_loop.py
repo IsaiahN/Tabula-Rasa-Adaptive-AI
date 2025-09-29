@@ -1682,6 +1682,7 @@ class ContinuousLearningLoop:
             return results
             
         except Exception as e:
+            print(f"\033[91m🚨 [SYSTEM ERROR] Error in continuous learning: {e}\033[0m")  # Red for system errors
             logger.error(f"Error in continuous learning: {e}")
             return {'error': str(e)}
     
@@ -1719,7 +1720,11 @@ class ContinuousLearningLoop:
             max_actions = 1000
             score = 0.0
             win = False
-            
+
+            # Infinite loop protection
+            last_game_state_hash = None
+            identical_state_count = 0
+
             while actions_taken < max_actions and not win:
                 if self.shutdown_handler.is_shutdown_requested():
                     break
@@ -1727,12 +1732,28 @@ class ContinuousLearningLoop:
                 # Get current game state
                 game_state = await self.api_manager.get_game_state(current_game_id, card_id, guid)
                 if not game_state:
+                    print(f"\033[91m❌ [ERROR] Failed to get game state\033[0m")  # Red for errors
                     break
-                
+
+                # Infinite loop protection - detect identical game states
+                game_state_hash = hash(f"{game_state.state}_{game_state.score}_{getattr(game_state, 'level', 0)}")
+                if game_state_hash == last_game_state_hash:
+                    identical_state_count += 1
+                    if identical_state_count >= 5:  # Reduce threshold to 5 for faster detection
+                        print(f"\033[91m🛑 [ERROR] Identical game state repeated {identical_state_count} times - breaking infinite loop\033[0m")
+                        break
+                else:
+                    identical_state_count = 0
+                last_game_state_hash = game_state_hash
+
+                # DEBUG: Show current game state
+                print(f"🎯 [GAME STATE] State: {game_state.state} | Score: {game_state.score} | Level: {getattr(game_state, 'level', '?')}")
+
                 # Check if game is finished
                 if game_state.state in ['WIN', 'GAME_OVER']:
                     win = game_state.state == 'WIN'
                     score = game_state.score
+                    print(f"🎮 Game finished: {game_state.state} | Score: {score}")
                     break
                 
                 # Make decision using governor
@@ -1741,15 +1762,42 @@ class ContinuousLearningLoop:
                     'actions_taken': actions_taken,
                     'session_id': session_id
                 })
-                
+
+                # DEBUG: Show what governor decided
+                print(f"🧠 [GOVERNOR] Decision: {decision.get('action', 'unknown')} (confidence: {decision.get('confidence', 0):.2f})")
+
                 # Generate action based on decision
                 action = self._generate_action(decision, game_state)
+
+                # DEBUG: Show generated action
+                print(f"⚡ [ACTION GEN] Generated: ID={action.get('id')}, Type={action.get('type')}, Coords={action.get('coordinates')}")
                 
                 # Submit action with proper parameters
+                print(f"🎮 [DEBUG] Loop #{actions_taken}: Sending {action.get('id', '?')} | Current Score: {score} | Win: {win}")
                 action_result = await self.api_manager.take_action(current_game_id, action, card_id, guid)
                 if not action_result:
+                    print(f"\033[91m❌ [ERROR] Action failed - no result returned\033[0m")  # Red for errors
                     break
-                
+
+                # DEBUG: Show what API actually returned
+                print(f"🔍 [API RESPONSE] {action_result}")
+
+                # CRITICAL FIX: Update game state from action result
+                new_score = action_result.get('score', score)
+                new_win = action_result.get('state') == 'WIN' or action_result.get('win', False)
+
+                print(f"📊 [STATE CHECK] old_score={score}, new_score={new_score}, old_win={win}, new_win={new_win}")
+
+                # Debug state changes
+                if new_score != score:
+                    print(f"\033[93m📈 Score changed: {score} → {new_score}\033[0m")  # Yellow for score changes
+                if new_win != win:
+                    print(f"\033[92m🏆 Win state changed: {win} → {new_win}\033[0m")  # Green for win
+
+                # Update loop variables
+                score = new_score
+                win = new_win
+
                 # Update session
                 self.session_manager.update_session_action(session_id, action)
                 actions_taken += 1
@@ -1776,6 +1824,7 @@ class ContinuousLearningLoop:
                         success_rate=1.0 if action_result.get('win', False) else 0.0
                     )
                 except Exception as e:
+                    print(f"\033[91m❌ [ERROR] Failed to persist gameplay data: {e}\033[0m")  # Red for errors
                     logger.error(f"Failed to persist gameplay data: {e}")
                 
                 # Check for win condition from action result
@@ -1803,6 +1852,7 @@ class ContinuousLearningLoop:
             }
             
         except Exception as e:
+            print(f"\033[91m💥 [CRITICAL ERROR] Error in single game: {e}\033[0m")  # Red for critical errors
             logger.error(f"Error in single game: {e}")
             self.session_manager.end_session(session_id, 'failed', 0.0, False, str(e))
             return {'error': str(e), 'win': False, 'score': 0.0, 'actions_taken': 0}
@@ -1812,23 +1862,47 @@ class ContinuousLearningLoop:
         # Simple action generation - in a real implementation, this would use
         # the learning engine and pattern learner to generate intelligent actions
         action_type = decision.get('action', 'continue')
-        
+        actions_taken = decision.get('context', {}).get('actions_taken', 0)
+
         if action_type == 'continue':
-            # Generate a simple action based on game state
+            # Generate varied actions instead of always ACTION1
+            # Cycle through different actions based on attempts
+            action_id = 1 + (actions_taken % 7)  # Cycle through 1-7
+
+            # Vary coordinates based on action
+            import random
+            x = random.randint(0, 31)  # Random coordinate
+            y = random.randint(0, 31)
+
             return {
-                'type': 'move',
-                'coordinates': [0, 0],
-                'direction': 'right'
+                'id': action_id,
+                'type': f'action_{action_id}',
+                'coordinates': [x, y],
+                'direction': ['right', 'left', 'up', 'down'][actions_taken % 4],
+                'reason': f'Governor decision: continue with ACTION{action_id} at ({x},{y})'
             }
         elif action_type == 'reduce_memory':
-            # Trigger memory cleanup
+            # Trigger memory cleanup - use ACTION2
             self.memory_manager.reset_memory()
-            return {'type': 'noop'}
+            return {
+                'id': 2,  # ACTION2
+                'type': 'noop',
+                'reason': 'Governor decision: reduce memory usage'
+            }
         elif action_type == 'optimize':
-            # Trigger optimization
-            return {'type': 'optimize'}
+            # Trigger optimization - use ACTION3
+            return {
+                'id': 3,  # ACTION3
+                'type': 'optimize',
+                'reason': 'Governor decision: optimize performance'
+            }
         else:
-            return {'type': 'noop'}
+            # Default fallback action
+            return {
+                'id': 1,  # ACTION1 fallback
+                'type': 'noop',
+                'reason': f'Governor decision: {action_type} (using fallback action)'
+            }
     
     def get_system_status(self) -> Dict[str, Any]:
         """Get comprehensive system status."""

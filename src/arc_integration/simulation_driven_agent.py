@@ -48,7 +48,7 @@ class SimulationDrivenARCAgent:
         self.strategy_hits = 0
         self.fallback_decisions = 0
         
-        logger.info("Simulation-Driven ARC Agent initialized")
+        logger.debug("Simulation-Driven ARC Agent initialized")
     
     def select_action_with_simulation(self, 
                                     response_data: Dict[str, Any], 
