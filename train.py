@@ -21,16 +21,16 @@ async def main():
     """Run 9-hour continuous training session."""
 
     print("=" * 80)
-    print("🚀 STARTING 9-HOUR CONTINUOUS TRAINING SESSION")
+    print("STARTING 9-HOUR CONTINUOUS TRAINING SESSION")
     print("=" * 80)
     print()
     print("This will run continuous learning for 9 hours, playing sequential games")
     print("until the time limit is reached. The system will:")
-    print("• Learn from wins and failures")
-    print("• Detect and break losing streaks")
-    print("• Apply escalating interventions when stuck")
-    print("• Track coordinate-specific Action 6 patterns")
-    print("• Provide progress updates every 10 games")
+    print("- Learn from wins and failures")
+    print("- Detect and break losing streaks")
+    print("- Apply escalating interventions when stuck")
+    print("- Track coordinate-specific Action 6 patterns")
+    print("- Provide progress updates every 10 games")
     print()
 
     # Initialize the continuous learning loop
@@ -38,7 +38,7 @@ async def main():
         # Get API key from environment
         api_key = os.getenv('ARC_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
         if not api_key:
-            print("❌ ERROR: ARC_API_KEY environment variable not set")
+            print("ERROR: ARC_API_KEY environment variable not set")
             print("Please set your API key: export ARC_API_KEY='your-key-here'")
             return
 
@@ -48,8 +48,8 @@ async def main():
         )
 
         # Run for 9 hours (no game limit)
-        print("⏰ Starting 9-hour training session...")
-        print("🛑 Press Ctrl+C to stop early if needed")
+        print("Starting 9-hour training session...")
+        print("Press Ctrl+C to stop early if needed")
         print()
 
         results = await learning_loop.run_continuous_learning(
@@ -59,7 +59,7 @@ async def main():
 
         print()
         print("=" * 80)
-        print("📊 FINAL TRAINING STATISTICS")
+        print("FINAL TRAINING STATISTICS")
         print("=" * 80)
         print(f"Total games played: {results.get('games_completed', 0)}")
         print(f"Games won: {results.get('games_won', 0)}")
@@ -71,24 +71,24 @@ async def main():
         print()
 
         if results.get('learning_insights'):
-            print("🧠 Learning Insights:")
+            print("Learning Insights:")
             for insight in results['learning_insights'][:5]:  # Show top 5
-                print(f"  • {insight}")
+                print(f"  - {insight}")
             print()
 
-        print("✅ Training session completed successfully!")
+        print("Training session completed successfully!")
 
     except KeyboardInterrupt:
-        print("\n🛑 Training stopped by user (Ctrl+C)")
+        print("\nTraining stopped by user (Ctrl+C)")
         print("Partial results may be available in the database.")
 
     except Exception as e:
-        print(f"\n❌ ERROR: Training failed with exception: {e}")
+        print(f"\nERROR: Training failed with exception: {e}")
         import traceback
         traceback.print_exc()
 
     finally:
-        print("\n🏁 Session ended. Check data/training/ for saved results.")
+        print("\nSession ended. Check data/training/ for saved results.")
 
 if __name__ == "__main__":
     # Run the async main function

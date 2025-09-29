@@ -33,8 +33,8 @@ class MetaCognitiveController:
     def _initialize_architect(self) -> None:
         """Initialize the architect system."""
         try:
-            from src.core.architect import Architect
-            self.architect = Architect()
+            from src.core.architect import create_architect
+            self.architect = create_architect()
             logger.info("Architect system initialized")
         except ImportError as e:
             logger.warning(f"Architect not available: {e}")

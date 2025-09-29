@@ -11,6 +11,9 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Global singleton instance
+_memory_manager_instance = None
+
 class MemoryManager:
     """Central memory management system."""
     
@@ -127,3 +130,17 @@ class MemoryManager:
         except Exception as e:
             logger.error(f"Error checking memory system health: {e}")
             return False
+
+
+def create_memory_manager() -> MemoryManager:
+    """Create or get the singleton MemoryManager instance."""
+    global _memory_manager_instance
+    if _memory_manager_instance is None:
+        print("  LEARNING MANAGER: Creating singleton MemoryManager instance")
+        _memory_manager_instance = MemoryManager()
+    return _memory_manager_instance
+
+
+def get_memory_manager() -> Optional[MemoryManager]:
+    """Get the singleton MemoryManager instance if it exists."""
+    return _memory_manager_instance

@@ -190,14 +190,15 @@ class ActionSelector:
                 self.exploration_system = EnhancedExplorationSystem()
                 logger.info("[CHECK] Enhanced Exploration System initialized")
                 
-                # Initialize Predictive Core
-                self.predictive_core = PredictiveCore(
-                    input_size=64*64*3,  # Frame size
-                    hidden_size=256,
-                    output_size=8,  # Number of actions
-                    memory_size=1000
-                )
-                logger.info(" Predictive Core initialized")
+                # Initialize Predictive Core with correct parameters
+                if PredictiveCore is not None:
+                    self.predictive_core = PredictiveCore(
+                        visual_size=(3, 64, 64),  # (channels, height, width)
+                        proprioception_size=12,
+                        hidden_size=256,
+                        architecture="lstm"
+                    )
+                    logger.info(" Predictive Core initialized")
                 
             except Exception as e:
                 logger.warning(f"Failed to initialize advanced systems: {e}")

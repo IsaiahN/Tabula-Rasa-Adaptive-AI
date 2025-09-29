@@ -1177,7 +1177,7 @@ Successfully integrated cutting-edge learning paradigms:
 - **Streamlined Codebase**: Updated all file references to use database API
 
 ## Future Development
-To expand the system's capabilities, it will be connected to a World Simulator-LLM Hybrid, enabling the generation of worlds with increasing complexity for gradual exposure. The model will learn to solve challenging problems and eventually engage in "social learning" by interacting with other AI instances, improving through competition, imitation, and reverse-engineering.
+To expand the system's capabilities, it will be connected to a Procedurally Generated World Simulator-LLM Hybrid (Like Google's Genie 3), enabling the generation of worlds with increasing complexity for gradual exposure to real world training scenarios. The model will learn to solve challenging problems and eventually engage in "social learning" by interacting with other AI instances, improving through competition, imitation, and reverse-engineering.
 
 Upon reaching competency, the model will be duplicated into a population of instances deployed across a suite of full-scale simulations. This population is governed by a Meta-Architect, which performs three critical functions:
 

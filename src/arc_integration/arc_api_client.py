@@ -532,6 +532,41 @@ class ARCClient:
                 pass
             raise
 
+    async def create_game(self, game_id: str, tags: List[str] = None) -> Dict[str, Any]:
+        """Create a new game by opening a scorecard and resetting the game.
+        
+        Args:
+            game_id: Game ID to create/reset
+            tags: Optional list of tags for the scorecard
+            
+        Returns:
+            Dictionary containing the initial game state and scorecard info
+        """
+        try:
+            # Open a new scorecard
+            scorecard = await self.open_scorecard(tags or ["tabula_rasa_agent"])
+            
+            # Reset the game with the new scorecard
+            game_state = await self.reset_game(game_id, scorecard.card_id)
+            
+            logger.info(f"Created game {game_id} with scorecard {scorecard.card_id}")
+            
+            return {
+                'game_id': game_state.game_id,
+                'guid': game_state.guid,
+                'scorecard_id': scorecard.card_id,
+                'frame': game_state.frame,
+                'state': game_state.state,
+                'score': game_state.score,
+                'win_score': game_state.win_score,
+                'action_input': game_state.action_input,
+                'available_actions': game_state.available_actions
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating game {game_id}: {e}")
+            raise
+
 class ScorecardTracker:
     """Tracks and analyzes scorecards over time."""
     

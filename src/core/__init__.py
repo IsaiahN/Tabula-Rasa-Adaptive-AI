@@ -1,5 +1,5 @@
 # Core agent components
-from .architect import Architect
+from .architect import Architect, create_architect, get_architect
 from .system_design import SystemGenome, MutationType, MutationImpact
 from .mutation_system import MutationEngine, SandboxTester, Mutation, TestResult
 from .evolution_engine import EvolutionEngine, FitnessEvaluator, SelectionStrategy
@@ -15,7 +15,7 @@ except ImportError:
         SystemIntegration = None
 
 # Enhanced Space-Time Governor
-from .enhanced_space_time_governor import EnhancedSpaceTimeGovernor, create_enhanced_space_time_governor
+from .enhanced_space_time_governor import EnhancedSpaceTimeGovernor, create_enhanced_space_time_governor, get_enhanced_space_time_governor
 
 # Tree-Based Director
 from .tree_based_director import TreeBasedDirector, create_tree_based_director
@@ -24,7 +24,7 @@ from .tree_based_director import TreeBasedDirector, create_tree_based_director
 from .implicit_memory_manager import ImplicitMemoryManager, create_implicit_memory_manager
 
 # Four-Phase Memory Coordinator
-from .four_phase_memory_coordinator import FourPhaseMemoryCoordinator, create_four_phase_memory_coordinator
+from .four_phase_memory_coordinator import FourPhaseMemoryCoordinator, create_four_phase_memory_coordinator, get_four_phase_memory_coordinator
 
 # Enhanced Recursive Improvement Loop
 from .enhanced_recursive_improvement_loop import EnhancedRecursiveImprovementLoop, create_enhanced_recursive_improvement_loop
@@ -59,15 +59,15 @@ from .enhanced_exploration_strategies import (
 from .exploration_integration import ExplorationIntegration, create_exploration_integration
 
 __all__ = [
-    'Architect',
+    'Architect', 'create_architect', 'get_architect',
     'SystemGenome', 'MutationType', 'MutationImpact',
     'MutationEngine', 'SandboxTester', 'Mutation', 'TestResult',
     'EvolutionEngine', 'FitnessEvaluator', 'SelectionStrategy',
     'ComponentCoordinator', 'SystemIntegration',
-    'EnhancedSpaceTimeGovernor', 'create_enhanced_space_time_governor',
+    'EnhancedSpaceTimeGovernor', 'create_enhanced_space_time_governor', 'get_enhanced_space_time_governor',
     'TreeBasedDirector', 'create_tree_based_director',
     'ImplicitMemoryManager', 'create_implicit_memory_manager',
-    'FourPhaseMemoryCoordinator', 'create_four_phase_memory_coordinator',
+    'FourPhaseMemoryCoordinator', 'create_four_phase_memory_coordinator', 'get_four_phase_memory_coordinator',
     'EnhancedRecursiveImprovementLoop', 'create_enhanced_recursive_improvement_loop',
     'ActionSequenceOptimizer',
     'ElasticWeightConsolidation',

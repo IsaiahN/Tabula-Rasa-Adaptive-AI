@@ -1411,8 +1411,10 @@ def create_enhanced_space_time_governor(memory_capacity: int = 1000,
             adaptation_rate=adaptation_rate,
             persistence_dir=persistence_dir
         )
+        print(" LEARNING MANAGER: EnhancedSpaceTimeGovernor singleton created successfully")
     else:
-        print(" LEARNING MANAGER: Reusing existing EnhancedSpaceTimeGovernor singleton")
+        # Instance already exists, don't log duplicate initialization
+        pass
 
     return _enhanced_governor_instance
 

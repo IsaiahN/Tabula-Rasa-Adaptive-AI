@@ -12,11 +12,11 @@ from dataclasses import dataclass
 from datetime import datetime
 
 # Import modular components
-from ..memory import MemoryManager, ActionMemoryManager, PatternMemoryManager
+from ..memory import create_memory_manager, ActionMemoryManager, PatternMemoryManager
 from ..sessions import TrainingSessionManager, TrainingSessionConfig
 from ..api import APIManager
 from src.core.unified_performance_monitor import UnifiedPerformanceMonitor
-from ..performance import MetricsCollector
+from ..performance import create_metrics_collector
 from ..governor import TrainingGovernor, MetaCognitiveController
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler
@@ -62,8 +62,8 @@ class MasterARCTrainer:
     def _initialize_components(self) -> None:
         """Initialize all modular components."""
         try:
-            # Memory management
-            self.memory_manager = MemoryManager()
+            # Memory management (use singleton)
+            self.memory_manager = create_memory_manager()
             self.action_memory = ActionMemoryManager(self.memory_manager)
             self.pattern_memory = PatternMemoryManager(self.memory_manager)
             
@@ -80,9 +80,11 @@ class MasterARCTrainer:
             # API management
             self.api_manager = APIManager(self.config.api_key)
             
-            # Performance monitoring
-            self.performance_monitor = UnifiedPerformanceMonitor()
-            self.metrics_collector = MetricsCollector()
+            # Performance monitoring (use singleton)
+            from src.core.unified_performance_monitor import get_performance_monitor
+            self.performance_monitor = get_performance_monitor()
+            # Metrics collection (use singleton)
+            self.metrics_collector = create_metrics_collector()
             
             # Governor and meta-cognitive systems
             self.governor = TrainingGovernor() if self.config.enable_meta_cognitive_governor else None

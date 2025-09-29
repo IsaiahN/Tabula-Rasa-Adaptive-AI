@@ -114,8 +114,6 @@ class FourPhaseMemoryCoordinator:
             'system_performance_improvement': 0.0,
             'last_cycle_duration': 0.0
         }
-        
-        logger.info("4-Phase Memory Coordinator initialized")
     
     async def initialize(self) -> bool:
         """Initialize all four phases of the memory optimization system."""
@@ -582,7 +580,26 @@ class FourPhaseMemoryCoordinator:
             logger.error(f"Error during cleanup: {e}")
 
 
-# Factory function for easy integration
+# Singleton instance storage
+_four_phase_coordinator_instance = None
+
+# Factory function for easy integration with singleton pattern
 def create_four_phase_memory_coordinator(persistence_dir: Optional[Path] = None) -> FourPhaseMemoryCoordinator:
-    """Create a 4-Phase Memory Coordinator instance."""
-    return FourPhaseMemoryCoordinator(persistence_dir)
+    """Create a 4-Phase Memory Coordinator instance.
+
+    Uses singleton pattern to prevent duplicate instances and redundant initializations.
+    """
+    global _four_phase_coordinator_instance
+
+    if _four_phase_coordinator_instance is None:
+        logger.info("4-Phase Memory Coordinator initialized")
+        _four_phase_coordinator_instance = FourPhaseMemoryCoordinator(persistence_dir)
+    else:
+        # Instance already exists, don't log duplicate initialization
+        pass
+
+    return _four_phase_coordinator_instance
+
+def get_four_phase_memory_coordinator() -> Optional[FourPhaseMemoryCoordinator]:
+    """Get existing singleton instance without creating a new one."""
+    return _four_phase_coordinator_instance

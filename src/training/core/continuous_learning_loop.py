@@ -13,14 +13,14 @@ from pathlib import Path
 from datetime import datetime
 
 # Import modular components
-from ..memory import MemoryManager, ActionMemoryManager, PatternMemoryManager
+from ..memory import create_memory_manager, ActionMemoryManager, PatternMemoryManager
 from ..sessions import TrainingSessionManager, TrainingSessionConfig
 from ..api import APIManager
 try:
     from src.core.unified_performance_monitor import UnifiedPerformanceMonitor
 except ImportError:
     from core.unified_performance_monitor import UnifiedPerformanceMonitor
-from ..performance import MetricsCollector
+from ..performance import create_metrics_collector
 from ..governor import TrainingGovernor, MetaCognitiveController
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler, CompatibilityShim
@@ -122,13 +122,14 @@ class ContinuousLearningLoop:
         if not self._api_initialized:
             await self.api_manager.initialize()
             self._api_initialized = True
-            
-            # Initialize action selector with advanced systems if available
-            self.action_selector = create_action_selector(
-                self.api_manager,
-                self.bayesian_inference_system if self._bayesian_inference_initialized else None,
-                self.graph_traversal_system if self._graph_traversal_initialized else None
-            )
+
+            # Only create action selector if it doesn't exist yet
+            if self.action_selector is None:
+                self.action_selector = create_action_selector(
+                    self.api_manager,
+                    self.bayesian_inference_system if self._bayesian_inference_initialized else None,
+                    self.graph_traversal_system if self._graph_traversal_initialized else None
+                )
     
     def _ensure_initialized(self) -> None:
         """Ensure the system is initialized (synchronous wrapper)."""
@@ -186,13 +187,21 @@ class ContinuousLearningLoop:
             self._initialize_bayesian_inference_system()
             self._initialize_graph_traversal_system()
 
-            # Reinitialize action selector with advanced systems now that they're available
+            # Update action selector with advanced systems now that they're available
             print("[INIT] Connecting advanced systems to action selector...")
-            self.action_selector = create_action_selector(
-                self.api_manager,
-                self.bayesian_inference_system if self._bayesian_inference_initialized else None,
-                self.graph_traversal_system if self._graph_traversal_initialized else None
-            )
+            if self.action_selector is None:
+                # Create if it doesn't exist yet
+                self.action_selector = create_action_selector(
+                    self.api_manager,
+                    self.bayesian_inference_system if self._bayesian_inference_initialized else None,
+                    self.graph_traversal_system if self._graph_traversal_initialized else None
+                )
+            else:
+                # Update existing action selector with advanced systems
+                if self._bayesian_inference_initialized and hasattr(self.action_selector, 'bayesian_inference_system'):
+                    self.action_selector.bayesian_inference_system = self.bayesian_inference_system
+                if self._graph_traversal_initialized and hasattr(self.action_selector, 'graph_traversal_system'):
+                    self.action_selector.graph_traversal_system = self.graph_traversal_system
 
             if self._bayesian_inference_initialized and self._graph_traversal_initialized:
                 print("[OK] Advanced Bayesian Inference + Graph Traversal systems ready for action selection")
@@ -1189,8 +1198,8 @@ class ContinuousLearningLoop:
     def _initialize_components(self) -> None:
         """Initialize all modular components."""
         try:
-            # Memory management
-            self.memory_manager = MemoryManager()
+            # Memory management (use singleton)
+            self.memory_manager = create_memory_manager()
             self.action_memory = ActionMemoryManager(self.memory_manager)
             self.pattern_memory = PatternMemoryManager(self.memory_manager)
 
@@ -1209,9 +1218,11 @@ class ContinuousLearningLoop:
             self._api_initialized = False
             self.action_selector = None
 
-            # Performance monitoring
-            self.performance_monitor = UnifiedPerformanceMonitor()
-            self.metrics_collector = MetricsCollector()
+            # Performance monitoring (use singleton)
+            from src.core.unified_performance_monitor import get_performance_monitor
+            self.performance_monitor = get_performance_monitor()
+            # Metrics collection (use singleton)
+            self.metrics_collector = create_metrics_collector()
 
             # Governor and meta-cognitive systems
             self.governor = TrainingGovernor(persistence_dir=str(self.save_directory))
@@ -1541,6 +1552,14 @@ class ContinuousLearningLoop:
             if not self.api_manager.is_initialized():
                 await self.api_manager.initialize()
             
+            # Get available games from the API
+            self.available_games = await self.get_available_games()
+            if not self.available_games:
+                print("[ERROR] No available games found from ARC API")
+                return {'error': 'No available games found'}
+            
+            print(f"[INFO] Found {len(self.available_games)} available games from ARC API")
+            
             # Create scorecard for tracking
             scorecard_id = await self.api_manager.create_scorecard(
                 f"Continuous Learning {datetime.now().strftime('%Y%m%d_%H%M%S')}",
@@ -1599,9 +1618,10 @@ class ContinuousLearningLoop:
                     results['total_actions'] += game_result.get('actions_taken', 0)
                     results['total_score'] += game_result.get('score', 0.0)
                     
-                    # Submit score
+                    # Submit score (use the actual game ID from the result)
+                    actual_game_id = game_result.get('game_id', f"game_{game_num}")
                     await self.api_manager.submit_score(
-                        f"game_{game_num}",
+                        actual_game_id,
                         game_result.get('score', 0.0),
                         game_result.get('level', 1),
                         game_result.get('actions_taken', 0),
@@ -1666,15 +1686,32 @@ class ContinuousLearningLoop:
     async def _run_single_game(self, session_id: str, game_num: int) -> Dict[str, Any]:
         """Run a single game using modular components."""
         try:
-            # Create game
-            game_result = await self.api_manager.create_game(f"game_{game_num}")
+            # Select a game from available games (cycle through them)
+            if not hasattr(self, 'available_games') or not self.available_games:
+                return {'error': 'No available games', 'win': False, 'score': 0.0, 'actions_taken': 0}
+            
+            # Use modulo to cycle through available games
+            game_index = game_num % len(self.available_games)
+            selected_game = self.available_games[game_index]
+            game_id = selected_game.get('id') or selected_game.get('game_id')
+            
+            if not game_id:
+                return {'error': 'Invalid game ID', 'win': False, 'score': 0.0, 'actions_taken': 0}
+            
+            print(f"[GAME] Playing game {game_id} (index {game_index + 1}/{len(self.available_games)})")
+            
+            # Create game (this will open scorecard and reset the game)
+            game_result = await self.api_manager.create_game(game_id)
             if not game_result:
                 return {'error': 'Failed to create game', 'win': False, 'score': 0.0, 'actions_taken': 0}
             
-            # Reset game
-            reset_result = await self.api_manager.reset_game(f"game_{game_num}")
-            if not reset_result:
-                return {'error': 'Failed to reset game', 'win': False, 'score': 0.0, 'actions_taken': 0}
+            # Extract game state information
+            current_game_id = game_result.get('game_id', game_id)
+            card_id = game_result.get('scorecard_id')
+            guid = game_result.get('guid')
+            
+            if not all([current_game_id, card_id, guid]):
+                return {'error': 'Incomplete game initialization', 'win': False, 'score': 0.0, 'actions_taken': 0}
             
             actions_taken = 0
             max_actions = 1000
@@ -1686,8 +1723,14 @@ class ContinuousLearningLoop:
                     break
                 
                 # Get current game state
-                game_state = await self.api_manager.get_game_state(f"game_{game_num}")
+                game_state = await self.api_manager.get_game_state(current_game_id, card_id, guid)
                 if not game_state:
+                    break
+                
+                # Check if game is finished
+                if game_state.state in ['WIN', 'GAME_OVER']:
+                    win = game_state.state == 'WIN'
+                    score = game_state.score
                     break
                 
                 # Make decision using governor
@@ -1700,8 +1743,8 @@ class ContinuousLearningLoop:
                 # Generate action based on decision
                 action = self._generate_action(decision, game_state)
                 
-                # Submit action
-                action_result = await self.api_manager.submit_action(f"game_{game_num}", action)
+                # Submit action with proper parameters
+                action_result = await self.api_manager.take_action(current_game_id, action, card_id, guid)
                 if not action_result:
                     break
                 
@@ -1716,7 +1759,7 @@ class ContinuousLearningLoop:
                     from src.database.persistence_helpers import persist_button_priorities, persist_winning_sequence
                     coords = action.get('coordinates', [None, None])
                     await persist_button_priorities(
-                        game_type=game_state.get('game_type', 'unknown'),
+                        game_type=game_state.game_id or 'unknown',
                         x=coords[0] if coords else None,
                         y=coords[1] if coords else None,
                         button_type=action.get('type', 'unknown'),
@@ -1724,7 +1767,7 @@ class ContinuousLearningLoop:
                     )
                     # Store every action as a sequence of one for now
                     await persist_winning_sequence(
-                        game_id=f"game_{game_num}",
+                        game_id=current_game_id,
                         sequence=[action.get('id', 0)],
                         frequency=1,
                         avg_score=action_result.get('score', 0.0),
@@ -1733,11 +1776,14 @@ class ContinuousLearningLoop:
                 except Exception as e:
                     logger.error(f"Failed to persist gameplay data: {e}")
                 
-                # Check for win condition
-                if action_result.get('win', False):
+                # Check for win condition from action result
+                if action_result.get('win', False) or action_result.get('state') == 'WIN':
                     win = True
                     score = action_result.get('score', 0.0)
                     break
+                
+                # Update score from action result
+                score = action_result.get('score', score)
                 
                 # Update performance monitoring
                 if self.performance_monitor.should_check_memory(actions_taken):
@@ -1750,7 +1796,8 @@ class ContinuousLearningLoop:
                 'win': win,
                 'score': score,
                 'actions_taken': actions_taken,
-                'level': 1
+                'level': 1,
+                'game_id': current_game_id
             }
             
         except Exception as e:

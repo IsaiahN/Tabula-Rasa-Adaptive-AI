@@ -252,3 +252,36 @@ class Architect:
         reasoning_parts.append(f"Confidence: {mutation.confidence:.1%}")
         
         return " | ".join(reasoning_parts)
+
+
+# Singleton instance storage
+_architect_instance = None
+
+# Factory function for easy integration with singleton pattern
+def create_architect(evolution_rate: float = 0.05, innovation_threshold: float = 0.8,
+                    memory_capacity: int = 500, base_path: str = ".", repo_path: str = ".",
+                    logger: Optional[logging.Logger] = None) -> Architect:
+    """Create an Architect instance.
+
+    Uses singleton pattern to prevent duplicate instances and redundant initializations.
+    """
+    global _architect_instance
+
+    if _architect_instance is None:
+        _architect_instance = Architect(
+            evolution_rate=evolution_rate,
+            innovation_threshold=innovation_threshold,
+            memory_capacity=memory_capacity,
+            base_path=base_path,
+            repo_path=repo_path,
+            logger=logger
+        )
+    else:
+        # Instance already exists, don't log duplicate initialization
+        pass
+
+    return _architect_instance
+
+def get_architect() -> Optional[Architect]:
+    """Get existing singleton instance without creating a new one."""
+    return _architect_instance

@@ -28,6 +28,11 @@ class APIManager:
     
     async def initialize(self) -> bool:
         """Initialize the API client and test connection."""
+        # Don't reinitialize if already initialized
+        if self.initialized and self.arc_client:
+            logger.info("API manager already initialized, skipping")
+            return True
+            
         try:
             await self._initialize_real_client()
             
@@ -45,6 +50,14 @@ class APIManager:
     async def _initialize_real_client(self) -> None:
         """Initialize real ARC API client."""
         try:
+            # Close existing client if it exists
+            if self.arc_client:
+                try:
+                    await self.arc_client.close()
+                except Exception as e:
+                    logger.warning(f"Error closing existing ARC client: {e}")
+                self.arc_client = None
+            
             from src.arc_integration.arc_api_client import ARCClient
             logger.info("Initializing REAL ARC API client...")
             

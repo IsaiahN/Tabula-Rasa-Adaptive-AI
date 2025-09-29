@@ -11,6 +11,9 @@ from collections import defaultdict, deque
 
 logger = logging.getLogger(__name__)
 
+# Global singleton instance
+_metrics_collector_instance = None
+
 class MetricsCollector:
     """Collects and aggregates training metrics."""
     
@@ -169,3 +172,17 @@ class MetricsCollector:
         self.metric_timestamps.clear()
         self.aggregated_metrics.clear()
         logger.info("Metrics collector reset")
+
+
+def create_metrics_collector(max_history: int = 1000) -> MetricsCollector:
+    """Create or get the singleton MetricsCollector instance."""
+    global _metrics_collector_instance
+    if _metrics_collector_instance is None:
+        print("  LEARNING MANAGER: Creating singleton MetricsCollector instance")
+        _metrics_collector_instance = MetricsCollector(max_history=max_history)
+    return _metrics_collector_instance
+
+
+def get_metrics_collector() -> Optional[MetricsCollector]:
+    """Get the singleton MetricsCollector instance if it exists."""
+    return _metrics_collector_instance
