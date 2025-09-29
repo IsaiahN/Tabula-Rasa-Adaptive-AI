@@ -251,12 +251,17 @@ class EnhancedSpaceTimeGovernor:
         
         # Initialize 4-Phase Memory Optimization Coordinator
         try:
-            from .four_phase_memory_coordinator import create_four_phase_memory_coordinator
-            # Convert string to Path object if needed
-            persistence_path = self.persistence_dir if isinstance(self.persistence_dir, Path) else Path(self.persistence_dir)
-            self.four_phase_coordinator = create_four_phase_memory_coordinator(persistence_path)
+            from .four_phase_memory_coordinator import get_four_phase_memory_coordinator, create_four_phase_memory_coordinator
+            # Check if singleton already exists first
+            self.four_phase_coordinator = get_four_phase_memory_coordinator()
+            if self.four_phase_coordinator is None:
+                # Convert string to Path object if needed
+                persistence_path = self.persistence_dir if isinstance(self.persistence_dir, Path) else Path(self.persistence_dir)
+                self.four_phase_coordinator = create_four_phase_memory_coordinator(persistence_path)
+                logger.info("4-Phase Memory Coordinator created")
+            else:
+                logger.info("Using existing 4-Phase Memory Coordinator singleton")
             self.four_phase_initialized = False
-            logger.info("4-Phase Memory Coordinator created")
         except Exception as e:
             logger.warning(f"Failed to initialize 4-Phase Memory Coordinator: {e}")
             self.four_phase_coordinator = None

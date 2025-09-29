@@ -189,3 +189,46 @@
 [2025-09-28 18:03:41,885][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_22_1759100621, decision_type=enhanced_governor
 [2025-09-28 18:03:43,530][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_23_1759100622, decision_type=enhanced_governor
 [2025-09-28 18:03:45,159][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_24_1759100624, decision_type=enhanced_governor
+[2025-09-28 21:07:35,038][INFO][tabula_rasa.persistence_helpers] [persist_winning_sequence] CALLED with game_id=real_game_test, sequence=[42, 99, 7]
+[2025-09-28 21:07:35,039][DEBUG][tabula_rasa.persistence_helpers] [persist_winning_sequence] DB: <src.database.api.TabulaRasaDatabase object at 0x00000290A7490AD0> | SQL: INSERT OR REPLACE INTO winning_sequences
+        (game_id, sequence, frequency, avg_score, success_rate, last_used)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) | Params: ('real_game_test', '[42, 99, 7]', 2, 123.45, 0.77)
+[2025-09-28 21:07:35,062][INFO][tabula_rasa.persistence_helpers] [persist_winning_sequence] Success for game_id=real_game_test, sequence=[42, 99, 7] | Result: True
+[2025-09-28 21:07:35,063][DEBUG][tabula_rasa.persistence_helpers] [persist_winning_sequence] Commit attempted for game_id=real_game_test
+[2025-09-28 21:07:35,065][INFO][tabula_rasa.persistence_helpers] [persist_button_priorities] CALLED with game_type=real_type_test, x=99, y=88, button_type=score_button
+[2025-09-28 21:07:35,069][DEBUG][tabula_rasa.persistence_helpers] [persist_button_priorities] DB: <src.database.api.TabulaRasaDatabase object at 0x00000290A7490AD0> | SQL: INSERT OR REPLACE INTO button_priorities
+        (game_type, coordinate_x, coordinate_y, button_type, confidence, last_used)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) | Params: ('real_type_test', 99, 88, 'score_button', 0.55)
+[2025-09-28 21:07:35,100][INFO][tabula_rasa.persistence_helpers] [persist_button_priorities] Success for game_type=real_type_test, x=99, y=88, button_type=score_button | Result: True
+[2025-09-28 21:07:35,102][DEBUG][tabula_rasa.persistence_helpers] [persist_button_priorities] Commit attempted for game_type=real_type_test
+[2025-09-28 21:07:36,002][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_0_1759111655, decision_type=enhanced_governor
+[2025-09-28 21:07:37,524][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_1_1759111657, decision_type=enhanced_governor
+[2025-09-28 21:07:39,384][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_2_1759111658, decision_type=enhanced_governor
+[2025-09-28 21:07:41,330][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_3_1759111660, decision_type=enhanced_governor
+[2025-09-28 21:07:42,628][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_4_1759111662, decision_type=enhanced_governor
+[2025-09-28 21:07:43,897][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_5_1759111663, decision_type=enhanced_governor
+[2025-09-28 21:07:45,518][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_6_1759111664, decision_type=enhanced_governor
+[2025-09-28 21:07:47,162][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_7_1759111666, decision_type=enhanced_governor
+[2025-09-28 21:07:48,657][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_8_1759111668, decision_type=enhanced_governor
+[2025-09-28 21:07:50,255][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_9_1759111669, decision_type=enhanced_governor
+[2025-09-28 21:07:51,762][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_10_1759111671, decision_type=enhanced_governor
+[2025-09-28 21:07:53,403][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_11_1759111672, decision_type=enhanced_governor
+[2025-09-28 21:07:54,815][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_12_1759111674, decision_type=enhanced_governor
+[2025-09-28 21:07:56,268][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_13_1759111675, decision_type=enhanced_governor
+[2025-09-28 21:07:57,701][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_14_1759111677, decision_type=enhanced_governor
+[2025-09-28 21:07:59,339][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_15_1759111678, decision_type=enhanced_governor
+[2025-09-28 21:08:00,979][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_16_1759111680, decision_type=enhanced_governor
+[2025-09-28 21:08:02,598][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_17_1759111681, decision_type=enhanced_governor
+[2025-09-28 21:08:04,254][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_18_1759111683, decision_type=enhanced_governor
+[2025-09-28 21:08:05,683][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_19_1759111685, decision_type=enhanced_governor
+[2025-09-28 21:08:07,226][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_20_1759111686, decision_type=enhanced_governor
+[2025-09-28 21:08:08,755][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_21_1759111688, decision_type=enhanced_governor
+[2025-09-28 21:08:10,401][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_22_1759111689, decision_type=enhanced_governor
+[2025-09-28 21:08:11,836][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_23_1759111691, decision_type=enhanced_governor
+[2025-09-28 21:08:13,469][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_24_1759111692, decision_type=enhanced_governor
+[2025-09-28 21:08:15,000][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_25_1759111694, decision_type=enhanced_governor
+[2025-09-28 21:08:16,858][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_26_1759111696, decision_type=enhanced_governor
+[2025-09-28 21:08:18,590][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_27_1759111697, decision_type=enhanced_governor
+[2025-09-28 21:08:20,234][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_28_1759111699, decision_type=enhanced_governor
+[2025-09-28 21:08:21,979][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_29_1759111701, decision_type=enhanced_governor
+[2025-09-28 21:08:23,220][INFO][tabula_rasa.persistence_helpers] [persist_governor_decision] CALLED with session_id=session_30_1759111702, decision_type=enhanced_governor

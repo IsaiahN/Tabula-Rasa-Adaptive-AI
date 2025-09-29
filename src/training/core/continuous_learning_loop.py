@@ -21,7 +21,8 @@ try:
 except ImportError:
     from core.unified_performance_monitor import UnifiedPerformanceMonitor
 from ..performance import create_metrics_collector
-from ..governor import TrainingGovernor, MetaCognitiveController
+from ..governor import TrainingGovernor
+from ..governor.meta_cognitive import create_meta_cognitive_controller
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler, CompatibilityShim
 
@@ -1226,7 +1227,8 @@ class ContinuousLearningLoop:
 
             # Governor and meta-cognitive systems
             self.governor = TrainingGovernor(persistence_dir=str(self.save_directory))
-            self.meta_cognitive = MetaCognitiveController()
+            # Meta-cognitive controller (use singleton)
+            self.meta_cognitive = create_meta_cognitive_controller()
 
             # Learning systems
             self.learning_engine = LearningEngine()

@@ -12,6 +12,9 @@ from collections import deque
 
 logger = logging.getLogger(__name__)
 
+# Global singleton instance
+_meta_cognitive_controller_instance = None
+
 class MetaCognitiveController:
     """Controls meta-cognitive processes and self-reflection."""
     
@@ -275,3 +278,17 @@ class MetaCognitiveController:
             'last_reflection': None
         }
         logger.info("Meta-cognitive state reset")
+
+
+def create_meta_cognitive_controller(max_reflections: int = 1000) -> MetaCognitiveController:
+    """Create or get the singleton MetaCognitiveController instance."""
+    global _meta_cognitive_controller_instance
+    if _meta_cognitive_controller_instance is None:
+        print("  LEARNING MANAGER: Creating singleton MetaCognitiveController instance")
+        _meta_cognitive_controller_instance = MetaCognitiveController(max_reflections=max_reflections)
+    return _meta_cognitive_controller_instance
+
+
+def get_meta_cognitive_controller() -> Optional[MetaCognitiveController]:
+    """Get the singleton MetaCognitiveController instance if it exists."""
+    return _meta_cognitive_controller_instance

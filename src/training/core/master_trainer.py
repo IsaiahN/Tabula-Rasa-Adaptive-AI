@@ -17,7 +17,8 @@ from ..sessions import TrainingSessionManager, TrainingSessionConfig
 from ..api import APIManager
 from src.core.unified_performance_monitor import UnifiedPerformanceMonitor
 from ..performance import create_metrics_collector
-from ..governor import TrainingGovernor, MetaCognitiveController
+from ..governor import TrainingGovernor
+from ..governor.meta_cognitive import create_meta_cognitive_controller
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler
 
@@ -88,7 +89,8 @@ class MasterARCTrainer:
             
             # Governor and meta-cognitive systems
             self.governor = TrainingGovernor() if self.config.enable_meta_cognitive_governor else None
-            self.meta_cognitive = MetaCognitiveController() if self.config.enable_meta_cognitive_governor else None
+            # Meta-cognitive controller (use singleton)
+            self.meta_cognitive = create_meta_cognitive_controller() if self.config.enable_meta_cognitive_governor else None
             
             # Learning systems
             self.learning_engine = LearningEngine()
