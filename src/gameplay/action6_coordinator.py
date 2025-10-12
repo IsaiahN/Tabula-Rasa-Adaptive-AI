@@ -1,0 +1,1244 @@
+"""
+Enhanced Action 6 Coordinator
+
+Provides advanced coordinate selection for Action 6 using pseudo-button detection
+and effectiveness testing. Integrates with the existing vision system and database
+for learning and improvement.
+
+Features:
+- Pseudo-button detection using computer vision
+- Frame difference analysis for effectiveness testing
+- Integration with coordinate intelligence database
+- Learning from click results to improve future selections
+"""
+
+import logging
+from typing import Dict, Any, List, Optional, Tuple
+import asyncio
+from datetime import datetime
+
+from ..core.cross_game_transfer_learning import get_transfer_learning_system, GameContext
+
+logger = logging.getLogger(__name__)
+
+
+class Action6Coordinator:
+    """Enhanced coordinator for Action 6 with pseudo-button detection."""
+
+    def __init__(self, db_interface=None, vision_detector=None):
+        """Initialize the Action 6 coordinator.
+
+        Args:
+            db_interface: Database interface for storing learning data
+            vision_detector: Pseudo-button detector instance
+        """
+        self.db_interface = db_interface
+        self.vision_detector = vision_detector
+        self.stats = {
+            'action6_selections': 0,
+            'button_based_selections': 0,
+            'successful_clicks': 0,
+            'failed_clicks': 0,
+            'penalty_avoidances': 0,  # NEW: Track penalty-based avoidances
+            'penalty_recoveries': 0   # NEW: Track successful recoveries
+        }
+
+        # Pseudo-button learning state per game session
+        self.game_sessions = {}  # game_id -> session learning data
+        
+        # ENHANCED: Initialize penalty decay system
+        self.penalty_system = None
+        self._initialize_penalty_system()
+
+        # ENHANCED: Initialize cross-game transfer learning system
+        self.transfer_learning = get_transfer_learning_system()
+
+    def _initialize_penalty_system(self):
+        """Initialize the penalty decay system for enhanced coordinate selection."""
+        try:
+            from src.core.penalty_decay_system import get_penalty_decay_system
+            self.penalty_system = get_penalty_decay_system(self.db_interface)
+            logger.debug("Penalty decay system initialized in Action6Coordinator")
+        except Exception as e:
+            logger.warning(f"Could not initialize penalty decay system: {e}")
+            self.penalty_system = None
+
+    async def _ensure_penalty_system_ready(self):
+        """Ensure penalty system is ready for use."""
+        if self.penalty_system and not hasattr(self.penalty_system, '_tables_initialized'):
+            await self.penalty_system.initialize()
+
+    async def _apply_penalty_filtering(self, candidates: List[Dict[str, Any]], 
+                                     game_id: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Apply penalty system filtering to coordinate candidates."""
+        try:
+            if not self.penalty_system:
+                # No penalty system - return all candidates
+                return candidates
+
+            # Get penalty recommendations for all candidate coordinates
+            candidate_coords = [(c['x'], c['y']) for c in candidates]
+            avoidance_scores = await self.penalty_system.get_avoidance_recommendations(game_id, candidate_coords)
+
+            filtered_candidates = []
+            avoided_count = 0
+
+            for candidate in candidates:
+                coord = (candidate['x'], candidate['y'])
+                avoidance_score = avoidance_scores.get(coord, 0.0)
+                
+                # Get detailed penalty information
+                penalty_info = await self.penalty_system.get_coordinate_penalty(game_id, candidate['x'], candidate['y'])
+                
+                # Add penalty information to candidate
+                candidate['penalty_info'] = penalty_info
+                candidate['avoidance_score'] = avoidance_score
+
+                # Apply penalty-adjusted scoring
+                original_score = candidate.get('total_score', 0.0)
+                
+                # Reduce score based on penalty (higher penalty = lower final score)
+                penalty_factor = 1.0 - (avoidance_score * 0.7)  # Max 70% penalty reduction
+                candidate['total_score'] = original_score * penalty_factor
+
+                # Filter out heavily penalized coordinates (unless we need fallbacks)
+                if avoidance_score < 0.8:  # Allow coordinates with penalty < 80%
+                    filtered_candidates.append(candidate)
+                else:
+                    avoided_count += 1
+                    logger.debug(f"Avoided heavily penalized coordinate ({coord[0]}, {coord[1]}) "
+                               f"with penalty {penalty_info.get('penalty_score', 0):.3f}")
+
+            if avoided_count > 0:
+                self.stats['penalty_avoidances'] += avoided_count
+                logger.info(f"Penalty system filtered out {avoided_count} heavily penalized coordinates")
+
+            logger.debug(f"Penalty filtering: {len(candidates)} -> {len(filtered_candidates)} candidates")
+            return filtered_candidates
+
+        except Exception as e:
+            logger.error(f"Error in penalty filtering: {e}")
+            return candidates  # Return original candidates on error
+
+    async def _get_penalty_aware_fallback_candidates(self, all_candidates: List[Dict[str, Any]], 
+                                                   game_id: str) -> List[Dict[str, Any]]:
+        """Get fallback candidates that consider penalty decay for recovery."""
+        try:
+            if not self.penalty_system:
+                return all_candidates[:3]  # Just return top 3 if no penalty system
+
+            recovery_candidates = []
+            
+            for candidate in all_candidates:
+                penalty_info = candidate.get('penalty_info')
+                if not penalty_info:
+                    penalty_info = await self.penalty_system.get_coordinate_penalty(
+                        game_id, candidate['x'], candidate['y']
+                    )
+
+                # Check if coordinate is eligible for recovery
+                if penalty_info.get('recovery_available', False):
+                    # Boost score for recovery attempts
+                    candidate['total_score'] = candidate.get('total_score', 0) + 0.2
+                    candidate['recovery_attempt'] = True
+                    recovery_candidates.append(candidate)
+                elif penalty_info.get('penalty_score', 0) < 0.5:  # Low penalty
+                    recovery_candidates.append(candidate)
+
+            # If no recovery candidates, allow some heavily penalized ones with decay
+            if not recovery_candidates:
+                logger.info("No recovery candidates - applying penalty decay and retrying")
+                await self.penalty_system.decay_penalties(game_id)
+                
+                # Re-evaluate after decay
+                for candidate in all_candidates[:5]:  # Top 5 candidates
+                    updated_penalty = await self.penalty_system.get_coordinate_penalty(
+                        game_id, candidate['x'], candidate['y']
+                    )
+                    if updated_penalty.get('penalty_score', 0) < 0.7:  # Allow if decay helped
+                        candidate['penalty_info'] = updated_penalty
+                        candidate['post_decay_attempt'] = True
+                        recovery_candidates.append(candidate)
+
+            logger.info(f"Penalty-aware fallback: {len(recovery_candidates)} recovery candidates available")
+            return recovery_candidates[:3]  # Return top 3 recovery candidates
+
+        except Exception as e:
+            logger.error(f"Error in penalty-aware fallback: {e}")
+            return all_candidates[:3]  # Fallback to top 3
+
+    async def _record_penalty_system_feedback(self, coordinates: Tuple[int, int], game_id: str,
+                                             effectiveness: Dict[str, Any], score_change: float,
+                                             session: Dict[str, Any], change_metrics: Dict[str, Any]):
+        """Record the results of coordinate attempt in penalty system for learning."""
+        try:
+            if not self.penalty_system:
+                return  # No penalty system available
+
+            x, y = coordinates
+            
+            # Determine if the action was successful
+            is_successful = effectiveness.get('effective', False) and score_change >= 0
+            
+            # Prepare pseudo-button context data
+            pseudo_button_data = {}
+            
+            # Check if this was a detected pseudo-button
+            discovered_buttons = session.get('discovered_buttons', [])
+            for button in discovered_buttons:
+                if button['x'] == x and button['y'] == y:
+                    pseudo_button_data = {
+                        'was_pseudo_button': True,
+                        'confidence': button.get('confidence', 0.0),
+                        'type': button.get('type', 'unknown'),
+                        'effectiveness': effectiveness.get('confidence', 0.0),
+                        'context': {
+                            'frame_stagnant': session.get('stagnation_count', 0) > 0,
+                            'attempt_number': len(session.get('tried_pseudo_buttons', [])),
+                            'change_metrics': change_metrics
+                        }
+                    }
+                    break
+            
+            # Prepare general context
+            context = {
+                'action_type': 'ACTION6',
+                'frame_stagnant': session.get('stagnation_count', 0) > 0,
+                'session_attempts': len(session.get('tried_pseudo_buttons', [])),
+                'effectiveness_confidence': effectiveness.get('confidence', 0.0),
+                'visual_changes_detected': change_metrics.get('change_ratio', 0.0) > 0.01
+            }
+            
+            # Record the attempt in penalty system
+            penalty_result = await self.penalty_system.record_coordinate_attempt(
+                game_id=game_id,
+                x=x,
+                y=y,
+                success=is_successful,
+                score_change=score_change,
+                action_type='ACTION6',
+                context=context,
+                pseudo_button_data=pseudo_button_data
+            )
+            
+            # Log penalty system response
+            if penalty_result.get('penalty_applied', False):
+                logger.info(f"Penalty system applied penalty to ({x}, {y}): "
+                          f"{penalty_result.get('penalty_reason', 'unknown')} "
+                          f"(score: {penalty_result.get('penalty_score', 0):.3f})")
+            elif is_successful:
+                logger.debug(f"Penalty system recorded successful attempt at ({x}, {y})")
+                
+        except Exception as e:
+            logger.error(f"Error recording penalty system feedback: {e}")
+
+    # ========== CROSS-GAME TRANSFER LEARNING METHODS ==========
+    
+    async def _extract_transfer_learning_patterns(self, game_id: str) -> None:
+        """Extract transferable patterns from current game session."""
+        try:
+            session = self._get_or_create_session(game_id)
+            
+            # Prepare session data for pattern extraction
+            session_data = {
+                'pseudo_button_learning': {
+                    'button_effects': await self._load_pseudo_button_learning(game_id),
+                    'successful_sequences': session.get('successful_sequences', [])
+                },
+                'action_history': session.get('action_history', []),
+                'performance_metrics': {
+                    'success_rate': len(session.get('successful_sequences', [])) / max(len(session.get('tried_pseudo_buttons', [])), 1),
+                    'effectiveness_score': self._calculate_session_effectiveness(session)
+                }
+            }
+            
+            # Extract patterns using transfer learning system
+            patterns = self.transfer_learning.extract_patterns_from_game_session(game_id, session_data)
+            
+            if patterns:
+                logger.info(f"Extracted {len(patterns)} transferable patterns from game {game_id}")
+                
+        except Exception as e:
+            logger.error(f"Error extracting transfer learning patterns: {e}")
+
+    async def _apply_transfer_learning_patterns(self, game_id: str, current_context: Dict[str, Any]) -> List[Tuple[int, int]]:
+        """Apply transferable patterns to generate coordinate candidates."""
+        transfer_coordinates = []
+        
+        try:
+            # Create game context for pattern matching
+            game_context = await self._create_game_context(game_id, current_context)
+            
+            # Get applicable patterns
+            applicable_patterns = self.transfer_learning.get_applicable_patterns(game_context)
+            
+            for pattern, similarity in applicable_patterns[:3]:  # Apply top 3 patterns
+                try:
+                    pattern_coords = self.transfer_learning.apply_pattern_to_coordinates(pattern, current_context)
+                    
+                    # Weight coordinates by pattern similarity and effectiveness
+                    weight = similarity * pattern.effectiveness_score
+                    weighted_coords = [(coord, weight) for coord in pattern_coords]
+                    
+                    transfer_coordinates.extend(weighted_coords)
+                    
+                    logger.debug(f"Applied pattern {pattern.pattern_type} with similarity {similarity:.2f}, "
+                               f"generated {len(pattern_coords)} coordinates")
+                               
+                except Exception as e:
+                    logger.error(f"Error applying pattern {pattern.pattern_id}: {e}")
+            
+            # Sort by weight and return top coordinates
+            transfer_coordinates.sort(key=lambda x: x[1], reverse=True)
+            return [coord for coord, weight in transfer_coordinates[:10]]
+            
+        except Exception as e:
+            logger.error(f"Error applying transfer learning patterns: {e}")
+            return []
+
+    async def _create_game_context(self, game_id: str, current_context: Dict[str, Any]) -> GameContext:
+        """Create GameContext for transfer learning pattern matching."""
+        try:
+            frame = current_context.get('current_frame', [])
+            grid_size = current_context.get('grid_size', (10, 10))
+            
+            # Extract context features
+            color_palette = set()
+            object_count = 0
+            
+            if frame:
+                for row in frame:
+                    for cell in row:
+                        if cell != 0:  # Non-background color
+                            color_palette.add(cell)
+                            object_count += 1
+            
+            # Calculate complexity score
+            complexity_score = min(1.0, (len(color_palette) * object_count) / 100)
+            
+            # Get available actions from context
+            action_space = current_context.get('available_actions', ['action6'])
+            
+            # Extract visual features
+            visual_features = {
+                'dominant_colors': list(color_palette)[:5],
+                'density': object_count / (grid_size[0] * grid_size[1]),
+                'pattern_complexity': complexity_score
+            }
+            
+            return GameContext(
+                game_id=game_id,
+                grid_size=grid_size,
+                color_palette=color_palette,
+                object_count=object_count,
+                complexity_score=complexity_score,
+                action_space=action_space,
+                visual_features=visual_features
+            )
+            
+        except Exception as e:
+            logger.error(f"Error creating game context: {e}")
+            # Return default context
+            return GameContext(
+                game_id=game_id,
+                grid_size=(10, 10),
+                color_palette=set([1]),
+                object_count=1,
+                complexity_score=0.5,
+                action_space=['action6'],
+                visual_features={}
+            )
+
+    async def _record_transfer_learning_feedback(self, pattern_id: str, coordinates: Tuple[int, int],
+                                                success: bool, game_id: str, outcome: Dict[str, Any]) -> None:
+        """Record feedback on transfer learning pattern effectiveness."""
+        try:
+            context = {
+                'game_id': game_id,
+                'coordinates': coordinates,
+                'action_type': 'action6'
+            }
+            
+            self.transfer_learning.record_transfer_feedback(
+                pattern_id=pattern_id,
+                success=success,
+                context=context,
+                outcome=outcome
+            )
+            
+            logger.debug(f"Recorded transfer learning feedback: pattern {pattern_id}, success={success}")
+            
+        except Exception as e:
+            logger.error(f"Error recording transfer learning feedback: {e}")
+
+    def _calculate_session_effectiveness(self, session: Dict[str, Any]) -> float:
+        """Calculate effectiveness score for current session."""
+        successful_sequences = len(session.get('successful_sequences', []))
+        tried_buttons = len(session.get('tried_pseudo_buttons', []))
+        
+        if tried_buttons == 0:
+            return 0.0
+            
+        return successful_sequences / tried_buttons
+
+    async def _enhance_coordinates_with_transfer_learning(self, candidates: List[Dict[str, Any]], 
+                                                         game_id: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Enhance coordinate candidates with transfer learning patterns."""
+        try:
+            # Get transfer learning coordinates
+            transfer_coords = await self._apply_transfer_learning_patterns(game_id, context)
+            
+            # Add transfer learning coordinates to candidates
+            enhanced_candidates = candidates.copy()
+            
+            for coord in transfer_coords:
+                enhanced_candidates.append({
+                    'x': coord[0],
+                    'y': coord[1],
+                    'confidence': 0.7,  # High confidence for transfer learning
+                    'source': 'transfer_learning',
+                    'reasoning': 'Generated from cross-game pattern transfer'
+                })
+            
+            # Boost confidence of candidates that match transfer learning suggestions
+            for candidate in enhanced_candidates:
+                candidate_coord = (candidate['x'], candidate['y'])
+                if candidate_coord in transfer_coords:
+                    candidate['confidence'] = min(1.0, candidate.get('confidence', 0.5) + 0.2)
+                    candidate['reasoning'] += ' + transfer learning boost'
+            
+            logger.debug(f"Enhanced {len(candidates)} candidates with {len(transfer_coords)} transfer learning coordinates")
+            return enhanced_candidates
+            
+        except Exception as e:
+            logger.error(f"Error enhancing coordinates with transfer learning: {e}")
+            return candidates
+
+    async def get_optimal_action6_coordinates(self, frame: List[List[int]],
+                                            game_id: str,
+                                            context: Dict[str, Any] = None) -> Tuple[int, int]:
+        """Get optimal coordinates for Action 6 using enhanced detection.
+
+        This is the main method for Action 6 coordinate selection that:
+        1. Detects pseudo-buttons using computer vision
+        2. Enhances candidates with coordinate intelligence
+        3. ENHANCED: Filters candidates using penalty decay system
+        4. Tests promising coordinates for effectiveness (in Action 6-only games)
+        5. Returns the best coordinates based on all available information
+
+        Args:
+            frame: Current game frame
+            game_id: Game identifier
+            context: Additional context about the game state
+
+        Returns:
+            Tuple of (x, y) coordinates for optimal Action 6 click
+        """
+        try:
+            self.stats['action6_selections'] += 1
+            session = self._get_or_create_session(game_id)
+
+            # ENHANCED: Ensure penalty system is ready
+            await self._ensure_penalty_system_ready()
+
+            # Check for frame stagnation - if frame isn't changing, try different pseudo-buttons
+            is_stagnant = self._detect_frame_stagnation(frame, game_id)
+
+            # Check if this is an Action 6-only game
+            is_action6_only = self._is_action6_only_game(context)
+
+            # Step 1: Detect potential pseudo-buttons (COMPREHENSIVE - every object)
+            if self.vision_detector:
+                button_candidates = await self.vision_detector.detect_pseudo_buttons(frame, game_id)
+
+                # ENHANCEMENT: Also detect EVERY object as potential pseudo-button
+                all_objects = self._detect_all_objects_as_pseudo_buttons(frame, game_id)
+
+                # Combine sophisticated detection with comprehensive object enumeration
+                combined_candidates = button_candidates + all_objects
+                # Remove duplicates that are too close together
+                combined_candidates = self._deduplicate_all_candidates(combined_candidates)
+
+                if combined_candidates:
+                    logger.debug(f"Found {len(button_candidates)} sophisticated candidates + {len(all_objects)} all-objects = {len(combined_candidates)} total candidates")
+
+                    # Step 2: Store all discovered buttons for this session
+                    session['discovered_buttons'] = combined_candidates
+
+                    # Step 3: Enhance candidates with coordinate intelligence
+                    enhanced_candidates = self._enhance_candidates_with_intelligence(
+                        combined_candidates, game_id
+                    )
+
+                    # STEP 3.5: ENHANCED - Apply penalty system filtering
+                    penalty_filtered_candidates = await self._apply_penalty_filtering(
+                        enhanced_candidates, game_id, context or {}
+                    )
+
+                    # STEP 3.6: ENHANCED - Apply cross-game transfer learning
+                    transfer_learning_context = {
+                        'current_frame': frame,
+                        'grid_size': (len(frame[0]) if frame and frame[0] else 10, len(frame) if frame else 10),
+                        'available_actions': context.get('available_actions', ['action6']) if context else ['action6'],
+                        'reference_coordinates': [(c['x'], c['y']) for c in penalty_filtered_candidates[:5]],
+                        'recent_actions': session.get('action_history', [])[-3:]
+                    }
+
+                    transfer_enhanced_candidates = await self._enhance_coordinates_with_transfer_learning(
+                        penalty_filtered_candidates, game_id, transfer_learning_context
+                    )
+
+                    # Step 4: INTELLIGENT SELECTION - prioritize untried pseudo-buttons
+                    untried_candidates = self._get_untried_pseudo_buttons(transfer_enhanced_candidates, game_id)
+
+                    # ENHANCED STAGNATION HANDLING
+                    if is_stagnant and untried_candidates:
+                        logger.info(f"Frame stagnant - cycling to untried pseudo-button from {len(untried_candidates)} options")
+                        target_candidates = untried_candidates
+                    elif is_stagnant and not untried_candidates:
+                        # RETRY PREVIOUSLY FAILED BUTTONS - game state may have changed!
+                        logger.info(f"Frame stagnant + all buttons tried - retrying failed buttons (state may have changed)")
+                        target_candidates = self._get_context_retry_candidates(transfer_enhanced_candidates, game_id)
+                    elif untried_candidates:
+                        logger.debug(f"Preferring untried pseudo-buttons ({len(untried_candidates)} available)")
+                        target_candidates = untried_candidates
+                    else:
+                        # All buttons tried, re-try the most effective ones
+                        logger.debug(f"All pseudo-buttons tried, selecting from most effective")
+                        target_candidates = transfer_enhanced_candidates
+
+                    # ENHANCED: If penalty filtering removed too many candidates, use penalty-aware fallback
+                    if not target_candidates and transfer_enhanced_candidates != enhanced_candidates:
+                        logger.info("Penalty filtering removed all candidates - using penalty-aware fallback")
+                        target_candidates = await self._get_penalty_aware_fallback_candidates(
+                            enhanced_candidates, game_id
+                        )
+                        self.stats['penalty_recoveries'] += 1
+
+                    # Step 5: For Action 6-only games, select intelligently
+                    if is_action6_only and len(target_candidates) > 0:
+                        # Use the best candidate based on combined scoring (now includes penalty scores)
+                        best_candidate = max(target_candidates,
+                                           key=lambda c: c.get('total_score', 0))
+
+                        coords = (best_candidate['x'], best_candidate['y'])
+
+                        # Record this attempt for learning
+                        self._record_pseudo_button_attempt(coords, game_id)
+
+                        self.stats['button_based_selections'] += 1
+                        
+                        # ENHANCED: Log penalty information
+                        penalty_info = best_candidate.get('penalty_info', {})
+                        if penalty_info.get('penalty_score', 0) > 0:
+                            logger.info(f"Selected coordinate with penalty {penalty_info.get('penalty_score', 0):.3f}: ({coords[0]}, {coords[1]})")
+                        else:
+                            logger.info(f"Selected penalty-free coordinate: ({coords[0]}, {coords[1]})")
+                            
+                        logger.info(f"Selected {'untried' if coords not in [(x, y) for x, y in session['tried_pseudo_buttons'][:-1]] else 'retried'} "
+                                  f"pseudo-button: ({coords[0]}, {coords[1]}) "
+                                  f"with score {best_candidate.get('total_score', 0):.3f}")
+
+                        return coords
+
+            # Fallback: Use coordinate intelligence or random selection
+            coords = await self._get_fallback_coordinates(frame, game_id, context)
+            logger.debug(f"Using fallback coordinates: {coords}")
+            return coords
+
+        except Exception as e:
+            logger.error(f"Error in Action 6 coordinate selection: {e}")
+            return self._get_safe_fallback_coordinates(frame)
+
+    def _get_or_create_session(self, game_id: str) -> Dict[str, Any]:
+        """Get or create learning session data for a game."""
+        if game_id not in self.game_sessions:
+            self.game_sessions[game_id] = {
+                'tried_pseudo_buttons': [],  # List of (x, y) coordinates we've tried
+                'pseudo_button_effects': {},  # (x, y) -> effect description
+                'successful_sequences': [],  # List of successful button sequences
+                'current_sequence': [],  # Current sequence being tried
+                'last_frame_hash': None,  # Hash of last frame for stagnation detection
+                'stagnation_count': 0,  # How many times frame stayed same
+                'last_score': 0,  # Last known score
+                'discovered_buttons': [],  # All detected pseudo-buttons with their properties
+                'frame_similarity_threshold': 0.95  # Threshold for considering frames "the same"
+            }
+        return self.game_sessions[game_id]
+
+    def _calculate_frame_hash(self, frame: List[List[int]]) -> str:
+        """Calculate a simple hash of the frame for stagnation detection."""
+        try:
+            import hashlib
+            # Convert frame to string and hash it
+            frame_str = str(frame)
+            return hashlib.md5(frame_str.encode()).hexdigest()
+        except:
+            # Fallback: sum of all cell values
+            total = 0
+            for row in frame:
+                for cell in row:
+                    total += cell
+            return str(total)
+
+    def _detect_frame_stagnation(self, frame: List[List[int]], game_id: str) -> bool:
+        """Detect if the frame has remained largely unchanged (stagnant)."""
+        session = self._get_or_create_session(game_id)
+        current_hash = self._calculate_frame_hash(frame)
+
+        if session['last_frame_hash'] is None:
+            session['last_frame_hash'] = current_hash
+            session['stagnation_count'] = 0
+            return False
+
+        if current_hash == session['last_frame_hash']:
+            session['stagnation_count'] += 1
+            is_stagnant = session['stagnation_count'] >= 2  # Consider stagnant after 2 identical frames
+            if is_stagnant:
+                logger.info(f"Frame stagnation detected for game {game_id} (count: {session['stagnation_count']})")
+            return is_stagnant
+        else:
+            session['last_frame_hash'] = current_hash
+            session['stagnation_count'] = 0
+            return False
+
+    def _get_untried_pseudo_buttons(self, all_candidates: List[Dict[str, Any]], game_id: str) -> List[Dict[str, Any]]:
+        """Get pseudo-button candidates that haven't been tried yet."""
+        session = self._get_or_create_session(game_id)
+        tried_coords = set((x, y) for x, y in session['tried_pseudo_buttons'])
+
+        untried = []
+        for candidate in all_candidates:
+            coord = (candidate['x'], candidate['y'])
+            if coord not in tried_coords:
+                untried.append(candidate)
+
+        logger.debug(f"Found {len(untried)} untried pseudo-buttons out of {len(all_candidates)} total candidates")
+        return untried
+
+    def _record_pseudo_button_attempt(self, coordinates: Tuple[int, int], game_id: str):
+        """Record that we tried a specific pseudo-button."""
+        session = self._get_or_create_session(game_id)
+        if coordinates not in session['tried_pseudo_buttons']:
+            session['tried_pseudo_buttons'].append(coordinates)
+            session['current_sequence'].append(coordinates)
+            logger.debug(f"Recorded attempt of pseudo-button {coordinates} for game {game_id}")
+
+    def _record_pseudo_button_effect(self, coordinates: Tuple[int, int], game_id: str,
+                                   effect_description: str, effectiveness: Dict[str, Any]):
+        """Record what effect a pseudo-button had when clicked."""
+        session = self._get_or_create_session(game_id)
+        session['pseudo_button_effects'][coordinates] = {
+            'effect': effect_description,
+            'effectiveness': effectiveness,
+            'attempts': session['pseudo_button_effects'].get(coordinates, {}).get('attempts', 0) + 1
+        }
+        logger.info(f"Recorded effect for pseudo-button {coordinates}: {effect_description}")
+
+    def _check_sequence_success(self, score_change: float, game_id: str) -> bool:
+        """Check if current sequence led to success and record it."""
+        session = self._get_or_create_session(game_id)
+
+        # Consider successful if we got positive score change
+        if score_change > 0 and len(session['current_sequence']) > 0:
+            # Record this as a successful sequence
+            successful_sequence = session['current_sequence'].copy()
+            session['successful_sequences'].append({
+                'sequence': successful_sequence,
+                'score_gained': score_change,
+                'timestamp': datetime.now().isoformat()
+            })
+            logger.info(f"Recorded successful sequence for game {game_id}: {successful_sequence} (score +{score_change})")
+
+            # Reset current sequence
+            session['current_sequence'] = []
+            return True
+        elif score_change < 0:
+            # Negative score - this sequence was bad, clear it
+            logger.debug(f"Clearing unsuccessful sequence due to negative score: {session['current_sequence']}")
+            session['current_sequence'] = []
+            return False
+
+        return False
+
+    def _detect_all_objects_as_pseudo_buttons(self, frame: List[List[int]], game_id: str) -> List[Dict[str, Any]]:
+        """Detect EVERY non-zero pixel/object as a potential pseudo-button."""
+        try:
+            if not frame or not frame[0]:
+                return []
+
+            height = len(frame)
+            width = len(frame[0])
+            all_objects = []
+
+            logger.debug(f"Enumerating ALL objects in {height}x{width} frame as potential pseudo-buttons")
+
+            # Check every pixel in the frame - every non-zero pixel is a potential pseudo-button
+            for y in range(0, height, 2):  # Sample every 2 pixels for performance
+                for x in range(0, width, 2):
+                    if y < height and x < width:
+                        cell_value = frame[y][x]
+                        if isinstance(cell_value, (list, tuple)) and len(cell_value) > 0:
+                            cell_value = cell_value[0] if isinstance(cell_value[0], (int, float)) else 0
+                        elif not isinstance(cell_value, (int, float)):
+                            cell_value = 0
+
+                        # Every non-zero pixel is a potential pseudo-button
+                        if cell_value > 0:
+                            # Check if this is part of a larger object (group nearby pixels)
+                            object_size = self._get_object_size(frame, x, y, cell_value)
+
+                            all_objects.append({
+                                'x': x,
+                                'y': y,
+                                'confidence': 0.5,  # Neutral confidence for all objects
+                                'brightness': cell_value,
+                                'contrast': 1,  # Default contrast
+                                'type': 'comprehensive_object',
+                                'object_size': object_size,
+                                'color_value': cell_value
+                            })
+
+            logger.debug(f"Found {len(all_objects)} total objects as potential pseudo-buttons")
+            return all_objects
+
+        except Exception as e:
+            logger.warning(f"Error in comprehensive object detection: {e}")
+            return []
+
+    def _get_object_size(self, frame: List[List[int]], start_x: int, start_y: int, target_value: int) -> int:
+        """Get approximate size of object starting at coordinates."""
+        try:
+            height = len(frame)
+            width = len(frame[0]) if frame else 0
+
+            # Simple size estimation by checking 3x3 neighborhood
+            similar_count = 0
+            for dy in range(-1, 2):
+                for dx in range(-1, 2):
+                    ny, nx = start_y + dy, start_x + dx
+                    if 0 <= ny < height and 0 <= nx < width:
+                        cell_value = frame[ny][nx]
+                        if isinstance(cell_value, (list, tuple)) and len(cell_value) > 0:
+                            cell_value = cell_value[0]
+                        if abs(cell_value - target_value) <= 1:  # Similar color
+                            similar_count += 1
+
+            return similar_count
+
+        except:
+            return 1
+
+    def _deduplicate_all_candidates(self, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Remove duplicate candidates that are too close together."""
+        if not candidates:
+            return []
+
+        unique_candidates = []
+        min_distance = 4  # Smaller distance for comprehensive detection
+
+        for candidate in candidates:
+            is_duplicate = False
+            for existing in unique_candidates:
+                distance = ((candidate['x'] - existing['x'])**2 + (candidate['y'] - existing['y'])**2)**0.5
+                if distance < min_distance:
+                    # Keep the one with higher confidence or better type
+                    if (candidate.get('confidence', 0) > existing.get('confidence', 0) or
+                        candidate.get('type') != 'comprehensive_object'):
+                        unique_candidates.remove(existing)
+                        unique_candidates.append(candidate)
+                    is_duplicate = True
+                    break
+
+            if not is_duplicate:
+                unique_candidates.append(candidate)
+
+        return unique_candidates
+
+    def _get_context_retry_candidates(self, all_candidates: List[Dict[str, Any]], game_id: str) -> List[Dict[str, Any]]:
+        """Get pseudo-buttons to retry based on context changes (game state may have changed)."""
+        session = self._get_or_create_session(game_id)
+
+        # Get previously tried buttons that had minimal or no effect
+        retry_candidates = []
+        tried_coords = set((x, y) for x, y in session['tried_pseudo_buttons'])
+
+        for candidate in all_candidates:
+            coord = (candidate['x'], candidate['y'])
+            if coord in tried_coords:
+                # Check if this button had minimal effect before
+                effect = session['pseudo_button_effects'].get(coord)
+                if effect:
+                    effect_desc = effect.get('effect', '')
+                    # Retry buttons that had "NO_VISUAL_CHANGE" or "MINIMAL_EFFECT" - they might work now!
+                    if ('NO_VISUAL_CHANGE' in effect_desc or 'MINIMAL_EFFECT' in effect_desc or
+                        'low_impact' in effect_desc):
+                        candidate['retry_reason'] = 'state_dependent'
+                        retry_candidates.append(candidate)
+
+        if not retry_candidates:
+            # If no specific candidates to retry, retry all previously tried ones
+            for candidate in all_candidates:
+                coord = (candidate['x'], candidate['y'])
+                if coord in tried_coords:
+                    candidate['retry_reason'] = 'comprehensive_retry'
+                    retry_candidates.append(candidate)
+
+        logger.info(f"Context retry: found {len(retry_candidates)} candidates to retry (game state may have changed)")
+        return retry_candidates
+
+    def _enhance_candidates_with_intelligence(self, candidates: List[Dict[str, Any]],
+                                            game_id: str) -> List[Dict[str, Any]]:
+        """Enhance button candidates with coordinate intelligence data."""
+        try:
+            # Get coordinate intelligence from database if available
+            intelligence_data = []
+            if self.db_interface and hasattr(self.db_interface, 'execute_query'):
+                try:
+                    query = """
+                    SELECT x, y, success_rate, effectiveness_score, attempts, successes
+                    FROM coordinate_intelligence
+                    WHERE game_id = ? OR game_id IS NULL
+                    ORDER BY success_rate DESC, effectiveness_score DESC
+                    LIMIT 20
+                    """
+                    intelligence_data = self.db_interface.execute_query(query, (game_id,))
+                except Exception as e:
+                    logger.debug(f"Could not get coordinate intelligence: {e}")
+
+            for candidate in candidates:
+                x, y = candidate['x'], candidate['y']
+
+                # Find nearby intelligence data
+                intelligence_score = 0.0
+                for intel in intelligence_data:
+                    intel_x, intel_y = intel.get('x', 0), intel.get('y', 0)
+                    distance = ((x - intel_x)**2 + (y - intel_y)**2)**0.5
+
+                    if distance < 20:  # Within 20 pixels
+                        success_rate = intel.get('success_rate', 0)
+                        effectiveness = intel.get('effectiveness_score', 0)
+                        intelligence_score += (success_rate * effectiveness) / max(distance, 1)
+
+                # Combine button detection confidence with intelligence
+                button_confidence = candidate.get('confidence', 0.5)
+                priority = candidate.get('priority', 0.5)
+
+                # Calculate total score
+                total_score = (button_confidence * 0.4 +
+                             intelligence_score * 0.4 +
+                             priority * 0.2)
+
+                candidate['intelligence_score'] = intelligence_score
+                candidate['total_score'] = total_score
+
+            return candidates
+
+        except Exception as e:
+            logger.error(f"Error enhancing candidates with intelligence: {e}")
+            return candidates
+
+    async def analyze_action6_effectiveness(self, frame_before: List[List[int]],
+                                          frame_after: List[List[int]],
+                                          coordinates: Tuple[int, int],
+                                          game_id: str,
+                                          score_change: float = 0.0):
+        """Analyze the effectiveness of an Action 6 click after execution.
+
+        This method should be called after an Action 6 is executed to learn
+        from the results and improve future coordinate selection.
+
+        Args:
+            frame_before: Frame before the Action 6
+            frame_after: Frame after the Action 6
+            coordinates: The coordinates that were clicked
+            game_id: Game identifier
+            score_change: Change in game score (if available)
+        """
+        try:
+            if not frame_before or not frame_after or not self.vision_detector:
+                logger.debug("Cannot analyze effectiveness without frames and detector")
+                return
+
+            x, y = coordinates
+            session = self._get_or_create_session(game_id)
+
+            # Calculate frame differences
+            change_metrics = self.vision_detector.calculate_frame_differences(
+                frame_before, frame_after
+            )
+
+            # Evaluate effectiveness based on frame changes
+            effectiveness = self.vision_detector.evaluate_click_effectiveness(change_metrics)
+
+            # Enhanced effectiveness analysis with pseudo-button learning
+            effect_description = self._analyze_click_effect(change_metrics, score_change)
+
+            # Factor in score change if available
+            if score_change != 0:
+                # Positive score change increases effectiveness
+                score_factor = min(abs(score_change) / 10.0, 0.3)  # Max 0.3 bonus
+                if score_change > 0:
+                    effectiveness['confidence'] = min(effectiveness['confidence'] + score_factor, 1.0)
+                    effectiveness['effective'] = True
+                    effect_description += f" +SCORE({score_change})"
+                else:
+                    # Negative score change reduces effectiveness
+                    effectiveness['confidence'] = max(effectiveness['confidence'] - score_factor, 0.0)
+                    effect_description += f" -SCORE({score_change})"
+
+            # ENHANCED: Record feedback in penalty system
+            await self._record_penalty_system_feedback(
+                coordinates, game_id, effectiveness, score_change, session, change_metrics
+            )
+
+            # Record the pseudo-button effect for learning
+            self._record_pseudo_button_effect(coordinates, game_id, effect_description, effectiveness)
+
+            # Check if this led to a successful sequence
+            sequence_success = self._check_sequence_success(score_change, game_id)
+
+            logger.info(f"ACTION 6 at {coordinates}: {effect_description} "
+                       f"(effective: {effectiveness['effective']}, confidence: {effectiveness['confidence']:.3f})")
+
+            if sequence_success:
+                logger.info(f"Successful sequence completed! Score gained: {score_change}")
+
+            # Update session's last score for next comparison
+            session['last_score'] = session.get('last_score', 0) + score_change
+
+            # Store the results in coordinate intelligence if database available
+            if self.db_interface and hasattr(self.db_interface, 'execute_query'):
+                try:
+                    # Check if coordinate record exists
+                    existing = self.db_interface.execute_query("""
+                        SELECT attempts, successes, success_rate
+                        FROM coordinate_intelligence
+                        WHERE x = ? AND y = ? AND game_id = ?
+                    """, (x, y, game_id))
+
+                    if existing and len(existing) > 0:
+                        # Update existing record
+                        record = existing[0]
+                        new_attempts = record['attempts'] + 1
+                        new_successes = record['successes'] + (1 if effectiveness['effective'] else 0)
+                        new_success_rate = new_successes / new_attempts
+
+                        self.db_interface.execute_query("""
+                            UPDATE coordinate_intelligence
+                            SET attempts = ?, successes = ?, success_rate = ?,
+                                effectiveness_score = ?, last_updated = CURRENT_TIMESTAMP
+                            WHERE x = ? AND y = ? AND game_id = ?
+                        """, (new_attempts, new_successes, new_success_rate,
+                             effectiveness['confidence'], x, y, game_id))
+                    else:
+                        # Create new record
+                        success_rate = 1.0 if effectiveness['effective'] else 0.0
+                        self.db_interface.execute_query("""
+                            INSERT INTO coordinate_intelligence
+                            (x, y, game_id, attempts, successes, success_rate, effectiveness_score)
+                            VALUES (?, ?, ?, 1, ?, ?, ?)
+                        """, (x, y, game_id, 1 if effectiveness['effective'] else 0,
+                             success_rate, effectiveness['confidence']))
+
+                except Exception as e:
+                    logger.debug(f"Could not update coordinate intelligence: {e}")
+
+            # Store pseudo-button learning data in database
+            await self._store_pseudo_button_learning(game_id, coordinates, effect_description, effectiveness)
+
+            # Update statistics
+            if effectiveness['effective']:
+                self.stats['successful_clicks'] += 1
+            else:
+                self.stats['failed_clicks'] += 1
+
+            logger.debug(f"Action 6 effectiveness analysis: ({x}, {y}) -> "
+                        f"effective={effectiveness['effective']}, "
+                        f"confidence={effectiveness['confidence']:.3f}, "
+                        f"reason={effectiveness.get('analysis', 'unknown')}")
+
+        except Exception as e:
+            logger.error(f"Error analyzing Action 6 effectiveness: {e}")
+
+    def _analyze_click_effect(self, change_metrics: Dict[str, float], score_change: float) -> str:
+        """Analyze the effect of a click and return a description."""
+        try:
+            change_ratio = change_metrics.get('change_ratio', 0.0)
+            avg_diff = change_metrics.get('avg_diff', 0.0)
+            total_pixels_changed = change_metrics.get('significant_changes', 0)
+
+            effects = []
+
+            # Analyze visual changes
+            if change_ratio > 0.1:
+                effects.append(f"MAJOR_VISUAL_CHANGE({change_ratio:.2f})")
+            elif change_ratio > 0.05:
+                effects.append(f"MODERATE_VISUAL_CHANGE({change_ratio:.2f})")
+            elif change_ratio > 0.01:
+                effects.append(f"MINOR_VISUAL_CHANGE({change_ratio:.2f})")
+            else:
+                effects.append("NO_VISUAL_CHANGE")
+
+            # Analyze intensity of changes
+            if avg_diff > 3:
+                effects.append("HIGH_INTENSITY")
+            elif avg_diff > 1:
+                effects.append("MEDIUM_INTENSITY")
+
+            # Analyze pixel count
+            if total_pixels_changed > 100:
+                effects.append(f"MANY_PIXELS({total_pixels_changed})")
+            elif total_pixels_changed > 20:
+                effects.append(f"SOME_PIXELS({total_pixels_changed})")
+
+            # Default if no effects detected
+            if not effects:
+                effects.append("MINIMAL_EFFECT")
+
+            return " | ".join(effects)
+
+        except Exception as e:
+            return f"ANALYSIS_ERROR({e})"
+
+    def _is_action6_only_game(self, context: Dict[str, Any]) -> bool:
+        """Determine if this is an Action 6-only game."""
+        if not context:
+            return False
+
+        # Check available actions - handle both integer and string formats
+        available_actions = context.get('available_actions', [])
+        if available_actions:
+            # Convert to consistent format for comparison
+            action_set = set()
+            for action in available_actions:
+                if isinstance(action, int):
+                    action_set.add(action)
+                elif isinstance(action, str):
+                    if action == 'ACTION6':
+                        action_set.add(6)
+                    elif action.startswith('ACTION'):
+                        try:
+                            action_num = int(action.replace('ACTION', ''))
+                            action_set.add(action_num)
+                        except ValueError:
+                            pass
+            
+            # Check if only ACTION 6 is available
+            if len(action_set) == 1 and 6 in action_set:
+                return True
+
+        # Check game state
+        game_state = context.get('game_state')
+        if game_state and hasattr(game_state, 'available_actions'):
+            actions = game_state.available_actions or []
+            if len(actions) == 1:
+                action = actions[0]
+                if action == 6 or action == 'ACTION6':
+                    return True
+
+        # Default: assume Action 6-only if doing coordinate selection
+        return True
+
+    async def _get_fallback_coordinates(self, frame: List[List[int]],
+                                      game_id: str,
+                                      context: Dict[str, Any] = None) -> Tuple[int, int]:
+        """Get fallback coordinates when button detection is not available."""
+        # Try to get coordinates from intelligence database
+        if self.db_interface and hasattr(self.db_interface, 'execute_query'):
+            try:
+                query = """
+                SELECT x, y, success_rate
+                FROM coordinate_intelligence
+                WHERE game_id = ? AND success_rate > 0.5
+                ORDER BY success_rate DESC, effectiveness_score DESC
+                LIMIT 1
+                """
+                results = self.db_interface.execute_query(query, (game_id,))
+                if results and len(results) > 0:
+                    best = results[0]
+                    return best['x'], best['y']
+            except Exception as e:
+                logger.debug(f"Could not get intelligence coordinates: {e}")
+
+        # Ultimate fallback: center of frame with some randomization
+        return self._get_safe_fallback_coordinates(frame)
+
+    def _get_safe_fallback_coordinates(self, frame: List[List[int]]) -> Tuple[int, int]:
+        """Get safe fallback coordinates."""
+        if not frame or len(frame) == 0:
+            return 25, 25  # Default safe coordinates
+
+        height, width = len(frame), len(frame[0]) if frame else 50
+
+        # Center with slight randomization
+        import random
+        center_x = width // 2
+        center_y = height // 2
+
+        # Add some randomization (±25% of frame size)
+        x_offset = random.randint(-width//4, width//4)
+        y_offset = random.randint(-height//4, height//4)
+
+        x = max(5, min(width - 5, center_x + x_offset))
+        y = max(5, min(height - 5, center_y + y_offset))
+
+        return x, y
+
+    async def _store_pseudo_button_learning(self, game_id: str, coordinates: Tuple[int, int],
+                                          effect_description: str, effectiveness: Dict[str, Any]):
+        """Store pseudo-button learning data in database for persistence."""
+        try:
+            if not self.db_interface or not hasattr(self.db_interface, 'execute_query'):
+                return
+
+            x, y = coordinates
+            session = self._get_or_create_session(game_id)
+
+            # Store pseudo-button effect data
+            try:
+                self.db_interface.execute_query("""
+                    INSERT OR REPLACE INTO pseudo_button_learning
+                    (game_id, x, y, effect_description, effectiveness_score,
+                     confidence, attempts, last_used, visual_changes, score_impact)
+                    VALUES (?, ?, ?, ?, ?, ?,
+                           COALESCE((SELECT attempts FROM pseudo_button_learning WHERE game_id=? AND x=? AND y=?) + 1, 1),
+                           CURRENT_TIMESTAMP, ?, ?)
+                """, (game_id, x, y, effect_description,
+                     effectiveness.get('confidence', 0), effectiveness.get('confidence', 0),
+                     game_id, x, y,
+                     effectiveness.get('score', 0), effectiveness.get('effective', False)))
+
+                # Store successful sequences if any
+                if len(session['successful_sequences']) > 0:
+                    latest_sequence = session['successful_sequences'][-1]
+                    sequence_str = str(latest_sequence['sequence'])
+                    score_gained = latest_sequence['score_gained']
+
+                    self.db_interface.execute_query("""
+                        INSERT INTO pseudo_button_sequences
+                        (game_id, sequence_coords, score_gained, timestamp, sequence_length)
+                        VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)
+                    """, (game_id, sequence_str, score_gained, len(latest_sequence['sequence'])))
+
+                    logger.info(f"Stored successful sequence in database: {sequence_str} (+{score_gained} score)")
+
+            except Exception as e:
+                logger.debug(f"Could not store pseudo-button learning: {e}")
+
+        except Exception as e:
+            logger.warning(f"Error storing pseudo-button learning: {e}")
+
+    async def _load_pseudo_button_learning(self, game_id: str) -> Dict[str, Any]:
+        """Load existing pseudo-button learning data from database."""
+        try:
+            if not self.db_interface or not hasattr(self.db_interface, 'execute_query'):
+                return {}
+
+            # Load pseudo-button effects for this game
+            button_effects = {}
+            try:
+                query = """
+                    SELECT x, y, effect_description, effectiveness_score, confidence, attempts
+                    FROM pseudo_button_learning
+                    WHERE game_id = ?
+                    ORDER BY effectiveness_score DESC, confidence DESC
+                """
+                results = self.db_interface.execute_query(query, (game_id,))
+
+                for result in results or []:
+                    x, y, effect, effectiveness, confidence, attempts = result
+                    button_effects[(x, y)] = {
+                        'effect': effect,
+                        'effectiveness_score': effectiveness,
+                        'confidence': confidence,
+                        'attempts': attempts
+                    }
+
+                logger.debug(f"Loaded {len(button_effects)} pseudo-button effects for game {game_id}")
+
+            except Exception as e:
+                logger.debug(f"Could not load pseudo-button effects: {e}")
+
+            # Load successful sequences for this game
+            successful_sequences = []
+            try:
+                query = """
+                    SELECT sequence_coords, score_gained, timestamp, sequence_length
+                    FROM pseudo_button_sequences
+                    WHERE game_id = ?
+                    ORDER BY score_gained DESC, timestamp DESC
+                    LIMIT 10
+                """
+                results = self.db_interface.execute_query(query, (game_id,))
+
+                for result in results or []:
+                    sequence_str, score_gained, timestamp, seq_length = result
+                    try:
+                        sequence_coords = eval(sequence_str)  # Convert string back to list
+                        successful_sequences.append({
+                            'sequence': sequence_coords,
+                            'score_gained': score_gained,
+                            'timestamp': timestamp,
+                            'length': seq_length
+                        })
+                    except:
+                        continue  # Skip malformed sequences
+
+                logger.debug(f"Loaded {len(successful_sequences)} successful sequences for game {game_id}")
+
+            except Exception as e:
+                logger.debug(f"Could not load successful sequences: {e}")
+
+            return {
+                'button_effects': button_effects,
+                'successful_sequences': successful_sequences
+            }
+
+        except Exception as e:
+            logger.warning(f"Error loading pseudo-button learning: {e}")
+            return {}
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get statistics about Action 6 coordinate selection."""
+        total_clicks = self.stats['successful_clicks'] + self.stats['failed_clicks']
+
+        # Calculate learning statistics across all game sessions
+        total_sessions = len(self.game_sessions)
+        total_tried_buttons = sum(len(session['tried_pseudo_buttons']) for session in self.game_sessions.values())
+        total_successful_sequences = sum(len(session['successful_sequences']) for session in self.game_sessions.values())
+        total_discovered_buttons = sum(len(session['discovered_buttons']) for session in self.game_sessions.values())
+
+        return {
+            'action6_selections': self.stats['action6_selections'],
+            'button_based_selections': self.stats['button_based_selections'],
+            'successful_clicks': self.stats['successful_clicks'],
+            'failed_clicks': self.stats['failed_clicks'],
+            'total_effectiveness_analyses': total_clicks,
+            'success_rate': (
+                self.stats['successful_clicks'] / max(total_clicks, 1)
+            ),
+            'button_usage_rate': (
+                self.stats['button_based_selections'] / max(self.stats['action6_selections'], 1)
+            ),
+            # New learning statistics
+            'learning_sessions': total_sessions,
+            'total_pseudo_buttons_tried': total_tried_buttons,
+            'total_successful_sequences': total_successful_sequences,
+            'total_buttons_discovered': total_discovered_buttons,
+            'avg_buttons_per_session': total_tried_buttons / max(total_sessions, 1),
+            'sequence_success_rate': total_successful_sequences / max(total_sessions, 1)
+        }
+
+
+def create_action6_coordinator(db_interface=None, vision_detector=None) -> Action6Coordinator:
+    """Factory function to create an Action 6 coordinator.
+
+    Args:
+        db_interface: Optional database interface for learning integration
+        vision_detector: Optional pseudo-button detector instance
+
+    Returns:
+        Configured Action6Coordinator instance
+    """
+    return Action6Coordinator(db_interface=db_interface, vision_detector=vision_detector)

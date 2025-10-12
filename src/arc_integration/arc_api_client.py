@@ -283,6 +283,52 @@ class ARCClient:
         response = await self._make_request("GET", GAMES_ENDPOINT)
         return response
     
+    def _generate_debugging_tags(self, game_id: str = None, session_id: str = None, game_index: int = None) -> List[str]:
+        """Generate comprehensive debugging tags for scorecard identification."""
+        import os
+        import threading
+        from datetime import datetime
+
+        tags = ["tabula_rasa_agent"]
+
+        # Add Process ID for terminal identification
+        pid = os.getpid()
+        tags.append(f"pid_{pid}")
+
+        # Add thread ID if available
+        thread_id = threading.get_ident()
+        tags.append(f"thread_{thread_id}")
+
+        # Add session information
+        if session_id:
+            # Extract just the session number if it follows pattern session_X_timestamp
+            if 'session_' in session_id:
+                session_parts = session_id.split('_')
+                if len(session_parts) >= 2:
+                    session_num = session_parts[1]
+                    tags.append(f"session_{session_num}")
+            tags.append(f"sid_{session_id[:8]}")  # First 8 chars of session ID
+
+        # Add game information
+        if game_id:
+            tags.append(f"game_{game_id}")
+
+        if game_index is not None:
+            tags.append(f"game_idx_{game_index}")
+
+        # Add timestamp for uniqueness
+        timestamp = datetime.now().strftime("%H%M%S")
+        tags.append(f"ts_{timestamp}")
+
+        # Add client mode indicator
+        tags.append("arcclient_mode")
+
+        # Add system identifier
+        import platform
+        tags.append(f"sys_{platform.system().lower()}")
+
+        return tags
+
     async def open_scorecard(self, tags: List[str] = None) -> Scorecard:
         """Open a new scorecard for tracking performance.
         
@@ -474,8 +520,10 @@ class ARCClient:
         Returns:
             Dictionary with game results
         """
+        # Generate debugging tags
+        debugging_tags = self._generate_debugging_tags(game_id=game_id)
         # Open scorecard
-        scorecard = await self.open_scorecard(tags=["tabula_rasa_agent"])
+        scorecard = await self.open_scorecard(tags=debugging_tags)
         
         try:
             # Reset game

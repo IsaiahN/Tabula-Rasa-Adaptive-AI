@@ -5,7 +5,12 @@ Comprehensive monitoring and analytics system with real-time streaming,
 anomaly detection, predictive health monitoring, and advanced alerting.
 """
 
-# Note: Legacy performance tracking imports removed - files don't exist
+# Legacy performance tracking imports (now in modular structure)
+from .performance_tracking import PerformanceTracker
+from .trend_analysis import TrendAnalyzer
+from .report_generation import ReportGenerator
+from .data_collection import DataCollector
+
 from ..core.unified_performance_monitor import UnifiedPerformanceMonitor, get_performance_monitor, monitor_performance
 
 # New enhanced monitoring features
@@ -17,6 +22,12 @@ from .performance_correlation import get_correlation_system, PerformanceCorrelat
 from .comprehensive_dashboard import get_dashboard, ComprehensiveMonitoringDashboard, DashboardView
 
 __all__ = [
+    # Legacy backward compatibility imports
+    'PerformanceTracker',
+    'TrendAnalyzer',
+    'ReportGenerator',
+    'DataCollector',
+
     # Original monitoring components
     'UnifiedPerformanceMonitor',
     'get_performance_monitor',

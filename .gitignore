@@ -1,8 +1,8 @@
-# Ignore large log files
-master_trainer.log
-data/logs/master_arc_trainer.log
-data/logs/master_arc_trainer_output.log
-data/logs/*_backup.log
+# Logging is now database-based - these log file patterns are deprecated
+# master_trainer.log
+# data/logs/master_arc_trainer.log
+# data/logs/master_arc_trainer_output.log
+# data/logs/*_backup.log
 
 # Ignore action traces backup files
 data/action_traces_backup.ndjson
@@ -42,9 +42,10 @@ mutation_exploratory_temp_*.json
 temp_meta_learning_session*.json
 
 # Only ignore high-volume debug logs, preserve important logs
-arc3_competition_debug.log
-temp_*.log
-debug_*.log
+# Deprecated log patterns - logging is now database-based
+# arc3_competition_debug.log
+# temp_*.log
+# debug_*.log
 
 # Ignore temporary and backup pickle files
 *.pkl.backup_*
@@ -52,14 +53,14 @@ debug_*.log
 *.pkl.fallback_*
 
 # Ignore temporary log files
-data/logs/master_arc_trainer.log.tmp
+# data/logs/master_arc_trainer.log.tmp
 
 # Debug files
 reset_debug*
 
 # Temporary experiment sandboxes only
 experiments/temp/
-sandbox_tests/temp/data/logs/*_backup.log
+# sandbox_tests/temp/data/logs/*_backup.log
 
 # Generated training data files
 data/scorecards/scorecard_*.json

@@ -15,7 +15,7 @@ from enum import Enum
 
 from ..interfaces import ComponentInterface
 from ...training.caching import CacheManager, CacheConfig
-from ...training.monitoring import PerformanceMonitor
+from ...training.monitoring import UnifiedPerformanceMonitor
 
 
 class DetectionMethod(Enum):
@@ -67,7 +67,7 @@ class AdvancedObjectDetector(ComponentInterface):
         self.config = config
         self.cache_config = cache_config or CacheConfig()
         self.cache = CacheManager(self.cache_config)
-        self.performance_monitor = PerformanceMonitor()
+        self.performance_monitor = UnifiedPerformanceMonitor()
         
         # Detection state
         self.model = None

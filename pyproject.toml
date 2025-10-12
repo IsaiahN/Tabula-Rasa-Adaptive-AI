@@ -85,3 +85,12 @@ disable = [
 [tool.bandit]
 exclude_dirs = ["tests", "test_*"]
 skips = ["B101", "B601"]
+
+# Python cache disabling configuration
+[tool.setuptools]
+zip-safe = false
+
+[project]
+name = "tabula-rasa"
+version = "0.1.0"
+description = "ARC-AGI-3 Training System"
