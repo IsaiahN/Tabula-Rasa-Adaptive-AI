@@ -539,3 +539,64 @@ class AdvancedObjectDetector(ComponentInterface):
         except Exception as e:
             self.logger.error(f"Error updating tracking IDs: {e}")
             return detections
+
+    
+    def process(self, input_data: Any) -> Any:
+        """Process input data and return detection results.
+        
+        This method implements the ComponentInterface.process abstract method.
+        """
+        try:
+            if isinstance(input_data, np.ndarray):
+                # Direct image input
+                return self.detect_objects(input_data)
+            elif isinstance(input_data, dict):
+                # Structured input with image and options
+                image = input_data.get('image')
+                return_attention = input_data.get('return_attention', False)
+                
+                if image is not None:
+                    return self.detect_objects(image, return_attention)
+                else:
+                    self.logger.error("No image found in input data")
+                    return []
+            else:
+                self.logger.error(f"Unsupported input data type: {type(input_data)}")
+                return []
+                
+        except Exception as e:
+            self.logger.error(f"Error processing input data: {e}")
+            return []
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get component status information.
+        
+        This method implements the ComponentInterface.get_status abstract method.
+        """
+        return self.get_state()
+    
+    def reset(self) -> None:
+        """Reset component state.
+        
+        This method implements the ComponentInterface.reset abstract method.
+        """
+        try:
+            # Clear detection history
+            self.detection_history.clear()
+            self.attention_maps.clear()
+            self.previous_detections.clear()
+            self.tracking_ids.clear()
+            
+            # Reset performance tracking
+            self.detection_times.clear()
+            self.detection_counts.clear()
+            self.confidence_scores.clear()
+            
+            # Reset tracking ID counter
+            self.next_tracking_id = 0
+            
+            self.logger.info("Advanced object detector state reset")
+            
+        except Exception as e:
+            self.logger.error(f"Error resetting component state: {e}")
+            raise

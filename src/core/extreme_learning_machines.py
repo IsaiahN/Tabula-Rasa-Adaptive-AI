@@ -59,7 +59,7 @@ class ExtremeLearningMachine:
     def _load_config(self):
         """Load ELM configuration from file."""
         try:
-            if os.path.exists(self.config_path):
+            if self.config_path and os.path.exists(self.config_path):
                 with open(self.config_path, 'r') as f:
                     config = json.load(f)
                     self.input_size = config.get('input_size', 100)
@@ -68,6 +68,9 @@ class ExtremeLearningMachine:
                     self.regularization = config.get('regularization', 0.01)
                     self.learning_rate = config.get('learning_rate', 0.001)
                     self.activation_function = config.get('activation_function', 'sigmoid')
+            else:
+                # Use default configuration if no config path provided
+                logger.debug("No ELM config path provided, using defaults")
         except Exception as e:
             logger.warning(f"Could not load ELM config: {e}")
     
@@ -666,10 +669,13 @@ class DirectorELMEnsemble:
     def _load_config(self):
         """Load ELM ensemble configuration."""
         try:
-            if os.path.exists(self.config_path):
+            if self.config_path and os.path.exists(self.config_path):
                 with open(self.config_path, 'r') as f:
                     config = json.load(f)
                     self.task_mapping = config.get('task_mapping', {})
+            else:
+                # Use default configuration if no config path provided
+                logger.debug("No ELM ensemble config path provided, using defaults")
         except Exception as e:
             logger.warning(f"Could not load ELM ensemble config: {e}")
     

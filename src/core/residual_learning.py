@@ -49,11 +49,14 @@ class ResidualLearningSystem:
     def _load_config(self):
         """Load residual learning configuration."""
         try:
-            if os.path.exists(self.config_path):
+            if self.config_path and os.path.exists(self.config_path):
                 with open(self.config_path, 'r') as f:
                     config = json.load(f)
                     self.learning_rate = config.get('learning_rate', 0.001)
                     self.residual_strength = config.get('residual_strength', 0.1)
+            else:
+                # Use default configuration if no config path provided
+                logger.debug("No residual config path provided, using defaults")
         except Exception as e:
             logger.warning(f"Could not load residual config: {e}")
     

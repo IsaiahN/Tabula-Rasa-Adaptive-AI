@@ -31,6 +31,9 @@ class GameVisualizer:
         self.is_playing = False
         self.play_speed = 1.0  # Frames per second
 
+        # Hypothesis data for current session
+        self.session_hypothesis_data = {}
+
         # Thread-safe communication
         self.frame_queue = queue.Queue()
         self.live_mode = False
@@ -249,7 +252,55 @@ class GameVisualizer:
 
                 frames = cursor.fetchall()
                 print(f"[VIZ DEBUG] Found {len(frames)} frames")
+                
+                # Load hypothesis data for this session
+                hypothesis_data = {}
+                try:
+                    cursor.execute("""
+                        SELECT h.hypothesis_id, h.hypothesis_type, h.description, h.confidence,
+                               h.reasoning, h.success_rate, h.test_count, h.created_at,
+                               htr.outcome, htr.total_score_change, htr.actions_count,
+                               htr.learning_insights, htr.recommendations
+                        FROM game_hypotheses h
+                        LEFT JOIN hypothesis_test_results htr ON h.hypothesis_id = htr.hypothesis_id
+                        WHERE htr.session_id = ? OR h.hypothesis_id IN (
+                            SELECT hypothesis_id FROM hypothesis_test_results WHERE session_id = ?
+                        )
+                        ORDER BY h.created_at
+                    """, (session_id, session_id))
+                    
+                    hypothesis_rows = cursor.fetchall()
+                    for row in hypothesis_rows:
+                        hyp_id, hyp_type, desc, conf, reasoning, success_rate, test_count, created_at, outcome, score_change, actions_count, insights, recommendations = row
+                        if hyp_id not in hypothesis_data:
+                            hypothesis_data[hyp_id] = {
+                                'hypothesis_id': hyp_id,
+                                'hypothesis_type': hyp_type,
+                                'description': desc,
+                                'confidence': conf,
+                                'reasoning': reasoning,
+                                'success_rate': success_rate,
+                                'test_count': test_count,
+                                'created_at': created_at,
+                                'test_results': []
+                            }
+                        
+                        if outcome:  # Test result exists
+                            hypothesis_data[hyp_id]['test_results'].append({
+                                'outcome': outcome,
+                                'score_change': score_change,
+                                'actions_count': actions_count,
+                                'insights': insights,
+                                'recommendations': recommendations
+                            })
+                    
+                    print(f"[VIZ DEBUG] Found {len(hypothesis_data)} hypotheses for session")
+                except Exception as e:
+                    print(f"[VIZ DEBUG] Error loading hypothesis data: {e}")
+                    hypothesis_data = {}
+
                 self.current_frame_data = []
+                self.session_hypothesis_data = hypothesis_data  # Store hypothesis data
 
                 for i, frame_data in enumerate(frames):
                     action_num, frame_json, width, height, action, ax, ay, score_before, score_after, actions_json = frame_data
@@ -479,6 +530,35 @@ class GameVisualizer:
         info.append(f"Score Before: {frame_data['score_before']}")
         info.append(f"Score After: {frame_data['score_after']}")
         info.append(f"Available Actions: {frame_data['available_actions']}")
+
+        # Add hypothesis information if available
+        if hasattr(self, 'session_hypothesis_data') and self.session_hypothesis_data:
+            info.append("\n" + "="*30)
+            info.append("HYPOTHESIS SYSTEM")
+            info.append("="*30)
+            info.append(f"Hypotheses for this session: {len(self.session_hypothesis_data)}")
+            
+            # Show top 3 hypotheses with highest confidence
+            sorted_hypotheses = sorted(
+                self.session_hypothesis_data.values(), 
+                key=lambda h: h.get('confidence', 0), 
+                reverse=True
+            )
+            
+            for i, hyp in enumerate(sorted_hypotheses[:3]):
+                info.append(f"\nHypothesis {i+1}:")
+                info.append(f"  Type: {hyp.get('hypothesis_type', 'Unknown')}")
+                info.append(f"  Confidence: {hyp.get('confidence', 0):.2f}")
+                info.append(f"  Description: {hyp.get('description', 'No description')[:80]}...")
+                
+                if hyp.get('test_results'):
+                    test_result = hyp['test_results'][0]  # Show first test result
+                    info.append(f"  Test Outcome: {test_result.get('outcome', 'Unknown')}")
+                    info.append(f"  Score Change: {test_result.get('score_change', 0):.2f}")
+                
+                if hyp.get('reasoning'):
+                    reasoning = hyp['reasoning'][:100]  # Truncate long reasoning
+                    info.append(f"  Reasoning: {reasoning}...")
 
         info.append("\n" + "="*30)
         info.append("Frame Analysis:")

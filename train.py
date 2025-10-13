@@ -48,6 +48,63 @@ except ImportError:
     AI_ENHANCED_AVAILABLE = False
     print("[WARNING] AI-Enhanced system not available")
 
+# Load hypothesis generation and testing system
+try:
+    from src.intelligence import (
+        HypothesisIntegrationSystem,
+        get_hypothesis_integration_system
+    )
+    HYPOTHESIS_SYSTEM_AVAILABLE = True
+    print("[OK] Game-Specific Hypothesis Generation and Testing System detected!")
+except ImportError:
+    HYPOTHESIS_SYSTEM_AVAILABLE = False
+    print("[WARNING] Hypothesis system not available")
+
+# Load enhanced frame analyzer
+try:
+    from src.vision.enhanced_frame_analyzer import create_enhanced_frame_analyzer
+    ENHANCED_FRAME_ANALYZER_AVAILABLE = True
+    print("[OK] Enhanced Frame Analyzer with CV2 support detected!")
+except ImportError:
+    ENHANCED_FRAME_ANALYZER_AVAILABLE = False
+    print("[WARNING] Enhanced Frame Analyzer not available")
+
+# Load enhanced learning integration
+try:
+    from src.core.enhanced_learning_integration import create_enhanced_learning_integration
+    ENHANCED_LEARNING_AVAILABLE = True
+    print("[OK] Enhanced Learning Integration system detected!")
+except ImportError:
+    ENHANCED_LEARNING_AVAILABLE = False
+    print("[WARNING] Enhanced Learning Integration not available")
+
+# Load enhanced knowledge transfer
+try:
+    from src.learning.enhanced_knowledge_transfer import create_enhanced_knowledge_transfer
+    ENHANCED_KNOWLEDGE_TRANSFER_AVAILABLE = True
+    print("[OK] Enhanced Knowledge Transfer system detected!")
+except ImportError:
+    ENHANCED_KNOWLEDGE_TRANSFER_AVAILABLE = False
+    print("[WARNING] Enhanced Knowledge Transfer not available")
+
+# Load enhanced memory systems
+try:
+    from src.memory.enhanced_dnc import EnhancedDNCMemory
+    ENHANCED_MEMORY_AVAILABLE = True
+    print("[OK] Enhanced Memory Systems (DNC) detected!")
+except ImportError:
+    ENHANCED_MEMORY_AVAILABLE = False
+    print("[WARNING] Enhanced Memory Systems not available")
+
+# Load game lifecycle analyzer
+try:
+    from src.analysis.game_lifecycle_analyzer import GameLifecycleAnalyzer
+    GAME_LIFECYCLE_ANALYZER_AVAILABLE = True
+    print("[OK] Game Lifecycle Intelligence System detected!")
+except ImportError:
+    GAME_LIFECYCLE_ANALYZER_AVAILABLE = False
+    print("[WARNING] Game Lifecycle Intelligence System not available")
+
 # Fallback to legacy system
 LEGACY_AVAILABLE = False
 if not AI_ENHANCED_AVAILABLE:
@@ -149,6 +206,86 @@ class ConsolidatedTrainingSystem:
         self.database = CoreGameDatabase(self.db_path)
         self.session_manager = GameSessionManager(self.api_key, self.db_path)
         self.gameplay = CoreGameplay(self.session_manager)
+
+        # Initialize hypothesis system if available
+        self.hypothesis_system = None
+        if HYPOTHESIS_SYSTEM_AVAILABLE:
+            try:
+                self.hypothesis_system = get_hypothesis_integration_system(self.db_path)
+                logger.info("Hypothesis Generation and Testing System initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize hypothesis system: {e}")
+                self.hypothesis_system = None
+
+        # Initialize enhanced frame analyzer
+        self.frame_analyzer = None
+        if ENHANCED_FRAME_ANALYZER_AVAILABLE:
+            try:
+                self.frame_analyzer = create_enhanced_frame_analyzer()
+                logger.info("Enhanced Frame Analyzer initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Enhanced Frame Analyzer: {e}")
+                self.frame_analyzer = None
+
+        # Initialize enhanced learning integration
+        self.enhanced_learning = None
+        if ENHANCED_LEARNING_AVAILABLE:
+            try:
+                self.enhanced_learning = create_enhanced_learning_integration(
+                    enable_monitoring=True,
+                    enable_database_storage=True
+                )
+                logger.info("Enhanced Learning Integration initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Enhanced Learning Integration: {e}")
+                self.enhanced_learning = None
+
+        # Initialize enhanced knowledge transfer
+        self.knowledge_transfer = None
+        if ENHANCED_KNOWLEDGE_TRANSFER_AVAILABLE:
+            try:
+                self.knowledge_transfer = create_enhanced_knowledge_transfer(
+                    transfer_threshold=0.6,
+                    enable_database_storage=True
+                )
+                logger.info("Enhanced Knowledge Transfer initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Enhanced Knowledge Transfer: {e}")
+                self.knowledge_transfer = None
+
+        # Initialize enhanced memory systems
+        self.enhanced_memory = None
+        if ENHANCED_MEMORY_AVAILABLE:
+            try:
+                self.enhanced_memory = EnhancedDNCMemory(
+                    memory_size=512,
+                    word_size=64,
+                    enable_monitoring=True,
+                    enable_database_storage=True
+                )
+                logger.info("Enhanced Memory Systems (DNC) initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Enhanced Memory Systems: {e}")
+                self.enhanced_memory = None
+
+        # Initialize game lifecycle analyzer
+        self.lifecycle_analyzer = None
+        if GAME_LIFECYCLE_ANALYZER_AVAILABLE:
+            try:
+                self.lifecycle_analyzer = GameLifecycleAnalyzer(db_path="data/game_lifecycle.db")
+                logger.info("Game Lifecycle Intelligence System initialized")
+
+                # Connect lifecycle analyzer to gameplay system for proactive action recommendations
+                if hasattr(self.gameplay, 'set_lifecycle_analyzer'):
+                    self.gameplay.set_lifecycle_analyzer(self.lifecycle_analyzer)
+                else:
+                    # Set as private attribute for access in gameplay methods
+                    self.gameplay._lifecycle_analyzer = self.lifecycle_analyzer
+                logger.info("Lifecycle analyzer connected to gameplay system")
+
+            except Exception as e:
+                logger.warning(f"Failed to initialize Game Lifecycle Intelligence System: {e}")
+                self.lifecycle_analyzer = None
 
         # Configure database logging
         setup_database_logging(self.database)
@@ -294,7 +431,7 @@ class ConsolidatedTrainingSystem:
             return "vc33-6ae7bf49eea5"  # Use the game ID we know works
 
     async def _play_ai_enhanced_game(self) -> Dict[str, Any]:
-        """Play a single AI-enhanced game."""
+        """Play a single AI-enhanced game with hypothesis-guided gameplay."""
         game_start = time.time()
         game_num = self.games_completed + 1
 
@@ -304,9 +441,112 @@ class ConsolidatedTrainingSystem:
             # Get real ARC game ID from available games
             game_id = await self._get_real_game_id(game_num)
 
+            # Initialize comprehensive AI analysis for this game
+            enhanced_analysis_context = {}
+
+            # Get initial screenshot for analysis
+            screenshot_result = await self.gameplay.get_current_screenshot()
+            screenshot_array = None  # Initialize to handle case when no screenshot available
+
+            if screenshot_result and 'screenshot_array' in screenshot_result:
+                screenshot_array = screenshot_result['screenshot_array']
+
+                # Enhanced Frame Analysis
+                frame_analysis_result = None
+                if self.frame_analyzer:
+                    try:
+                        logger.info(f"Running enhanced frame analysis for game {game_id}...")
+                        frame_analysis_result = self.frame_analyzer.analyze_frame(screenshot_array)
+                        enhanced_analysis_context['frame_analysis'] = frame_analysis_result
+
+                        # Log key insights from frame analysis
+                        if frame_analysis_result:
+                            patterns = frame_analysis_result.visual_patterns or []
+                            logger.info(f"  Frame Analysis: {len(patterns)} visual patterns detected")
+                            if hasattr(frame_analysis_result, 'game_mechanics_prediction'):
+                                logger.info(f"  Predicted Mechanics: {frame_analysis_result.game_mechanics_prediction}")
+                    except Exception as e:
+                        logger.warning(f"Enhanced frame analysis failed for game {game_id}: {e}")
+                        frame_analysis_result = None
+
+                # Enhanced Memory Retrieval
+                memory_insights = None
+                if self.enhanced_memory:
+                    try:
+                        logger.info(f"Retrieving strategic memories for game {game_id}...")
+                        # Convert screenshot to tensor for memory query
+                        import torch
+                        memory_query = torch.tensor(screenshot_array, dtype=torch.float32).flatten()[:64]  # Use first 64 elements as query
+                        if len(memory_query) < 64:
+                            memory_query = torch.cat([memory_query, torch.zeros(64 - len(memory_query))])
+
+                        memory_result = self.enhanced_memory.read(memory_query.unsqueeze(0))
+                        if memory_result is not None:
+                            enhanced_analysis_context['memory_insights'] = memory_result
+                            logger.info(f"  Memory Systems: Retrieved strategic patterns")
+                    except Exception as e:
+                        logger.warning(f"Enhanced memory retrieval failed for game {game_id}: {e}")
+                        memory_insights = None
+
+                # Knowledge Transfer Analysis
+                transfer_insights = None
+                if self.knowledge_transfer:
+                    try:
+                        logger.info(f"Analyzing knowledge transfer opportunities for game {game_id}...")
+                        # Check for transferable knowledge from similar games
+                        game_features = {
+                            'game_id': game_id,
+                            'screenshot_data': screenshot_array.tolist() if hasattr(screenshot_array, 'tolist') else screenshot_array,
+                            'frame_analysis': frame_analysis_result.__dict__ if frame_analysis_result else None
+                        }
+
+                        transfer_opportunities = await self.knowledge_transfer.identify_transfer_opportunities(game_features)
+                        if transfer_opportunities:
+                            enhanced_analysis_context['knowledge_transfer'] = transfer_opportunities
+                            logger.info(f"  Knowledge Transfer: {len(transfer_opportunities)} transfer opportunities identified")
+                    except Exception as e:
+                        logger.warning(f"Knowledge transfer analysis failed for game {game_id}: {e}")
+                        transfer_insights = None
+
+                # Hypothesis Generation (enhanced with frame analysis)
+                hypothesis_results = None
+                if self.hypothesis_system:
+                    try:
+                        logger.info(f"Generating hypotheses for game {game_id}...")
+
+                        game_context = {
+                            'game_id': game_id,
+                            'game_number': game_num,
+                            'session_manager': self.session_manager,
+                            'enhanced_analysis': enhanced_analysis_context  # Include all enhanced analysis
+                        }
+
+                        # Generate hypotheses with enhanced context
+                        hypothesis_results = await self.hypothesis_system.analyze_and_generate_hypotheses(
+                            game_id=game_id,
+                            screenshot_array=screenshot_array,
+                            game_context=game_context
+                        )
+
+                        if hypothesis_results:
+                            logger.info(f"Generated {len(hypothesis_results)} hypotheses for game {game_id}")
+                            for i, hyp in enumerate(hypothesis_results[:3]):  # Show first 3
+                                logger.info(f"  H{i+1}: {hyp.get('description', 'Unknown hypothesis')}")
+                        else:
+                            logger.info(f"No hypotheses generated for game {game_id}")
+
+                    except Exception as e:
+                        logger.warning(f"Hypothesis generation failed for game {game_id}: {e}")
+                        hypothesis_results = None
+            else:
+                logger.info(f"No screenshot available for enhanced analysis - this is expected before gameplay starts")
+                hypothesis_results = None
+
+            # Play the game (with or without hypotheses)
             result = await self.gameplay.play_single_game(
                 game_id=game_id,
-                max_actions=400
+                max_actions=400,
+                hypothesis_context=hypothesis_results  # Pass hypotheses to gameplay
             )
 
             duration = time.time() - game_start
@@ -314,15 +554,50 @@ class ConsolidatedTrainingSystem:
             total_actions = result.get('total_actions', 0)
             game_won = result.get('win_detected', False)
 
+            # Add comprehensive enhanced system information to result
+            if hypothesis_results:
+                result['hypotheses_generated'] = len(hypothesis_results)
+                result['hypothesis_system_used'] = True
+            else:
+                result['hypotheses_generated'] = 0
+                result['hypothesis_system_used'] = False
+
+            # Track enhanced systems usage
+            result['frame_analysis_used'] = bool(enhanced_analysis_context.get('frame_analysis'))
+            result['memory_insights_used'] = bool(enhanced_analysis_context.get('memory_insights'))
+            result['knowledge_transfer_used'] = bool(enhanced_analysis_context.get('knowledge_transfer'))
+            result['enhanced_analysis_context'] = enhanced_analysis_context
+
             logger.info(f"Game {game_num}: Score={final_score}, Actions={total_actions}, Won={game_won}, Time={duration:.1f}s")
+
+            # Enhanced systems summary
+            systems_used = []
+            if hypothesis_results:
+                systems_used.append(f"Hypotheses: {len(hypothesis_results)}")
+            if enhanced_analysis_context.get('frame_analysis'):
+                systems_used.append("Frame Analysis")
+            if enhanced_analysis_context.get('memory_insights'):
+                systems_used.append("Memory")
+            if enhanced_analysis_context.get('knowledge_transfer'):
+                systems_used.append("Knowledge Transfer")
+
+            if systems_used:
+                logger.info(f"  Enhanced Systems: {', '.join(systems_used)}")
 
             return {
                 'game_number': game_num,
+                'game_id': game_id,
                 'final_score': final_score,
                 'total_actions': total_actions,
                 'game_duration': duration,
                 'game_won': game_won,
                 'ai_performance': result.get('ai_performance', {}),
+                'hypotheses_generated': result.get('hypotheses_generated', 0),
+                'hypothesis_system_used': result.get('hypothesis_system_used', False),
+                'frame_analysis_used': result.get('frame_analysis_used', False),
+                'memory_insights_used': result.get('memory_insights_used', False),
+                'knowledge_transfer_used': result.get('knowledge_transfer_used', False),
+                'enhanced_analysis_context': enhanced_analysis_context,
                 'timestamp': datetime.now().isoformat()
             }
 
@@ -354,7 +629,7 @@ class ConsolidatedTrainingSystem:
             }
 
     async def _process_game_result(self, result: Dict[str, Any]):
-        """Process game result."""
+        """Process game result with enhanced learning integration."""
         self.games_completed += 1
         if result.get('game_won', False):
             self.games_won += 1
@@ -362,12 +637,203 @@ class ConsolidatedTrainingSystem:
         self.total_actions += result.get('total_actions', 0)
         self.game_results.append(result)
 
-        # Knowledge extraction for AI system
+        # Enhanced Learning Integration
+        if self.enhanced_learning:
+            try:
+                logger.info(f"Processing game result with enhanced learning...")
+
+                # Get lifecycle pattern analysis for this game
+                lifecycle_pattern_data = {}
+                if self.lifecycle_analyzer:
+                    try:
+                        # Get failure risk assessment
+                        game_type = self._classify_game_type(result)
+                        failure_risk = self.lifecycle_analyzer.get_failure_risk(
+                            game_type=game_type,
+                            current_action_count=result.get('total_actions', 0),
+                            recent_actions=result.get('action_history', [])[-10:] if result.get('action_history') else []
+                        )
+
+                        # Get action effectiveness data from lifecycle analyzer
+                        action_effectiveness = {}
+                        if hasattr(self.lifecycle_analyzer, 'action_effectiveness'):
+                            for (action, context), effectiveness in self.lifecycle_analyzer.action_effectiveness.items():
+                                if context.startswith(game_type):
+                                    action_effectiveness[action] = effectiveness.avg_action_effectiveness if hasattr(effectiveness, 'avg_action_effectiveness') else 0.5
+
+                        # Detect oscillations in action sequence
+                        oscillation_detected = False
+                        action_sequence = result.get('action_history', [])
+                        if action_sequence and len(action_sequence) >= 10:
+                            oscillations = self.lifecycle_analyzer.oscillation_detector.detect_oscillations(action_sequence)
+                            oscillation_detected = len(oscillations) > 0
+
+                        lifecycle_pattern_data = {
+                            'failure_risk_score': failure_risk,
+                            'oscillation_detected': oscillation_detected,
+                            'action_effectiveness': action_effectiveness,
+                            'game_type': game_type,
+                            'oscillation_patterns': [osc['actions'] for osc in (oscillations if oscillation_detected else [])]
+                        }
+
+                        logger.info(f"Lifecycle analysis for game: risk={failure_risk:.2f}, oscillations={oscillation_detected}, effectiveness_count={len(action_effectiveness)}")
+
+                    except Exception as e:
+                        logger.warning(f"Failed to get lifecycle patterns for learning: {e}")
+
+                # Create enhanced learning experience from game result
+                learning_experience = {
+                    'game_id': result.get('game_id', 'unknown'),
+                    'game_number': result.get('game_number', 0),
+                    'final_score': result.get('final_score', 0.0),
+                    'game_won': result.get('game_won', False),
+                    'total_actions': result.get('total_actions', 0),
+                    'game_duration': result.get('game_duration', 0.0),
+                    'hypotheses_generated': result.get('hypotheses_generated', 0),
+                    'enhanced_analysis_used': result.get('enhanced_analysis_context', {}),
+                    'lifecycle_patterns': lifecycle_pattern_data  # NEW: Add lifecycle pattern data
+                }
+
+                # Process with enhanced learning
+                await self.enhanced_learning.process_learning_experience(learning_experience)
+                result['enhanced_learning_processed'] = True
+                logger.info(f"Enhanced learning processed game {result.get('game_number', 0)}")
+
+            except Exception as e:
+                result['enhanced_learning_processed'] = False
+                logger.warning(f"Enhanced learning processing failed: {e}")
+
+        # Enhanced Memory Storage
+        if self.enhanced_memory:
+            try:
+                logger.info(f"Storing strategic memory from game result...")
+
+                # Create memory entry for successful strategies
+                if result.get('game_won', False) or result.get('final_score', 0) > 50:
+                    import torch
+
+                    # Create memory content from successful game
+                    memory_content = torch.tensor([
+                        result.get('final_score', 0.0),
+                        result.get('total_actions', 0),
+                        result.get('game_duration', 0.0),
+                        result.get('hypotheses_generated', 0),
+                        1.0 if result.get('game_won', False) else 0.0,
+                        # Pad to word_size (64)
+                    ] + [0.0] * 59, dtype=torch.float32)
+
+                    # Store in enhanced memory
+                    self.enhanced_memory.write(memory_content.unsqueeze(0), memory_content.unsqueeze(0))
+                    logger.info(f"Strategic memory stored for high-performing game")
+
+            except Exception as e:
+                logger.warning(f"Enhanced memory storage failed: {e}")
+
+        # Enhanced Knowledge Transfer Learning
+        if self.knowledge_transfer:
+            try:
+                logger.info(f"Updating knowledge transfer with game result...")
+
+                # Create transferable knowledge from game result
+                game_knowledge = {
+                    'game_id': result.get('game_id', 'unknown'),
+                    'success_score': result.get('final_score', 0.0),
+                    'strategies_used': {
+                        'hypotheses_count': result.get('hypotheses_generated', 0),
+                        'total_actions': result.get('total_actions', 0),
+                        'game_won': result.get('game_won', False)
+                    },
+                    'performance_metrics': {
+                        'duration': result.get('game_duration', 0.0),
+                        'efficiency': result.get('final_score', 0.0) / max(result.get('total_actions', 1), 1)
+                    },
+                    'lifecycle_patterns': lifecycle_pattern_data  # NEW: Add lifecycle pattern data for knowledge transfer
+                }
+
+                # Update knowledge transfer system
+                await self.knowledge_transfer.update_knowledge_base(game_knowledge)
+                logger.info(f"Knowledge transfer updated with game {result.get('game_number', 0)} insights")
+
+            except Exception as e:
+                logger.warning(f"Knowledge transfer update failed: {e}")
+
+        # Game Lifecycle Pattern Analysis
+        if self.lifecycle_analyzer:
+            try:
+                logger.info(f"Analyzing game lifecycle patterns...")
+
+                # Create lifecycle data from game result
+                lifecycle_data = {
+                    'game_id': result.get('game_id', 'unknown'),
+                    'game_type': self._classify_game_type(result),
+                    'actions_to_failure': result.get('total_actions', 0),
+                    'final_score': result.get('final_score', 0.0),
+                    'game_won': result.get('game_won', False),
+                    'failure_reason': self._determine_failure_reason(result),
+                    'action_sequence_before_end': result.get('action_history', [])[-20:] if result.get('action_history') else [],
+                    'efficiency_trajectory': result.get('score_history', [])
+                }
+
+                # Add pattern to lifecycle analyzer
+                await self.lifecycle_analyzer.add_game_over_pattern(lifecycle_data)
+                logger.info(f"Lifecycle pattern analysis completed for game {result.get('game_number', 0)}")
+
+            except Exception as e:
+                logger.warning(f"Lifecycle pattern analysis failed: {e}")
+
+        # Original knowledge extraction for AI system
         if self.system_type == "AI_ENHANCED" and self.gameplay.knowledge_integrator:
             try:
                 await self.gameplay.knowledge_integrator.extract_game_knowledge(result)
             except Exception as e:
                 logger.warning(f"Knowledge extraction failed: {e}")
+
+    def _classify_game_type(self, result: Dict[str, Any]) -> str:
+        """Classify game type based on game characteristics."""
+        try:
+            game_id = result.get('game_id', 'unknown')
+            total_actions = result.get('total_actions', 0)
+            final_score = result.get('final_score', 0.0)
+
+            # Simple classification based on ID patterns and performance characteristics
+            if 'action6' in game_id.lower() or total_actions > 200:
+                return 'action6_intensive'
+            elif final_score == 0 and total_actions < 50:
+                return 'quick_failure'
+            elif total_actions > 150:
+                return 'long_exploration'
+            elif final_score > 100:
+                return 'high_scoring'
+            else:
+                return 'standard'
+        except Exception:
+            return 'unknown'
+
+    def _determine_failure_reason(self, result: Dict[str, Any]) -> str:
+        """Determine the reason for game failure."""
+        try:
+            game_won = result.get('game_won', False)
+            total_actions = result.get('total_actions', 0)
+            final_score = result.get('final_score', 0.0)
+            game_duration = result.get('game_duration', 0.0)
+            error = result.get('error')
+
+            if game_won:
+                return 'success'
+            elif error:
+                return f'error_{error}'
+            elif total_actions >= 400:  # Max actions limit
+                return 'action_limit'
+            elif game_duration > 300:  # 5 minutes timeout
+                return 'timeout'
+            elif total_actions > 100 and final_score == 0:
+                return 'score_stagnation'
+            elif total_actions < 10:
+                return 'early_termination'
+            else:
+                return 'unknown'
+        except Exception:
+            return 'unknown'
 
     async def _should_stop(self, max_games: Optional[int], max_hours: Optional[float]) -> bool:
         """Check if training should stop."""
@@ -380,17 +846,98 @@ class ConsolidatedTrainingSystem:
         return False
 
     async def _log_progress(self):
-        """Log training progress."""
+        """Log comprehensive training progress with all enhanced systems."""
         elapsed = (datetime.now() - self.start_time).total_seconds() / 3600
         win_rate = self.games_won / max(self.games_completed, 1)
         avg_score = self.total_score / max(self.games_completed, 1)
 
-        logger.info("=" * 50)
+        # Calculate hypothesis system metrics
+        hypothesis_games = sum(1 for r in self.game_results if r.get('hypothesis_system_used', False))
+        total_hypotheses = sum(r.get('hypotheses_generated', 0) for r in self.game_results)
+        avg_hypotheses = total_hypotheses / max(hypothesis_games, 1) if hypothesis_games > 0 else 0
+
+        # Calculate enhanced frame analysis metrics
+        frame_analysis_games = sum(1 for r in self.game_results if r.get('frame_analysis_used', False))
+
+        # Calculate enhanced learning metrics
+        enhanced_learning_games = sum(1 for r in self.game_results if r.get('enhanced_learning_processed', False))
+
+        # Calculate knowledge transfer metrics
+        knowledge_transfer_games = sum(1 for r in self.game_results if r.get('knowledge_transfer_used', False))
+
+        # Calculate memory system metrics
+        memory_games = sum(1 for r in self.game_results if r.get('memory_insights_used', False))
+
+        # Get Action6 Coordinator statistics from enhanced gameplay
+        action6_stats = {}
+        if self.gameplay and hasattr(self.gameplay, 'enhanced_gameplay'):
+            enhanced_gameplay = self.gameplay.enhanced_gameplay
+            if enhanced_gameplay and hasattr(enhanced_gameplay, 'action6_coordinator'):
+                coordinator = enhanced_gameplay.action6_coordinator
+                if hasattr(coordinator, 'stats'):
+                    action6_stats = coordinator.stats
+
+        logger.info("=" * 70)
         logger.info(f"PROGRESS: Game {self.games_completed}")
         logger.info(f"Win rate: {win_rate:.1%} ({self.games_won}/{self.games_completed})")
         logger.info(f"Avg score: {avg_score:.1f}")
         logger.info(f"Time: {elapsed:.1f}h")
-        logger.info("=" * 50)
+        logger.info("-" * 70)
+
+        # Enhanced Frame Analysis
+        if self.frame_analyzer:
+            if frame_analysis_games > 0:
+                logger.info(f"Enhanced Frame Analysis: {frame_analysis_games}/{self.games_completed} games analyzed")
+            else:
+                logger.info("Enhanced Frame Analysis: Active but no games analyzed yet")
+
+        # Action6 Coordinator Stats
+        if action6_stats:
+            pseudo_buttons = action6_stats.get('button_based_selections', 0)
+            exploration_coords = action6_stats.get('exploration_selections', 0)
+            total_action6 = pseudo_buttons + exploration_coords
+            logger.info(f"Action6 Coordinator: {total_action6} total selections")
+            logger.info(f"  Pseudo-buttons: {pseudo_buttons}, Exploration: {exploration_coords}")
+        elif self.gameplay and hasattr(self.gameplay, 'enhanced_gameplay'):
+            logger.info("Action6 Coordinator: Active with pseudo-button detection")
+
+        # Enhanced Learning Integration
+        if self.enhanced_learning:
+            if enhanced_learning_games > 0:
+                logger.info(f"Enhanced Learning: {enhanced_learning_games}/{self.games_completed} games processed")
+            else:
+                logger.info("Enhanced Learning: Active but no learning experiences processed yet")
+
+        # Enhanced Knowledge Transfer
+        if self.knowledge_transfer:
+            if knowledge_transfer_games > 0:
+                logger.info(f"Knowledge Transfer: {knowledge_transfer_games}/{self.games_completed} games with transfer opportunities")
+            else:
+                logger.info("Knowledge Transfer: Active but no transfer opportunities identified yet")
+
+        # Enhanced Memory Systems
+        if self.enhanced_memory:
+            if memory_games > 0:
+                logger.info(f"Enhanced Memory: {memory_games}/{self.games_completed} games with memory insights")
+                # Get memory utilization if available
+                if hasattr(self.enhanced_memory, 'get_memory_utilization'):
+                    try:
+                        utilization = self.enhanced_memory.get_memory_utilization()
+                        logger.info(f"  Memory utilization: {utilization:.1%}")
+                    except:
+                        pass
+            else:
+                logger.info("Enhanced Memory: Active but no memory insights retrieved yet")
+
+        # Hypothesis System (existing)
+        if self.hypothesis_system:
+            if hypothesis_games > 0:
+                logger.info(f"Hypothesis System: {hypothesis_games}/{self.games_completed} games")
+                logger.info(f"  Total hypotheses: {total_hypotheses} (avg: {avg_hypotheses:.1f}/game)")
+            else:
+                logger.info("Hypothesis System: Active but no hypotheses generated yet")
+
+        logger.info("=" * 70)
 
     async def _generate_ai_enhanced_results(self) -> Dict[str, Any]:
         """Generate AI-enhanced training results."""

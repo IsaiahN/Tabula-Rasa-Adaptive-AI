@@ -606,6 +606,105 @@ class EnhancedLearningIntegration:
         except Exception as e:
             logger.error(f"Failed to cleanup Enhanced Learning Integration: {e}")
 
+    async def process_learning_experience(self, learning_experience: Dict[str, Any]) -> None:
+        """Process a learning experience from game results with lifecycle pattern analysis.
+
+        Args:
+            learning_experience: Dictionary containing game result data for learning
+        """
+        try:
+            # Extract key metrics from the learning experience
+            game_score = learning_experience.get('final_score', 0.0)
+            game_won = learning_experience.get('game_won', False)
+            total_actions = learning_experience.get('total_actions', 0)
+            game_duration = learning_experience.get('game_duration', 0.0)
+
+            # Extract lifecycle pattern data if available
+            lifecycle_patterns = learning_experience.get('lifecycle_patterns', {})
+            failure_risk_score = lifecycle_patterns.get('failure_risk_score', 0.0)
+            oscillation_detected = lifecycle_patterns.get('oscillation_detected', False)
+            action_effectiveness = lifecycle_patterns.get('action_effectiveness', {})
+
+            # Create enhanced learning input data with lifecycle features
+            import torch
+            base_features = [
+                game_score,
+                1.0 if game_won else 0.0,
+                total_actions,
+                game_duration,
+                learning_experience.get('hypotheses_generated', 0)
+            ]
+
+            # Add lifecycle pattern features
+            lifecycle_features = [
+                failure_risk_score,
+                1.0 if oscillation_detected else 0.0,
+                len(action_effectiveness),  # Number of action effectiveness patterns
+                sum(action_effectiveness.values()) / max(len(action_effectiveness), 1)  # Average effectiveness
+            ]
+
+            learning_input = torch.tensor(base_features + lifecycle_features, dtype=torch.float32).unsqueeze(0)
+
+            # Create enhanced target for learning (success indicator with failure pattern weighting)
+            success_score = 1.0 if game_won or game_score > 50 else 0.0
+            # Reduce target score if high failure risk was detected but game still succeeded
+            if success_score > 0 and failure_risk_score > 0.7:
+                success_score *= 0.8  # Reduce success weight for risky success
+            learning_target = torch.tensor([success_score], dtype=torch.float32).unsqueeze(0)
+
+            # Process through EWC if available
+            if self.ewc:
+                await self.process_ewc_consolidation(learning_input, learning_target)
+
+            # Process through residual learning if available
+            if self.residual:
+                await self.process_residual_forward_pass(learning_input, learning_target)
+
+            # Process through ELM if available
+            if self.elm:
+                await self.process_elm_training(learning_input, learning_target)
+
+            # Process through ELM ensemble if available
+            if self.elm_ensemble:
+                await self.process_elm_ensemble_training(learning_input, learning_target)
+
+            # Update operation count and metrics
+            self.operation_count += 1
+
+            # Store enhanced performance metrics with lifecycle patterns
+            performance_metrics = {
+                'game_score': game_score,
+                'game_won': game_won,
+                'total_actions': total_actions,
+                'game_duration': game_duration,
+                'operation_count': self.operation_count,
+                'timestamp': learning_experience.get('timestamp'),
+                # Lifecycle pattern metrics
+                'failure_risk_score': failure_risk_score,
+                'oscillation_detected': oscillation_detected,
+                'action_effectiveness_count': len(action_effectiveness),
+                'avg_action_effectiveness': sum(action_effectiveness.values()) / max(len(action_effectiveness), 1)
+            }
+
+            self.performance_history.append(performance_metrics)
+
+            # Update enhanced learning metrics with lifecycle insights
+            self.learning_metrics.update({
+                'total_experiences_processed': self.operation_count,
+                'average_game_score': sum(exp['game_score'] for exp in self.performance_history) / len(self.performance_history),
+                'win_rate': sum(1 for exp in self.performance_history if exp['game_won']) / len(self.performance_history),
+                'average_failure_risk': sum(exp.get('failure_risk_score', 0) for exp in self.performance_history) / len(self.performance_history),
+                'oscillation_frequency': sum(1 for exp in self.performance_history if exp.get('oscillation_detected', False)) / len(self.performance_history),
+                'last_updated': performance_metrics['timestamp']
+            })
+
+            logger.info(f"Processed enhanced learning experience: score={game_score}, won={game_won}, "
+                       f"risk={failure_risk_score:.2f}, oscillation={oscillation_detected}, operations={self.operation_count}")
+
+        except Exception as e:
+            logger.warning(f"Failed to process learning experience: {e}")
+            raise
+
 
 # Factory function for easy creation
 def create_enhanced_learning_integration(

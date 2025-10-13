@@ -32,6 +32,8 @@ class TransferType(Enum):
     VISUAL_PATTERN = "visual_pattern"
     SPATIAL_REASONING = "spatial_reasoning"
     LOGICAL_REASONING = "logical_reasoning"
+    STRATEGY_PATTERN = "strategy_pattern"
+    FAILURE_AVOIDANCE = "failure_avoidance"
 
 class TransferConfidence(Enum):
     """Confidence levels for knowledge transfer."""
@@ -1032,6 +1034,247 @@ class EnhancedKnowledgeTransfer:
             
         except Exception as e:
             logger.error(f"Error cleaning up database knowledge: {e}")
+
+    async def update_knowledge_base(self, game_knowledge: Dict[str, Any]) -> None:
+        """Update the knowledge base with new game knowledge.
+        
+        Args:
+            game_knowledge: Dictionary containing knowledge from a completed game
+        """
+        try:
+            # Extract knowledge components
+            game_id = game_knowledge.get('game_id', 'unknown')
+            success_score = game_knowledge.get('success_score', 0.0)
+            strategies_used = game_knowledge.get('strategies_used', {})
+            performance_metrics = game_knowledge.get('performance_metrics', {})
+            
+            # Extract lifecycle pattern data if available
+            lifecycle_patterns = game_knowledge.get('lifecycle_patterns', {})
+            failure_risk_score = lifecycle_patterns.get('failure_risk_score', 0.0)
+            oscillation_patterns = lifecycle_patterns.get('oscillation_patterns', [])
+            action_effectiveness = lifecycle_patterns.get('action_effectiveness', {})
+
+            # Create transferable knowledge if the game was successful
+            if success_score > 30 or strategies_used.get('game_won', False):
+                knowledge_content = {
+                    'successful_strategies': strategies_used,
+                    'performance_metrics': performance_metrics,
+                    'success_score': success_score,
+                    'game_context': {
+                        'game_id': game_id,
+                        'hypotheses_used': strategies_used.get('hypotheses_count', 0),
+                        'action_efficiency': performance_metrics.get('efficiency', 0.0)
+                    },
+                    # Add lifecycle pattern insights for successful games
+                    'lifecycle_insights': {
+                        'failure_risk_avoided': failure_risk_score < 0.5,
+                        'oscillation_free': len(oscillation_patterns) == 0,
+                        'effective_actions': [action for action, eff in action_effectiveness.items() if eff > 0.7],
+                        'risk_mitigation_strategies': self._analyze_risk_mitigation(lifecycle_patterns, strategies_used)
+                    }
+                }
+
+                # Create transferable knowledge object
+                transferable_knowledge = TransferableKnowledge(
+                    knowledge_id=self._generate_knowledge_id(),
+                    source_game_id=game_id,
+                    knowledge_type=TransferType.STRATEGY_PATTERN,
+                    content=knowledge_content,
+                    confidence=TransferConfidence.HIGH if success_score > 70 else TransferConfidence.MEDIUM,
+                    applicability_conditions={
+                        'min_score_threshold': success_score * 0.7,
+                        'strategy_compatibility': strategies_used,
+                        'context_requirements': ['similar_mechanics', 'compatible_actions'],
+                        'lifecycle_requirements': {
+                            'max_acceptable_risk': failure_risk_score + 0.2,
+                            'oscillation_tolerance': len(oscillation_patterns)
+                        }
+                    },
+                    effectiveness_score=min(success_score / 100.0, 1.0),
+                    usage_count=0
+                )
+
+                # Add to knowledge base
+                self.add_knowledge(transferable_knowledge)
+
+                # Update game profile
+                self._update_game_profile(game_id, game_knowledge)
+
+                # Update statistics
+                self.stats['total_knowledge_items'] += 1
+                self.stats['successful_extractions'] += 1
+
+                logger.info(f"Updated knowledge base with successful strategy from game {game_id}")
+
+            # IMPORTANT: Also extract failure patterns for avoidance transfer
+            elif failure_risk_score > 0.6 or len(oscillation_patterns) > 0:
+                failure_knowledge_content = {
+                    'failure_patterns': {
+                        'failure_risk_score': failure_risk_score,
+                        'oscillation_patterns': oscillation_patterns,
+                        'ineffective_actions': [action for action, eff in action_effectiveness.items() if eff < 0.3],
+                        'failure_context': strategies_used,
+                        'failure_timing': performance_metrics.get('duration', 0.0)
+                    },
+                    'avoidance_strategies': {
+                        'risk_threshold': failure_risk_score - 0.1,  # Avoid when risk exceeds this
+                        'oscillation_warning_signs': oscillation_patterns[:3],  # First 3 patterns to watch for
+                        'alternative_actions': self._suggest_alternative_actions(action_effectiveness),
+                        'early_termination_signals': self._identify_early_warning_signals(lifecycle_patterns)
+                    }
+                }
+
+                # Create failure pattern knowledge for transfer
+                failure_knowledge = TransferableKnowledge(
+                    knowledge_id=self._generate_knowledge_id(),
+                    source_game_id=game_id,
+                    knowledge_type=TransferType.FAILURE_AVOIDANCE,
+                    content=failure_knowledge_content,
+                    confidence=TransferConfidence.HIGH if failure_risk_score > 0.8 else TransferConfidence.MEDIUM,
+                    applicability_conditions={
+                        'failure_risk_similarity': 0.3,  # Apply when risk patterns are 30% similar
+                        'context_requirements': ['similar_failure_modes', 'comparable_action_patterns'],
+                        'preventive_application': True  # This knowledge is for prevention, not replication
+                    },
+                    effectiveness_score=1.0 - min(success_score / 100.0, 1.0),  # Higher for more catastrophic failures
+                    usage_count=0
+                )
+
+                # Add failure pattern knowledge to knowledge base
+                self.add_knowledge(failure_knowledge)
+
+                # Update statistics for failure pattern extraction
+                self.stats['failure_patterns_extracted'] = self.stats.get('failure_patterns_extracted', 0) + 1
+                self.stats['total_knowledge_items'] += 1
+
+                logger.info(f"Extracted failure patterns from game {game_id} for avoidance transfer "
+                           f"(risk: {failure_risk_score:.2f}, oscillations: {len(oscillation_patterns)})")
+
+            else:
+                # Even games without clear success or failure patterns provide baseline learning value
+                self.stats['failed_extractions'] += 1
+                logger.info(f"Game {game_id} did not meet criteria for knowledge extraction (score: {success_score})")
+            
+            # Update overall statistics
+            self.stats['total_games_processed'] = self.stats.get('total_games_processed', 0) + 1
+            
+        except Exception as e:
+            logger.warning(f"Failed to update knowledge base: {e}")
+            raise
+
+    def _analyze_risk_mitigation(self, lifecycle_patterns: Dict[str, Any], strategies_used: Dict[str, Any]) -> List[str]:
+        """Analyze risk mitigation strategies from successful games."""
+        try:
+            mitigation_strategies = []
+            failure_risk_score = lifecycle_patterns.get('failure_risk_score', 0.0)
+            oscillation_patterns = lifecycle_patterns.get('oscillation_patterns', [])
+
+            # If successful game had low risk, identify why
+            if failure_risk_score < 0.3:
+                mitigation_strategies.append('maintained_low_risk_profile')
+
+            # If successful game avoided oscillations, identify strategy
+            if len(oscillation_patterns) == 0:
+                mitigation_strategies.append('avoided_action_oscillation')
+
+            # Analyze strategy patterns that led to risk mitigation
+            if strategies_used.get('hypotheses_count', 0) > 3:
+                mitigation_strategies.append('hypothesis_driven_approach')
+
+            return mitigation_strategies
+
+        except Exception:
+            return ['unknown_mitigation']
+
+    def _suggest_alternative_actions(self, action_effectiveness: Dict[str, float]) -> List[int]:
+        """Suggest alternative actions based on effectiveness patterns."""
+        try:
+            if not action_effectiveness:
+                return [1, 2, 3]  # Default fallback actions
+
+            # Sort actions by effectiveness (descending)
+            sorted_actions = sorted(action_effectiveness.items(), key=lambda x: x[1], reverse=True)
+
+            # Return top 3 most effective actions
+            return [int(action) for action, eff in sorted_actions[:3] if eff > 0.5]
+
+        except Exception:
+            return [1, 2, 3]  # Default fallback actions
+
+    def _identify_early_warning_signals(self, lifecycle_patterns: Dict[str, Any]) -> List[str]:
+        """Identify early warning signals that predict failure."""
+        try:
+            warning_signals = []
+
+            failure_risk_score = lifecycle_patterns.get('failure_risk_score', 0.0)
+            oscillation_patterns = lifecycle_patterns.get('oscillation_patterns', [])
+            action_effectiveness = lifecycle_patterns.get('action_effectiveness', {})
+
+            if failure_risk_score > 0.7:
+                warning_signals.append('high_failure_risk_detected')
+
+            if len(oscillation_patterns) > 2:
+                warning_signals.append('multiple_oscillation_patterns')
+
+            # Check for consistently ineffective actions
+            ineffective_actions = [action for action, eff in action_effectiveness.items() if eff < 0.3]
+            if len(ineffective_actions) > 3:
+                warning_signals.append('multiple_ineffective_actions')
+
+            return warning_signals
+
+        except Exception:
+            return ['unknown_warning_signals']
+
+    async def identify_transfer_opportunities(self, game_features: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Identify transfer opportunities for the given game features.
+        
+        Args:
+            game_features: Dictionary containing current game features
+            
+        Returns:
+            List of transfer opportunities with applicable knowledge
+        """
+        try:
+            opportunities = []
+            game_id = game_features.get('game_id', 'unknown')
+            
+            # Find applicable knowledge from the knowledge base
+            applicable_knowledge = self._find_applicable_knowledge(game_features)
+            
+            for knowledge in applicable_knowledge:
+                # Calculate transfer potential
+                transfer_potential = self._calculate_transfer_potential(knowledge, game_features)
+                
+                if transfer_potential > self.transfer_threshold:
+                    # Adapt knowledge to current context
+                    adapted_knowledge = self._adapt_knowledge_to_context(knowledge, game_features)
+                    
+                    opportunity = {
+                        'knowledge_id': knowledge.knowledge_id,
+                        'source_game': knowledge.source_game_id,
+                        'transfer_type': knowledge.knowledge_type,
+                        'transfer_potential': transfer_potential,
+                        'adapted_content': adapted_knowledge,
+                        'confidence': knowledge.confidence,
+                        'applicability_notes': self._generate_adaptation_notes(knowledge, game_features)
+                    }
+                    
+                    opportunities.append(opportunity)
+            
+            # Sort by transfer potential
+            opportunities.sort(key=lambda x: x['transfer_potential'], reverse=True)
+            
+            # Update statistics
+            self.stats['transfer_opportunities_identified'] = self.stats.get('transfer_opportunities_identified', 0) + len(opportunities)
+            
+            logger.info(f"Identified {len(opportunities)} transfer opportunities for game {game_id}")
+            
+            return opportunities[:5]  # Return top 5 opportunities
+            
+        except Exception as e:
+            logger.warning(f"Failed to identify transfer opportunities: {e}")
+            return []
 
 
 def create_enhanced_knowledge_transfer(persistence_dir: Optional[Path] = None,

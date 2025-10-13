@@ -447,7 +447,7 @@ class CoreGameplay:
         # Add knowledge integrator for compatibility
         self.knowledge_integrator = self._create_knowledge_integrator()
 
-    async def play_single_game(self, game_id: str, max_actions: int = 400) -> Dict[str, Any]:
+    async def play_single_game(self, game_id: str, max_actions: int = 400, hypothesis_context: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """Play a single game session using real ARC-AGI-3 API."""
         import time
         import uuid
@@ -766,7 +766,7 @@ class CoreGameplay:
                         try:
                             print(f"[AGENT] Triggering enhanced ACTION 6 object detection and pseudo-button analysis")
                             # Use enhanced Action 6 coordination with sync wrapper
-                            coords = self._get_enhanced_action6_coordinates_sync(frame, game_id, actions, current_score)
+                            coords = self._get_enhanced_action6_coordinates_sync(frame, game_id, actions, current_score, hypothesis_context)
                             print(f"[AGENT] Enhanced Action 6 selected coordinates: {coords}")
                             selected_action = "ACTION6"
                             # SAFETY: Ensure coordinate extraction always works
@@ -815,7 +815,7 @@ class CoreGameplay:
                     elif 6 in actions and self.enhanced_gameplay and hasattr(self.enhanced_gameplay, 'action6_coordinator'):
                         try:
                             # Use enhanced Action 6 coordination with sync wrapper
-                            coords = self._get_enhanced_action6_coordinates_sync(frame, game_id, actions, current_score)
+                            coords = self._get_enhanced_action6_coordinates_sync(frame, game_id, actions, current_score, hypothesis_context)
                             print(f"[AGENT] Enhanced Action 6 selected coordinates: {coords}")
                             selected_action = "ACTION6"
                             # SAFETY: Ensure coordinate extraction always works
@@ -985,6 +985,240 @@ class CoreGameplay:
                 return len(frame[0]) // 2, len(frame) // 2
             return 25, 25
 
+    async def get_lifecycle_aware_action_recommendation(self,
+                                                       frame: List[List[int]],
+                                                       available_actions: List[int],
+                                                       game_context: Dict[str, Any],
+                                                       action_count: int,
+                                                       recent_actions: List[int] = None) -> Dict[str, Any]:
+        """Get action recommendation with lifecycle pattern analysis and oscillation prevention."""
+        try:
+            # Import lifecycle analyzer if available (from train.py integration)
+            lifecycle_analyzer = getattr(self, '_lifecycle_analyzer', None)
+            if not lifecycle_analyzer:
+                # Try to get from session manager or create temporary instance
+                try:
+                    from src.analysis.game_lifecycle_analyzer import GameLifecycleAnalyzer
+                    lifecycle_analyzer = GameLifecycleAnalyzer()
+                    print("[LIFECYCLE] Created temporary lifecycle analyzer")
+                except ImportError:
+                    print("[LIFECYCLE] Lifecycle analyzer not available")
+                    return self._get_fallback_action_recommendation(available_actions)
+
+            # Prepare context for lifecycle analysis
+            game_type = self._classify_current_game_type(game_context)
+            current_score = game_context.get('current_score', 0.0)
+
+            # Calculate failure risk based on current state
+            failure_risk = lifecycle_analyzer.get_failure_risk(
+                game_type=game_type,
+                current_action_count=action_count,
+                recent_actions=recent_actions or []
+            )
+
+            print(f"[LIFECYCLE] Game type: {game_type}, Action count: {action_count}, Failure risk: {failure_risk:.2f}")
+
+            # Check if we need to switch strategies due to high failure risk
+            if failure_risk >= 0.7:  # High risk threshold
+                print(f"[LIFECYCLE] HIGH FAILURE RISK DETECTED: {failure_risk:.2f}")
+
+                # Get alternative strategy recommendation
+                strategy_recommendation = lifecycle_analyzer.get_alternative_strategy({
+                    'game_type': game_type,
+                    'current_action_count': action_count,
+                    'recent_score_change': game_context.get('recent_score_change', 0.0),
+                    'current_score': current_score
+                })
+
+                # Apply strategy change
+                recommended_action = self._apply_strategy_change(
+                    available_actions, strategy_recommendation, frame, game_context
+                )
+
+                return {
+                    'action': recommended_action,
+                    'reason': f'Strategy switch due to high failure risk ({failure_risk:.2f})',
+                    'strategy_type': strategy_recommendation['strategy_type'],
+                    'confidence': 0.8,
+                    'lifecycle_analysis': {
+                        'failure_risk': failure_risk,
+                        'strategy_switch_triggered': True,
+                        'original_strategy': strategy_recommendation
+                    }
+                }
+
+            # Check for action avoidance recommendations
+            action_avoidance_results = {}
+            for action in available_actions:
+                avoidance_check = lifecycle_analyzer.should_avoid_action(action, {
+                    'game_type': game_type,
+                    'current_action_count': action_count,
+                    'current_score': current_score
+                })
+
+                if avoidance_check['should_avoid']:
+                    action_avoidance_results[action] = avoidance_check
+                    print(f"[LIFECYCLE] Action {action} should be avoided: {avoidance_check['reason']}")
+
+            # Filter out actions that should be avoided
+            safe_actions = [action for action in available_actions
+                           if action not in action_avoidance_results]
+
+            if not safe_actions:
+                print("[LIFECYCLE] All actions flagged for avoidance, using least risky")
+                # Use the action with the lowest confidence avoidance recommendation
+                least_risky = min(action_avoidance_results.keys(),
+                                key=lambda a: action_avoidance_results[a]['confidence'])
+                safe_actions = [least_risky]
+
+            # Select best action from safe actions using existing logic
+            recommended_action = self._select_optimal_action_from_safe_list(
+                safe_actions, frame, game_context, failure_risk
+            )
+
+            # Detect oscillation patterns in recent actions
+            oscillation_detected = False
+            if recent_actions and len(recent_actions) >= 6:
+                # Simple oscillation detection: look for ABAB or ABCABC patterns
+                if (len(set(recent_actions[-4:])) <= 2 and
+                    recent_actions[-1] == recent_actions[-3] and
+                    recent_actions[-2] == recent_actions[-4]):
+                    oscillation_detected = True
+                    print(f"[LIFECYCLE] Oscillation detected in recent actions: {recent_actions[-6:]}")
+
+            return {
+                'action': recommended_action,
+                'reason': 'Lifecycle-aware selection with risk mitigation',
+                'confidence': 0.9 - (failure_risk * 0.3),  # Reduce confidence with higher risk
+                'lifecycle_analysis': {
+                    'failure_risk': failure_risk,
+                    'strategy_switch_triggered': False,
+                    'actions_avoided': list(action_avoidance_results.keys()),
+                    'oscillation_detected': oscillation_detected,
+                    'safe_actions': safe_actions
+                }
+            }
+
+        except Exception as e:
+            logger.warning(f"Lifecycle-aware action recommendation failed: {e}")
+            print(f"[LIFECYCLE] Error in lifecycle analysis: {e}")
+            return self._get_fallback_action_recommendation(available_actions)
+
+    def _classify_current_game_type(self, game_context: Dict[str, Any]) -> str:
+        """Classify current game type for lifecycle analysis."""
+        try:
+            # Simple classification based on available context
+            game_id = game_context.get('game_id', 'unknown')
+            current_score = game_context.get('current_score', 0.0)
+            available_actions = game_context.get('available_actions', [])
+
+            if len(available_actions) == 1 and 6 in available_actions:
+                return 'action6_only'
+            elif current_score > 100:
+                return 'high_scoring'
+            elif 'action6' in game_id.lower():
+                return 'action6_intensive'
+            else:
+                return 'multi_action'
+
+        except Exception:
+            return 'unknown'
+
+    def _apply_strategy_change(self, available_actions: List[int],
+                              strategy_recommendation: Dict[str, Any],
+                              frame: List[List[int]],
+                              game_context: Dict[str, Any]) -> int:
+        """Apply strategy change based on lifecycle recommendation."""
+        try:
+            strategy_type = strategy_recommendation.get('strategy_type', 'exploration')
+            parameters = strategy_recommendation.get('parameters', {})
+
+            if strategy_type == 'exploration' and len(available_actions) > 1:
+                # Choose least used action for exploration
+                return self._select_exploration_action(available_actions)
+            elif strategy_type == 'conservative':
+                # Choose safest action (usually ACTION1 or most common successful action)
+                return available_actions[0] if available_actions else 1
+            elif strategy_type == 'aggressive' and 6 in available_actions:
+                # Choose ACTION6 for aggressive approach
+                return 6
+            else:
+                # Hybrid approach - balance exploration and exploitation
+                return self._select_balanced_action(available_actions, frame)
+
+        except Exception:
+            return available_actions[0] if available_actions else 1
+
+    def _select_optimal_action_from_safe_list(self, safe_actions: List[int],
+                                            frame: List[List[int]],
+                                            game_context: Dict[str, Any],
+                                            failure_risk: float) -> int:
+        """Select optimal action from lifecycle-filtered safe actions."""
+        try:
+            if not safe_actions:
+                return 1  # Default fallback
+
+            # If low risk, prefer ACTION6 if available for maximum progress
+            if failure_risk < 0.3 and 6 in safe_actions:
+                return 6
+
+            # If moderate risk, prefer exploration actions
+            elif failure_risk < 0.6:
+                exploration_actions = [a for a in safe_actions if a in [1, 2, 3, 4]]
+                if exploration_actions:
+                    return exploration_actions[0]
+
+            # High risk (but below critical threshold) - conservative approach
+            return safe_actions[0]
+
+        except Exception:
+            return safe_actions[0] if safe_actions else 1
+
+    def _select_exploration_action(self, available_actions: List[int]) -> int:
+        """Select action for exploration strategy."""
+        # Prefer directional actions for exploration
+        exploration_priorities = [1, 2, 3, 4, 6, 5, 7]
+        for action in exploration_priorities:
+            if action in available_actions:
+                return action
+        return available_actions[0]
+
+    def _select_balanced_action(self, available_actions: List[int], frame: List[List[int]]) -> int:
+        """Select action using balanced approach."""
+        try:
+            # Use existing frame analysis if available
+            if hasattr(self, '_analyze_frame_for_action_selection'):
+                action_decision = self._analyze_frame_for_action_selection(frame, available_actions, {})
+                if action_decision and action_decision.replace('ACTION', '').isdigit():
+                    recommended_action = int(action_decision.replace('ACTION', ''))
+                    if recommended_action in available_actions:
+                        return recommended_action
+
+            # Default balanced selection
+            if 6 in available_actions:
+                return 6
+            elif len(available_actions) > 1:
+                return available_actions[1]  # Second action for variety
+            else:
+                return available_actions[0]
+
+        except Exception:
+            return available_actions[0] if available_actions else 1
+
+    def _get_fallback_action_recommendation(self, available_actions: List[int]) -> Dict[str, Any]:
+        """Get fallback action recommendation when lifecycle analysis fails."""
+        action = available_actions[0] if available_actions else 1
+        return {
+            'action': action,
+            'reason': 'Fallback selection - lifecycle analysis unavailable',
+            'confidence': 0.5,
+            'lifecycle_analysis': {
+                'failure_risk': 0.5,
+                'strategy_switch_triggered': False,
+                'actions_avoided': [],
+                'oscillation_detected': False
+            }
+        }
 
     def _get_diversified_action6_coordinates(self, frame: List[List[int]], game_id: str, action_count: int) -> Tuple[int, int]:
         """Get diversified ACTION6 coordinates to break stagnation patterns."""
@@ -1169,9 +1403,32 @@ class CoreGameplay:
             return 12, 12  # Safe fallback  # Safe fallback
 
     def _get_enhanced_action6_coordinates_sync(self, frame: List[List[int]], game_id: str,
-                                             actions: List[int], current_score: int) -> Tuple[int, int]:
+                                             actions: List[int], current_score: int,
+                                             hypothesis_context: Optional[List[Dict[str, Any]]] = None) -> Tuple[int, int]:
         """Get enhanced Action 6 coordinates using the enhanced coordinator with exploration."""
         try:
+            # Check for hypothesis-guided coordinates first
+            if hypothesis_context:
+                try:
+                    print(f"[HYPOTHESIS] Using hypothesis-guided coordinate selection")
+                    for i, hypothesis in enumerate(hypothesis_context[:3]):  # Use top 3 hypotheses
+                        if hypothesis.get('hypothesis_type') == 'coordinate_sequence':
+                            hypothesis_data = hypothesis.get('hypothesis_data', {})
+                            if isinstance(hypothesis_data, str):
+                                import json
+                                hypothesis_data = json.loads(hypothesis_data)
+
+                            predicted_coords = hypothesis_data.get('predicted_coordinates')
+                            if predicted_coords and len(predicted_coords) >= 2:
+                                x, y = predicted_coords[0], predicted_coords[1]
+                                # Validate coordinates are within reasonable bounds
+                                if 0 <= x <= 60 and 0 <= y <= 60:
+                                    print(f"[HYPOTHESIS] Using hypothesis {i+1} coordinates: ({x}, {y})")
+                                    print(f"[HYPOTHESIS] Reasoning: {hypothesis.get('reasoning', 'No reasoning provided')[:100]}...")
+                                    return x, y
+                except Exception as e:
+                    print(f"[HYPOTHESIS] Error processing hypothesis context: {e}")
+
             if not self.enhanced_gameplay or not hasattr(self.enhanced_gameplay, 'action6_coordinator'):
                 print(f"[ENHANCED] No action6_coordinator available, using fallback")
                 return self._get_sync_action6_coordinates(frame, game_id)
@@ -1953,6 +2210,26 @@ class CoreGameplay:
             'pattern_learning': True,
             'knowledge_extraction': True
         }
+
+    async def get_current_screenshot(self) -> Optional[Dict[str, Any]]:
+        """Get current screenshot from the game session for analysis.
+
+        Note: Screenshots are only available during active gameplay through the ARC API.
+        This method returns None before gameplay starts, which is expected behavior.
+
+        Returns:
+            None - Screenshots are provided by the ARC API during gameplay
+        """
+        try:
+            logger.info("Screenshot not available before gameplay - will be provided during game loop")
+
+            # Screenshots come from the ARC API during the actual game loop
+            # They are not available before the game starts
+            return None
+
+        except Exception as e:
+            logger.warning(f"Failed to get current screenshot: {e}")
+            return None
 
 
 class CoreGameDatabase:
