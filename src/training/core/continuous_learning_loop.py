@@ -1155,26 +1155,9 @@ class ContinuousLearningLoop:
     def _choose_smart_action(self, available_actions: List[int], game_response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Choose a smart action based on available actions and game state."""
         try:
-            # Prefer simple actions first (1-5, 7)
-            simple_actions = [1, 2, 3, 4, 5, 7]
-            for action in simple_actions:
-                if action in available_actions:
-                    return {'id': action}
-            
-            # If ACTION6 is available, use it with smart targeting
-            if 6 in available_actions:
-                # Analyze frame for targeting
-                frame_data = game_response.frame
-                if frame_data is not None and len(frame_data) > 0:
-                    target = self._find_target_coordinates(frame_data[0])
-                    if target:
-                        return {
-                            'id': 6,
-                            'x': target[0],
-                            'y': target[1]
-                        }
-            
-            return None
+            # Use the enhanced smart action selector
+            from src.training.action_selection.smart_action_selector import choose_smart_action
+            return choose_smart_action(available_actions, game_response)
             
         except Exception as e:
             logger.error(f"Error choosing action: {e}")

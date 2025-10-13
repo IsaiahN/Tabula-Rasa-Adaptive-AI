@@ -101,7 +101,7 @@ class PseudoButtonDetector:
         for y in range(1, height - 1, 3):  # Sample every 3 pixels for efficiency
             for x in range(1, width - 1, 3):
                 # Check for potential rectangular button boundaries
-                current = frame[y][x]
+                current = self._extract_cell_value(frame[y][x])
 
                 # Look for edge patterns (significant color changes)
                 edges = 0
@@ -111,7 +111,7 @@ class PseudoButtonDetector:
                 ]
 
                 for neighbor in neighbors:
-                    if abs(current - neighbor) > 30:  # Threshold for edge detection
+                    if abs(current - self._extract_cell_value(neighbor)) > 30:  # Threshold for edge detection
                         edges += 1
 
                 # If we found strong edges, this might be a button corner/edge
@@ -136,7 +136,7 @@ class PseudoButtonDetector:
                 for dy in range(-2, 3):
                     for dx in range(-2, 3):
                         if 0 <= y + dy < height and 0 <= x + dx < width:
-                            region_values.append(frame[y + dy][x + dx])
+                            region_values.append(self._extract_cell_value(frame[y + dy][x + dx]))
 
                 if len(region_values) > 0:
                     avg_value = sum(region_values) / len(region_values)
@@ -169,19 +169,19 @@ class PseudoButtonDetector:
                     continue
 
                 # Check if region has button-like characteristics
-                center_value = frame[y + region_size//2][x + region_size//2]
+                center_value = self._extract_cell_value(frame[y + region_size//2][x + region_size//2])
                 edge_values = []
 
                 # Sample edge pixels
                 for i in range(region_size):
                     if y + i < height and x < width:
-                        edge_values.append(frame[y + i][x])  # Left edge
+                        edge_values.append(self._extract_cell_value(frame[y + i][x]))  # Left edge
                     if y + i < height and x + region_size - 1 < width:
-                        edge_values.append(frame[y + i][x + region_size - 1])  # Right edge
+                        edge_values.append(self._extract_cell_value(frame[y + i][x + region_size - 1]))  # Right edge
                     if y < height and x + i < width:
-                        edge_values.append(frame[y][x + i])  # Top edge
+                        edge_values.append(self._extract_cell_value(frame[y][x + i]))  # Top edge
                     if y + region_size - 1 < height and x + i < width:
-                        edge_values.append(frame[y + region_size - 1][x + i])  # Bottom edge
+                        edge_values.append(self._extract_cell_value(frame[y + region_size - 1][x + i]))  # Bottom edge
 
                 if edge_values:
                     avg_edge = sum(edge_values) / len(edge_values)
@@ -245,13 +245,13 @@ class PseudoButtonDetector:
             return None
 
         # Analyze uniformity and edges in the region
-        center_val = frame[y][x]
+        center_val = self._extract_cell_value(frame[y][x])
         uniform_count = 0
         edge_strength = 0
 
         for dy in range(-region_size//2, region_size//2 + 1):
             for dx in range(-region_size//2, region_size//2 + 1):
-                val = frame[y + dy][x + dx]
+                val = self._extract_cell_value(frame[y + dy][x + dx])
 
                 # Check uniformity (similar values indicate button interior)
                 if abs(val - center_val) < 20:
@@ -296,7 +296,7 @@ class PseudoButtonDetector:
         for dy in range(-cell_height//6, cell_height//6 + 1):
             for dx in range(-cell_width//6, cell_width//6 + 1):
                 if (0 <= center_y + dy < height and 0 <= center_x + dx < width):
-                    center_samples.append(frame[center_y + dy][center_x + dx])
+                    center_samples.append(self._extract_cell_value(frame[center_y + dy][center_x + dx]))
 
         # Sample edge regions
         edge_offsets = [
@@ -306,7 +306,7 @@ class PseudoButtonDetector:
 
         for dy, dx in edge_offsets:
             if (0 <= center_y + dy < height and 0 <= center_x + dx < width):
-                edge_samples.append(frame[center_y + dy][center_x + dx])
+                edge_samples.append(self._extract_cell_value(frame[center_y + dy][center_x + dx]))
 
         if not center_samples or not edge_samples:
             return False
@@ -395,16 +395,7 @@ class PseudoButtonDetector:
         }
 
     def _extract_cell_value(self, cell) -> int:
-        """Extract numeric value from cell (handles different formats from ARC API).
-
-        The cell can be:
-        - An integer/float
-        - A list/tuple containing numeric values
-        - A string representation of a number
-        - Any other type (returns 0)
-
-        Always returns an integer value that is safe for arithmetic operations.
-        """
+        """Extract numeric value from cell (handles different formats from ARC API)."""
         try:
             if isinstance(cell, (int, float)):
                 return int(cell)
@@ -417,7 +408,7 @@ class PseudoButtonDetector:
             elif isinstance(cell, str):
                 # Try to parse integer-like strings
                 try:
-                    return int(float(cell))  # Handle both "123" and "123.45"
+                    return int(cell)
                 except Exception:
                     return 0
             else:
