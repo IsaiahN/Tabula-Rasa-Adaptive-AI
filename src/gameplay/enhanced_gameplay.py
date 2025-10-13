@@ -9,14 +9,18 @@ Features:
 - Integration with existing vision and database systems
 - Backward compatibility with existing train.py imports
 """
+import sys
+sys.dont_write_bytecode = True
 
 import logging
-import sys
 import os
 import time
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, TYPE_CHECKING, Union
 import asyncio
 from collections import deque
+
+if TYPE_CHECKING:
+    from src.analysis.game_lifecycle_analyzer import GameLifecycleAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -444,8 +448,10 @@ class CoreGameplay:
         self.enhanced_gameplay = self.session_manager.enhanced_gameplay
         # Add compatibility flags
         self.ai_available = True
-        # Add knowledge integrator for compatibility
+        # Add knowledge integrator for compatibility 
         self.knowledge_integrator = self._create_knowledge_integrator()
+        # Initialize lifecycle analyzer
+        self.set_lifecycle_analyzer()
 
     async def play_single_game(self, game_id: str, max_actions: int = 400, hypothesis_context: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """Play a single game session using real ARC-AGI-3 API."""
@@ -970,6 +976,22 @@ class CoreGameplay:
                 'session_id': session_id,
                 'error': error_msg
             }
+
+    def set_lifecycle_analyzer(self, analyzer: Union['GameLifecycleAnalyzer', None] = None) -> None:
+        """Set the lifecycle analyzer instance.
+
+        Args:
+            analyzer: Optional GameLifecycleAnalyzer instance. If None, will create a new one.
+        """
+        if analyzer is None:
+            try:
+                from src.analysis.game_lifecycle_analyzer import GameLifecycleAnalyzer
+                self._lifecycle_analyzer = GameLifecycleAnalyzer()
+            except ImportError:
+                logger.warning("Could not create GameLifecycleAnalyzer - features will be limited")
+                self._lifecycle_analyzer = None
+        else:
+            self._lifecycle_analyzer = analyzer
 
     async def execute_enhanced_action6(self, frame: List[List[int]],
                                      game_id: str,
@@ -1940,10 +1962,10 @@ class CoreGameplay:
             return 0
 
     def _capture_frame_for_visualization(self, game_id: str, session_id: str, action_number: int,
-                                   frame: List[List[int]], action_taken: str = None,
-                                   action_x: int = None, action_y: int = None,
+                                   frame: List[List[int]], action_taken: Optional[str] = None,
+                                   action_x: Optional[int] = None, action_y: Optional[int] = None,
                                    score_before: int = 0, score_after: int = 0,
-                                   available_actions: List[int] = None):
+                                   available_actions: Optional[List[int]] = None):
         """Capture frame data for visualization without affecting game performance."""
         print(f"[CAPTURE] Called for action {action_number}, session {session_id}")
         try:

@@ -15,7 +15,7 @@ Features:
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 import json
 from datetime import datetime
 
@@ -233,7 +233,7 @@ class PseudoButtonDetector:
 
         return buttons
 
-    def _analyze_potential_button_region(self, frame: List[List[int]], x: int, y: int) -> Dict[str, Any]:
+    def _analyze_potential_button_region(self, frame: List[List[int]], x: int, y: int) -> Optional[Dict[str, Any]]:
         """Analyze a region to determine if it's a button."""
         height, width = len(frame), len(frame[0])
 
@@ -344,17 +344,18 @@ class PseudoButtonDetector:
         return unique_buttons
 
     def calculate_frame_differences(self, frame_before: List[List[int]],
-                                   frame_after: List[List[int]]) -> Dict[str, float]:
+                                   frame_after: List[List[int]]) -> Dict[str, Union[float, int]]:
         """Calculate various metrics for frame differences."""
         if not frame_before or not frame_after:
-            return {'total_diff': 0.0, 'significant_changes': 0.0, 'change_ratio': 0.0}
+            return {'total_diff': 0.0, 'significant_changes': 0.0, 'change_ratio': 0.0, 'avg_diff': 0.0, 'total_pixels': 0}
 
+        # Normalize dimensions to the overlap region
         height = min(len(frame_before), len(frame_after))
-        width = min(len(frame_before[0]) if frame_before else 0,
-                   len(frame_after[0]) if frame_after else 0)
+        width = min(len(frame_before[0]) if frame_before and frame_before[0] else 0,
+                    len(frame_after[0]) if frame_after and frame_after[0] else 0)
 
         if height == 0 or width == 0:
-            return {'total_diff': 0.0, 'significant_changes': 0.0, 'change_ratio': 0.0}
+            return {'total_diff': 0.0, 'significant_changes': 0.0, 'change_ratio': 0.0, 'avg_diff': 0.0, 'total_pixels': 0}
 
         total_diff = 0.0
         significant_changes = 0
@@ -363,15 +364,26 @@ class PseudoButtonDetector:
 
         for y in range(height):
             for x in range(width):
-                # SAFETY: Extract numeric values from cells (handle list/int formats)
-                cell_before = frame_before[y][x]
-                cell_after = frame_after[y][x]
+                try:
+                    # SAFETY: Extract numeric values from cells (handle list/int formats)
+                    cell_before = frame_before[y][x]
+                    cell_after = frame_after[y][x]
 
-                # Convert to numeric values if needed
-                value_before = self._extract_cell_value(cell_before)
-                value_after = self._extract_cell_value(cell_after)
+                    # Handle lists of values (e.g., RGB values)
+                    if isinstance(cell_before, list) and isinstance(cell_after, list):
+                        # If they're both lists, compare their first elements if they exist
+                        value_before = cell_before[0] if cell_before else 0
+                        value_after = cell_after[0] if cell_after else 0
+                    else:
+                        # Otherwise use the extract cell value helper
+                        value_before = self._extract_cell_value(cell_before)
+                        value_after = self._extract_cell_value(cell_after)
 
-                diff = abs(value_before - value_after)
+                    diff = abs(value_before - value_after)
+                except (TypeError, IndexError, ValueError) as e:
+                    logger.debug(f"Error calculating frame difference at ({x}, {y}): {e}")
+                    diff = 0
+
                 total_diff += diff
 
                 if diff > threshold:
@@ -379,11 +391,14 @@ class PseudoButtonDetector:
 
         self.stats['frame_analyses_performed'] += 1
 
+        avg_diff = (total_diff / total_pixels) if total_pixels > 0 else 0.0
+        change_ratio = (significant_changes / total_pixels) if total_pixels > 0 else 0.0
+
         return {
             'total_diff': total_diff,
-            'avg_diff': total_diff / total_pixels,
+            'avg_diff': avg_diff,
             'significant_changes': significant_changes,
-            'change_ratio': significant_changes / total_pixels,
+            'change_ratio': change_ratio,
             'total_pixels': total_pixels
         }
 
@@ -393,8 +408,17 @@ class PseudoButtonDetector:
             if isinstance(cell, (int, float)):
                 return int(cell)
             elif isinstance(cell, (list, tuple)) and len(cell) > 0:
-                # Extract first element if it's a list/tuple
-                return int(cell[0]) if isinstance(cell[0], (int, float)) else 0
+                # Extract first numeric element if present
+                for el in cell:
+                    if isinstance(el, (int, float)):
+                        return int(el)
+                return 0
+            elif isinstance(cell, str):
+                # Try to parse integer-like strings
+                try:
+                    return int(cell)
+                except Exception:
+                    return 0
             else:
                 return 0
         except (ValueError, TypeError, IndexError):
@@ -451,7 +475,7 @@ class PseudoButtonDetector:
         else:
             return "no_significant_changes"
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> Dict[str, Union[int, float]]:
         """Get statistics about button detection performance."""
         return {
             'detection_sessions': self.stats['detection_sessions'],

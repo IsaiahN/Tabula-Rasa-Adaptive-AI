@@ -136,6 +136,24 @@ class TabulaRasaDatabase:
         
         with sqlite3.connect(self.db_path) as conn:
             conn.executescript(schema_sql)
+            
+            # Run migrations
+            migrations_dir = Path(__file__).parent / "migrations"
+            if migrations_dir.exists():
+                for migration_file in sorted(migrations_dir.glob("*.py")):
+                    if migration_file.name != "__init__.py":
+                        # Import and run migration
+                        import importlib.util
+                        spec = importlib.util.spec_from_file_location(
+                            migration_file.stem, str(migration_file))
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+                        
+                        # Get create tables function
+                        create_tables_fn = getattr(module, "create_" + migration_file.stem, None)
+                        if create_tables_fn:
+                            create_tables_fn(conn)
+            
             conn.commit()
     
     @asynccontextmanager

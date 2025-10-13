@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class Action6Coordinator:
     """Enhanced coordinator for Action 6 with pseudo-button detection."""
 
-    def __init__(self, db_interface=None, vision_detector=None):
+    def __init__(self, db_interface: Optional[Any] = None, vision_detector: Optional[Any] = None):
         """Initialize the Action 6 coordinator.
 
         Args:
@@ -55,7 +55,7 @@ class Action6Coordinator:
         # ENHANCED: Initialize cross-game transfer learning system
         self.transfer_learning = get_transfer_learning_system()
 
-    def _initialize_penalty_system(self):
+    def _initialize_penalty_system(self) -> None:
         """Initialize the penalty decay system for enhanced coordinate selection."""
         try:
             from src.core.penalty_decay_system import get_penalty_decay_system
@@ -65,7 +65,7 @@ class Action6Coordinator:
             logger.warning(f"Could not initialize penalty decay system: {e}")
             self.penalty_system = None
 
-    async def _ensure_penalty_system_ready(self):
+    async def _ensure_penalty_system_ready(self) -> None:
         """Ensure penalty system is ready for use."""
         if self.penalty_system and not hasattr(self.penalty_system, '_tables_initialized'):
             await self.penalty_system.initialize()
@@ -311,8 +311,24 @@ class Action6Coordinator:
             if frame:
                 for row in frame:
                     for cell in row:
-                        if cell != 0:  # Non-background color
-                            color_palette.add(cell)
+                        # Normalize cell value to a scalar for hashing
+                        scalar_val = None
+                        if isinstance(cell, (int, float)):
+                            scalar_val = int(cell)
+                        elif isinstance(cell, (list, tuple)) and len(cell) > 0:
+                            # pick first numeric element as representative
+                            for el in cell:
+                                if isinstance(el, (int, float)):
+                                    scalar_val = int(el)
+                                    break
+                        elif isinstance(cell, str):
+                            try:
+                                scalar_val = int(cell)
+                            except Exception:
+                                scalar_val = None
+
+                        if scalar_val and scalar_val != 0:
+                            color_palette.add(scalar_val)
                             object_count += 1
             
             # Calculate complexity score
@@ -647,7 +663,7 @@ class Action6Coordinator:
         logger.debug(f"Found {len(untried)} untried pseudo-buttons out of {len(all_candidates)} total candidates")
         return untried
 
-    def _record_pseudo_button_attempt(self, coordinates: Tuple[int, int], game_id: str):
+    def _record_pseudo_button_attempt(self, coordinates: Tuple[int, int], game_id: str) -> None:
         """Record that we tried a specific pseudo-button."""
         session = self._get_or_create_session(game_id)
         if coordinates not in session['tried_pseudo_buttons']:
@@ -656,7 +672,7 @@ class Action6Coordinator:
             logger.debug(f"Recorded attempt of pseudo-button {coordinates} for game {game_id}")
 
     def _record_pseudo_button_effect(self, coordinates: Tuple[int, int], game_id: str,
-                                   effect_description: str, effectiveness: Dict[str, Any]):
+                                   effect_description: str, effectiveness: Dict[str, Any]) -> None:
         """Record what effect a pseudo-button had when clicked."""
         session = self._get_or_create_session(game_id)
         session['pseudo_button_effects'][coordinates] = {
@@ -1117,7 +1133,7 @@ class Action6Coordinator:
         return x, y
 
     async def _store_pseudo_button_learning(self, game_id: str, coordinates: Tuple[int, int],
-                                          effect_description: str, effectiveness: Dict[str, Any]):
+                                          effect_description: str, effectiveness: Dict[str, Any]) -> None:
         """Store pseudo-button learning data in database for persistence."""
         try:
             if not self.db_interface or not hasattr(self.db_interface, 'execute_query'):

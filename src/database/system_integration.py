@@ -948,11 +948,38 @@ class SystemIntegration:
             self.logger.error(f"Error getting governor decisions: {e}")
             return []
 
-    # ============================================================================
-    # CLEANUP AND DATA INTEGRITY METHODS
-    # ============================================================================
+# ============================================================================
+# SUBSYSTEM METRICS METHODS
+# ============================================================================
 
-    async def flush_pending_writes(self) -> bool:
+    async def store_subsystem_metrics(self, subsystem_id: str, metrics_data: Dict[str, Any]) -> bool:
+        """Store metrics for a subsystem in the database."""
+        from .subsystem_metrics import store_subsystem_metrics
+        return await store_subsystem_metrics(self.db, subsystem_id, metrics_data)
+
+    async def get_subsystem_metrics(self, subsystem_id: str) -> Optional[Dict[str, Any]]:
+        """Get the latest metrics for a subsystem."""
+        from .subsystem_metrics import get_subsystem_metrics
+        return await get_subsystem_metrics(self.db, subsystem_id)
+
+    async def get_subsystem_metrics_history(self, subsystem_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get historical metrics for a subsystem."""
+        from .subsystem_metrics import get_subsystem_metrics_history
+        return await get_subsystem_metrics_history(self.db, subsystem_id, limit)
+
+    async def store_subsystem_config(self, subsystem_id: str, config_data: Dict[str, Any]) -> bool:
+        """Store configuration for a subsystem."""
+        from .subsystem_metrics import store_subsystem_config
+        return await store_subsystem_config(self.db, subsystem_id, config_data)
+
+    async def get_subsystem_config(self, subsystem_id: str) -> Optional[Dict[str, Any]]:
+        """Get configuration for a subsystem."""
+        from .subsystem_metrics import get_subsystem_config
+        return await get_subsystem_config(self.db, subsystem_id)
+
+# ============================================================================
+# CLEANUP AND DATA INTEGRITY METHODS
+# ============================================================================    async def flush_pending_writes(self) -> bool:
         """Ensure all pending database writes are completed."""
         try:
             # The database should auto-commit, but let's ensure everything is saved
@@ -1054,13 +1081,9 @@ async def store_subsystem_metrics(metrics_data: Dict[str, Any]) -> bool:
     """Store subsystem metrics in the database."""
     integration = get_system_integration()
     try:
-        # Store in a dedicated subsystem_metrics table
-        # This would be implemented in the database API
-        await integration.db.log_system_event(
-            LogLevel.INFO, Component.SUBSYSTEM_MONITOR, 
-            f"Stored metrics for subsystem {metrics_data.get('subsystem_id', 'unknown')}",
-            metrics_data, metrics_data.get('subsystem_id', 'unknown')
-        )
+        subsystem_id = metrics_data.get('subsystem_id', 'unknown')
+        # Use dedicated subsystem_metrics handler
+        await integration.store_subsystem_metrics(subsystem_id, metrics_data)
         return True
     except Exception as e:
         print(f"Failed to store subsystem metrics: {e}")
@@ -1085,11 +1108,12 @@ async def store_subsystem_alerts(subsystem_id: str, alerts: List[Dict[str, Any]]
     integration = get_system_integration()
     try:
         for alert in alerts:
-            await integration.db.log_system_event(
+            await integration.log_system_event(
                 LogLevel.WARNING if alert.get('severity') == 'warning' else LogLevel.ERROR,
                 Component.SUBSYSTEM_MONITOR,
                 f"Subsystem {subsystem_id} alert: {alert.get('message', 'Unknown alert')}",
-                alert, subsystem_id
+                alert,
+                session_id=subsystem_id
             )
         return True
     except Exception as e:
@@ -1107,13 +1131,11 @@ async def get_subsystem_config(subsystem_id: str) -> Optional[Dict[str, Any]]:
         print(f"Failed to get subsystem config: {e}")
         return None
 
-async def get_subsystem_metrics_history(subsystem_id: str, hours: int = 24) -> List[Dict[str, Any]]:
-    """Get subsystem metrics history from the database."""
+async def get_subsystem_metrics_history(subsystem_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+    """Get historical metrics for a subsystem."""
     integration = get_system_integration()
     try:
-        # This would query the database for historical metrics
-        # For now, return empty list
-        return []
+        return await integration.get_subsystem_metrics_history(subsystem_id, limit)
     except Exception as e:
         print(f"Failed to get subsystem metrics history: {e}")
         return []
@@ -1134,7 +1156,7 @@ async def get_subsystem_alerts(subsystem_id: str, hours: int = 24) -> List[Dict[
 # CONVENIENCE FUNCTIONS  
 # ============================================================================
 
-async def log_event(level: str, component: str, message: str, **kwargs):
+async def log_event(level: LogLevel, component: Component, message: str, **kwargs):
     """Quick log event function."""
     integration = get_system_integration()
     return await integration.log_system_event(level, component, message, **kwargs)

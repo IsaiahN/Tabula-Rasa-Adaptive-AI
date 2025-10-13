@@ -25,6 +25,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
+from colorama import init as colorama_init, Fore, Style
 
 # Load environment variables from .env file
 try:
@@ -115,7 +116,7 @@ if not AI_ENHANCED_AVAILABLE:
     except ImportError:
         print("[ERROR] No training system available")
 
-class DatabaseLogHandler(logging.Handler):
+class DatabaseLogHandler(logging.StreamHandler):
     """Custom logging handler that stores logs in database instead of files."""
 
     def __init__(self, db_interface):
@@ -125,6 +126,9 @@ class DatabaseLogHandler(logging.Handler):
     def emit(self, record):
         """Store log record in database."""
         try:
+            # Also call parent's emit for console logging
+            super().emit(record)
+            
             log_data = {
                 'timestamp': datetime.fromtimestamp(record.created).isoformat(),
                 'level': record.levelname,
@@ -174,9 +178,46 @@ def setup_database_logging(db_interface=None):
         except Exception as e:
             print(f"[WARNING] Database logging failed, using console only: {e}")
 
+    # Initialize colorama for Windows terminal color support
+    try:
+        colorama_init(autoreset=True)
+    except Exception:
+        pass
+
+    class ColoredFormatter(logging.Formatter):
+        LEVEL_COLOR = {
+            'ERROR': Fore.RED,
+            'CRITICAL': Fore.RED + Style.BRIGHT,
+            'WARNING': Fore.YELLOW,
+            'INFO': Fore.GREEN,
+            'DEBUG': Fore.CYAN
+        }
+
+        def format(self, record):
+            color = self.LEVEL_COLOR.get(record.levelname, '')
+            msg = super().format(record)
+            if record.levelname in ('ERROR', 'CRITICAL'):
+                return f"{Fore.RED}{msg}{Style.RESET_ALL}"
+            if record.levelname == 'WARNING':
+                return f"{Fore.YELLOW}{msg}{Style.RESET_ALL}"
+            return msg
+
+    formatter = ColoredFormatter('%(asctime)s - %(levelname)s - %(message)s')
+
+    # Configure stream handler to use colored formatter
+    stream = logging.StreamHandler()
+    stream.setFormatter(formatter)
+    handlers = [stream]
+
+    if db_interface:
+        try:
+            handlers.append(DatabaseLogHandler(db_interface))
+            print("[OK] Database logging enabled")
+        except Exception as e:
+            print(f"[WARNING] Database logging failed, using console only: {e}")
+
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=handlers,
         force=True  # Override any existing configuration
     )

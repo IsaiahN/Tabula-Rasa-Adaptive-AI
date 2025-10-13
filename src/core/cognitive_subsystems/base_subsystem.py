@@ -221,7 +221,7 @@ class BaseCognitiveSubsystem(ABC):
             )
             
             # Store in database
-            await self.integration.store_subsystem_metrics(subsystem_metrics.to_dict())
+            await self.integration.store_subsystem_metrics(self.subsystem_id, subsystem_metrics.to_dict())
             
             # Update local state
             self.health = health
@@ -238,6 +238,56 @@ class BaseCognitiveSubsystem(ABC):
         except Exception as e:
             logger.error(f"Error collecting metrics for {self.subsystem_id}: {e}")
             self.failed_operations += 1
+
+    def update_metrics(self, metrics: Dict[str, Any]) -> None:
+        """
+        Compatibility shim to accept synchronous metric updates from other modules.
+
+        Many parts of the codebase call `update_metrics({...})` synchronously. Monitors
+        implement asynchronous collection APIs; this shim provides a safe, lightweight
+        synchronous entry point that records the metrics locally and attempts to
+        persist them via the integration in the background if an event loop is
+        available.
+        """
+        try:
+            timestamp = datetime.now()
+
+            error_count = metrics.get('error_count', 0)
+            warning_count = metrics.get('warning_count', 0)
+
+            # Create a lightweight SubsystemMetrics entry with placeholder scores.
+            subsystem_metrics = SubsystemMetrics(
+                timestamp=timestamp,
+                subsystem_id=self.subsystem_id,
+                metrics=metrics,
+                health_score=0.0,
+                performance_score=0.0,
+                efficiency_score=0.0,
+                error_count=int(error_count),
+                warning_count=int(warning_count)
+            )
+
+            # Update local state
+            self.metrics_history.append(subsystem_metrics)
+            self.last_update = timestamp
+            self.total_operations += 1
+
+            # Try to asynchronously persist metrics if possible
+            try:
+                loop = asyncio.get_running_loop()
+                # schedule background store; integration.store_subsystem_metrics is async
+                if hasattr(self, 'integration') and self.integration is not None:
+                    try:
+                        asyncio.create_task(self.integration.store_subsystem_metrics(self.subsystem_id, subsystem_metrics.to_dict()))
+                    except Exception:
+                        # Integration might not be fully initialized or storing may fail; ignore here
+                        pass
+            except RuntimeError:
+                # No running loop in this context; skip async persistence
+                pass
+
+        except Exception as e:
+            logger.debug(f"update_metrics shim failed: {e}")
     
     def _health_to_score(self, health: SubsystemHealth) -> float:
         """Convert health enum to numeric score."""

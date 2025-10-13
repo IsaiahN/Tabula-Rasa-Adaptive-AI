@@ -3,11 +3,13 @@
 Elastic Weight Consolidation (EWC) for Tabula Rasa Architect
 Prevents catastrophic forgetting during system evolution by preserving important weights.
 """
+import sys
+sys.dont_write_bytecode = True
 
 import numpy as np
 import json
 import os
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Union
 from datetime import datetime
 import logging
 import asyncio
@@ -26,9 +28,9 @@ class ElasticWeightConsolidation:
     
     def __init__(self, config_path: str = "data/config/ewc_config.json", enable_monitoring: bool = True, enable_database_storage: bool = True):
         self.config_path = config_path
-        self.fisher_info = {}  # Fisher Information Matrix
-        self.importance_weights = {}  # Importance weights for each parameter
-        self.parameter_history = {}  # Historical parameter values
+        self.fisher_info: Dict[str, np.ndarray] = {}  # Fisher Information Matrix
+        self.importance_weights: Dict[str, np.ndarray] = {}  # Importance weights for each parameter
+        self.parameter_history: Dict[str, np.ndarray] = {}  # Historical parameter values
         self.consolidation_threshold = 0.1  # Threshold for parameter importance
         self.learning_rate = 0.01  # EWC learning rate
         self.enable_monitoring = enable_monitoring
@@ -46,7 +48,7 @@ class ElasticWeightConsolidation:
         self._load_config()
         self._initialize_ewc()
     
-    def _load_config(self):
+    def _load_config(self) -> None:
         """Load EWC configuration from file."""
         try:
             if os.path.exists(self.config_path):
@@ -57,7 +59,7 @@ class ElasticWeightConsolidation:
         except Exception as e:
             logger.warning(f"Could not load EWC config: {e}")
     
-    def _initialize_ewc(self):
+    def _initialize_ewc(self) -> None:
         """Initialize EWC data structures."""
         self.fisher_info = {
             'action_selection_weights': np.zeros((100, 100)),  # Example size
@@ -72,6 +74,59 @@ class ElasticWeightConsolidation:
             'memory_consolidation_weights': np.ones((30, 30)) * 0.1,
             'meta_learning_weights': np.ones((40, 40)) * 0.1
         }
+
+    def _normalize_parameters(self, parameters: Optional[Union[Dict[str, Any], Any]]) -> Dict[str, np.ndarray]:
+        """
+        Normalize various parameter/gradient representations into a dict of numpy arrays.
+
+        Accepts:
+          - None -> {}
+          - dict[str, array-like or tensor] -> {str: np.ndarray}
+          - single array-like or tensor -> {'param_0': np.ndarray}
+
+        This helper avoids runtime errors when upstream systems pass torch.Tensors,
+        lists, tuples, or numpy arrays.
+        """
+        if parameters is None:
+            return {}
+
+        # If it's already a mapping, convert each value
+        if isinstance(parameters, dict):
+            out: Dict[str, np.ndarray] = {}
+            for k, v in parameters.items():
+                try:
+                    # Handle torch tensors if available
+                    if type(v).__name__ == 'Tensor':
+                        try:
+                            import torch
+                            if isinstance(v, torch.Tensor):
+                                out[k] = v.detach().cpu().numpy()
+                                continue
+                        except Exception:
+                            pass
+
+                    out[k] = np.asarray(v)
+                except Exception:
+                    # Fallback: coerce to numpy via list conversion
+                    try:
+                        out[k] = np.asarray(list(v))
+                    except Exception:
+                        out[k] = np.asarray(0)
+            return out
+
+        # If it's a single tensor/array-like, return a single-entry dict
+        try:
+            if type(parameters).__name__ == 'Tensor':
+                import torch
+                if isinstance(parameters, torch.Tensor):
+                    return {'param_0': parameters.detach().cpu().numpy()}
+        except Exception:
+            pass
+
+        try:
+            return {'param_0': np.asarray(parameters)}
+        except Exception:
+            return {'param_0': np.asarray(0)}
     
     def compute_fisher_information(self, parameters: Dict[str, np.ndarray], 
                                  gradients: Dict[str, np.ndarray]) -> None:
@@ -82,19 +137,41 @@ class ElasticWeightConsolidation:
             parameters: Current parameter values
             gradients: Gradients of the loss function
         """
-        for param_name, param_values in parameters.items():
+        params = self._normalize_parameters(parameters)
+        grads = self._normalize_parameters(gradients)
+
+        for param_name, param_values in params.items():
             if param_name in self.fisher_info:
                 # Fisher Information = E[gradient^2]
-                fisher_update = gradients[param_name] ** 2
-                
+                grad = grads.get(param_name, np.zeros_like(self.fisher_info[param_name]))
+                grad_arr = np.asarray(grad)
+                try:
+                    fisher_update = grad_arr ** 2
+                except Exception:
+                    fisher_update = np.square(np.asarray(grad_arr, dtype=float))
+
                 # Exponential moving average for stability
                 alpha = 0.9
-                self.fisher_info[param_name] = (
-                    alpha * self.fisher_info[param_name] + 
-                    (1 - alpha) * fisher_update
-                )
-                
-                logger.debug(f"Updated Fisher info for {param_name}: {fisher_update.mean():.6f}")
+                try:
+                    self.fisher_info[param_name] = (
+                        alpha * self.fisher_info[param_name] + 
+                        (1 - alpha) * fisher_update
+                    )
+                except Exception:
+                    # Ensure shapes align: coerce to same shape if possible
+                    try:
+                        fisher_update = np.resize(fisher_update, self.fisher_info[param_name].shape)
+                        self.fisher_info[param_name] = (
+                            alpha * self.fisher_info[param_name] + 
+                            (1 - alpha) * fisher_update
+                        )
+                    except Exception:
+                        logger.debug(f"Skipping fisher update for {param_name} due to shape mismatch")
+
+                try:
+                    logger.debug(f"Updated Fisher info for {param_name}: {np.mean(fisher_update):.6f}")
+                except Exception:
+                    pass
     
     def update_importance_weights(self, parameters: Dict[str, np.ndarray]) -> None:
         """
@@ -103,22 +180,39 @@ class ElasticWeightConsolidation:
         Args:
             parameters: Current parameter values
         """
-        for param_name, param_values in parameters.items():
+        params = self._normalize_parameters(parameters)
+
+        for param_name, param_values in params.items():
             if param_name in self.importance_weights:
                 # Importance = Fisher Information * (current - old)^2
                 if param_name in self.parameter_history:
                     old_params = self.parameter_history[param_name]
-                    param_diff = (param_values - old_params) ** 2
-                    importance_update = self.fisher_info[param_name] * param_diff
-                    
+                    try:
+                        param_diff = (np.asarray(param_values) - np.asarray(old_params)) ** 2
+                    except Exception:
+                        param_diff = np.square(np.asarray(param_values) - np.asarray(old_params))
+
+                    importance_update = self.fisher_info.get(param_name, np.zeros_like(np.asarray(param_values))) * param_diff
+
                     # Update importance weights
-                    self.importance_weights[param_name] = np.maximum(
-                        self.importance_weights[param_name],
-                        importance_update
-                    )
-                
-                # Store current parameters for next update
-                self.parameter_history[param_name] = param_values.copy()
+                    try:
+                        self.importance_weights[param_name] = np.maximum(
+                            self.importance_weights[param_name],
+                            importance_update
+                        )
+                    except Exception:
+                        # Try to resize importance to match
+                        try:
+                            importance_update = np.resize(importance_update, self.importance_weights[param_name].shape)
+                            self.importance_weights[param_name] = np.maximum(
+                                self.importance_weights[param_name],
+                                importance_update
+                            )
+                        except Exception:
+                            logger.debug(f"Could not update importance for {param_name}")
+
+                # Store current parameters for next update (copy numpy array)
+                self.parameter_history[param_name] = np.asarray(param_values).copy()
     
     def compute_ewc_loss(self, parameters: Dict[str, np.ndarray], 
                         old_parameters: Dict[str, np.ndarray]) -> float:
@@ -134,15 +228,18 @@ class ElasticWeightConsolidation:
         """
         ewc_loss = 0.0
         
-        for param_name, current_params in parameters.items():
-            if (param_name in old_parameters and 
+        params = self._normalize_parameters(parameters)
+        old_params_dict = self._normalize_parameters(old_parameters)
+
+        for param_name, current_params in params.items():
+            if (param_name in old_params_dict and 
                 param_name in self.importance_weights):
-                
-                old_params = old_parameters[param_name]
+
+                old_params = old_params_dict[param_name]
                 importance = self.importance_weights[param_name]
-                
+
                 # EWC loss = sum(importance * (current - old)^2)
-                param_diff = current_params - old_params
+                param_diff = np.asarray(current_params) - np.asarray(old_params)
                 ewc_loss += np.sum(importance * (param_diff ** 2))
         
         return ewc_loss * self.learning_rate
@@ -161,25 +258,31 @@ class ElasticWeightConsolidation:
         """
         consolidated_params = {}
         
-        for param_name, current_params in parameters.items():
-            if (param_name in old_parameters and 
+        params = self._normalize_parameters(parameters)
+        old_params_dict = self._normalize_parameters(old_parameters)
+
+        for param_name, current_params in params.items():
+            if (param_name in old_params_dict and 
                 param_name in self.importance_weights):
-                
-                old_params = old_parameters[param_name]
+
+                old_params = old_params_dict[param_name]
                 importance = self.importance_weights[param_name]
-                
+
                 # EWC consolidation: weighted average based on importance
                 # High importance = preserve old, Low importance = use new
                 consolidation_factor = 1.0 / (1.0 + importance)
-                
+
                 consolidated_params[param_name] = (
                     consolidation_factor * current_params + 
                     (1 - consolidation_factor) * old_params
                 )
-                
-                logger.debug(f"Consolidated {param_name}: factor={consolidation_factor.mean():.4f}")
+
+                try:
+                    logger.debug(f"Consolidated {param_name}: factor={np.mean(consolidation_factor):.4f}")
+                except Exception:
+                    pass
             else:
-                consolidated_params[param_name] = current_params
+                consolidated_params[param_name] = np.asarray(current_params)
         
         return consolidated_params
     
@@ -193,18 +296,22 @@ class ElasticWeightConsolidation:
         Returns:
             True if consolidation is needed
         """
-        for param_name, param_values in parameters.items():
+        params = self._normalize_parameters(parameters)
+        for param_name, param_values in params.items():
             if param_name in self.importance_weights:
                 importance = self.importance_weights[param_name]
-                max_importance = np.max(importance)
-                
+                try:
+                    max_importance = np.max(importance)
+                except Exception:
+                    max_importance = float(np.mean(importance)) if hasattr(importance, 'mean') else 0.0
+
                 if max_importance > self.consolidation_threshold:
                     logger.info(f"High importance detected in {param_name}: {max_importance:.4f}")
                     return True
         
         return False
     
-    def save_ewc_state(self, filepath: str = None) -> None:
+    def save_ewc_state(self, filepath: Optional[str] = None) -> None:
         """Save EWC state to file."""
         if filepath is None:
             filepath = f"data/ewc_state_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -247,7 +354,7 @@ class ElasticWeightConsolidation:
             logger.error(f"Failed to load EWC state: {e}")
             return False
     
-    def get_consolidation_report(self) -> Dict:
+    def get_consolidation_report(self) -> Dict[str, Any]:
         """Generate a report on current consolidation state."""
         report = {
             'timestamp': datetime.now().isoformat(),
@@ -305,7 +412,7 @@ class ElasticWeightConsolidation:
     
     async def _update_monitoring_systems(self, parameters: Dict[str, np.ndarray], 
                                        consolidated_params: Dict[str, np.ndarray],
-                                       context: Optional[Dict[str, Any]]):
+                                       context: Optional[Dict[str, Any]]) -> None:
         """Update cognitive monitoring systems."""
         try:
             if not self.enable_monitoring:
@@ -339,7 +446,7 @@ class ElasticWeightConsolidation:
     async def _store_consolidation_data(self, parameters: Dict[str, np.ndarray], 
                                       consolidated_params: Dict[str, np.ndarray],
                                       context: Optional[Dict[str, Any]], 
-                                      start_time: datetime):
+                                      start_time: datetime) -> None:
         """Store consolidation data in database."""
         try:
             if not self.enable_database_storage or not hasattr(self, 'integration'):
@@ -379,9 +486,12 @@ class ElasticWeightConsolidation:
             total_change = 0.0
             total_params = 0
             
-            for param_name in parameters:
-                if param_name in consolidated_params:
-                    param_diff = np.mean(np.abs(parameters[param_name] - consolidated_params[param_name]))
+            params = self._normalize_parameters(parameters)
+            cons = self._normalize_parameters(consolidated_params)
+
+            for param_name in params:
+                if param_name in cons:
+                    param_diff = np.mean(np.abs(np.asarray(params[param_name]) - np.asarray(cons[param_name])))
                     total_change += param_diff
                     total_params += 1
             
@@ -406,11 +516,11 @@ class ElasticWeightConsolidation:
             adaptation_rate = min(1.0, self.learning_rate * 100)  # Scale learning rate to [0, 1]
             
             return {
-                'parameter_stability': parameter_stability,
-                'consolidation_quality': consolidation_quality,
-                'forgetting_prevention': forgetting_prevention,
-                'ewc_performance': ewc_performance,
-                'adaptation_rate': adaptation_rate
+                'parameter_stability': float(parameter_stability),
+                'consolidation_quality': float(consolidation_quality),
+                'forgetting_prevention': float(forgetting_prevention),
+                'ewc_performance': float(ewc_performance),
+                'adaptation_rate': float(adaptation_rate)
             }
             
         except Exception as e:

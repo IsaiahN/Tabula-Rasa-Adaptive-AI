@@ -1074,28 +1074,20 @@ class EnhancedKnowledgeTransfer:
                     }
                 }
 
-                # Create transferable knowledge object
-                transferable_knowledge = TransferableKnowledge(
-                    knowledge_id=self._generate_knowledge_id(),
-                    source_game_id=game_id,
-                    knowledge_type=TransferType.STRATEGY_PATTERN,
-                    content=knowledge_content,
-                    confidence=TransferConfidence.HIGH if success_score > 70 else TransferConfidence.MEDIUM,
-                    applicability_conditions={
-                        'min_score_threshold': success_score * 0.7,
-                        'strategy_compatibility': strategies_used,
-                        'context_requirements': ['similar_mechanics', 'compatible_actions'],
-                        'lifecycle_requirements': {
-                            'max_acceptable_risk': failure_risk_score + 0.2,
-                            'oscillation_tolerance': len(oscillation_patterns)
-                        }
-                    },
-                    effectiveness_score=min(success_score / 100.0, 1.0),
-                    usage_count=0
-                )
-
-                # Add to knowledge base
-                self.add_knowledge(transferable_knowledge)
+                # Add to knowledge base using public API (ensures correct shape)
+                try:
+                    confidence_val = 0.9 if success_score > 70 else 0.6
+                    self.add_knowledge(
+                        source_game=game_id,
+                        knowledge_type=TransferType.STRATEGY_PATTERN,
+                        content=knowledge_content,
+                        confidence=confidence_val,
+                        success_rate=min(success_score / 100.0, 1.0),
+                        tags=['strategy', 'lifecycle'],
+                        context_features={'failure_risk_score': failure_risk_score}
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to add transferable knowledge: {e}")
 
                 # Update game profile
                 self._update_game_profile(game_id, game_knowledge)
@@ -1124,24 +1116,19 @@ class EnhancedKnowledgeTransfer:
                     }
                 }
 
-                # Create failure pattern knowledge for transfer
-                failure_knowledge = TransferableKnowledge(
-                    knowledge_id=self._generate_knowledge_id(),
-                    source_game_id=game_id,
-                    knowledge_type=TransferType.FAILURE_AVOIDANCE,
-                    content=failure_knowledge_content,
-                    confidence=TransferConfidence.HIGH if failure_risk_score > 0.8 else TransferConfidence.MEDIUM,
-                    applicability_conditions={
-                        'failure_risk_similarity': 0.3,  # Apply when risk patterns are 30% similar
-                        'context_requirements': ['similar_failure_modes', 'comparable_action_patterns'],
-                        'preventive_application': True  # This knowledge is for prevention, not replication
-                    },
-                    effectiveness_score=1.0 - min(success_score / 100.0, 1.0),  # Higher for more catastrophic failures
-                    usage_count=0
-                )
-
-                # Add failure pattern knowledge to knowledge base
-                self.add_knowledge(failure_knowledge)
+                # Add failure pattern knowledge to knowledge base via public API
+                try:
+                    self.add_knowledge(
+                        source_game=game_id,
+                        knowledge_type=TransferType.FAILURE_AVOIDANCE,
+                        content=failure_knowledge_content,
+                        confidence=0.9 if failure_risk_score > 0.8 else 0.6,
+                        success_rate=1.0 - min(success_score / 100.0, 1.0),
+                        tags=['failure', 'avoidance'],
+                        context_features={'oscillation_patterns': oscillation_patterns}
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to add failure knowledge: {e}")
 
                 # Update statistics for failure pattern extraction
                 self.stats['failure_patterns_extracted'] = self.stats.get('failure_patterns_extracted', 0) + 1
@@ -1152,7 +1139,8 @@ class EnhancedKnowledgeTransfer:
 
             else:
                 # Even games without clear success or failure patterns provide baseline learning value
-                self.stats['failed_extractions'] += 1
+                # Ensure stats key exists
+                self.stats['failed_extractions'] = self.stats.get('failed_extractions', 0) + 1
                 logger.info(f"Game {game_id} did not meet criteria for knowledge extraction (score: {success_score})")
             
             # Update overall statistics
