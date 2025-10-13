@@ -145,14 +145,32 @@ class EnhancedGameplay:
     def _initialize_goal_system(self):
         """Initialize goal invention system."""
         try:
-            from src.core.meta_learning import GoalInventionSystem
+            import sys
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+            from src.goals.goal_system import GoalInventionSystem
 
             self.goal_system = GoalInventionSystem()
             logger.info("Goal system initialized")
 
-        except ImportError as e:
-            logger.warning(f"Could not initialize goal system: {e}")
-            self.goal_system = None
+        except (ImportError, Exception) as e:
+            logger.debug(f"Goal system not available (using fallback): {e}")
+            # Create a simple fallback goal system
+            class FallbackGoalSystem:
+                def __init__(self):
+                    self.active = False
+
+                def generate_goals(self, *args, **kwargs):
+                    return []
+
+                def update_goals(self, *args, **kwargs):
+                    pass
+
+                def get_current_goals(self):
+                    return []
+
+            self.goal_system = FallbackGoalSystem()
+            logger.info("Goal system initialized (fallback mode)")
 
     def _initialize_breakthrough_detection(self):
         """Initialize breakthrough detection system."""
@@ -176,8 +194,8 @@ class EnhancedGameplay:
         if not self.sleep_system:
             return False
 
-        # Check energy level
-        if self.current_energy <= 40.0:
+        # Check energy level (lower threshold to prevent constant sleeping)
+        if self.current_energy <= 15.0:
             logger.info(f"Sleep triggered by low energy: {self.current_energy}")
             return True
 
@@ -205,8 +223,8 @@ class EnhancedGameplay:
                 arc_data=context
             )
 
-            # Restore energy after sleep
-            self.current_energy = min(100.0, self.current_energy + 30.0)
+            # Restore energy after sleep (more generous restoration)
+            self.current_energy = min(100.0, self.current_energy + 50.0)
 
             logger.info(f"Sleep cycle completed: {sleep_results.get('experiences_processed', 0)} experiences processed")
 
@@ -609,8 +627,17 @@ class CoreGameplay:
 
                         try:
                             import asyncio
-                            sleep_result = asyncio.run(self.enhanced_gameplay._execute_sleep_cycle(game_id, sleep_context))
-                            print(f"[SLEEP] Sleep cycle result: {sleep_result}")
+                            # Check if we're in an event loop
+                            try:
+                                loop = asyncio.get_running_loop()
+                                # We're in a running loop, schedule the task for later
+                                task = asyncio.create_task(self.enhanced_gameplay._execute_sleep_cycle(game_id, sleep_context))
+                                print(f"[SLEEP] Sleep cycle scheduled as background task")
+                                # Don't wait for the result to avoid blocking the game loop
+                            except RuntimeError:
+                                # No running loop, safe to use asyncio.run()
+                                sleep_result = asyncio.run(self.enhanced_gameplay._execute_sleep_cycle(game_id, sleep_context))
+                                print(f"[SLEEP] Sleep cycle result: {sleep_result}")
                         except Exception as e:
                             print(f"[SLEEP] Sleep cycle error: {e}")
 
@@ -633,7 +660,14 @@ class CoreGameplay:
                             try:
                                 coords = self._get_diversified_action6_coordinates(frame, game_id, action_count)
                                 print(f"[STAGNATION] Diversified ACTION6 coordinates: {coords}")
-                                action_x, action_y = coords
+                                # SAFETY: Ensure coordinate extraction always works
+                                if coords and len(coords) == 2:
+                                    action_x, action_y = coords
+                                else:
+                                    logger.warning(f"Invalid coordinate format: {coords}")
+                                    print(f"[EMERGENCY] Invalid coordinates, using safety fallback")
+                                    emergency_coords = self._get_sync_action6_coordinates(frame, game_id)
+                                    action_x, action_y = emergency_coords
 
                             except Exception as e:
                                 logger.warning(f"Diversified coordinate selection failed: {e}")
@@ -661,7 +695,26 @@ class CoreGameplay:
                             available_actions=actions
                         )
 
-                        return selected_action
+                        # CRITICAL FIX: Return proper ACTION6 format with coordinates
+                        if selected_action == "ACTION6":
+                            if action_x is not None and action_y is not None:
+                                return {
+                                    "action": "ACTION6",
+                                    "x": action_x,
+                                    "y": action_y
+                                }
+                            else:
+                                logger.warning(f"Stagnation ACTION6 missing coordinates! action_x={action_x}, action_y={action_y}")
+                                print(f"[EMERGENCY] Stagnation ACTION6 missing coordinates, using emergency fallback")
+                                emergency_coords = self._get_sync_action6_coordinates(frame, game_id)
+                                emergency_x, emergency_y = emergency_coords
+                                return {
+                                    "action": "ACTION6",
+                                    "x": emergency_x,
+                                    "y": emergency_y
+                                }
+                        else:
+                            return selected_action
                     
                     # Analyze effectiveness of previous ACTION 6 if we have the data
                     if (last_action6_frame is not None and last_action6_coords is not None and 
@@ -674,9 +727,19 @@ class CoreGameplay:
                             # Analyze frame changes and effectiveness
                             try:
                                 import asyncio
-                                asyncio.run(self._analyze_action6_effectiveness_async(
-                                    last_action6_frame, frame, last_action6_coords, game_id, score_change
-                                ))
+                                # Check if we're already in an event loop
+                                try:
+                                    loop = asyncio.get_running_loop()
+                                    # We're in an event loop, create a task instead of using asyncio.run()
+                                    task = asyncio.create_task(self._analyze_action6_effectiveness_async(
+                                        last_action6_frame, frame, last_action6_coords, game_id, score_change
+                                    ))
+                                    print(f"[EFFECTIVENESS] Created async analysis task")
+                                except RuntimeError:
+                                    # No event loop running, safe to use asyncio.run()
+                                    asyncio.run(self._analyze_action6_effectiveness_async(
+                                        last_action6_frame, frame, last_action6_coords, game_id, score_change
+                                    ))
                             except Exception as async_error:
                                 print(f"[EFFECTIVENESS] Async analysis error: {async_error}")
                                 # Fallback: Skip analysis if async fails
@@ -706,7 +769,14 @@ class CoreGameplay:
                             coords = self._get_enhanced_action6_coordinates_sync(frame, game_id, actions, current_score)
                             print(f"[AGENT] Enhanced Action 6 selected coordinates: {coords}")
                             selected_action = "ACTION6"
-                            action_x, action_y = coords
+                            # SAFETY: Ensure coordinate extraction always works
+                            if coords and len(coords) == 2:
+                                action_x, action_y = coords
+                            else:
+                                logger.warning(f"Invalid coordinate format: {coords}")
+                                print(f"[EMERGENCY] Invalid coordinates, using safety fallback")
+                                emergency_coords = self._get_sync_action6_coordinates(frame, game_id)
+                                action_x, action_y = emergency_coords
                             
                             # Store for effectiveness analysis on next turn
                             last_action6_frame = [row[:] for row in frame]  # Deep copy
@@ -721,7 +791,14 @@ class CoreGameplay:
                             coords = self._get_sync_action6_coordinates(frame, game_id)
                             print(f"[AGENT] Fallback Action 6 coordinates: {coords}")
                             selected_action = "ACTION6"
-                            action_x, action_y = coords
+                            # SAFETY: Ensure coordinate extraction always works
+                            if coords and len(coords) == 2:
+                                action_x, action_y = coords
+                            else:
+                                logger.warning(f"Invalid coordinate format: {coords}")
+                                print(f"[EMERGENCY] Invalid coordinates, using safety fallback")
+                                emergency_coords = self._get_sync_action6_coordinates(frame, game_id)
+                                action_x, action_y = emergency_coords
                             
                             # Still store for effectiveness analysis
                             last_action6_frame = [row[:] for row in frame]  # Deep copy
@@ -741,7 +818,14 @@ class CoreGameplay:
                             coords = self._get_enhanced_action6_coordinates_sync(frame, game_id, actions, current_score)
                             print(f"[AGENT] Enhanced Action 6 selected coordinates: {coords}")
                             selected_action = "ACTION6"
-                            action_x, action_y = coords
+                            # SAFETY: Ensure coordinate extraction always works
+                            if coords and len(coords) == 2:
+                                action_x, action_y = coords
+                            else:
+                                logger.warning(f"Invalid coordinate format: {coords}")
+                                print(f"[EMERGENCY] Invalid coordinates, using safety fallback")
+                                emergency_coords = self._get_sync_action6_coordinates(frame, game_id)
+                                action_x, action_y = emergency_coords
                             
                             # Store for effectiveness analysis on next turn
                             last_action6_frame = [row[:] for row in frame]  # Deep copy
@@ -795,12 +879,25 @@ class CoreGameplay:
                     )
 
                     # Return appropriate action format
-                    if selected_action == "ACTION6" and action_x is not None and action_y is not None:
-                        return {
-                            "action": "ACTION6",
-                            "x": action_x,
-                            "y": action_y
-                        }
+                    if selected_action == "ACTION6":
+                        # CRITICAL FIX: Ensure ACTION6 always has valid coordinates
+                        if action_x is not None and action_y is not None:
+                            return {
+                                "action": "ACTION6",
+                                "x": action_x,
+                                "y": action_y
+                            }
+                        else:
+                            # EMERGENCY FALLBACK: Generate safe coordinates if missing
+                            logger.warning(f"ACTION6 missing coordinates! action_x={action_x}, action_y={action_y}")
+                            print(f"[EMERGENCY] ACTION6 missing coordinates, using emergency fallback")
+                            emergency_coords = self._get_sync_action6_coordinates(frame, game_id)
+                            emergency_x, emergency_y = emergency_coords
+                            return {
+                                "action": "ACTION6",
+                                "x": emergency_x,
+                                "y": emergency_y
+                            }
                     else:
                         return selected_action
 
@@ -1073,53 +1170,88 @@ class CoreGameplay:
 
     def _get_enhanced_action6_coordinates_sync(self, frame: List[List[int]], game_id: str,
                                              actions: List[int], current_score: int) -> Tuple[int, int]:
-        """Get enhanced Action 6 coordinates using synchronous methods."""
+        """Get enhanced Action 6 coordinates using the enhanced coordinator with exploration."""
         try:
             if not self.enhanced_gameplay or not hasattr(self.enhanced_gameplay, 'action6_coordinator'):
                 print(f"[ENHANCED] No action6_coordinator available, using fallback")
                 return self._get_sync_action6_coordinates(frame, game_id)
 
             coordinator = self.enhanced_gameplay.action6_coordinator
-            print(f"[ENHANCED] Using Action 6 coordinator for object detection")
+            print(f"[ENHANCED] Using Action 6 coordinator with exploration features")
 
-            # Use the pseudo-button detector if available
-            if hasattr(coordinator, 'vision_detector') and coordinator.vision_detector:
+            # Create proper context for the enhanced coordinator
+            context = {
+                'available_actions': [f'ACTION{a}' for a in actions] if actions else ['ACTION6'],
+                'action': 'ACTION6',
+                'current_score': current_score
+            }
+
+            # Use the enhanced coordinator with all its features (pseudo-buttons + exploration)
+            try:
+                # Call the async method synchronously using asyncio
+                import asyncio
+
+                # Check if we're already in an event loop
                 try:
-                    print(f"[ENHANCED] Running pseudo-button detection on {len(frame)}x{len(frame[0]) if frame else 0} frame")
-                    # Get button candidates using synchronous methods
-                    button_candidates = self._detect_buttons_sync(frame, game_id)
-                    print(f"[ENHANCED] Found {len(button_candidates)} button candidates")
+                    loop = asyncio.get_running_loop()
+                    # We're in an event loop, so we need to use create_task
+                    print(f"[ENHANCED] Running in event loop, using create_task")
 
+                    # Create a task for the async coordinator call
+                    async def get_coords():
+                        return await coordinator.get_optimal_action6_coordinates(frame, game_id, context)
+
+                    # This is tricky - we need to run async in sync context
+                    # Use the existing event loop if available
+                    task = asyncio.create_task(get_coords())
+                    coords = None
+
+                    # Since we can't await in sync context, use the fallback
+                    print(f"[ENHANCED] Cannot await in sync context, using exploration fallback")
+
+                    # Use exploration features directly
+                    if hasattr(coordinator, '_should_force_exploration'):
+                        force_exploration = coordinator._should_force_exploration(game_id, context)
+                        if force_exploration and frame and len(frame) > 0 and len(frame[0]) > 0:
+                            grid_dims = (len(frame[0]), len(frame))
+                            coords = coordinator._get_strategic_action6_coordinates(grid_dims, game_id)
+                            print(f"[ENHANCED] Used exploration coordinates: {coords}")
+                            coordinator.stats['exploration_selections'] = coordinator.stats.get('exploration_selections', 0) + 1
+                            return coords
+
+                    # If no exploration needed, try pseudo-button detection
+                    button_candidates = self._detect_buttons_sync(frame, game_id)
                     if button_candidates:
-                        # Score candidates and select best
                         best_candidate = self._score_button_candidates(button_candidates, game_id)
                         print(f"[ENHANCED] Selected button at ({best_candidate['x']}, {best_candidate['y']}) with score {best_candidate.get('score', 0):.2f}")
-                        
-                        # Update coordinator stats
                         coordinator.stats['button_based_selections'] += 1
-                        
                         return best_candidate['x'], best_candidate['y']
-                    else:
-                        print(f"[ENHANCED] No button candidates found, trying coordinate intelligence")
-                except Exception as e:
-                    logger.warning(f"Button detection failed: {e}")
-                    print(f"[ENHANCED] Button detection error: {e}")
 
-            # Fallback to coordinate intelligence if available
-            if hasattr(coordinator, 'db_interface') and coordinator.db_interface:
+                except RuntimeError:
+                    # No event loop, we can use asyncio.run
+                    print(f"[ENHANCED] No event loop, using asyncio.run")
+                    coords = asyncio.run(coordinator.get_optimal_action6_coordinates(frame, game_id, context))
+                    print(f"[ENHANCED] Enhanced coordinator returned: {coords}")
+                    return coords
+
+            except Exception as e:
+                logger.warning(f"Enhanced coordinator call failed: {e}")
+                print(f"[ENHANCED] Enhanced coordinator error: {e}")
+
+            # Fallback to exploration if available
+            if hasattr(coordinator, '_get_strategic_action6_coordinates') and frame:
                 try:
-                    coords = self._get_intelligent_coordinates_from_db(frame, game_id)
-                    if coords:
-                        print(f"[ENHANCED] Using coordinate intelligence: {coords}")
-                        return coords
-                    else:
-                        print(f"[ENHANCED] No effective coordinates found in database")
+                    grid_dims = (len(frame[0]), len(frame)) if frame and frame[0] else (30, 30)
+                    coords = coordinator._get_strategic_action6_coordinates(grid_dims, game_id)
+                    print(f"[ENHANCED] Using exploration fallback coordinates: {coords}")
+                    coordinator.stats['exploration_selections'] = coordinator.stats.get('exploration_selections', 0) + 1
+                    return coords
                 except Exception as e:
-                    logger.warning(f"Coordinate intelligence failed: {e}")
-                    print(f"[ENHANCED] Coordinate intelligence error: {e}")
+                    logger.warning(f"Exploration fallback failed: {e}")
+                    print(f"[ENHANCED] Exploration fallback error: {e}")
 
             # Final fallback
-            print(f"[ENHANCED] Using final fallback coordinates")
+            print(f"[ENHANCED] Using final sync fallback coordinates")
             return self._get_sync_action6_coordinates(frame, game_id)
 
         except Exception as e:
@@ -1503,13 +1635,20 @@ class CoreGameplay:
                 3: 2,  # Alternative action - low-medium priority
                 4: 2,  # Alternative action - low-medium priority
                 5: 2,  # Alternative action - low-medium priority
-                6: 4,  # Coordinate action - high priority (handled separately)
+                6: 0,  # CRITICAL FIX: Don't select ACTION6 here - let dedicated logic handle it
                 7: 1,  # Reset action - low priority
             }
 
-            # Select action with highest available priority
-            best_action = max(actions, key=lambda a: action_priorities.get(a, 0))
-            selected_action = f"ACTION{best_action}"
+            # Filter out ACTION6 from intelligent selection - it has dedicated logic
+            non_coordinate_actions = [a for a in actions if a != 6]
+
+            if non_coordinate_actions:
+                # Select action with highest available priority from non-coordinate actions
+                best_action = max(non_coordinate_actions, key=lambda a: action_priorities.get(a, 0))
+                selected_action = f"ACTION{best_action}"
+            else:
+                # If only ACTION6 is available, return None to trigger dedicated ACTION6 logic
+                return None
 
             # Store for learning
             self._last_action_used = selected_action
@@ -1519,13 +1658,17 @@ class CoreGameplay:
 
         except Exception as e:
             logger.warning(f"Intelligent action selection error: {e}")
-            # Fallback to simple selection
-            if 2 in actions:
+            # Fallback to simple selection - avoid ACTION6
+            non_coordinate_fallback = [a for a in actions if a != 6]
+            if 2 in non_coordinate_fallback:
                 return "ACTION2"
-            elif 1 in actions:
+            elif 1 in non_coordinate_fallback:
                 return "ACTION1"
+            elif non_coordinate_fallback:
+                return f"ACTION{non_coordinate_fallback[0]}"
             else:
-                return f"ACTION{actions[0]}" if actions else "ACTION1"
+                # Only ACTION6 available - return None to trigger dedicated logic
+                return None
 
     def _get_cell_value(self, cell) -> int:
         """Extract numeric value from cell (handles different formats)."""

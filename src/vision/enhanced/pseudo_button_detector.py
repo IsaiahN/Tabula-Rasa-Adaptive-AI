@@ -363,7 +363,15 @@ class PseudoButtonDetector:
 
         for y in range(height):
             for x in range(width):
-                diff = abs(frame_before[y][x] - frame_after[y][x])
+                # SAFETY: Extract numeric values from cells (handle list/int formats)
+                cell_before = frame_before[y][x]
+                cell_after = frame_after[y][x]
+
+                # Convert to numeric values if needed
+                value_before = self._extract_cell_value(cell_before)
+                value_after = self._extract_cell_value(cell_after)
+
+                diff = abs(value_before - value_after)
                 total_diff += diff
 
                 if diff > threshold:
@@ -378,6 +386,19 @@ class PseudoButtonDetector:
             'change_ratio': significant_changes / total_pixels,
             'total_pixels': total_pixels
         }
+
+    def _extract_cell_value(self, cell) -> int:
+        """Extract numeric value from cell (handles different formats from ARC API)."""
+        try:
+            if isinstance(cell, (int, float)):
+                return int(cell)
+            elif isinstance(cell, (list, tuple)) and len(cell) > 0:
+                # Extract first element if it's a list/tuple
+                return int(cell[0]) if isinstance(cell[0], (int, float)) else 0
+            else:
+                return 0
+        except (ValueError, TypeError, IndexError):
+            return 0
 
     def evaluate_click_effectiveness(self, change_metrics: Dict[str, float]) -> Dict[str, Any]:
         """Evaluate if a click was effective based on frame change metrics."""

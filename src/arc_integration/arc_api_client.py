@@ -492,6 +492,7 @@ class ARCClient:
         # Add action-specific parameters
         if action == "ACTION6":
             if x is None or y is None:
+                logger.error(f"ACTION6 coordinate error: x={x}, y={y}, kwargs={kwargs}")
                 raise ValueError("ACTION6 requires x and y coordinates")
             payload["x"] = x
             payload["y"] = y
@@ -535,7 +536,7 @@ class ARCClient:
             while game_state.state == "NOT_FINISHED" and actions_taken < max_actions:
                 # Get action from agent
                 action = agent_func(game_state, game_state.available_actions)
-                
+
                 if isinstance(action, str):
                     action_name = action
                     action_kwargs = {}
@@ -544,7 +545,7 @@ class ARCClient:
                     action_kwargs = {k: v for k, v in action.items() if k != "action"}
                 else:
                     raise ValueError(f"Invalid action format: {action}")
-                
+
                 # Send action
                 game_state = await self.send_action(
                     action_name, 

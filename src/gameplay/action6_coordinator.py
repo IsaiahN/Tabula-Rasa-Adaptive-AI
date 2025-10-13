@@ -15,6 +15,8 @@ Features:
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 import asyncio
+import random
+import time
 from datetime import datetime
 
 from ..core.cross_game_transfer_learning import get_transfer_learning_system, GameContext
@@ -444,8 +446,24 @@ class Action6Coordinator:
             # Check for frame stagnation - if frame isn't changing, try different pseudo-buttons
             is_stagnant = self._detect_frame_stagnation(frame, game_id)
 
+            # NEW: Check if we should force exploration due to area stagnation
+            force_exploration = self._should_force_exploration(game_id, context)
+
             # Check if this is an Action 6-only game
             is_action6_only = self._is_action6_only_game(context)
+
+            # PRIORITY: If area stagnation detected, use exploration mode immediately
+            if force_exploration and frame and len(frame) > 0 and len(frame[0]) > 0:
+                grid_dims = (len(frame[0]), len(frame))
+                try:
+                    exploration_coords = self._get_strategic_action6_coordinates(grid_dims, game_id)
+                    logger.info(f"🗺️ PRIORITY EXPLORATION: Breaking out of stagnation with coordinates {exploration_coords}")
+                    self.stats['exploration_selections'] = self.stats.get('exploration_selections', 0) + 1
+                    self.stats['forced_explorations'] = self.stats.get('forced_explorations', 0) + 1
+                    return exploration_coords
+                except Exception as e:
+                    logger.warning(f"Priority exploration failed: {e}")
+                    # Continue to pseudo-button logic as fallback
 
             # Step 1: Detect potential pseudo-buttons (COMPREHENSIVE - every object)
             if self.vision_detector:
@@ -540,6 +558,19 @@ class Action6Coordinator:
                                   f"with score {best_candidate.get('total_score', 0):.3f}")
 
                         return coords
+
+            # NEW: EXPLORATION MODE - Use intelligent surveying when pseudo-buttons aren't available
+            if frame and len(frame) > 0 and len(frame[0]) > 0:
+                grid_dims = (len(frame[0]), len(frame))
+
+                # Try exploration coordinates first (more intelligent than random fallback)
+                try:
+                    exploration_coords = self._get_strategic_action6_coordinates(grid_dims, game_id)
+                    logger.info(f"🗺️ EXPLORATION MODE: Using strategic coordinates {exploration_coords}")
+                    self.stats['exploration_selections'] = self.stats.get('exploration_selections', 0) + 1
+                    return exploration_coords
+                except Exception as e:
+                    logger.warning(f"Exploration mode failed: {e}")
 
             # Fallback: Use coordinate intelligence or random selection
             coords = await self._get_fallback_coordinates(frame, game_id, context)
@@ -1227,8 +1258,394 @@ class Action6Coordinator:
             'total_successful_sequences': total_successful_sequences,
             'total_buttons_discovered': total_discovered_buttons,
             'avg_buttons_per_session': total_tried_buttons / max(total_sessions, 1),
-            'sequence_success_rate': total_successful_sequences / max(total_sessions, 1)
+            'sequence_success_rate': total_successful_sequences / max(total_sessions, 1),
+            # NEW: Exploration statistics
+            'exploration_selections': self.stats.get('exploration_selections', 0),
+            'forced_explorations': self.stats.get('forced_explorations', 0),
+            'exploration_usage_rate': (
+                self.stats.get('exploration_selections', 0) / max(self.stats['action6_selections'], 1)
+            ),
+            'forced_exploration_rate': (
+                self.stats.get('forced_explorations', 0) / max(self.stats['action6_selections'], 1)
+            ),
+            'total_boundaries_mapped': sum(
+                len(getattr(self, 'boundary_system', {}).get('boundary_data', {}).get(game_id, {}))
+                for game_id in self.game_sessions.keys()
+            ) if hasattr(self, 'boundary_system') else 0
         }
+
+    # =========================================================================
+    # EXPLORATION AND MAPPING FEATURES
+    # =========================================================================
+
+    def _ensure_boundary_system_initialized(self, game_id: str) -> Dict[str, Any]:
+        """Ensure boundary detection system is initialized for exploration."""
+        if not hasattr(self, 'boundary_system'):
+            self.boundary_system = {
+                'boundary_data': {},
+                'coordinate_attempts': {},
+                'action_coordinate_history': {},
+                'stuck_patterns': {},
+                'success_zone_mapping': {},
+                'last_coordinates': {},
+                'safe_regions': {},
+                'directional_systems': {
+                    6: {
+                        'current_direction': {},
+                        'direction_progression': {
+                            'right': {'next': 'down', 'coordinate_delta': (1, 0)},
+                            'down': {'next': 'left', 'coordinate_delta': (0, 1)},
+                            'left': {'next': 'up', 'coordinate_delta': (-1, 0)},
+                            'up': {'next': 'right', 'coordinate_delta': (0, -1)}
+                        }
+                    }
+                }
+            }
+
+        # Initialize game-specific data
+        if game_id not in self.boundary_system['boundary_data']:
+            self.boundary_system['boundary_data'][game_id] = {}
+            self.boundary_system['coordinate_attempts'][game_id] = {}
+            self.boundary_system['action_coordinate_history'][game_id] = {}
+            self.boundary_system['stuck_patterns'][game_id] = {}
+            self.boundary_system['success_zone_mapping'][game_id] = {}
+            self.boundary_system['last_coordinates'][game_id] = None
+            self.boundary_system['safe_regions'][game_id] = {}
+
+        # Initialize Action 6 directional system for this game
+        if game_id not in self.boundary_system['directional_systems'][6]['current_direction']:
+            self.boundary_system['directional_systems'][6]['current_direction'][game_id] = 'right'
+
+        return self.boundary_system
+
+    def _get_strategic_action6_coordinates(self, grid_dims: Tuple[int, int], game_id: str) -> Tuple[int, int]:
+        """
+        INTELLIGENT SURVEYING SYSTEM for ACTION 6 - Fast grid exploration instead of slow directional crawling.
+
+        Key Features:
+        1. Jumps intelligently across the grid to map regions quickly
+        2. Uses safe regions to launch exploration into unknown territory
+        3. Avoids slow line-by-line traversal through known safe areas
+        4. Prioritizes boundary detection and territory expansion
+        """
+        grid_width, grid_height = grid_dims
+
+        # Ensure boundary system is initialized
+        boundary_system = self._ensure_boundary_system_initialized(game_id)
+
+        known_boundaries = set(boundary_system['boundary_data'][game_id].keys())
+        safe_regions = boundary_system['safe_regions'][game_id]
+
+        # INTELLIGENT SURVEYING: Instead of slow directional movement, make strategic jumps
+        if safe_regions and len(list(safe_regions.values())[0]['coordinates']) > 10:
+            # We have established safe regions - time to survey efficiently!
+            survey_target = self._get_intelligent_survey_target(game_id, grid_dims, known_boundaries, safe_regions)
+
+            if survey_target:
+                survey_x, survey_y, survey_reason = survey_target
+                logger.info(f"🗺️ ACTION 6 INTELLIGENT SURVEY: {survey_reason}")
+
+                # Update position tracking for future moves
+                self._current_game_x = survey_x
+                self._current_game_y = survey_y
+
+                return (survey_x, survey_y)
+
+        # FALLBACK: If no safe regions yet, use improved initial exploration
+        # Get current position from game state (stored by previous ACTION 6 or start at center)
+        current_x = getattr(self, '_current_game_x', grid_width // 2)
+        current_y = getattr(self, '_current_game_y', 0)  # Start at top for systematic mapping
+
+        # Use directional system for ACTION 6
+        directional_system = boundary_system['directional_systems'][6]
+        current_direction = directional_system['current_direction'][game_id]
+        direction_progression = directional_system['direction_progression']
+
+        direction_info = direction_progression[current_direction]
+        dx, dy = direction_info['coordinate_delta']
+
+        # Calculate next coordinate in current direction
+        new_x = current_x + dx
+        new_y = current_y + dy
+
+        # Check grid bounds and adjust if we hit the edge
+        hit_boundary = False
+        if new_x < 0 or new_x >= grid_width or new_y < 0 or new_y >= grid_height:
+            hit_boundary = True
+            boundary_type = f"grid_edge_{current_direction}"
+
+            # Clamp to grid bounds
+            new_x = max(0, min(new_x, grid_width - 1))
+            new_y = max(0, min(new_y, grid_height - 1))
+
+            # Mark this as a boundary
+            boundary_coord = (new_x, new_y)
+            boundary_system['boundary_data'][game_id][boundary_coord] = {
+                'boundary_type': boundary_type,
+                'detection_count': boundary_system['boundary_data'][game_id].get(boundary_coord, {}).get('detection_count', 0) + 1,
+                'timestamp': time.time(),
+                'action': 6
+            }
+
+            logger.info(f"🚧 ACTION 6 BOUNDARY: Hit {boundary_type} at ({new_x},{new_y}) - pivoting direction")
+
+        # PIVOT TO NEW DIRECTION if boundary hit
+        if hit_boundary:
+            # Pivot to next semantic direction
+            next_direction = direction_info['next']
+            directional_system['current_direction'][game_id] = next_direction
+
+            # Calculate coordinates in new direction from current position
+            next_direction_info = direction_progression[next_direction]
+            dx, dy = next_direction_info['coordinate_delta']
+
+            pivot_x = current_x + dx
+            pivot_y = current_y + dy
+
+            # Ensure pivot coordinates are within bounds
+            pivot_x = max(0, min(pivot_x, grid_width - 1))
+            pivot_y = max(0, min(pivot_y, grid_height - 1))
+
+            new_x, new_y = pivot_x, pivot_y
+            logger.info(f"🔄 ACTION 6 PIVOT: Direction {current_direction} → {next_direction}, coordinates ({current_x},{current_y}) → ({new_x},{new_y})")
+
+        # Update tracking data
+        boundary_system['last_coordinates'][game_id] = (new_x, new_y)
+
+        # Track coordinate attempt history
+        coord_key = (new_x, new_y)
+        if coord_key not in boundary_system['coordinate_attempts'][game_id]:
+            boundary_system['coordinate_attempts'][game_id][coord_key] = {'attempts': 0, 'consecutive_stuck': 0}
+        boundary_system['coordinate_attempts'][game_id][coord_key]['attempts'] += 1
+
+        # Update current position tracking
+        self._current_game_x = new_x
+        self._current_game_y = new_y
+
+        # CRITICAL: Detect coordinate stagnation and force movement
+        if coord_key in boundary_system['coordinate_attempts'][game_id]:
+            consecutive_stuck = boundary_system['coordinate_attempts'][game_id][coord_key].get('consecutive_stuck', 0)
+            if consecutive_stuck > 10:  # Stuck at same coordinates for 10+ attempts
+                logger.warning(f"⚠️ COORDINATE STAGNATION DETECTED at ({new_x},{new_y}) - FORCING MOVEMENT")
+
+                # Force jump to a completely different region
+                jump_regions = [
+                    (grid_width // 8, grid_height // 8),      # Far corner
+                    (7 * grid_width // 8, grid_height // 8),  # Opposite corner
+                    (grid_width // 2, grid_height // 8),      # Top center
+                    (grid_width // 8, grid_height // 2),      # Left center
+                    (7 * grid_width // 8, 7 * grid_height // 8), # Far bottom right
+                ]
+                new_x, new_y = random.choice(jump_regions)
+
+                # Reset stagnation counter
+                boundary_system['coordinate_attempts'][game_id][coord_key]['consecutive_stuck'] = 0
+
+                # Reset direction to explore from new position
+                directional_system['current_direction'][game_id] = random.choice(['right', 'down', 'left', 'up'])
+
+                logger.info(f"🚀 EMERGENCY JUMP: Moved to ({new_x},{new_y}), new direction: {directional_system['current_direction'][game_id]}")
+
+                # Update tracking for new position
+                self._current_game_x = new_x
+                self._current_game_y = new_y
+            else:
+                boundary_system['coordinate_attempts'][game_id][coord_key]['consecutive_stuck'] = consecutive_stuck + 1
+
+        # Display boundary intelligence
+        num_boundaries = len(boundary_system['boundary_data'][game_id])
+        direction_display = current_direction.upper()
+        if hit_boundary:
+            direction_display = f"{current_direction.upper()}→{boundary_system['directional_systems'][6]['current_direction'][game_id].upper()}"
+
+        logger.info(f"🧭 ACTION 6 BOUNDARY-AWARE: {direction_display} from ({current_x},{current_y}) → ({new_x},{new_y}) | Boundaries mapped: {num_boundaries}")
+
+        return (new_x, new_y)
+
+    def _get_intelligent_survey_target(self, game_id: str, grid_dims: Tuple[int, int],
+                                     known_boundaries: set, safe_regions: dict) -> Optional[Tuple[int, int, str]]:
+        """
+        Intelligent surveying: Instead of slow traversal through safe zones, jump to explore boundaries.
+
+        Strategy:
+        1. Find edges of safe regions and jump outward to test new territory
+        2. Make large coordinate jumps to quickly map the grid
+        3. Target unexplored quadrants
+        4. Push the bounds of understanding by testing boundary extensions
+
+        Returns: (x, y, reason) or None if no good survey target
+        """
+        grid_width, grid_height = grid_dims
+
+        # Strategy 1: Jump from safe region edges to unexplored territory
+        for region_id, region_data in safe_regions.items():
+            region_coords = region_data['coordinates']
+
+            # Find the extremes of this safe region
+            min_x = min(coord[0] for coord in region_coords)
+            max_x = max(coord[0] for coord in region_coords)
+            min_y = min(coord[1] for coord in region_coords)
+            max_y = max(coord[1] for coord in region_coords)
+
+            # Create jump targets that extend beyond the safe region
+            jump_targets = [
+                (min_x - 5, min_y - 3, f"Jump LEFT from safe region {region_id}"),
+                (max_x + 5, min_y - 3, f"Jump RIGHT from safe region {region_id}"),
+                (min_x - 3, min_y - 5, f"Jump UP from safe region {region_id}"),
+                (min_x - 3, max_y + 5, f"Jump DOWN from safe region {region_id}"),
+                # Diagonal jumps for comprehensive mapping
+                (min_x - 4, min_y - 4, f"Jump UP-LEFT from safe region {region_id}"),
+                (max_x + 4, min_y - 4, f"Jump UP-RIGHT from safe region {region_id}"),
+                (min_x - 4, max_y + 4, f"Jump DOWN-LEFT from safe region {region_id}"),
+                (max_x + 4, max_y + 4, f"Jump DOWN-RIGHT from safe region {region_id}")
+            ]
+
+            # Find valid jump targets that are in bounds and not near known boundaries
+            for target_x, target_y, reason in jump_targets:
+                # Clamp to grid bounds
+                target_x = max(0, min(target_x, grid_width - 1))
+                target_y = max(0, min(target_y, grid_height - 1))
+
+                # Check if this is far enough from known boundaries
+                if self._is_good_survey_target((target_x, target_y), known_boundaries, min_distance=3):
+                    return (target_x, target_y, reason)
+
+        # Strategy 2: Quadrant exploration - jump to unexplored grid quadrants
+        quadrants = [
+            (grid_width // 4, grid_height // 4, "Explore TOP-LEFT quadrant"),
+            (3 * grid_width // 4, grid_height // 4, "Explore TOP-RIGHT quadrant"),
+            (grid_width // 4, 3 * grid_height // 4, "Explore BOTTOM-LEFT quadrant"),
+            (3 * grid_width // 4, 3 * grid_height // 4, "Explore BOTTOM-RIGHT quadrant")
+        ]
+
+        for quad_x, quad_y, reason in quadrants:
+            if self._is_good_survey_target((quad_x, quad_y), known_boundaries, min_distance=5):
+                # Check if this quadrant is underexplored
+                quadrant_explored = any(
+                    abs(coord[0] - quad_x) < 8 and abs(coord[1] - quad_y) < 8
+                    for safe_coords in [region_data['coordinates'] for region_data in safe_regions.values()]
+                    for coord in safe_coords
+                )
+
+                if not quadrant_explored:
+                    return (quad_x, quad_y, reason)
+
+        # Strategy 3: Boundary extension - test just beyond known boundaries to find limits
+        boundary_extensions = []
+        for boundary_coord in known_boundaries:
+            bx, by = boundary_coord
+
+            # Try coordinates just beyond the boundary in multiple directions
+            extensions = [
+                (bx - 2, by, f"Test boundary extension LEFT of {boundary_coord}"),
+                (bx + 2, by, f"Test boundary extension RIGHT of {boundary_coord}"),
+                (bx, by - 2, f"Test boundary extension UP of {boundary_coord}"),
+                (bx, by + 2, f"Test boundary extension DOWN of {boundary_coord}")
+            ]
+
+            for ext_x, ext_y, reason in extensions:
+                # Clamp to grid bounds
+                ext_x = max(0, min(ext_x, grid_width - 1))
+                ext_y = max(0, min(ext_y, grid_height - 1))
+
+                if self._is_good_survey_target((ext_x, ext_y), known_boundaries, min_distance=2):
+                    boundary_extensions.append((ext_x, ext_y, reason))
+
+        if boundary_extensions:
+            return random.choice(boundary_extensions)
+
+        return None
+
+    def _is_good_survey_target(self, target_coord: Tuple[int, int], known_boundaries: set, min_distance: int = 3) -> bool:
+        """Check if a coordinate is a good survey target (not too close to known boundaries)."""
+        target_x, target_y = target_coord
+
+        for boundary_coord in known_boundaries:
+            bx, by = boundary_coord
+            distance = abs(target_x - bx) + abs(target_y - by)
+            if distance < min_distance:
+                return False
+
+        return True
+
+    def _detect_area_stagnation(self, game_id: str, recent_coords_limit: int = 8, area_threshold: int = 12) -> bool:
+        """
+        Detect if the system is stuck in a small area (moving back and forth in same region).
+
+        This is different from frame stagnation - we can have different frames but still be
+        stuck in the same small coordinate area.
+
+        Args:
+            game_id: Game identifier
+            recent_coords_limit: How many recent coordinates to analyze
+            area_threshold: Maximum area size to consider "stuck"
+
+        Returns:
+            True if stuck in small area, False otherwise
+        """
+        session = self._get_or_create_session(game_id)
+
+        # Get recent coordinate attempts
+        recent_coords = session.get('tried_pseudo_buttons', [])[-recent_coords_limit:]
+
+        if len(recent_coords) < 5:  # Need at least 5 coordinates to detect pattern
+            return False
+
+        # Calculate the bounding box of recent coordinates
+        if recent_coords:
+            x_coords = [coord[0] for coord in recent_coords]
+            y_coords = [coord[1] for coord in recent_coords]
+
+            min_x, max_x = min(x_coords), max(x_coords)
+            min_y, max_y = min(y_coords), max(y_coords)
+
+            area_width = max_x - min_x + 1
+            area_height = max_y - min_y + 1
+            area_size = area_width * area_height
+
+            # Check if we're confined to a small area
+            if area_size <= area_threshold:
+                logger.warning(f"🔒 AREA STAGNATION DETECTED: Confined to {area_width}x{area_height} area (size={area_size}) over {len(recent_coords)} moves")
+                logger.warning(f"🔒 Area bounds: X:{min_x}-{max_x}, Y:{min_y}-{max_y}")
+                return True
+
+        return False
+
+    def _should_force_exploration(self, game_id: str, context: Dict[str, Any] = None) -> bool:
+        """
+        Determine if we should force exploration mode even when pseudo-buttons are available.
+
+        This helps break out of repetitive patterns and small-area confinement.
+        """
+        session = self._get_or_create_session(game_id)
+
+        # Check multiple stagnation indicators
+        area_stuck = self._detect_area_stagnation(game_id)
+        frame_stuck = session.get('stagnation_count', 0) > 2
+
+        # Check if we've been trying the same small set of coordinates repeatedly
+        recent_coords = session.get('tried_pseudo_buttons', [])[-12:]
+        unique_recent = set(recent_coords[-8:]) if len(recent_coords) >= 8 else set(recent_coords)
+        coordinate_repetition = len(recent_coords) >= 5 and len(unique_recent) <= 5
+
+        # DEBUG: Log stagnation check details
+        if len(recent_coords) >= 3:  # Only log if we have some history
+            logger.debug(f"🔍 Stagnation check for {game_id}: area_stuck={area_stuck}, frame_stuck={frame_stuck}, coord_rep={coordinate_repetition}")
+            logger.debug(f"🔍 Recent coords: {len(recent_coords)} total, {len(unique_recent)} unique in last 8")
+            if recent_coords:
+                logger.debug(f"🔍 Last few coordinates: {recent_coords[-5:]}")
+
+        if area_stuck:
+            logger.info(f"🗺️ FORCING EXPLORATION: Area stagnation detected")
+            return True
+        elif coordinate_repetition:
+            logger.info(f"🗺️ FORCING EXPLORATION: Coordinate repetition - only {len(unique_recent)} unique coords in last {len(recent_coords)} moves")
+            return True
+        elif frame_stuck:
+            logger.info(f"🗺️ FORCING EXPLORATION: Frame stagnation count = {session.get('stagnation_count', 0)}")
+            return True
+
+        return False
 
 
 def create_action6_coordinator(db_interface=None, vision_detector=None) -> Action6Coordinator:
