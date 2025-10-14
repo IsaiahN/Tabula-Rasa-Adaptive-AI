@@ -101,7 +101,7 @@ class PseudoButtonDetector:
         for y in range(1, height - 1, 3):  # Sample every 3 pixels for efficiency
             for x in range(1, width - 1, 3):
                 # Check for potential rectangular button boundaries
-                current = frame[y][x]
+                current = self._extract_cell_value(frame[y][x])
 
                 # Look for edge patterns (significant color changes)
                 edges = 0
@@ -111,10 +111,9 @@ class PseudoButtonDetector:
                 ]
 
                 for neighbor in neighbors:
-                    if abs(current - neighbor) > 30:  # Threshold for edge detection
-                        edges += 1
-
-                # If we found strong edges, this might be a button corner/edge
+                    neighbor_val = self._extract_cell_value(neighbor)
+                    if abs(current - neighbor_val) > 30:  # Threshold for edge detection
+                        edges += 1                # If we found strong edges, this might be a button corner/edge
                 if edges >= 2:
                     # Check if this forms a rectangular region
                     button_info = self._analyze_potential_button_region(frame, x, y)

@@ -1,7 +1,6 @@
 -- TABULA RASA DATABASE SCHEMA
 -- Comprehensive SQLite database for ARC-AGI-3 training system
--- Generated from current tabula_rasa.db structure
--- Last updated: $(date)
+-- Last updated: 2025-10-14
 
 -- ============================================================================
 -- CORE SYSTEM TABLES

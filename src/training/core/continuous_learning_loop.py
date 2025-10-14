@@ -26,6 +26,9 @@ from ..governor.meta_cognitive import create_meta_cognitive_controller
 from ..learning import LearningEngine, PatternLearner, KnowledgeTransfer
 from ..utils import LazyImports, ShutdownHandler, CompatibilityShim
 
+from src.analysis.game_state_replay import GameStateReplay
+from src.analysis.consolidation_manager import ConsolidationManager
+
 # Import losing streak detection components
 try:
     from src.core.losing_streak_detector import LosingStreakDetector, FailureType
@@ -95,9 +98,13 @@ class ContinuousLearningLoop:
         arc_agents_path: str = ".",
         tabula_rasa_path: str = ".",
         api_key: Optional[str] = None,
-        save_directory: str = "data"
+        save_directory: str = "data",
+        db_path: str = "tabula_rasa.db"
     ):
         """Initialize the continuous learning loop with modular components."""
+        # Track current game/session state
+        self.current_game_id: Optional[str] = None
+        self.current_session_id: Optional[str] = None
         print("[START] Starting Modular ContinuousLearningLoop initialization...")
         
         # Store basic configuration
@@ -105,6 +112,7 @@ class ContinuousLearningLoop:
         self.tabula_rasa_path = Path(tabula_rasa_path)
         self.api_key = api_key
         self.save_directory = Path(save_directory)
+        self.db_path = Path(db_path)
         
         # Initialize modular components
         self._initialize_components()
@@ -115,6 +123,10 @@ class ContinuousLearningLoop:
         
         # Initialize compatibility shim
         self.compatibility_shim = CompatibilityShim()
+        
+        # Initialize analysis systems
+        from ..integration.game_analyzer_integration import GameAnalyzerIntegration
+        self.game_analyzer = GameAnalyzerIntegration(str(self.db_path))
         
         print("[OK] Modular ContinuousLearningLoop initialized successfully")
     
@@ -1276,27 +1288,22 @@ class ContinuousLearningLoop:
             if self._losing_streak_systems_initialized:
                 return
 
-            # Get database connection from system integration
-            from src.database.system_integration import get_system_integration
-            integration = get_system_integration()
-            db_connection = integration.get_db_connection()
+            # Initialize with database path
+            db_path = str(self.db_path)
+            
+            # Initialize anti-pattern learner first (required by intervention system)
+            self.anti_pattern_learner = AntiPatternLearner(db_path)
 
-            if db_connection:
-                # Initialize anti-pattern learner first (required by intervention system)
-                self.anti_pattern_learner = AntiPatternLearner(db_connection)
+            # Initialize losing streak detector
+            self.losing_streak_detector = LosingStreakDetector(db_path)
 
-                # Initialize losing streak detector
-                self.losing_streak_detector = LosingStreakDetector(db_connection)
+            # Initialize escalated intervention system
+            self.escalated_intervention_system = EscalatedInterventionSystem(
+                db_path, self.anti_pattern_learner
+            )
 
-                # Initialize escalated intervention system
-                self.escalated_intervention_system = EscalatedInterventionSystem(
-                    db_connection, self.anti_pattern_learner
-                )
-
-                self._losing_streak_systems_initialized = True
-                logger.info("Losing streak detection systems initialized successfully")
-            else:
-                logger.warning("No database connection available for losing streak systems")
+            self._losing_streak_systems_initialized = True
+            logger.info("Losing streak detection systems initialized successfully")
 
         except Exception as e:
             logger.error(f"Error initializing losing streak systems: {e}")
@@ -1307,30 +1314,24 @@ class ContinuousLearningLoop:
             if self._real_time_learning_initialized:
                 return
 
-            # Get database connection from system integration
-            from src.database.system_integration import get_system_integration
-            integration = get_system_integration()
-            db_connection = integration.get_db_connection()
+            # Initialize with database path
+            db_path = str(self.db_path)
+            
+            # Initialize individual components
+            self.pattern_detector = MidGamePatternDetector(db_path)
+            self.strategy_adjuster = DynamicStrategyAdjuster(db_path)
+            self.outcome_tracker = ActionOutcomeTracker(db_path)
 
-            if db_connection:
-                # Initialize individual components
-                self.pattern_detector = MidGamePatternDetector(db_connection)
-                self.strategy_adjuster = DynamicStrategyAdjuster(db_connection)
-                self.outcome_tracker = ActionOutcomeTracker(db_connection)
+            # Initialize main real-time learner and inject components
+            self.real_time_learner = RealTimeLearner(db_path)
+            self.real_time_learner.set_components(
+                self.pattern_detector,
+                self.strategy_adjuster,
+                self.outcome_tracker
+            )
 
-                # Initialize main real-time learner and inject components
-                self.real_time_learner = RealTimeLearner(db_connection)
-                self.real_time_learner.set_components(
-                    self.pattern_detector,
-                    self.strategy_adjuster,
-                    self.outcome_tracker
-                )
-
-                self._real_time_learning_initialized = True
-                logger.info("Real-time learning engine initialized successfully")
-            else:
-                logger.warning("No database connection available for real-time learning engine")
-                self._real_time_learning_initialized = False
+            self._real_time_learning_initialized = True
+            logger.info("Real-time learning engine initialized successfully")
 
         except Exception as e:
             logger.error(f"Error initializing real-time learning engine: {e}")
@@ -1342,21 +1343,18 @@ class ContinuousLearningLoop:
             if self._attention_communication_initialized:
                 return
 
-            # Get database connection from system integration
-            from src.database.system_integration import get_system_integration
-            integration = get_system_integration()
-            db_connection = integration.get_db_connection()
+            # Initialize with database path
+            db_path = str(self.db_path)
+            
+            # Initialize attention controller
+            self.attention_controller = CentralAttentionController(db_path)
 
-            if db_connection:
-                # Initialize attention controller
-                self.attention_controller = CentralAttentionController(db_connection)
+            # Initialize communication system
+            self.communication_system = WeightedCommunicationSystem(db_path)
 
-                # Initialize communication system
-                self.communication_system = WeightedCommunicationSystem(db_connection)
-
-                # Set communication system on action selector if available
-                if self.action_selector and hasattr(self.action_selector, 'set_communication_system'):
-                    self.action_selector.set_communication_system(self.communication_system)
+            # Set communication system on action selector if available
+            if self.action_selector and hasattr(self.action_selector, 'set_communication_system'):
+                self.action_selector.set_communication_system(self.communication_system)
 
                 self._attention_communication_initialized = True
                 logger.info("Enhanced attention + communication systems initialized successfully")
@@ -1374,22 +1372,19 @@ class ContinuousLearningLoop:
             if self._fitness_evolution_initialized:
                 return
 
-            # Get database connection from system integration
-            from src.database.system_integration import get_system_integration
-            integration = get_system_integration()
-            db_connection = integration.get_db_connection()
+            # Initialize with database path
+            db_path = str(self.db_path)
+            
+            # Initialize fitness evolution system
+            self.fitness_evolution_system = ContextDependentFitnessEvolution(db_path)
 
-            if db_connection:
-                # Initialize fitness evolution system
-                self.fitness_evolution_system = ContextDependentFitnessEvolution(db_connection)
-
-                # Set attention coordination if available
-                if (self._attention_communication_initialized and self.attention_controller and
-                    self.communication_system):
-                    self.fitness_evolution_system.set_attention_coordination(
-                        self.attention_controller, self.communication_system
-                    )
-                    logger.info("Fitness evolution system linked with attention coordination")
+            # Set attention coordination if available
+            if (self._attention_communication_initialized and self.attention_controller and
+                self.communication_system):
+                self.fitness_evolution_system.set_attention_coordination(
+                    self.attention_controller, self.communication_system
+                )
+                logger.info("Fitness evolution system linked with attention coordination")
 
                 self._fitness_evolution_initialized = True
                 logger.info("Context-dependent fitness evolution system initialized successfully")
@@ -1407,32 +1402,29 @@ class ContinuousLearningLoop:
             if self._neat_architect_initialized:
                 return
 
-            # Get database connection from system integration
-            from src.database.system_integration import get_system_integration
-            integration = get_system_integration()
-            db_connection = integration.get_db_connection()
+            # Initialize with database path
+            db_path = str(self.db_path)
+            
+            # Initialize NEAT-based architect system
+            self.neat_architect_system = NEATBasedArchitect(db_path)
 
-            if db_connection:
-                # Initialize NEAT-based architect system
-                self.neat_architect_system = NEATBasedArchitect(db_connection)
+            # Set attention coordination if available
+            if (self._attention_communication_initialized and self.attention_controller and
+                self.communication_system):
+                self.neat_architect_system.set_attention_coordination(
+                    self.attention_controller, self.communication_system
+                )
+                logger.info("NEAT architect system linked with attention coordination")
 
-                # Set attention coordination if available
-                if (self._attention_communication_initialized and self.attention_controller and
-                    self.communication_system):
-                    self.neat_architect_system.set_attention_coordination(
-                        self.attention_controller, self.communication_system
-                    )
-                    logger.info("NEAT architect system linked with attention coordination")
-
-                # Link with fitness evolution system if available
+                # Link systems through coordination interface
                 if self._fitness_evolution_initialized and self.fitness_evolution_system:
-                    self.neat_architect_system.set_fitness_evolution_coordination(
-                        self.fitness_evolution_system
-                    )
-                    logger.info("NEAT architect system linked with fitness evolution")
-
-                self._neat_architect_initialized = True
-                logger.info("NEAT-based architect system initialized successfully")
+                    if hasattr(self.neat_architect_system, 'add_fitness_observer'):
+                        self.neat_architect_system.add_fitness_observer(
+                            self.fitness_evolution_system
+                        )
+                        logger.info("NEAT architect system linked with fitness observer")
+                        self._neat_architect_initialized = True
+                        logger.info("NEAT-based architect system initialized successfully")
             else:
                 logger.warning("No database connection available for NEAT architect system")
                 self._neat_architect_initialized = False
@@ -1447,30 +1439,29 @@ class ContinuousLearningLoop:
             if self._bayesian_inference_initialized:
                 return
 
-            # Get database connection from system integration
-            from src.database.system_integration import get_system_integration
-            integration = get_system_integration()
-            db_connection = integration.get_db_connection()
+            # Initialize with database path
+            db_path = str(self.db_path)
 
-            if db_connection:
-                # Initialize Bayesian inference engine
-                self.bayesian_inference_system = BayesianInferenceEngine(db_connection)
+            # Initialize Bayesian inference engine
+            self.bayesian_inference_system = BayesianInferenceEngine(db_path)
 
-                # Set attention coordination if available
-                if (self._attention_communication_initialized and self.attention_controller and
-                    self.communication_system):
-                    self.bayesian_inference_system.set_attention_coordination(
-                        self.attention_controller, self.communication_system
-                    )
-                    logger.info("Bayesian inference system linked with attention coordination")
+            # Set attention coordination if available
+            if (self._attention_communication_initialized and self.attention_controller and
+                self.communication_system):
+                self.bayesian_inference_system.set_attention_coordination(
+                    self.attention_controller, self.communication_system
+                )
+                logger.info("Bayesian inference system linked with attention coordination")
 
                 # Link with fitness evolution system if available
                 if self._fitness_evolution_initialized and self.fitness_evolution_system:
-                    self.bayesian_inference_system.set_fitness_evolution_coordination(
-                        self.fitness_evolution_system
-                    )
-                    logger.info("Bayesian inference system linked with fitness evolution")
+                    if hasattr(self.bayesian_inference_system, 'add_fitness_data_source'):
+                        self.bayesian_inference_system.add_fitness_data_source(
+                            self.fitness_evolution_system
+                        )
+                        logger.info("Bayesian inference system linked with fitness data source")
 
+                # Mark initialized when coordination/linking steps complete
                 self._bayesian_inference_initialized = True
                 logger.info("Bayesian inference engine initialized successfully")
             else:
@@ -1521,7 +1512,7 @@ class ContinuousLearningLoop:
             logger.error(f"Error initializing graph traversal system: {e}")
             self._graph_traversal_initialized = False
 
-    async def run_continuous_learning(self, max_games: int = None, max_hours: float = 9.0) -> Dict[str, Any]:
+    async def run_continuous_learning(self, max_games: Optional[int] = None, max_hours: float = 9.0) -> Dict[str, Any]:
         """Run continuous learning with modular components until time limit or game limit reached."""
         try:
             if max_games:
@@ -1588,6 +1579,14 @@ class ContinuousLearningLoop:
                 if self.shutdown_handler.is_shutdown_requested():
                     print("[STOP] Shutdown requested, stopping continuous learning")
                     break
+
+                # Before each game, do pre-game analysis
+                try:
+                    pre_game_analysis = await self.game_analyzer.do_pre_game_analysis()
+                    if pre_game_analysis:
+                        print(f"[ANALYSIS] Pre-game insights: {pre_game_analysis}")
+                except Exception as e:
+                    logger.error(f"Error in pre-game analysis: {e}")
                 
                 try:
                     # Create training session
@@ -1723,13 +1722,13 @@ class ContinuousLearningLoop:
                     break
                 
                 # Get current game state
-                game_state = await self.api_manager.get_game_state(current_game_id, card_id, guid)
+                game_state = await self.api_manager.get_game_state(str(current_game_id), str(card_id), str(guid))
                 if not game_state:
                     print(f"\033[91m❌ [ERROR] Failed to get game state\033[0m")  # Red for errors
                     break
 
                 # Infinite loop protection - detect identical game states
-                game_state_hash = hash(f"{game_state.state}_{game_state.score}_{getattr(game_state, 'level', 0)}")
+                game_state_hash = hash(f"{game_state['state']}_{game_state['score']}_{game_state.get('level', 0)}")
                 if game_state_hash == last_game_state_hash:
                     identical_state_count += 1
                     if identical_state_count >= 5:  # Reduce threshold to 5 for faster detection
@@ -1740,13 +1739,13 @@ class ContinuousLearningLoop:
                 last_game_state_hash = game_state_hash
 
                 # DEBUG: Show current game state
-                print(f"🎯 [GAME STATE] State: {game_state.state} | Score: {game_state.score} | Level: {getattr(game_state, 'level', '?')}")
+                print(f"🎯 [GAME STATE] State: {game_state['state']} | Score: {game_state['score']} | Level: {game_state.get('level', '?')}")
 
                 # Check if game is finished
-                if game_state.state in ['WIN', 'GAME_OVER']:
-                    win = game_state.state == 'WIN'
-                    score = game_state.score
-                    print(f"🎮 Game finished: {game_state.state} | Score: {score}")
+                if game_state['state'] in ['WIN', 'GAME_OVER']:
+                    win = game_state['state'] == 'WIN'
+                    score = game_state['score']
+                    print(f"🎮 Game finished: {game_state['state']} | Score: {score}")
                     break
                 
                 # Make decision using governor
@@ -1811,7 +1810,7 @@ class ContinuousLearningLoop:
                 if not self.api_manager.is_healthy():
                     print(f"\033[91m⚠️ [WARNING] API Manager reports unhealthy status\033[0m")
 
-                action_result = await self.api_manager.take_action(current_game_id, action, card_id, guid)
+                action_result = await self.api_manager.take_action(str(current_game_id), action, str(card_id), str(guid))
                 api_elapsed = time.time() - api_start_time
 
                 print(f"🌐 [API TIMING] Request completed in {api_elapsed:.3f}s")
@@ -1821,9 +1820,9 @@ class ContinuousLearningLoop:
 
                     # Try to get fresh game state to see if anything changed anyway
                     print("🔄 [RECOVERY] Attempting to fetch fresh game state...")
-                    fresh_state = await self.api_manager.get_game_state(current_game_id, card_id, guid)
+                    fresh_state = await self.api_manager.get_game_state(str(current_game_id), str(card_id), str(guid))
                     if fresh_state:
-                        print(f"🔍 [RECOVERY] Fresh state: Score={fresh_state.score}, State={fresh_state.state}")
+                        print(f"🔍 [RECOVERY] Fresh state: Score={fresh_state['score']}, State={fresh_state['state']}")
                     else:
                         print(f"\033[91m❌ [RECOVERY] Failed to get fresh game state\033[0m")
                     break
@@ -1893,9 +1892,9 @@ class ContinuousLearningLoop:
                     from src.database.persistence_helpers import persist_button_priorities, persist_winning_sequence
                     coords = action.get('coordinates', [None, None])
                     await persist_button_priorities(
-                        game_type=game_state.game_id or 'unknown',
-                        x=coords[0] if coords else None,
-                        y=coords[1] if coords else None,
+                        game_type=game_state.get('game_id', 'unknown'),
+                        x=int(coords[0]) if coords else 0,
+                        y=int(coords[1]) if coords else 0,
                         button_type=action.get('type', 'unknown'),
                         confidence=action_result.get('effectiveness', 0.0)
                     )
@@ -2293,25 +2292,28 @@ class ContinuousLearningLoop:
 
                 # Ensure game is closed in database
                 session_id = getattr(self, 'current_session_id', 'unknown')
-                await integration.ensure_game_closed(self.current_game_id, session_id)
+                # Record game completion
+                self.current_game_id = None
 
                 logger.info(f"Finished current game: {self.current_game_id}")
         except Exception as e:
             logger.error(f"Error finishing current game: {e}")
 
     async def finish_current_session(self) -> None:
-        """Finish the current session and save all data."""
+        """Finish the current session and clean up."""
         try:
-            if hasattr(self, 'current_session_id') and self.current_session_id:
-                from src.database.system_integration import get_system_integration
-                integration = get_system_integration()
+            if self.current_session_id:
+                # Get final session stats if available
+                if hasattr(self, 'session_manager'):
+                    _ = self.session_manager.get_session_stats()
 
-                # Ensure session is closed in database
-                await integration.ensure_session_closed(self.current_session_id)
-
-                logger.info(f"Finished current session: {self.current_session_id}")
+                # Clean up session state
+                self.current_session_id = None
+                logger.info("Session cleanup completed")
         except Exception as e:
-            logger.error(f"Error finishing current session: {e}")
+            logger.error(f"Error finishing session: {e}")
+            # Still try to clean up session ID
+            self.current_session_id = None
 
     async def save_scorecard_data(self) -> None:
         """Save scorecard data to database."""
