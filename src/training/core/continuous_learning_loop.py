@@ -150,6 +150,10 @@ class ContinuousLearningLoop:
         if not hasattr(self, 'api_manager'):
             raise RuntimeError("ContinuousLearningLoop not properly initialized")
         print("[OK] System initialization verified")
+
+    # Backwards compatible wrapper
+    def ensure_initialized(self) -> None:
+        return self._ensure_initialized()
     
     async def get_available_games(self) -> List[Dict[str, Any]]:
         """Get list of available games from the real ARC-AGI-3 API."""
