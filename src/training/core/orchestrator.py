@@ -12,6 +12,11 @@ class Orchestrator:
     def __init__(self, **kwargs):
         # Delegate to legacy ContinuousLearningLoop for now
         self._core = ContinuousLearningLoop(**kwargs)
+        # Allow the core to call back into this facade during migration
+        try:
+            setattr(self._core, 'orchestrator', self)
+        except Exception:
+            pass
 
     async def start_training(self, game_id: str, **kwargs) -> Dict[str, Any]:
         return await self._core.start_training_with_direct_control(game_id, **kwargs)
@@ -33,4 +38,10 @@ class Orchestrator:
             return self._core._ensure_initialized()
         if hasattr(self._core, 'ensure_initialized'):
             return self._core.ensure_initialized()
+        return None
+
+    def initialize_components(self):
+        """Initialize underlying modular components via the legacy core."""
+        if hasattr(self._core, '_initialize_components'):
+            return self._core._initialize_components()
         return None

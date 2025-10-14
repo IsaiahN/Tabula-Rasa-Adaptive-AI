@@ -1197,7 +1197,13 @@ class ContinuousLearningLoop:
     
     def _initialize_components(self) -> None:
         """Initialize all modular components."""
+        # If wrapped by an Orchestrator facade, let it perform initialization
         try:
+            # Orchestrator facade may call into this method; allow idempotent behavior
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_components'):
+                return self.orchestrator.initialize_components()
+
+            # Otherwise perform the initialization locally
             # Memory management (use singleton)
             self.memory_manager = create_memory_manager()
             self.action_memory = ActionMemoryManager(self.memory_manager)
