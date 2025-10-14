@@ -1,3 +1,14 @@
+"""Centralized configuration for Tabula-Rasa (package location expected by imports).
+
+Minimal, environment-driven settings used by legacy imports.
+"""
+import os
+from pathlib import Path
+
+DB_PATH = os.environ.get('TABULA_RASA_DB', str(Path.cwd() / 'tabula_rasa.db'))
+USE_STUB_API_FOR_CI = os.environ.get('USE_STUB_API_FOR_CI', '0') in ('1', 'true', 'True')
+MINIMAL_MODE = os.environ.get('MINIMAL_MODE', '1') in ('1', 'true', 'True')
+API_HOST = os.environ.get('ARC3_API_HOST', 'https://api.example.com')
 """
 Centralized configuration module to eliminate duplication between master_arc_trainer.py and continuous_learning_loop.py
 

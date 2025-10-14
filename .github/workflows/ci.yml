@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ Tabula-Rasa-v4, main, master ]
+  pull_request:
+    branches: [ Tabula-Rasa-v4, main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+    env:
+      USE_STUB_API_FOR_CI: '1'    # Explicit opt-in for CI runs (required)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install pytest pytest-asyncio anyio
+
+      - name: Run focused tests (tests/ only) and smoke
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          USE_STUB_API_FOR_CI: ${{ env.USE_STUB_API_FOR_CI }}
+        run: |
+          echo "Running unit tests in tests/"
+          python -m pytest -q tests
+          echo "Running smoke minimal script"
+          python -c "import subprocess, sys; rc = subprocess.run([sys.executable, 'scripts/run_minimal.py','--use-stub-api-for-ci','--max-actions','1']).returncode; sys.exit(rc)"
