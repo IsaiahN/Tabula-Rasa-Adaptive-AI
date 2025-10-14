@@ -45,3 +45,9 @@ class Orchestrator:
         if hasattr(self._core, '_initialize_components'):
             return self._core._initialize_components()
         return None
+
+    def initialize_losing_streak_systems(self):
+        """Initialize the losing-streak detection systems via the core."""
+        if hasattr(self._core, '_initialize_losing_streak_systems'):
+            return self._core._initialize_losing_streak_systems()
+        return None

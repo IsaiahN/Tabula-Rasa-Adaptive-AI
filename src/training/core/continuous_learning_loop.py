@@ -1294,7 +1294,12 @@ class ContinuousLearningLoop:
 
     def _initialize_losing_streak_systems(self):
         """Initialize losing streak detection systems with database connection."""
+        # Delegate to Orchestrator facade if present
         try:
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_losing_streak_systems'):
+                return self.orchestrator.initialize_losing_streak_systems()
+
+            # Otherwise continue with local initialization
             if self._losing_streak_systems_initialized:
                 return
 
