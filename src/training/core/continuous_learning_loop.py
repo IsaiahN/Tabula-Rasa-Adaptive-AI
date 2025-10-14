@@ -1325,7 +1325,11 @@ class ContinuousLearningLoop:
 
     def _initialize_real_time_learning_systems(self):
         """Initialize real-time learning engine systems with database connection."""
+        # Delegate to Orchestrator facade if present
         try:
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_real_time_learning_systems'):
+                return self.orchestrator.initialize_real_time_learning_systems()
+
             if self._real_time_learning_initialized:
                 return
 

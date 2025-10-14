@@ -51,3 +51,9 @@ class Orchestrator:
         if hasattr(self._core, '_initialize_losing_streak_systems'):
             return self._core._initialize_losing_streak_systems()
         return None
+
+    def initialize_real_time_learning_systems(self):
+        """Initialize the real-time learning subsystems via the core."""
+        if hasattr(self._core, '_initialize_real_time_learning_systems'):
+            return self._core._initialize_real_time_learning_systems()
+        return None
