@@ -1,0 +1,11 @@
+{
+  "module": "bench.targets.game_runner_target",
+  "func": "main",
+  "iterations": 1,
+  "stats": {
+    "runs": 1,
+    "avg": 0.6973345000296831,
+    "min": 0.6973345000296831,
+    "max": 0.6973345000296831
+  }
+}
