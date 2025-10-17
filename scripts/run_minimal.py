@@ -1,6 +1,12 @@
 """Simple CLI to run TB-Seed minimal mode using GameRunner."""
 import asyncio
 import argparse
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.training.game_runner import GameRunner
 from src.vision.schema import validate_detections
@@ -25,7 +31,12 @@ async def main(args):
         await api.initialize()
     else:
         if APIManager:
-            api = APIManager(api_key=None)
+            # Get API key from environment variable
+            import os
+            api_key = os.getenv('ARC_API_KEY') or os.getenv('ARC_AGI_3_API_KEY')
+            if not api_key:
+                raise RuntimeError("ARC_API_KEY environment variable required for real API calls")
+            api = APIManager(api_key=api_key)
             if hasattr(api, 'initialize'):
                 await api.initialize()
 
