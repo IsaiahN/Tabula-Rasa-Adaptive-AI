@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2025-10-16T21:01:50.518805",
+    "results": {
+      "module": "bench.targets.game_runner_target",
+      "func": "main",
+      "iterations": 1,
+      "stats": {
+        "runs": 1,
+        "avg": 0.7940893999766558,
+        "min": 0.7940893999766558,
+        "max": 0.7940893999766558
+      }
+    }
+  }
+]

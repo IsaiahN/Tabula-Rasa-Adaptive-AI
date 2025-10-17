@@ -5,6 +5,7 @@ This runner depends only on the `APIManager` contract from the seed. It uses asy
 from typing import Any, Dict, Optional
 import asyncio
 from datetime import datetime
+from src.vision.schema import validate_detections
 
 try:
     from src.vision.frame_provider import DummyFrameProvider
@@ -76,7 +77,16 @@ class GameRunner:
 
             detections = []
             if self.detector and frame is not None:
-                detections = await self.detector.detect_objects(frame)
+                raw = await self.detector.detect_objects(frame)
+                # Validate shape; allow empty list or filtered valid detections
+                try:
+                    if validate_detections(raw):
+                        detections = raw
+                    else:
+                        # keep defensive: filter only valid dict-like detections
+                        detections = [d for d in raw if isinstance(d, dict) and d.get('bbox')]
+                except Exception:
+                    detections = []
 
             # Decide action: if detection available choose ACTION6 with coords, else random action
             if detections:
