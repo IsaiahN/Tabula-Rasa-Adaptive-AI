@@ -65,6 +65,12 @@ CREATE_TABLES_SQL = [
         context TEXT
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS migrations (
+        migration_id TEXT PRIMARY KEY,
+        applied_at TEXT
+    )
+    """,
 ]
 
 class DBFacade:
@@ -84,6 +90,32 @@ class DBFacade:
             cur = conn.cursor()
             for stmt in CREATE_TABLES_SQL:
                 cur.execute(stmt)
+            conn.commit()
+        finally:
+            conn.close()
+
+    # Migration helpers
+    def has_migration(self, migration_id: str) -> bool:
+        conn = self._get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT 1 FROM migrations WHERE migration_id = ?", (migration_id,))
+            return cur.fetchone() is not None
+        finally:
+            conn.close()
+
+    def apply_migration(self, migration_id: str, sql: str) -> None:
+        """Apply a migration SQL (simple helper). This is intentionally minimal.
+
+        Note: callers should ensure migrations are idempotent.
+        """
+        if self.has_migration(migration_id):
+            return
+        conn = self._get_conn()
+        try:
+            cur = conn.cursor()
+            cur.executescript(sql)
+            cur.execute("INSERT INTO migrations(migration_id, applied_at) VALUES (?, datetime('now'))", (migration_id,))
             conn.commit()
         finally:
             conn.close()
