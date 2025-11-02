@@ -346,10 +346,16 @@ class ConsolidatedTrainingSystem:
         self.system_type = "LEGACY"
         import tempfile
         self.temp_dir = tempfile.mkdtemp(prefix="training_session_")
-        self.legacy_loop = ContinuousLearningLoop(
-            api_key=self.api_key,
-            save_directory=Path(self.temp_dir)
-        )
+        # Prefer the new Orchestrator facade if available (incremental extraction)
+        try:
+            from src.training.core.orchestrator import Orchestrator
+            self.legacy_loop = Orchestrator(api_key=self.api_key, save_directory=Path(self.temp_dir))
+            print("[INFO] Using Orchestrator facade for legacy system")
+        except Exception:
+            self.legacy_loop = ContinuousLearningLoop(
+                api_key=self.api_key,
+                save_directory=Path(self.temp_dir)
+            )
         logger.info("Legacy training system initialized")
 
     async def run_training(self,

@@ -150,6 +150,10 @@ class ContinuousLearningLoop:
         if not hasattr(self, 'api_manager'):
             raise RuntimeError("ContinuousLearningLoop not properly initialized")
         print("[OK] System initialization verified")
+
+    # Backwards compatible wrapper
+    def ensure_initialized(self) -> None:
+        return self._ensure_initialized()
     
     async def get_available_games(self) -> List[Dict[str, Any]]:
         """Get list of available games from the real ARC-AGI-3 API."""
@@ -1193,7 +1197,13 @@ class ContinuousLearningLoop:
     
     def _initialize_components(self) -> None:
         """Initialize all modular components."""
+        # If wrapped by an Orchestrator facade, let it perform initialization
         try:
+            # Orchestrator facade may call into this method; allow idempotent behavior
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_components'):
+                return self.orchestrator.initialize_components()
+
+            # Otherwise perform the initialization locally
             # Memory management (use singleton)
             self.memory_manager = create_memory_manager()
             self.action_memory = ActionMemoryManager(self.memory_manager)
@@ -1284,7 +1294,12 @@ class ContinuousLearningLoop:
 
     def _initialize_losing_streak_systems(self):
         """Initialize losing streak detection systems with database connection."""
+        # Delegate to Orchestrator facade if present
         try:
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_losing_streak_systems'):
+                return self.orchestrator.initialize_losing_streak_systems()
+
+            # Otherwise continue with local initialization
             if self._losing_streak_systems_initialized:
                 return
 
@@ -1310,7 +1325,11 @@ class ContinuousLearningLoop:
 
     def _initialize_real_time_learning_systems(self):
         """Initialize real-time learning engine systems with database connection."""
+        # Delegate to Orchestrator facade if present
         try:
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_real_time_learning_systems'):
+                return self.orchestrator.initialize_real_time_learning_systems()
+
             if self._real_time_learning_initialized:
                 return
 
@@ -1340,6 +1359,10 @@ class ContinuousLearningLoop:
     def _initialize_attention_communication_systems(self):
         """Initialize enhanced attention + communication systems with database connection."""
         try:
+            # Delegate to Orchestrator facade if present for migration path
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_attention_communication_systems'):
+                return self.orchestrator.initialize_attention_communication_systems()
+
             if self._attention_communication_initialized:
                 return
 
@@ -1369,6 +1392,10 @@ class ContinuousLearningLoop:
     def _initialize_fitness_evolution_system(self):
         """Initialize context-dependent fitness evolution system with database connection."""
         try:
+            # Delegate to Orchestrator facade if present
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_fitness_evolution_system'):
+                return self.orchestrator.initialize_fitness_evolution_system()
+
             if self._fitness_evolution_initialized:
                 return
 
@@ -1399,6 +1426,10 @@ class ContinuousLearningLoop:
     def _initialize_neat_architect_system(self):
         """Initialize NEAT-based architect system with database connection."""
         try:
+            # Delegate to Orchestrator facade if present
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_neat_architect_system'):
+                return self.orchestrator.initialize_neat_architect_system()
+
             if self._neat_architect_initialized:
                 return
 
@@ -1436,6 +1467,10 @@ class ContinuousLearningLoop:
     def _initialize_bayesian_inference_system(self):
         """Initialize Bayesian inference engine with database connection."""
         try:
+            # Delegate to Orchestrator facade if present
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_bayesian_inference_system'):
+                return self.orchestrator.initialize_bayesian_inference_system()
+
             if self._bayesian_inference_initialized:
                 return
 
@@ -1475,6 +1510,10 @@ class ContinuousLearningLoop:
     def _initialize_graph_traversal_system(self):
         """Initialize enhanced graph traversal system with database connection."""
         try:
+            # Delegate to Orchestrator facade if present
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'initialize_graph_traversal_system'):
+                return self.orchestrator.initialize_graph_traversal_system()
+
             if self._graph_traversal_initialized:
                 return
 

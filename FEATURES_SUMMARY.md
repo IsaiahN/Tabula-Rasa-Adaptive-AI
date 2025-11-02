@@ -76,3 +76,8 @@ This document is an inventory of the major features and modules present in the T
 
 
 *This inventory is intentionally high-level. The next step (SIMPLIFICATIONS.md) will analyze pros/cons and propose simplifications.*
+
+Additions in TB-Seed work:
+- `src/vision/schema.py` — small validator for detection outputs (`bbox`,`label`,`confidence/score`).
+- `scripts/run_minimal.py` and `src/training/game_runner.py` updated to use the minimal runner & opt-in stub API for CI.
+
