@@ -3,6 +3,7 @@ import asyncio
 import argparse
 
 from src.training.game_runner import GameRunner
+from src.vision.schema import validate_detections
 
 # Try to import APIManager from existing codebase
 try:
